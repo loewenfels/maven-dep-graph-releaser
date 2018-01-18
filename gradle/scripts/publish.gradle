@@ -1,0 +1,107 @@
+import com.jfrog.bintray.gradle.BintrayPlugin
+
+logger.info("setting up publish for $project, $publish_groupId:$publish_artifactId:$publish_version")
+logger.info("publish_description: $publish_description")
+logger.info("publish_artifacts: $publish_artifacts\n")
+
+group = publish_groupId
+version = publish_version
+description = publish_description
+
+buildscript {
+    ext{
+        publish_license_name = findProperty('publish_license_name') ?: 'Apache-2.0'
+        publish_license_description =  findProperty('publish_license_description') ?: 'The Apache Software License, Version 2.0'
+        publish_license_url = findProperty('publish_license_url') ?: 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+        publish_license_distribution = findProperty('publish_license_distribution') ?: 'repo'
+
+        publish_dev_id = findProperty('publish_dev_id') ?: 'robstoll'
+        publish_dev_name = findProperty('publish_dev_name') ?: 'Robert Stoll'
+        publish_dev_email = findProperty('publish_dev_email') ?: 'robert.stoll@loewenfels.ch'
+
+        publish_repo = findProperty('publish_repo') ?: 'loewenfels'
+        publish_pkg_name = findProperty('publish_pkg_name') ?: publish_artifactId
+        publish_groupId = findProperty('publish_groupId') ?: 'ch.loewenfels'
+    }
+
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:$bintray_version"
+    }
+}
+
+apply plugin: BintrayPlugin
+apply plugin: 'maven-publish'
+
+
+def pomConfig = {
+    licenses {
+        license {
+            name publish_license_description
+            url publish_license_url
+            distribution publish_license_distribution
+        }
+    }
+    developers {
+        developer {
+            id publish_dev_id
+            name publish_dev_name
+            email publish_dev_email
+        }
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            publish_artifacts.each{
+                artifact it
+            }
+            groupId publish_groupId
+            artifactId publish_artifactId
+            version publish_version
+
+            pom.withXml {
+                def root = asNode()
+                root.appendNode('description', publish_description)
+                root.children().last() + pomConfig
+            }
+        }
+    }
+}
+
+bintray {
+    user = findProperty('bintrayUser') ?: System.getenv('BINTRAY_USER')
+    key = findProperty('bintrayApiKey') ?: System.getenv('BINGTRAY_API_KEY')
+    publications = ['mavenJava']
+    pkg {
+        repo = publish_repo
+        name = publish_pkg_name
+        licenses = [publish_license_name]
+        vcsUrl = publish_vcsUrl
+        version {
+            name = publish_version
+            desc = "$publish_pkg_name $publish_version"
+            released  = new Date()
+            vcsTag = "v$publish_version"
+            gpg {
+                sign = true
+                passphrase = findProperty('gpgPassphrase') ?: System.getenv('GPG_PASSPHRASE')
+            }
+        }
+    }
+}
+
+tasks.withType(Jar) { task ->
+    task.manifest {
+        attributes \
+            'Implementation-Title': publish_artifactId, \
+            'Implementation-Version': publish_version, \
+            'Implementation-Kotlin-Version': kotlin_version, \
+            'Build-Time': new Date().format('yyyy-MM-dd\'T\'HH:mm:ssZ')
+    }
+}
