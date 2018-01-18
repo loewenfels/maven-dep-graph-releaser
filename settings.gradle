@@ -1,0 +1,3 @@
+rootProject.name = 'maven-dep-graph-releaser'
+
+include "${rootProject.name}-analyser"

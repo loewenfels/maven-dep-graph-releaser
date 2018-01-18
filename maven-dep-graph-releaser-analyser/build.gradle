@@ -1,0 +1,3 @@
+buildscript {
+    ext.publish_description = 'Contains the analyser which creates the release data-structure.'
+}
