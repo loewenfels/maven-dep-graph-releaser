@@ -1,0 +1,8 @@
+buildscript {
+    ext.publish_description = 'Contains the analyser which creates the release data-structure.'
+}
+
+dependencies {
+    compile project(":${rootProject.name}-api")
+    compile project(":${rootProject.name}-maven-api")
+}
