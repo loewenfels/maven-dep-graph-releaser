@@ -1,3 +1,4 @@
 rootProject.name = 'dep-graph-releaser'
 
+include "${rootProject.name}-api"
 include "${rootProject.name}-analyser"
