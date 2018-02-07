@@ -1,9 +1,9 @@
 package ch.loewenfels.depgraph.data.maven
 
-import ch.loewenfels.depgraph.data.Id
+import ch.loewenfels.depgraph.data.ProjectId
 
 /**
- * Represents an [ProjectId] for maven projects composed by [groupId]:[artifactId]:[packaging]:[classifier].
+ * Represents a [ProjectId] for maven projects composed by [groupId]:[artifactId]:[packaging]:[classifier].
  *
  * Have a look at [Apache's Documentation](https://maven.apache.org/pom.html#Maven_Coordinates) for further information.
  *
@@ -17,7 +17,7 @@ data class MavenProjectId(
     val artifactId: String,
     override val version: String,
     val packaging: String = "jar",
-    val classifier: String = "") : Id {
+    val classifier: String = "") : ProjectId {
 
     /**
      * Returns [groupId]:[artifactId]:[packaging]:[classifier]
