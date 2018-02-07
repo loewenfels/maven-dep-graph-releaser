@@ -1,3 +1,3 @@
-rootProject.name = 'maven-dep-graph-releaser'
+rootProject.name = 'dep-graph-releaser'
 
 include "${rootProject.name}-analyser"

@@ -56,7 +56,7 @@ subprojects {
     }
 }
 
-def projectsWithSources = subprojects
+def projectsWithSources = subprojects - projectsWithoutSources
 configure(projectsWithSources) {
     apply plugin: 'org.jetbrains.dokka'
 
