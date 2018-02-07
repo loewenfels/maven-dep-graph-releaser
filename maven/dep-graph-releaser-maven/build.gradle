@@ -5,4 +5,5 @@ buildscript {
 dependencies {
     compile project(":${rootProject.name}-api")
     compile project(":${rootProject.name}-maven-api")
+    compile "ch.tutteli.copies:pom-explorer-core:$pom_explorer_version"
 }

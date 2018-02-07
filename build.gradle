@@ -117,6 +117,7 @@ configure(jacocoMulti.jacocoProjects) {
     apply from: "${rootProject.projectDir}/gradle/scripts/spek.gradle"
 
     dependencies {
+        testCompile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
         testCompile("com.nhaarman:mockito-kotlin:$mockito_kotlin_version") {
             exclude group: 'org.jetbrains.kotlin'
         }
