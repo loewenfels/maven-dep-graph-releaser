@@ -8,10 +8,7 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.tutteli.atrium.*
 import ch.tutteli.atrium.api.cc.en_UK.*
 import org.jetbrains.spek.api.Spek
-import org.jetbrains.spek.api.dsl.ActionBody
-import org.jetbrains.spek.api.dsl.describe
-import org.jetbrains.spek.api.dsl.given
-import org.jetbrains.spek.api.dsl.it
+import org.jetbrains.spek.api.dsl.*
 import java.io.File
 
 object MavenFacadeSpec : Spek({
@@ -90,10 +87,10 @@ object MavenFacadeSpec : Spek({
         }
     }
 
-    given("project with dependency incl. version") {
+    fun SpecBody.testProjectBWithDependencyToA(directory: String){
         describe(testee::analyseAndCreateReleasePlan.name) {
             action("the root project is the one we want to release") {
-                val rootProject = testee.analyseAndCreateReleasePlan(exampleAProjectId, getTestDirectory("projectWithDependency"))
+                val rootProject = testee.analyseAndCreateReleasePlan(exampleAProjectId, getTestDirectory(directory))
                 assert(rootProject.id).toBe(exampleAProjectId)
 
                 testRootProjectOnlyReleaseAndReady(rootProject, "1.1.1", "1.1.2-SNAPSHOT")
@@ -116,5 +113,17 @@ object MavenFacadeSpec : Spek({
                 }
             }
         }
+    }
+
+    given("project with dependency incl. version") {
+        testProjectBWithDependencyToA("projectWithDependency")
+    }
+
+    given("project with dependency and version in dependency management") {
+        testProjectBWithDependencyToA("projectWithDependency")
+    }
+
+    given("project with parent dependency") {
+        testProjectBWithDependencyToA("projectWithParent")
     }
 })
