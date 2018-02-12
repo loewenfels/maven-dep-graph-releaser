@@ -20,7 +20,7 @@ object MavenFacadeSpec : Spek({
     fun getTestDirectory(name: String) = File(MavenFacadeSpec.javaClass.getResource("/$name/").path)
 
     fun ActionBody.testRootProjectOnlyReleaseAndReady(rootProject: Project, newVersion: String, nextDevVersion: String) {
-        test("its ${Project::newVersion.name} is $newVersion"){
+        test("its ${Project::newVersion.name} is $newVersion") {
             assert(rootProject.newVersion).toBe(newVersion)
         }
         test("it contains just the ${JenkinsMavenReleasePlugin::class.simpleName} command, which is Ready with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = $newVersion") {
@@ -32,6 +32,51 @@ object MavenFacadeSpec : Spek({
                     }
                 })
             }
+        }
+    }
+
+    fun ActionBody.testReleaseSingleProject(projectId: ProjectId, directory: String, newVersion: String, nextDevVersion: String) {
+        val rootProject = testee.analyseAndCreateReleasePlan(projectId, getTestDirectory(directory))
+        assert(rootProject.id).toBe(projectId)
+
+        testRootProjectOnlyReleaseAndReady(rootProject, newVersion, nextDevVersion)
+
+        test("it does not have any dependent project") {
+            assert(rootProject.dependents).isEmpty()
+        }
+    }
+
+    fun SpecBody.testReleaseAWithDependentB(directory: String) {
+        describe(testee::analyseAndCreateReleasePlan.name) {
+            action("the root project is the one we want to release") {
+                val rootProject = testee.analyseAndCreateReleasePlan(exampleAProjectId, getTestDirectory(directory))
+                assert(rootProject.id).toBe(exampleAProjectId)
+
+                testRootProjectOnlyReleaseAndReady(rootProject, "1.1.1", "1.1.2-SNAPSHOT")
+
+                test("it has one dependent project b") {
+                    assert(rootProject.dependents).containsStrictly({
+                        idAndNewVersion(exampleBProjectId, "1.0.1")
+                    })
+                }
+                test("project b has two commands, updateVersion and Release") {
+                    assert(rootProject.dependents[0].commands).containsStrictly(
+                        {
+                            isA<JenkinsUpdateDependency> {
+                                stateWaitingWithDependencies(exampleAProjectId)
+                                property(subject::projectId).toBe(exampleAProjectId)
+                            }
+                        },
+                        { isA<JenkinsMavenReleasePlugin> { stateWaitingWithDependencies(exampleAProjectId) } }
+                    )
+                }
+            }
+        }
+    }
+
+    fun SpecBody.testReleaseBWithNoDependet(directory: String) {
+        action("we release project B (no dependent at all)") {
+            testReleaseSingleProject(exampleBProjectId, directory, "1.0.1", "1.0.2-SNAPSHOT")
         }
     }
 
@@ -72,58 +117,36 @@ object MavenFacadeSpec : Spek({
         }
     }
 
+
     given("single project with third party dependencies") {
         describe(testee::analyseAndCreateReleasePlan.name) {
             action("the root project is the one we want to release") {
-                val rootProject = testee.analyseAndCreateReleasePlan(singleProjectId, getTestDirectory("singleProject"))
-                assert(rootProject.id).toBe(singleProjectId)
-
-                testRootProjectOnlyReleaseAndReady(rootProject, "1.0", "1.1-SNAPSHOT")
-
-                test("it does not have any dependent project") {
-                    assert(rootProject.dependents).isEmpty()
-                }
-            }
-        }
-    }
-
-    fun SpecBody.testProjectBWithDependencyToA(directory: String){
-        describe(testee::analyseAndCreateReleasePlan.name) {
-            action("the root project is the one we want to release") {
-                val rootProject = testee.analyseAndCreateReleasePlan(exampleAProjectId, getTestDirectory(directory))
-                assert(rootProject.id).toBe(exampleAProjectId)
-
-                testRootProjectOnlyReleaseAndReady(rootProject, "1.1.1", "1.1.2-SNAPSHOT")
-
-                test("it has one dependent project b") {
-                    assert(rootProject.dependents).containsStrictly({
-                        idAndNewVersion(exampleBProjectId, "1.0.1")
-                    })
-                }
-                test("project b has two commands, updateVersion and Release") {
-                    assert(rootProject.dependents[0].commands).containsStrictly(
-                        {
-                            isA<JenkinsUpdateDependency> {
-                                stateWaitingWithDependencies(exampleAProjectId)
-                                property(subject::projectId).toBe(exampleAProjectId)
-                            }
-                        },
-                        { isA<JenkinsMavenReleasePlugin> { stateWaitingWithDependencies(exampleAProjectId) } }
-                    )
-                }
+                testReleaseSingleProject(singleProjectId, "singleProject", "1.0", "1.1-SNAPSHOT")
             }
         }
     }
 
     given("project with dependency incl. version") {
-        testProjectBWithDependencyToA("projectWithDependency")
+        testReleaseAWithDependentB("projectWithDependency")
+        testReleaseBWithNoDependet("projectWithDependency")
     }
 
     given("project with dependency and version in dependency management") {
-        testProjectBWithDependencyToA("projectWithDependency")
+        testReleaseAWithDependentB("projectWithDependencyManagement")
+        testReleaseBWithNoDependet("projectWithDependencyManagement")
     }
 
     given("project with parent dependency") {
-        testProjectBWithDependencyToA("projectWithParent")
+        testReleaseAWithDependentB("projectWithParent")
+        testReleaseBWithNoDependet("projectWithParent")
+    }
+
+    given("two projects unrelated but one has other in dependency management") {
+        describe(testee::analyseAndCreateReleasePlan.name) {
+            action("we release project A (is in B in dependency management)") {
+                testReleaseSingleProject(exampleAProjectId, "unrelatedProjects", "1.1.1", "1.1.2-SNAPSHOT")
+            }
+            testReleaseBWithNoDependet("unrelatedProjects")
+        }
     }
 })
