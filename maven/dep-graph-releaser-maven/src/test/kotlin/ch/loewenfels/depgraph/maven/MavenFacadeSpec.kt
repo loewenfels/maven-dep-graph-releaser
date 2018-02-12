@@ -1,6 +1,5 @@
 package ch.loewenfels.depgraph.maven
 
-import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
@@ -9,6 +8,8 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.tutteli.atrium.api.cc.en_UK.*
 import ch.tutteli.atrium.assert
 import ch.tutteli.atrium.expect
+import ch.tutteli.atrium.isStateReady
+import ch.tutteli.atrium.stateWaitingWithDependencies
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.ActionBody
 import org.jetbrains.spek.api.dsl.describe
@@ -19,18 +20,23 @@ import java.io.File
 object MavenFacadeSpec : Spek({
     val testee = MavenFacade()
     val singleProjectId = MavenProjectId("com.example", "example", "1.0-SNAPSHOT")
-    val exampleAProjectId = MavenProjectId("com.example", "a", "1.0-SNAPSHOT")
+    val exampleAProjectId = MavenProjectId("com.example", "a", "1.1-SNAPSHOT")
     val exampleBProjectId = MavenProjectId("com.example", "b", "1.0.1-SNAPSHOT")
 
     fun getTestDirectory(name: String) = File(MavenFacadeSpec.javaClass.getResource("/$name/").path)
 
-    fun ActionBody.testRootProjectOnlyReleaseAndReady(rootProject: Project) {
+    fun ActionBody.testRootProjectOnlyReleaseAndReady(rootProject: Project, newVersion: String) {
+        test("its ${Project::newVersion.name} is $newVersion"){
+            assert(rootProject.newVersion).toBe(newVersion)
+        }
         test("it contains just the ${JenkinsMavenReleasePlugin::class.simpleName} command, which is ready") {
-            assert(rootProject.commands).containsStrictly({
-                isA<JenkinsMavenReleasePlugin> {
-                    property(subject::state).toBe(CommandState.Ready)
-                }
-            })
+            assert(rootProject) {
+                property(subject::commands).containsStrictly({
+                    isA<JenkinsMavenReleasePlugin> {
+                        isStateReady()
+                    }
+                })
+            }
         }
     }
 
@@ -77,7 +83,7 @@ object MavenFacadeSpec : Spek({
                 val rootProject = testee.analyseAndCreateReleasePlan(singleProjectId, getTestDirectory("singleProject"))
                 assert(rootProject.id).toBe(singleProjectId)
 
-                testRootProjectOnlyReleaseAndReady(rootProject)
+                testRootProjectOnlyReleaseAndReady(rootProject, "1.0")
 
                 test("it does not have any dependent project") {
                     assert(rootProject.dependents).isEmpty()
@@ -92,7 +98,7 @@ object MavenFacadeSpec : Spek({
                 val rootProject = testee.analyseAndCreateReleasePlan(exampleAProjectId, getTestDirectory("projectWithDependency"))
                 assert(rootProject.id).toBe(exampleAProjectId)
 
-                testRootProjectOnlyReleaseAndReady(rootProject)
+                testRootProjectOnlyReleaseAndReady(rootProject, "1.1")
 
                 test("it has one dependent project b") {
                     assert(rootProject.dependents).containsStrictly({

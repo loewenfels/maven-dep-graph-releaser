@@ -7,7 +7,7 @@ import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 
-class JenkinsReleasePlanCreator {
+class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer) {
 
     fun create(projectToRelease: MavenProjectId, analyser: Analyser): Project {
         require(analyser.hasAnalysedProject(projectToRelease)) {
@@ -31,6 +31,7 @@ class JenkinsReleasePlanCreator {
     private fun createInitialProject(projectId: MavenProjectId, state: CommandState): Project {
         return Project(
             projectId,
+            versionDeterminer.determineNextVersion(projectId),
             mutableListOf(JenkinsMavenReleasePlugin(state)),
             mutableListOf()
         )
