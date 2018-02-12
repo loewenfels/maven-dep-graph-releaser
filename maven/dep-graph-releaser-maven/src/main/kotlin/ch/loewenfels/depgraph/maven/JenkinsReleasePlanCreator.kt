@@ -31,8 +31,8 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     private fun createInitialProject(projectId: MavenProjectId, state: CommandState): Project {
         return Project(
             projectId,
-            versionDeterminer.determineNextVersion(projectId),
-            mutableListOf(JenkinsMavenReleasePlugin(state)),
+            versionDeterminer.releaseVersion(projectId),
+            mutableListOf(JenkinsMavenReleasePlugin(state, versionDeterminer.nextDevVersion(projectId))),
             mutableListOf()
         )
     }
