@@ -1,13 +1,16 @@
 package ch.loewenfels.depgraph.maven
 
+import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ProjectId
-import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
+import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.tutteli.atrium.api.cc.en_UK.*
+import ch.tutteli.atrium.assert
 import ch.tutteli.atrium.expect
 import org.jetbrains.spek.api.Spek
+import org.jetbrains.spek.api.dsl.ActionBody
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.given
 import org.jetbrains.spek.api.dsl.it
@@ -15,7 +18,21 @@ import java.io.File
 
 object MavenFacadeSpec : Spek({
     val testee = MavenFacade()
-    val projectId = MavenProjectId("com.example", "example", "1.0-SNAPSHOT")
+    val singleProjectId = MavenProjectId("com.example", "example", "1.0-SNAPSHOT")
+    val exampleAProjectId = MavenProjectId("com.example", "a", "1.0-SNAPSHOT")
+    val exampleBProjectId = MavenProjectId("com.example", "b", "1.0.1-SNAPSHOT")
+
+    fun getTestDirectory(name: String) = File(MavenFacadeSpec.javaClass.getResource("/$name/").path)
+
+    fun ActionBody.testRootProjectOnlyReleaseAndReady(rootProject: Project) {
+        test("it contains just the ${JenkinsMavenReleasePlugin::class.simpleName} command, which is ready") {
+            assert(rootProject.commands).containsStrictly({
+                isA<JenkinsMavenReleasePlugin> {
+                    property(subject::state).toBe(CommandState.Ready)
+                }
+            })
+        }
+    }
 
     describe("validation errors") {
         given("not a ${MavenProjectId::class.simpleName}") {
@@ -35,7 +52,7 @@ object MavenFacadeSpec : Spek({
             val errMsg = "directory does not exists"
             it("throws an IllegalArgumentException, mentioning `$errMsg`") {
                 expect {
-                    testee.analyseAndCreateReleasePlan(projectId, File("nonExistingProject/"))
+                    testee.analyseAndCreateReleasePlan(singleProjectId, File("nonExistingProject/"))
                 }.toThrow<IllegalArgumentException> { message { contains(errMsg) } }
             }
         }
@@ -47,7 +64,7 @@ object MavenFacadeSpec : Spek({
                     testee.analyseAndCreateReleasePlan(wrongProject, getTestDirectory("singleProject"))
                 }.toThrow<IllegalArgumentException> {
                     message {
-                        contains(errMsg, wrongProject.toString(), "${projectId.groupId}:${projectId.artifactId}:${projectId.version}")
+                        contains(errMsg, wrongProject.toString(), singleProjectId.toString())
                     }
                 }
             }
@@ -55,23 +72,40 @@ object MavenFacadeSpec : Spek({
     }
 
     given("single project with third party dependencies") {
-        group("on ${testee::analyseAndCreateReleasePlan.name}") {
-            val releasePlan = testee.analyseAndCreateReleasePlan(projectId, getTestDirectory("singleProject"))
-            group("the ${ReleasePlan::class.simpleName} contains only the project") {
-                ch.tutteli.atrium.assert(releasePlan.projects).containsStrictly({
-                    property(subject::id).toBe(projectId)
-                })
-                test("the project contains just one command in ${Project::innerCommands.name}") {
-                    ch.tutteli.atrium.assert(releasePlan.projects[0]) {
-                        property(subject::outerCommands).isEmpty()
-                        property(subject::innerCommands).containsStrictly({
-                            isA<JenkinsMavenReleasePlugin> { }
-                        })
-                    }
+        describe(testee::analyseAndCreateReleasePlan.name) {
+            action("the root project is the one we want to release") {
+                val rootProject = testee.analyseAndCreateReleasePlan(singleProjectId, getTestDirectory("singleProject"))
+                assert(rootProject.id).toBe(singleProjectId)
+
+                testRootProjectOnlyReleaseAndReady(rootProject)
+
+                test("it does not have any dependent project") {
+                    assert(rootProject.dependents).isEmpty()
+                }
+            }
+        }
+    }
+
+    given("project with dependency incl. version") {
+        describe(testee::analyseAndCreateReleasePlan.name) {
+            action("the root project is the one we want to release") {
+                val rootProject = testee.analyseAndCreateReleasePlan(exampleAProjectId, getTestDirectory("projectWithDependency"))
+                assert(rootProject.id).toBe(exampleAProjectId)
+
+                testRootProjectOnlyReleaseAndReady(rootProject)
+
+                test("it has one dependent project b") {
+                    assert(rootProject.dependents).containsStrictly({
+                        property(subject::id).toBe(exampleBProjectId)
+                    })
+                }
+                test("project b has two commands, updateVersion and Release") {
+                    assert(rootProject.dependents[0].commands).containsStrictly(
+                        { isA<JenkinsUpdateDependency> { stateWaitingWithDependencies(exampleAProjectId) } },
+                        { isA<JenkinsMavenReleasePlugin> { stateWaitingWithDependencies(exampleAProjectId) } }
+                    )
                 }
             }
         }
     }
 })
-
-private fun getTestDirectory(name: String) = File(MavenFacadeSpec.javaClass.getResource("/$name/").path)

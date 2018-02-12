@@ -11,15 +11,8 @@ interface ProjectId {
      */
     val identifier: String
     /**
-     * The version of the project.
+     * The current version of the project.
      */
     val version: String
-
-    /**
-     * Returns the unique identity of this project.
-     * @return The following: "[identifier]:[version]"
-     */
-    fun getIdentity() = "$identifier:$version"
-
 }
 
