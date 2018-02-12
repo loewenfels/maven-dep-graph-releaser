@@ -2,12 +2,13 @@ rootProject.name = 'dep-graph-releaser'
 
 def includeMaven(String name) { includeInSubFolder(name, "${rootProject.projectDir}/maven") }
 
-def includeInSubFolder(String name, String folder) {
+def includeInSubFolder(String nameWithoutPrefix, String folder) {
+    def name = "${rootProject.name}-$nameWithoutPrefix"
     include ":$name"
     project(":$name").projectDir = new File("$folder/$name")
 }
 
 
 include "${rootProject.name}-api"
-includeMaven "${rootProject.name}-maven-api"
-includeMaven "${rootProject.name}-maven"
+includeMaven "maven-api"
+includeMaven "maven"

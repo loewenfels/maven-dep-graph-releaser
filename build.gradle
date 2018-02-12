@@ -9,8 +9,6 @@ buildscript {
         dokka_version = '0.9.14'
         dokka_sourceMapping = 'tree/master'
 
-        srcKotlin = 'src/main/kotlin'
-
         //spek.gradle
         jacoco_tool_version = '0.7.9'
         spek_version = '1.1.5'
@@ -28,6 +26,10 @@ buildscript {
         //jacoco-multi-project.gradle
         projectsWithoutSources = [] //currently all have sources
         jacocoMulti = [sourceProjects: subprojects, jacocoProjects: subprojects ]
+
+        ownModule = { String name -> project(":${rootProject.name}-$name") }
+        srcKotlin = 'src/main/kotlin'
+        srcOwnModule = { String name -> "${rootProject.projectDir}/${rootProject.name}-$name/${ext.srcKotlin}" }
     }
 
     repositories {
@@ -73,8 +75,8 @@ configure(projectsWithSources) {
             suffix = '#L'
         }
         linkMapping {
-            dir = "${rootProject.projectDir}/${project.name}-core-api/$srcKotlin"
-            url = "$github_url/${dokka_sourceMapping}/${project.name}-core-api/$srcKotlin"
+            dir = srcOwnModule('api')
+            url = "$github_url/${dokka_sourceMapping}/${project.name}-api/$srcKotlin"
             suffix = '#L'
         }
 
