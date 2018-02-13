@@ -4,6 +4,10 @@ buildscript {
 
 dependencies {
     compile ownModule('api')
-    compile "com.squareup.moshi:moshi:$moshi_version"
-    compile "com.squareup.moshi:moshi-kotlin:$moshi_version"
+    compile("com.squareup.moshi:moshi:$moshi_version") {
+        exclude group: 'org.jetbrains.kotlin'
+    }
+    compile("com.squareup.moshi:moshi-kotlin:$moshi_version") {
+        exclude group: 'org.jetbrains.kotlin'
+    }
 }
