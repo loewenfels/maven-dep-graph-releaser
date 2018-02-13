@@ -1,6 +1,7 @@
 rootProject.name = 'dep-graph-releaser'
 
 def includeMaven(String name) { includeInSubFolder(name, "${rootProject.projectDir}/maven") }
+def includeTop(String name) {includeInSubFolder(name, "${rootProject.projectDir}/") }
 
 def includeInSubFolder(String nameWithoutPrefix, String folder) {
     def name = "${rootProject.name}-$nameWithoutPrefix"
@@ -9,6 +10,8 @@ def includeInSubFolder(String nameWithoutPrefix, String folder) {
 }
 
 
-include "${rootProject.name}-api"
-includeMaven "maven-api"
-includeMaven "maven"
+include ':atrium'
+includeTop 'api'
+includeTop 'serialization'
+includeMaven 'maven-api'
+includeMaven 'maven'

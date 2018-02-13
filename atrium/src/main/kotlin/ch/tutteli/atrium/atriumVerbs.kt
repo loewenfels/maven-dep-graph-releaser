@@ -7,16 +7,16 @@ import ch.tutteli.atrium.creating.Assert
 import ch.tutteli.atrium.reporting.ReporterBuilder
 import ch.tutteli.atrium.reporting.translating.StringBasedTranslatable
 
-internal fun <T : Any> assert(subject: T)
+fun <T : Any> assert(subject: T)
     = AtriumFactory.newReportingPlant(ASSERT, subject, AtriumReporterSupplier.REPORTER)
 
-internal fun <T : Any> assert(subject: T, assertionCreator: Assert<T>.() -> Unit)
+fun <T : Any> assert(subject: T, assertionCreator: Assert<T>.() -> Unit)
     = AtriumFactory.newReportingPlantAndAddAssertionsCreatedBy(ASSERT, subject, AtriumReporterSupplier.REPORTER, assertionCreator)
 
-internal fun <T : Any?> assert(subject: T)
+fun <T : Any?> assert(subject: T)
     = AtriumFactory.newReportingPlantNullable(ASSERT, subject, AtriumReporterSupplier.REPORTER)
 
-internal fun expect(act: () -> Unit)
+fun expect(act: () -> Unit)
     = ThrowableThrownBuilder(EXPECT_THROWN, act, AtriumReporterSupplier.REPORTER)
 
 

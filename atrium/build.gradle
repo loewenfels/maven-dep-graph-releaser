@@ -1,0 +1,10 @@
+dependencies {
+    compile ownModule('api')
+    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+    compile("com.nhaarman:mockito-kotlin:$mockito_kotlin_version") {
+        exclude group: 'org.jetbrains.kotlin'
+    }
+    compile("ch.tutteli:atrium-cc-en_UK-robstoll:$atrium_version") {
+        exclude group: 'org.jetbrains.kotlin'
+    }
+}
