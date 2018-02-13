@@ -26,7 +26,14 @@ buildscript {
 
         //jacoco-multi-project.gradle
         projectsWithoutSources = [] //currently all have sources
-        jacocoMulti = [sourceProjects: subprojects, jacocoProjects: subprojects ]
+        jacocoMulti = [
+            sourceProjects: subprojects - project(':atrium'),
+            jacocoProjects: subprojects.findAll{
+                it.name != "${rootProject.name}-api" &&
+                it.name != "${rootProject.name}-maven-api" &&
+                it.name != "atrium"
+            }
+        ]
 
         ownModule = { String name -> project(":${rootProject.name}-$name") }
         srcKotlin = 'src/main/kotlin'
