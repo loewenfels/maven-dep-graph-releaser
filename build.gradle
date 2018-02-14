@@ -33,7 +33,7 @@ buildscript {
                 it.name != "${rootProject.name}-api" &&
                 it.name != "${rootProject.name}-maven-api" &&
                 it.name != "atrium"
-            }
+            } - projectsWithoutSources
         ]
 
         ownModule = { String name -> project(":${rootProject.name}-$name") }
@@ -72,7 +72,12 @@ subprojects {
     }
 }
 
-def projectsWithSources = subprojects - projectsWithoutSources
+def publishedProjects = subprojects - project(':atrium')
+configure(publishedProjects) {
+    it.ext.publish_artifacts = []
+}
+
+def projectsWithSources = publishedProjects - projectsWithoutSources
 configure(projectsWithSources) {
     apply plugin: 'org.jetbrains.dokka'
 
@@ -103,19 +108,11 @@ configure(projectsWithSources) {
         classifier = 'javadoc'
     }
 
-    afterEvaluate {
-        it.ext.publish_artifacts = [sourceJar, javadocJar]
-    }
+    it.ext.publish_artifacts += [sourceJar, javadocJar]
 }
 
-configure(projectsWithoutSources) {
-    afterEvaluate {
-        it.ext.publish_artifacts = []
-    }
-}
-
-// has to be after the above two blocks which define `it.ext.publish_artifacts`
-configure(subprojects - project(':atrium')) { subproject ->
+// has to be after the above block which define `it.ext.publish_artifacts`
+configure(publishedProjects) { subproject ->
     subproject.ext {
         publish_artifactId = subproject.name
     }

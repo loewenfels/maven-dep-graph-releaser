@@ -10,3 +10,32 @@ dependencies {
     testCompile ownModule('maven').sourceSets.test.output
 }
 
+task dist {
+    def outputDir = "${project.buildDir}/dist"
+    def bat = file("src/main/run.bat")
+    outputs.dir outputDir
+    inputs.files bat, jar
+
+    doLast {
+        copy {
+            from bat
+            into outputDir
+        }
+        copy {
+            from sourceSets.main.runtimeClasspath.asFileTree.findAll { it.name.endsWith(".jar") }
+            from jar.outputs.files.getFiles()
+            into "$outputDir/lib"
+        }
+    }
+}
+
+task distZip(type: Zip) {
+    def outputDir = file("${project.buildDir}/distZip")
+    outputs.dir outputDir
+    from dist
+    destinationDir outputDir
+}
+
+configure(project) {
+    ext.publish_artifacts += [distZip]
+}
