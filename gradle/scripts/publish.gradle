@@ -53,15 +53,16 @@ def pomConfig = {
             email publish_dev_email
         }
     }
+    scm {
+        url publish_vcsUrl
+    }
 }
 
 publishing {
     publications {
         mavenJava(MavenPublication) {
             from components.java
-            publish_artifacts.each{
-                artifact it
-            }
+            setArtifacts publish_artifacts
             groupId publish_groupId
             artifactId publish_artifactId
             version version
@@ -69,6 +70,7 @@ publishing {
             pom.withXml {
                 def root = asNode()
                 root.appendNode('description', publish_description)
+                root.appendNode('url', publish_vcsUrl)
                 root.children().last() + pomConfig
             }
         }
