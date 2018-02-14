@@ -12,7 +12,7 @@ dependencies {
 
 task dist {
     def outputDir = "${project.buildDir}/dist"
-    def bat = file("src/main/run.bat")
+    def bat = file("src/main/produce.bat")
     outputs.dir outputDir
     inputs.files bat, jar
 

@@ -14,6 +14,12 @@ import org.jetbrains.spek.api.dsl.on
 import java.io.File
 
 object MainSpec : Spek({
+    errorHandler = object: ErrorHandler{
+        override fun error(msg: String) {
+            throw AssertionError(msg)
+        }
+    }
+
     var tmp = File("we need to initialise tmp")
     beforeEachTest {
         tmp = Files.createTempDir()
@@ -26,6 +32,7 @@ object MainSpec : Spek({
         on("on calling main") {
             val jsonFile = File(tmp.absolutePath, "test.json")
             main(
+                "json",
                 "com.example", "a", "1.1.1-SNAPSHOT",
                 getTestDirectory("projectWithDependency").absolutePath,
                 jsonFile.absolutePath
