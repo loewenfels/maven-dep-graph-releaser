@@ -3,18 +3,26 @@ package ch.loewenfels.depgraph.serialization
 import ch.loewenfels.depgraph.data.Command
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.Project
+import ch.tutteli.atrium.api.cc.en_UK.contains
+import ch.tutteli.atrium.api.cc.en_UK.message
 import ch.tutteli.atrium.api.cc.en_UK.toBe
+import ch.tutteli.atrium.api.cc.en_UK.toThrow
 import ch.tutteli.atrium.assert
+import ch.tutteli.atrium.expect
+import com.squareup.moshi.JsonDataException
+import com.squareup.moshi.JsonEncodingException
+import com.squareup.moshi.JsonReader
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
+import org.jetbrains.spek.api.dsl.given
 import org.jetbrains.spek.api.dsl.it
 
 object SerializerSpec : Spek({
     val testee = Serializer()
 
-    describe("serialize and deserialize") {
+    fun createProject(state: CommandState) = Project(DummyProjectId("x", "8.2"), "9.0.0", listOf(DummyCommand(state)), listOf())
 
-        fun createProject(state: CommandState) = Project(DummyProjectId("x", "8.2"), "9.0.0", listOf(DummyCommand(state)), listOf())
+    describe("serialize and deserialize") {
 
         val aId = DummyProjectId("a", "5.0")
         val projectWithoutCommandsAndDependents = Project(aId, "5.1", listOf(), listOf())
@@ -51,6 +59,25 @@ object SerializerSpec : Spek({
                     val jsonResult = testee.serialize(result)
                     assert(jsonResult).toBe(json)
                 }
+            }
+        }
+    }
+
+    describe("malformed JSON"){
+        given("dangling }") {
+            it("throws a JsonEncodingException"){
+                val json = testee.serialize(createProject(CommandState.Ready))
+                expect {
+                    testee.deserialize("$json}")
+                }.toThrow<JsonEncodingException>()
+            }
+        }
+        given("comment at the beginning") {
+            it("throws a JsonEncodingException"){
+                val json = testee.serialize(createProject(CommandState.Ready))
+                expect {
+                    testee.deserialize("<!-- my lovely JSON --> $json")
+                }.toThrow<JsonEncodingException>()
             }
         }
     }
