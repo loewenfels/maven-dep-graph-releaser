@@ -1,12 +1,13 @@
 package ch.loewenfels.depgraph.maven
 
-import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
-import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
-import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
-import ch.tutteli.atrium.*
-import ch.tutteli.atrium.api.cc.en_UK.*
+import ch.tutteli.atrium.api.cc.en_UK.contains
+import ch.tutteli.atrium.api.cc.en_UK.isEmpty
+import ch.tutteli.atrium.api.cc.en_UK.message
+import ch.tutteli.atrium.api.cc.en_UK.toThrow
+import ch.tutteli.atrium.assert
+import ch.tutteli.atrium.expect
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.*
 import java.io.File
@@ -14,32 +15,11 @@ import java.io.File
 object MavenFacadeSpec : Spek({
     val testee = MavenFacade()
     val singleProjectId = MavenProjectId("com.example", "example", "1.0-SNAPSHOT")
-    val exampleAProjectId = MavenProjectId("com.example", "a", "1.1.1-SNAPSHOT")
-    val exampleBProjectId = MavenProjectId("com.example", "b", "1.0.1-SNAPSHOT")
-
-    fun getTestDirectory(name: String) = File(MavenFacadeSpec.javaClass.getResource("/$name/").path)
-
-    fun ActionBody.testRootProjectOnlyReleaseAndReady(rootProject: Project, newVersion: String, nextDevVersion: String) {
-        test("its ${Project::newVersion.name} is $newVersion") {
-            assert(rootProject.newVersion).toBe(newVersion)
-        }
-        test("it contains just the ${JenkinsMavenReleasePlugin::class.simpleName} command, which is Ready with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = $newVersion") {
-            assert(rootProject) {
-                property(subject::commands).containsStrictly({
-                    isA<JenkinsMavenReleasePlugin> {
-                        isStateReady()
-                        property(subject::nextDevVersion).toBe(nextDevVersion)
-                    }
-                })
-            }
-        }
-    }
 
     fun ActionBody.testReleaseSingleProject(projectId: ProjectId, directory: String, newVersion: String, nextDevVersion: String) {
         val rootProject = testee.analyseAndCreateReleasePlan(projectId, getTestDirectory(directory))
-        assert(rootProject.id).toBe(projectId)
 
-        testRootProjectOnlyReleaseAndReady(rootProject, newVersion, nextDevVersion)
+        assertRootProjectOnlyReleaseAndReady(rootProject, projectId, newVersion, nextDevVersion)
 
         test("it does not have any dependent project") {
             assert(rootProject.dependents).isEmpty()
@@ -50,26 +30,7 @@ object MavenFacadeSpec : Spek({
         describe(testee::analyseAndCreateReleasePlan.name) {
             action("the root project is the one we want to release") {
                 val rootProject = testee.analyseAndCreateReleasePlan(exampleAProjectId, getTestDirectory(directory))
-                assert(rootProject.id).toBe(exampleAProjectId)
-
-                testRootProjectOnlyReleaseAndReady(rootProject, "1.1.1", "1.1.2-SNAPSHOT")
-
-                test("it has one dependent project b") {
-                    assert(rootProject.dependents).containsStrictly({
-                        idAndNewVersion(exampleBProjectId, "1.0.1")
-                    })
-                }
-                test("project b has two commands, updateVersion and Release") {
-                    assert(rootProject.dependents[0].commands).containsStrictly(
-                        {
-                            isA<JenkinsUpdateDependency> {
-                                stateWaitingWithDependencies(exampleAProjectId)
-                                property(subject::projectId).toBe(exampleAProjectId)
-                            }
-                        },
-                        { isA<JenkinsMavenReleasePlugin> { stateWaitingWithDependencies(exampleAProjectId) } }
-                    )
-                }
+                assertProjectAWithDependentB(rootProject)
             }
         }
     }
@@ -150,3 +111,4 @@ object MavenFacadeSpec : Spek({
         }
     }
 })
+

@@ -11,6 +11,7 @@ def includeInSubFolder(String nameWithoutPrefix, String folder) {
 
 
 include ':atrium'
+includeTop 'runner'
 includeTop 'api'
 includeTop 'serialization'
 includeMaven 'maven-api'

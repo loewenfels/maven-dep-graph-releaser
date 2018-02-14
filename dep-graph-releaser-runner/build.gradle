@@ -1,0 +1,12 @@
+buildscript {
+    ext.publish_description = 'Contains different runners, they are the entry point for users.'
+}
+
+dependencies {
+    compile ownModule('maven')
+    compile ownModule('serialization')
+
+    runtimeOnly "org.jetbrains.kotlin:kotlin-runtime:$kotlin_version"
+    testCompile ownModule('maven').sourceSets.test.output
+}
+
