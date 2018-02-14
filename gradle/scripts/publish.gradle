@@ -1,11 +1,10 @@
 import com.jfrog.bintray.gradle.BintrayPlugin
 
-logger.info("setting up publish for $project, $publish_groupId:$publish_artifactId:$publish_version")
+logger.info("setting up publish for $project, $publish_groupId:$publish_artifactId:$version")
 logger.info("publish_description: $publish_description")
 logger.info("publish_artifacts: $publish_artifacts\n")
 
 group = publish_groupId
-version = publish_version
 description = publish_description
 
 buildscript {
@@ -65,7 +64,7 @@ publishing {
             }
             groupId publish_groupId
             artifactId publish_artifactId
-            version publish_version
+            version version
 
             pom.withXml {
                 def root = asNode()
@@ -86,10 +85,10 @@ bintray {
         licenses = [publish_license_name]
         vcsUrl = publish_vcsUrl
         version {
-            name = publish_version
-            desc = "$publish_pkg_name $publish_version"
+            name = version
+            desc = "$publish_pkg_name $version"
             released  = new Date()
-            vcsTag = "v$publish_version"
+            vcsTag = "v$version"
             gpg {
                 sign = true
                 passphrase = findProperty('gpgPassphrase') ?: System.getenv('GPG_PASSPHRASE')
@@ -102,7 +101,7 @@ tasks.withType(Jar) { task ->
     task.manifest {
         attributes \
             'Implementation-Title': publish_artifactId, \
-            'Implementation-Version': publish_version, \
+            'Implementation-Version': version, \
             'Implementation-Vendor': publish_vendor, \
             'Implementation-URL': publish_vcsUrl, \
             'Implementation-Kotlin-Version': kotlin_version
