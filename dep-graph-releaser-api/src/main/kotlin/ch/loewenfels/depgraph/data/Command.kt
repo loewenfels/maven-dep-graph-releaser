@@ -10,5 +10,5 @@ sealed class CommandState {
     object InProgress : CommandState()
     object Succeeded : CommandState()
     data class Failed(val message: String) : CommandState()
-    object Deactivated : CommandState()
+    data class Deactivated(val previous: CommandState) : CommandState()
 }
