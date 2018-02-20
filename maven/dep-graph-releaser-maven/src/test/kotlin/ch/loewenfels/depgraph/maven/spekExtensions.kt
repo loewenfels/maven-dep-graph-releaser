@@ -6,7 +6,6 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.tutteli.atrium.*
 import ch.tutteli.atrium.api.cc.en_UK.*
-import ch.tutteli.atrium.creating.Assert
 import org.jetbrains.spek.api.dsl.ActionBody
 
 
@@ -18,8 +17,8 @@ fun ActionBody.assertRootProjectOnlyReleaseAndReady(rootProject: Project, idAndV
     test("its ${Project::id.name} is ${idAndVersions.id}") {
         assert(rootProject.id).toBe(idAndVersions.id)
     }
-    test("its ${Project::newVersion.name} is ${idAndVersions.newVersion}") {
-        assert(rootProject.newVersion).toBe(idAndVersions.newVersion)
+    test("its ${Project::releaseVersion.name} is ${idAndVersions.releaseVersion}") {
+        assert(rootProject.releaseVersion).toBe(idAndVersions.releaseVersion)
     }
     test("it contains just the ${JenkinsMavenReleasePlugin::class.simpleName} command, which is Ready with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = ${idAndVersions.nextDevVersion}") {
         assert(rootProject) {
@@ -44,17 +43,14 @@ fun ActionBody.assertProjectWithOneDependent(
 ) {
     assertRootProjectOnlyReleaseAndReady(rootProject, rootProjectIdAndVersions)
 
-    test("it has one dependent project $dependentIdAndVersions") {
-        assert(rootProject.dependents).containsStrictly({
-            idAndNewVersion(dependentIdAndVersions)
-        })
-    }
     assertWithDependent(rootProject, rootProjectIdAndVersions, dependentIdAndVersions)
 }
 
 fun ActionBody.assertWithDependent(rootProject: Project, dependency: IdAndVersions, dependent: IdAndVersions) {
-    test("it has 1 dependent with two commands, updateVersion and Release") {
+    test("it has one dependent with two commands, updateVersion and Release") {
         assert(rootProject.dependents).containsStrictly({
+            property(subject::id).toBe(dependent.id)
+            property(subject::releaseVersion).toBe(dependent.releaseVersion)
             property(subject::commands).containsStrictly(
                 {
                     isA<JenkinsUpdateDependency> {
