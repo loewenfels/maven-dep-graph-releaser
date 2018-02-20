@@ -20,7 +20,8 @@ import org.jetbrains.spek.api.dsl.it
 object SerializerSpec : Spek({
     val testee = Serializer()
 
-    fun createProject(state: CommandState) = Project(DummyProjectId("x"), "8.2", "9.0.0", listOf(DummyCommand(state)), listOf())
+    fun createProject(state: CommandState)
+        = Project(DummyProjectId("x"), "8.2", "9.0.0", listOf(DummyCommand(state)), listOf())
 
     describe("serialize and deserialize") {
 
@@ -28,7 +29,7 @@ object SerializerSpec : Spek({
         val projectWithoutCommandsAndDependents = Project(aId, "5.0", "5.1", listOf(), listOf())
         val projectWithCommandsWithoutDependents = Project(DummyProjectId("b"), "1.2", "2.0", listOf(DummyCommand(CommandState.Failed("oh no"))), listOf())
         val projectWithoutCommandsButDependents = Project(DummyProjectId("c"), "1.5", "3.0", listOf(), listOf(projectWithCommandsWithoutDependents))
-        val projectWitCommandsAndDependents = Project(DummyProjectId("d"), "1.5", "3.0", listOf(DummyCommand(CommandState.Waiting(setOf(aId)))), listOf(projectWithoutCommandsButDependents))
+        val projectWitCommandsAndDependents = Project(DummyProjectId("d"), "1.5", "3.0", listOf(DummyCommand(CommandState.Waiting(setOf(aId)))), listOf(projectWithoutCommandsButDependents, projectWithCommandsWithoutDependents))
 
         val commands = Project::commands.name
         val dependents = Project::dependents.name

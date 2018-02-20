@@ -19,7 +19,7 @@ object PolymorphicAdapterFactorySpec : Spek({
         .add(KotlinJsonAdapterFactory())
         .build()
     @Suppress("UNCHECKED_CAST")
-    val adapter = testee.create(ProjectId::class.java, mutableSetOf(), moshi) as JsonAdapter<ProjectId>
+    val adapter = testee.create(ProjectId::class.java, mutableSetOf(), moshi) as NonNullJsonAdapter<ProjectId>
     val notType = "notType"
     val typeDummy = """"$TYPE":"${DummyProjectId::class.java.name}""""
 

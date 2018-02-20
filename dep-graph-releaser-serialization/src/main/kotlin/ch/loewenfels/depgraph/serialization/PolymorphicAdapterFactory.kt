@@ -30,7 +30,7 @@ class PolymorphicAdapterFactory<T : Any>(private val abstractType: Class<T>) : J
         return PolymorphicAdapter(abstractType, moshi)
     }
 
-    private class PolymorphicAdapter<T : Any>(private val abstractType: Class<T>, private val moshi: Moshi) : JsonAdapter<T>() {
+    private class PolymorphicAdapter<T : Any>(private val abstractType: Class<T>, private val moshi: Moshi) : NonNullJsonAdapter<T>() {
 
         override fun fromJson(reader: JsonReader): T? {
             reader.beginObject()
@@ -68,20 +68,15 @@ class PolymorphicAdapterFactory<T : Any>(private val abstractType: Class<T>) : J
             return runtimeClass as Class<T>
         }
 
-        override fun toJson(writer: JsonWriter, entity: T?) {
-            if (entity == null) {
-                writer.nullValue()
-                return
-            }
-
-            val runtimeClass = entity::class.java
+        override fun toJsonNonNull(writer: JsonWriter, value: T) {
+            val runtimeClass = value::class.java
             val adapter: JsonAdapter<T> = getAdapter(runtimeClass)
             writer.writeObject {
                 //If you make changes here, then you have to make changes in fromJson
                 writer.name(TYPE)
                 writer.value(runtimeClass.name)
                 writer.name(PAYLOAD)
-                adapter.toJson(writer, entity)
+                adapter.toJson(writer, value)
             }
         }
 
@@ -91,12 +86,6 @@ class PolymorphicAdapterFactory<T : Any>(private val abstractType: Class<T>) : J
             }
             @Suppress("UNCHECKED_CAST" /* entity is of type T, should be fine, required for toJson */)
             return moshi.adapter(runtimeClass) as JsonAdapter<T>
-        }
-
-        private inline fun JsonWriter.writeObject(act: () -> Unit) {
-            beginObject()
-            act()
-            endObject()
         }
     }
 
