@@ -2,6 +2,7 @@ package ch.loewenfels.depgraph.maven
 
 import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
+import ch.tutteli.atrium.IdAndVersions
 import ch.tutteli.atrium.api.cc.en_UK.contains
 import ch.tutteli.atrium.api.cc.en_UK.isEmpty
 import ch.tutteli.atrium.api.cc.en_UK.message
@@ -14,12 +15,12 @@ import java.io.File
 
 object MavenFacadeSpec : Spek({
     val testee = MavenFacade()
-    val singleProjectId = MavenProjectId("com.example", "example", "1.0-SNAPSHOT")
+    val singleProjectIdAndVersions = IdAndVersions(MavenProjectId("com.example", "example", "1.0-SNAPSHOT"), "1.0", "1.1-SNAPSHOT")
 
-    fun ActionBody.testReleaseSingleProject(projectId: ProjectId, directory: String, newVersion: String, nextDevVersion: String) {
-        val rootProject = testee.analyseAndCreateReleasePlan(projectId, getTestDirectory(directory))
+    fun ActionBody.testReleaseSingleProject(idAndVersions: IdAndVersions, directory: String) {
+        val rootProject = testee.analyseAndCreateReleasePlan(idAndVersions.id, getTestDirectory(directory))
 
-        assertRootProjectOnlyReleaseAndReady(rootProject, projectId, newVersion, nextDevVersion)
+        assertRootProjectOnlyReleaseAndReady(rootProject, idAndVersions)
 
         test("it does not have any dependent project") {
             assert(rootProject.dependents).isEmpty()
@@ -29,15 +30,15 @@ object MavenFacadeSpec : Spek({
     fun SpecBody.testReleaseAWithDependentB(directory: String) {
         describe(testee::analyseAndCreateReleasePlan.name) {
             action("the root project is the one we want to release") {
-                val rootProject = testee.analyseAndCreateReleasePlan(exampleAProjectId, getTestDirectory(directory))
+                val rootProject = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
                 assertProjectAWithDependentB(rootProject)
             }
         }
     }
 
-    fun SpecBody.testReleaseBWithNoDependet(directory: String) {
+    fun SpecBody.testReleaseBWithNoDependent(directory: String) {
         action("we release project B (no dependent at all)") {
-            testReleaseSingleProject(exampleBProjectId, directory, "1.0.1", "1.0.2-SNAPSHOT")
+            testReleaseSingleProject(exampleB, directory)
         }
     }
 
@@ -59,7 +60,7 @@ object MavenFacadeSpec : Spek({
             val errMsg = "directory does not exists"
             it("throws an IllegalArgumentException, mentioning `$errMsg`") {
                 expect {
-                    testee.analyseAndCreateReleasePlan(singleProjectId, File("nonExistingProject/"))
+                    testee.analyseAndCreateReleasePlan(singleProjectIdAndVersions.id, File("nonExistingProject/"))
                 }.toThrow<IllegalArgumentException> { message { contains(errMsg) } }
             }
         }
@@ -71,7 +72,7 @@ object MavenFacadeSpec : Spek({
                     testee.analyseAndCreateReleasePlan(wrongProject, getTestDirectory("singleProject"))
                 }.toThrow<IllegalArgumentException> {
                     message {
-                        contains(errMsg, wrongProject.toString(), singleProjectId.toString())
+                        contains(errMsg, wrongProject.toString(), singleProjectIdAndVersions.id.toString())
                     }
                 }
             }
@@ -82,32 +83,46 @@ object MavenFacadeSpec : Spek({
     given("single project with third party dependencies") {
         describe(testee::analyseAndCreateReleasePlan.name) {
             action("the root project is the one we want to release") {
-                testReleaseSingleProject(singleProjectId, "singleProject", "1.0", "1.1-SNAPSHOT")
+                testReleaseSingleProject(singleProjectIdAndVersions, "singleProject")
             }
         }
     }
 
     given("project with dependency incl. version") {
         testReleaseAWithDependentB("projectWithDependency")
-        testReleaseBWithNoDependet("projectWithDependency")
+        testReleaseBWithNoDependent("projectWithDependency")
     }
 
     given("project with dependency and version in dependency management") {
         testReleaseAWithDependentB("projectWithDependencyManagement")
-        testReleaseBWithNoDependet("projectWithDependencyManagement")
+        testReleaseBWithNoDependent("projectWithDependencyManagement")
     }
 
     given("project with parent dependency") {
         testReleaseAWithDependentB("projectWithParent")
-        testReleaseBWithNoDependet("projectWithParent")
+        testReleaseBWithNoDependent("projectWithParent")
     }
 
     given("two projects unrelated but one has other in dependency management") {
         describe(testee::analyseAndCreateReleasePlan.name) {
             action("we release project A (is in B in dependency management)") {
-                testReleaseSingleProject(exampleAProjectId, "unrelatedProjects", "1.1.1", "1.1.2-SNAPSHOT")
+                testReleaseSingleProject(exampleA, "unrelatedProjects")
             }
-            testReleaseBWithNoDependet("unrelatedProjects")
+            testReleaseBWithNoDependent("unrelatedProjects")
+        }
+    }
+
+    given("project with two dependent in line") {
+        describe(testee::analyseAndCreateReleasePlan.name) {
+            action("the root project is the one we want to release") {
+                val rootProject = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("twoDependentsInLine"))
+                assertRootProjectOnlyReleaseAndReady(rootProject, exampleA)
+
+                assertWithDependent(rootProject, exampleA, exampleB)
+                test("the dependent has itself a dependent with two commands, updateVersion and Release") {
+                    assertWithDependent(rootProject.dependents[0], exampleB, exampleC)
+                }
+            }
         }
     }
 })

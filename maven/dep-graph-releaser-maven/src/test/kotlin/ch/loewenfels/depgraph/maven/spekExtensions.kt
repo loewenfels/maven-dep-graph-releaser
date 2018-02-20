@@ -1,36 +1,32 @@
 package ch.loewenfels.depgraph.maven
 
 import ch.loewenfels.depgraph.data.Project
-import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
-import ch.tutteli.atrium.api.cc.en_UK.containsStrictly
-import ch.tutteli.atrium.api.cc.en_UK.isA
-import ch.tutteli.atrium.api.cc.en_UK.property
-import ch.tutteli.atrium.api.cc.en_UK.toBe
-import ch.tutteli.atrium.assert
-import ch.tutteli.atrium.idAndNewVersion
-import ch.tutteli.atrium.isStateReady
-import ch.tutteli.atrium.stateWaitingWithDependencies
+import ch.tutteli.atrium.*
+import ch.tutteli.atrium.api.cc.en_UK.*
+import ch.tutteli.atrium.creating.Assert
 import org.jetbrains.spek.api.dsl.ActionBody
 
-val exampleAProjectId = MavenProjectId("com.example", "a", "1.1.1-SNAPSHOT")
-val exampleBProjectId = MavenProjectId("com.example", "b", "1.0.1-SNAPSHOT")
 
-fun ActionBody.assertRootProjectOnlyReleaseAndReady(rootProject: Project, projectId: ProjectId, newVersion: String, nextDevVersion: String) {
-    test("its ${Project::id} is $projectId") {
-        assert(rootProject.id).toBe(projectId)
+val exampleA = IdAndVersions(MavenProjectId("com.example", "a", "1.1.1-SNAPSHOT"), "1.1.1", "1.1.2-SNAPSHOT")
+val exampleB = IdAndVersions(MavenProjectId("com.example", "b", "1.0.1-SNAPSHOT"), "1.0.1", "1.0.2-SNAPSHOT")
+val exampleC = IdAndVersions(MavenProjectId("com.example", "c", "3.0.0-SNAPSHOT"), "3.0.0", "3.0.1-SNAPSHOT")
+
+fun ActionBody.assertRootProjectOnlyReleaseAndReady(rootProject: Project, idAndVersions: IdAndVersions) {
+    test("its ${Project::id.name} is ${idAndVersions.id}") {
+        assert(rootProject.id).toBe(idAndVersions.id)
     }
-    test("its ${Project::newVersion.name} is $newVersion") {
-        assert(rootProject.newVersion).toBe(newVersion)
+    test("its ${Project::newVersion.name} is ${idAndVersions.newVersion}") {
+        assert(rootProject.newVersion).toBe(idAndVersions.newVersion)
     }
-    test("it contains just the ${JenkinsMavenReleasePlugin::class.simpleName} command, which is Ready with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = $newVersion") {
+    test("it contains just the ${JenkinsMavenReleasePlugin::class.simpleName} command, which is Ready with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = ${idAndVersions.nextDevVersion}") {
         assert(rootProject) {
             property(subject::commands).containsStrictly({
                 isA<JenkinsMavenReleasePlugin> {
                     isStateReady()
-                    property(subject::nextDevVersion).toBe(nextDevVersion)
+                    property(subject::nextDevVersion).toBe(idAndVersions.nextDevVersion)
                 }
             })
         }
@@ -38,44 +34,41 @@ fun ActionBody.assertRootProjectOnlyReleaseAndReady(rootProject: Project, projec
 }
 
 fun ActionBody.assertProjectAWithDependentB(rootProject: Project) {
-    assertProjectWithOneDependent(
-        rootProject,
-        exampleAProjectId, "1.1.1", "1.1.2-SNAPSHOT",
-        exampleBProjectId, "1.0.1", "1.0.2-SNAPSHOT"
-    )
+    assertProjectWithOneDependent(rootProject, exampleA, exampleB)
 }
 
 fun ActionBody.assertProjectWithOneDependent(
     rootProject: Project,
-    rootProjectId: MavenProjectId,
-    rootProjectNewVersion: String,
-    rootProjectNextDevVersion: String,
-    dependentProjectId: MavenProjectId,
-    dependentNewVersion: String,
-    dependentNextDevVersion: String
+    rootProjectIdAndVersions: IdAndVersions,
+    dependentIdAndVersions: IdAndVersions
 ) {
-    assertRootProjectOnlyReleaseAndReady(rootProject, rootProjectId, rootProjectNewVersion, rootProjectNextDevVersion)
+    assertRootProjectOnlyReleaseAndReady(rootProject, rootProjectIdAndVersions)
 
-    test("it has one dependent project $dependentProjectId") {
+    test("it has one dependent project $dependentIdAndVersions") {
         assert(rootProject.dependents).containsStrictly({
-            idAndNewVersion(dependentProjectId, dependentNewVersion)
+            idAndNewVersion(dependentIdAndVersions)
         })
     }
-    test("dependent project has two commands, updateVersion and Release") {
-        assert(rootProject.dependents[0].commands).containsStrictly(
-            {
-                isA<JenkinsUpdateDependency> {
-                    stateWaitingWithDependencies(rootProjectId)
-                    property(subject::projectId).toBe(rootProjectId)
-                }
-            },
-            {
-                isA<JenkinsMavenReleasePlugin> {
-                    stateWaitingWithDependencies(rootProjectId)
-                    property(subject::nextDevVersion).toBe(dependentNextDevVersion)
-                }
-            }
-        )
-    }
+    assertWithDependent(rootProject, rootProjectIdAndVersions, dependentIdAndVersions)
 }
 
+fun ActionBody.assertWithDependent(rootProject: Project, dependency: IdAndVersions, dependent: IdAndVersions) {
+    test("it has 1 dependent with two commands, updateVersion and Release") {
+        assert(rootProject.dependents).containsStrictly({
+            property(subject::commands).containsStrictly(
+                {
+                    isA<JenkinsUpdateDependency> {
+                        stateWaitingWithDependencies(dependency.id)
+                        property(subject::projectId).toBe(dependency.id)
+                    }
+                },
+                {
+                    isA<JenkinsMavenReleasePlugin> {
+                        stateWaitingWithDependencies(dependency.id)
+                        property(subject::nextDevVersion).toBe(dependent.nextDevVersion)
+                    }
+                }
+            )
+        })
+    }
+}

@@ -7,7 +7,9 @@ import ch.tutteli.atrium.api.cc.en_UK.property
 import ch.tutteli.atrium.api.cc.en_UK.toBe
 import ch.tutteli.atrium.creating.Assert
 
-fun Assert<Project>.idAndNewVersion(projectId: ProjectId, newVersion: String) = and {
-    property(subject::id).toBe(projectId)
-    property(subject::newVersion).toBe(newVersion)
+data class IdAndVersions(val id: ProjectId, val newVersion: String, val nextDevVersion: String)
+
+fun Assert<Project>.idAndNewVersion(idAndVersions: IdAndVersions) = and {
+    property(subject::id).toBe(idAndVersions.id)
+    property(subject::newVersion).toBe(idAndVersions.newVersion)
 }
