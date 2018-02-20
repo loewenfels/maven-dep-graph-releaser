@@ -36,9 +36,9 @@ buildscript {
             } - projectsWithoutSources
         ]
 
-        ownModule = { String name -> project(":${rootProject.name}-$name") }
+        ownProject = { String name -> project(":${rootProject.name}-$name") }
         srcKotlin = 'src/main/kotlin'
-        srcOwnModule = { String name -> "${rootProject.projectDir}/${rootProject.name}-$name/${ext.srcKotlin}" }
+        srcOwnProject = { String name -> "${rootProject.projectDir}/${rootProject.name}-$name/${ext.srcKotlin}" }
     }
 
     repositories {
@@ -90,7 +90,7 @@ configure(projectsWithSources) {
             suffix = '#L'
         }
         linkMapping {
-            dir = srcOwnModule('api')
+            dir = srcOwnProject('api')
             url = "$github_url/${dokka_sourceMapping}/${project.name}-api/$srcKotlin"
             suffix = '#L'
         }

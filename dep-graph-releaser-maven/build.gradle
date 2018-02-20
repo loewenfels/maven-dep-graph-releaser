@@ -3,7 +3,7 @@ buildscript {
 }
 
 dependencies {
-    compile ownModule('api')
-    compile ownModule('maven-api')
+    compile ownProject('api')
+    compile ownProject('maven-api')
     compile "ch.tutteli.copies:pom-explorer-core:$pom_explorer_version"
 }

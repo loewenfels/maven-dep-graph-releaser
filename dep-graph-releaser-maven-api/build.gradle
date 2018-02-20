@@ -3,5 +3,5 @@ buildscript {
 }
 
 dependencies {
-    compile ownModule('api')
+    compile ownProject('api')
 }

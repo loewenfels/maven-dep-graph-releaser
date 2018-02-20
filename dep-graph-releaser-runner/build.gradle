@@ -3,11 +3,11 @@ buildscript {
 }
 
 dependencies {
-    compile ownModule('maven')
-    compile ownModule('serialization')
+    compile ownProject('maven')
+    compile ownProject('serialization')
 
     runtimeOnly "org.jetbrains.kotlin:kotlin-runtime:$kotlin_version"
-    testCompile ownModule('maven').sourceSets.test.output
+    testCompile ownProject('maven').sourceSets.test.output
 }
 
 task dist {
