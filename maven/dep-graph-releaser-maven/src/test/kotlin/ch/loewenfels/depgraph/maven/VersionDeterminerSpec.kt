@@ -1,6 +1,5 @@
 package ch.loewenfels.depgraph.maven
 
-import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.tutteli.atrium.api.cc.en_UK.toBe
 import ch.tutteli.atrium.assert
 import org.jetbrains.spek.api.Spek
@@ -25,7 +24,7 @@ object VersionDeterminerSpec : Spek({
             "lovelyVersion" to "lovelyVersion.2"
         ).forEach { version, expected ->
             test("$version turns into $expected") {
-                val result = testee.releaseVersion(MavenProjectId("com", "example", version))
+                val result = testee.releaseVersion(version)
                 assert(result).toBe(expected)
             }
         }
@@ -47,7 +46,7 @@ object VersionDeterminerSpec : Spek({
             "lovelyVersion" to "lovelyVersion.3-SNAPSHOT"
         ).forEach { version, expected ->
             test("$version turns into $expected") {
-                val result = testee.nextDevVersion(MavenProjectId("com", "example", version))
+                val result = testee.nextDevVersion(version)
                 assert(result).toBe(expected)
             }
         }

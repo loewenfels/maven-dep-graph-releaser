@@ -15,7 +15,7 @@ import java.io.File
 
 object MavenFacadeSpec : Spek({
     val testee = MavenFacade()
-    val singleProjectIdAndVersions = IdAndVersions(MavenProjectId("com.example", "example", "1.0-SNAPSHOT"), "1.0", "1.1-SNAPSHOT")
+    val singleProjectIdAndVersions = IdAndVersions(MavenProjectId("com.example", "example"), "1.0-SNAPSHOT", "1.0", "1.1-SNAPSHOT")
 
     fun ActionBody.testReleaseSingleProject(idAndVersions: IdAndVersions, directory: String) {
         val rootProject = testee.analyseAndCreateReleasePlan(idAndVersions.id, getTestDirectory(directory))
@@ -49,7 +49,6 @@ object MavenFacadeSpec : Spek({
                 expect {
                     val projectToRelease: ProjectId = object : ProjectId {
                         override val identifier = "bla"
-                        override val version = "1.0"
                     }
                     testee.analyseAndCreateReleasePlan(projectToRelease, File("nonExistingProject/"))
                 }.toThrow<IllegalArgumentException> { message { contains(errMsg) } }
@@ -67,7 +66,7 @@ object MavenFacadeSpec : Spek({
         given("project to release not in directory") {
             val errMsg = "Can only release a project which is part of the analysis"
             it("throws an IllegalArgumentException, mentioning `$errMsg`") {
-                val wrongProject = MavenProjectId("com.other", "notThatOne", "x.0")
+                val wrongProject = MavenProjectId("com.other", "notThatOne")
                 expect {
                     testee.analyseAndCreateReleasePlan(wrongProject, getTestDirectory("singleProject"))
                 }.toThrow<IllegalArgumentException> {

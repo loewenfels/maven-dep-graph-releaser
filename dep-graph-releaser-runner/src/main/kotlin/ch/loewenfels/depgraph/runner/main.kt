@@ -4,7 +4,7 @@ import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import java.io.File
 
 fun main(vararg args: String) {
-    if (args.size != 6) {
+    if (args.size != 5) {
         error("""
             |Not enough arguments supplied!
             |
@@ -41,7 +41,7 @@ fun main(vararg args: String) {
         println("The resulting JSON file already exists, going to overwrite it.")
     }
 
-    val mavenProjectId = MavenProjectId(args[GROUP_ID], args[ARTIFACT_ID], args[VERSION])
+    val mavenProjectId = MavenProjectId(args[GROUP_ID], args[ARTIFACT_ID])
     println("Going to analyse: ${directoryToAnalyse.canonicalPath}")
 
     Orchestrator.analyseAndCreateJson(directoryToAnalyse, json, mavenProjectId)
@@ -50,16 +50,14 @@ fun main(vararg args: String) {
 
 private const val GROUP_ID = 1
 private const val ARTIFACT_ID = 2
-private const val VERSION = 3
-private const val DIR = 4
-private const val JSON = 5
+private const val DIR = 3
+private const val JSON = 4
 
 private val argumentOrder = """
 |Currently we support only the command: json
 |It requires the following arguments in the given order:
 |groupId (maven groupId of the project which shall be released)
 |artifactId (maven artifactId of the project which shall be released
-|version (the current version of the maven project)
 |dir (path to the directory where all projects are)
 |json (path incl. file name for the resulting json file)
 """.trimMargin()

@@ -20,15 +20,15 @@ import org.jetbrains.spek.api.dsl.it
 object SerializerSpec : Spek({
     val testee = Serializer()
 
-    fun createProject(state: CommandState) = Project(DummyProjectId("x", "8.2"), "9.0.0", listOf(DummyCommand(state)), listOf())
+    fun createProject(state: CommandState) = Project(DummyProjectId("x"), "8.2", "9.0.0", listOf(DummyCommand(state)), listOf())
 
     describe("serialize and deserialize") {
 
-        val aId = DummyProjectId("a", "5.0")
-        val projectWithoutCommandsAndDependents = Project(aId, "5.1", listOf(), listOf())
-        val projectWithCommandsWithoutDependents = Project(DummyProjectId("b", "1.2"), "2.0", listOf(DummyCommand(CommandState.Failed("oh no"))), listOf())
-        val projectWithoutCommandsButDependents = Project(DummyProjectId("c", "1.5"), "3.0", listOf(), listOf(projectWithCommandsWithoutDependents))
-        val projectWitCommandsAndDependents = Project(DummyProjectId("d", "1.5"), "3.0", listOf(DummyCommand(CommandState.Waiting(setOf(aId)))), listOf(projectWithoutCommandsButDependents))
+        val aId = DummyProjectId("a")
+        val projectWithoutCommandsAndDependents = Project(aId, "5.0", "5.1", listOf(), listOf())
+        val projectWithCommandsWithoutDependents = Project(DummyProjectId("b"), "1.2", "2.0", listOf(DummyCommand(CommandState.Failed("oh no"))), listOf())
+        val projectWithoutCommandsButDependents = Project(DummyProjectId("c"), "1.5", "3.0", listOf(), listOf(projectWithCommandsWithoutDependents))
+        val projectWitCommandsAndDependents = Project(DummyProjectId("d"), "1.5", "3.0", listOf(DummyCommand(CommandState.Waiting(setOf(aId)))), listOf(projectWithoutCommandsButDependents))
 
         val commands = Project::commands.name
         val dependents = Project::dependents.name
@@ -40,7 +40,7 @@ object SerializerSpec : Spek({
             "a Project with $commands and $dependents" to projectWitCommandsAndDependents
         )
         val states = listOf(
-            CommandState.Waiting(setOf(aId, DummyProjectId("x", "6.0"), DummyProjectId("z", "19.0"))),
+            CommandState.Waiting(setOf(aId, DummyProjectId("x"), DummyProjectId("z"))),
             CommandState.Ready,
             CommandState.InProgress,
             CommandState.Succeeded,

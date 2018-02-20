@@ -82,12 +82,12 @@ object PolymorphicAdapterFactorySpec : Spek({
         }
 
         on("serialize ${DummyProjectId::class.java.simpleName}") {
-            val result = adapter.toJson(DummyProjectId("test", "1.0"))
+            val result = adapter.toJson(DummyProjectId("test"))
             it("contains the full name of the type") {
                 assert(result).contains(typeDummy)
             }
-            it("contains ${DummyProjectId::identifier.name} and ${DummyProjectId::version.name}") {
-                assert(result).contains(""""identifier":"test"""", """"version":"1.0"""")
+            it("contains ${DummyProjectId::identifier.name}") {
+                assert(result).contains(""""identifier":"test"""")
             }
         }
     }
@@ -186,10 +186,9 @@ object PolymorphicAdapterFactorySpec : Spek({
 
                 val result = adapter.fromJson("""{$typeDummy, "$PAYLOAD": {$fields}}""")
 
-                it("is not null, and both identifier and version are set") {
+                it("is not `null` and identifier is set") {
                     assert(result).isNotNull {
                         property(subject::identifier).toBe(identifier)
-                        property(subject::version).toBe(version)
                     }
                 }
             }
@@ -197,7 +196,7 @@ object PolymorphicAdapterFactorySpec : Spek({
     }
 
     describe("serialize and deserialize (round-trip)") {
-        val original = DummyProjectId("test", "1.0")
+        val original = DummyProjectId("test")
         val json = adapter.toJson(original)
         val result = adapter.fromJson(json)
         on("serialize and deserialize") {

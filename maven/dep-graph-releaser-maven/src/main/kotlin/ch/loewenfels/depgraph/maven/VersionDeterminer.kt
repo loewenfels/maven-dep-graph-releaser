@@ -1,13 +1,12 @@
 package ch.loewenfels.depgraph.maven
 
-import ch.loewenfels.depgraph.data.ProjectId
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
 class VersionDeterminer {
-    fun releaseVersion(projectId: ProjectId): String = when {
-        projectId.version.endsWith(SNAPSHOT_SUFFIX) -> projectId.version.substringBefore(SNAPSHOT_SUFFIX)
-        else -> updateLastNumber(projectId.version)
+    fun releaseVersion(currentVersion: String): String = when {
+        currentVersion.endsWith(SNAPSHOT_SUFFIX) -> currentVersion.substringBefore(SNAPSHOT_SUFFIX)
+        else -> updateLastNumber(currentVersion)
     }
 
     private fun updateLastNumber(version: String): String {
@@ -21,8 +20,8 @@ class VersionDeterminer {
 
     private fun incrementNumber(matcher: Matcher, index: Int): Int = matcher.group(index).toInt() + 1
 
-    fun nextDevVersion(projectId: ProjectId): String {
-        val releaseVersion = releaseVersion(projectId)
+    fun nextDevVersion(currentVersion: String): String {
+        val releaseVersion = releaseVersion(currentVersion)
         val matcher = MAJOR_MINOR_PATCH_PATTERN.matcher(releaseVersion)
         matcher.find()
         val incrementedLastDigit = incrementNumber(matcher, PATCH_GROUP).toString()

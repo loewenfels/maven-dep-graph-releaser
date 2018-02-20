@@ -29,11 +29,10 @@ object MainSpec : Spek({
     }
 
     describe("happy case, project A with dependent project B") {
-        on("on calling main") {
+        on("calling main") {
             val jsonFile = File(tmp.absolutePath, "test.json")
             main(
-                "json",
-                "com.example", "a", "1.1.1-SNAPSHOT",
+                "json", "com.example", "a",
                 getTestDirectory("projectWithDependency").absolutePath,
                 jsonFile.absolutePath
             )

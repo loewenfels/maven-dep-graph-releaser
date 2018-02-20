@@ -9,16 +9,17 @@ import ch.tutteli.atrium.api.cc.en_UK.*
 import org.jetbrains.spek.api.dsl.ActionBody
 
 
-val exampleA = IdAndVersions(MavenProjectId("com.example", "a", "1.1.1-SNAPSHOT"), "1.1.1", "1.1.2-SNAPSHOT")
-val exampleB = IdAndVersions(MavenProjectId("com.example", "b", "1.0.1-SNAPSHOT"), "1.0.1", "1.0.2-SNAPSHOT")
-val exampleC = IdAndVersions(MavenProjectId("com.example", "c", "3.0.0-SNAPSHOT"), "3.0.0", "3.0.1-SNAPSHOT")
+val exampleA = IdAndVersions(MavenProjectId("com.example", "a"), "1.1.1-SNAPSHOT", "1.1.1", "1.1.2-SNAPSHOT")
+val exampleB = IdAndVersions(MavenProjectId("com.example", "b"), "1.0.1-SNAPSHOT", "1.0.1", "1.0.2-SNAPSHOT")
+val exampleC = IdAndVersions(MavenProjectId("com.example", "c"), "3.0.0-SNAPSHOT", "3.0.0", "3.0.1-SNAPSHOT")
 
 fun ActionBody.assertRootProjectOnlyReleaseAndReady(rootProject: Project, idAndVersions: IdAndVersions) {
-    test("its ${Project::id.name} is ${idAndVersions.id}") {
-        assert(rootProject.id).toBe(idAndVersions.id)
-    }
-    test("its ${Project::releaseVersion.name} is ${idAndVersions.releaseVersion}") {
-        assert(rootProject.releaseVersion).toBe(idAndVersions.releaseVersion)
+    test("its ${Project::id.name} and versions are $idAndVersions") {
+        assert(rootProject) {
+            property(subject::id).toBe(idAndVersions.id)
+            property(subject::currentVersion).toBe(idAndVersions.currentVersion)
+            property(subject::releaseVersion).toBe(idAndVersions.releaseVersion)
+        }
     }
     test("it contains just the ${JenkinsMavenReleasePlugin::class.simpleName} command, which is Ready with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = ${idAndVersions.nextDevVersion}") {
         assert(rootProject) {
@@ -50,6 +51,7 @@ fun ActionBody.assertWithDependent(rootProject: Project, dependency: IdAndVersio
     test("it has one dependent with two commands, updateVersion and Release") {
         assert(rootProject.dependents).containsStrictly({
             property(subject::id).toBe(dependent.id)
+            property(subject::currentVersion).toBe(dependent.currentVersion)
             property(subject::releaseVersion).toBe(dependent.releaseVersion)
             property(subject::commands).containsStrictly(
                 {

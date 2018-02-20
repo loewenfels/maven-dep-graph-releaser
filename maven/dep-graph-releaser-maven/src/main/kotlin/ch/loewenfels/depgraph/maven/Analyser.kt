@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.maven
 
+import ch.loewenfels.depgraph.data.ProjectIdWithCurrentVersion
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import fr.lteconsulting.pomexplorer.DefaultPomFileLoader
 import fr.lteconsulting.pomexplorer.Log
@@ -10,8 +11,8 @@ import java.io.File
 
 class Analyser(directoryWithProjects: File) {
     private val session: Session
-    private val dependents: Map<String, Set<MavenProjectId>>
-    private val projectIds: Set<MavenProjectId>
+    private val dependents: Map<String, Set<ProjectIdWithCurrentVersion<MavenProjectId>>>
+    private val projectIds: Map<MavenProjectId, String>
 
     init {
         require(directoryWithProjects.exists()) {
@@ -21,9 +22,7 @@ class Analyser(directoryWithProjects: File) {
         dependents = analyseDependents()
         projectIds = session.projects().keySet()
             .asSequence()
-            .map { it.toMavenProjectId() }
-            .toSet()
-
+            .associateBy({ it.toMavenProjectId() }, { it.version })
     }
 
     private fun analyseDirectory(directoryWithProjects: File): Session {
@@ -33,35 +32,41 @@ class Analyser(directoryWithProjects: File) {
         return session
     }
 
-    private fun analyseDependents(): Map<String, Set<MavenProjectId>> {
+    private fun analyseDependents(): Map<String, Set<ProjectIdWithCurrentVersion<MavenProjectId>>> {
         val analysedGroupIdsAndArtifactIds = session.projects().keySet()
             .asSequence()
             .map { "${it.groupId}:${it.artifactId}" }
             .toSet()
-        val dependents = hashMapOf<String, MutableSet<MavenProjectId>>()
+        val dependents = hashMapOf<String, MutableSet<ProjectIdWithCurrentVersion<MavenProjectId>>>()
         session.projects().keySet().forEach { gav ->
             session.graph().read().relations(gav)
                 .asSequence()
                 .filter { analysedGroupIdsAndArtifactIds.contains("${it.target.groupId}:${it.target.artifactId}") }
                 .forEach { relation ->
-                    val set = dependents.getOrPut(relation.target.toMapKey(), { mutableSetOf() })
-                    set.add(gav.toMavenProjectId())
+                    val set = dependents.getOrPut(relation.target.toMavenProjectId().identifier, { mutableSetOf() })
+                    set.add(gav.toProjectIdWithCurrentVersion())
                 }
         }
         return dependents
     }
 
-    private fun Gav.toMavenProjectId() = MavenProjectId(groupId, artifactId, version)
-    private fun Gav.toMapKey() = "$groupId:$artifactId"
-    private fun MavenProjectId.toMapKey() = "$groupId:$artifactId"
+    private fun Gav.toProjectIdWithCurrentVersion() = ProjectIdWithCurrentVersion(toMavenProjectId(), version)
+    private fun Gav.toMavenProjectId() = MavenProjectId(groupId, artifactId)
 
-    fun hasAnalysedProject(projectId: MavenProjectId): Boolean {
-        return projectIds.contains(projectId)
-    }
+    /**
+     * Returns the current version for the given [projectId] if it was involved in the analysis; `null` otherwise.
+     * @return The current version or `null` if [projectId] was not part of the analysis.
+     */
+    fun getCurrentVersion(projectId: MavenProjectId): String?
+        =  projectIds[projectId]
 
+
+    /**
+     * Returns the [MavenProjectId]s of the analysed projects together with the current version.
+     */
     fun getAnalysedProjectsAsString(): CharSequence {
         val sb = StringBuilder()
-        projectIds.joinTo(sb)
+        projectIds.entries.joinTo(sb, transform = { (k, v) -> "$k:$v" })
         return sb
     }
 
@@ -72,8 +77,8 @@ class Analyser(directoryWithProjects: File) {
      * Meaning, if a project ch.loewenfels:A has a dependency on Project ch.loewenfels:B:1.0 and
      * the analysed project B is in version 2.0-SNAPSHOT then project A is still dependent of project B.
      */
-    fun getDependentsOf(projectId: MavenProjectId): Set<MavenProjectId> {
-        return dependents[projectId.toMapKey()] ?: emptySet()
+    fun getDependentsOf(projectId: MavenProjectId): Set<ProjectIdWithCurrentVersion<MavenProjectId>> {
+        return dependents[projectId.identifier] ?: emptySet()
     }
 }
 
