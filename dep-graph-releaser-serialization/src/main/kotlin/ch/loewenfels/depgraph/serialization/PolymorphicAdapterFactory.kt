@@ -32,28 +32,17 @@ class PolymorphicAdapterFactory<T : Any>(private val abstractType: Class<T>) : J
 
     private class PolymorphicAdapter<T : Any>(private val abstractType: Class<T>, private val moshi: Moshi) : NonNullJsonAdapter<T>() {
 
-        override fun fromJson(reader: JsonReader): T? {
-            reader.beginObject()
-
+        override fun fromJson(reader: JsonReader): T? = reader.readObject {
             //If you make changes here, then you have to make changes in toJson
             checkName(reader, TYPE)
             val entityName = reader.nextString()
             val runtimeClass = loadClass(entityName)
             checkName(reader, PAYLOAD)
-            val entity = moshi.adapter(runtimeClass).fromJson(reader)
-
-            reader.endObject()
-            return entity
+            moshi.adapter(runtimeClass).fromJson(reader)
         }
 
         private fun checkName(reader: JsonReader, expectedName: String) {
-            val nextName = reader.nextName()
-            require(nextName == expectedName) {
-                """Cannot read polymorphic type, field order matters
-                    |Expected: $expectedName
-                    |Given: $nextName
-                """.trimMargin()
-            }
+            reader.checkNextName("polymorphic type", expectedName)
         }
 
         private fun loadClass(commandName: String?): Class<T> {
@@ -73,10 +62,8 @@ class PolymorphicAdapterFactory<T : Any>(private val abstractType: Class<T>) : J
             val adapter: JsonAdapter<T> = getAdapter(runtimeClass)
             writer.writeObject {
                 //If you make changes here, then you have to make changes in fromJson
-                writer.name(TYPE)
-                writer.value(runtimeClass.name)
-                writer.name(PAYLOAD)
-                adapter.toJson(writer, value)
+                writeNameAndValue(TYPE, runtimeClass.name)
+                writeNameAndValue(PAYLOAD, value, adapter)
             }
         }
 

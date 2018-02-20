@@ -13,20 +13,23 @@ object MavenFacadeSpec : Spek({
     val singleProjectIdAndVersions = IdAndVersions(MavenProjectId("com.example", "example"), "1.0-SNAPSHOT", "1.0", "1.1-SNAPSHOT")
 
     fun ActionBody.testReleaseSingleProject(idAndVersions: IdAndVersions, directory: String) {
-        val rootProject = testee.analyseAndCreateReleasePlan(idAndVersions.id, getTestDirectory(directory))
+        val releasePlan = testee.analyseAndCreateReleasePlan(idAndVersions.id, getTestDirectory(directory))
 
-        assertRootProjectOnlyReleaseAndReady(rootProject, idAndVersions)
+        assertRootProjectOnlyReleaseAndReady(releasePlan, idAndVersions)
 
         test("it does not have any dependent project") {
-            assert(rootProject.dependents).isEmpty()
+            assert(releasePlan.dependents) {
+                property(subject::size).toBe(1)
+                returnValueOf(subject::get, idAndVersions.id).isNotNull { isEmpty() }
+            }
         }
     }
 
     fun SpecBody.testReleaseAWithDependentB(directory: String) {
         describe(testee::analyseAndCreateReleasePlan.name) {
             action("the root project is the one we want to release") {
-                val rootProject = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
-                assertProjectAWithDependentB(rootProject)
+                val releasePlan = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
+                assertProjectAWithDependentB(releasePlan)
             }
         }
     }
@@ -109,12 +112,19 @@ object MavenFacadeSpec : Spek({
     given("project with implicit transitive dependent") {
         describe(testee::analyseAndCreateReleasePlan.name) {
             action("the root project is the one we want to release") {
-                val rootProject = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("transitiveImplicit"))
-                assertRootProjectOnlyReleaseAndReady(rootProject, exampleA)
+                val releasePlan = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("transitiveImplicit"))
+                assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
 
-                assertWithDependent(rootProject, exampleA, exampleB)
+                assertWithDependent(releasePlan, exampleA, exampleB)
                 test("the dependent has itself a dependent with two commands, updateVersion and Release") {
-                    assertWithDependent(rootProject.dependents[0], exampleB, exampleC)
+                    assertWithDependent(releasePlan, exampleB, exampleC)
+                }
+
+                test("release plan has three projects and three dependents") {
+                    assert(releasePlan) {
+                        property(subject::projects).size(3)
+                        property(subject::dependents).size(3)
+                    }
                 }
             }
         }
@@ -123,28 +133,44 @@ object MavenFacadeSpec : Spek({
     given("project with explicit transitive dependent") {
         describe(testee::analyseAndCreateReleasePlan.name) {
             action("the root project is the one we want to release") {
-                val rootProject = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("transitiveExplicit"))
-                assertRootProjectOnlyReleaseAndReady(rootProject, exampleA)
+                val releasePlan = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("transitiveExplicit"))
+                assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
 
-                test("it has two dependents with two commands, updateVersion and Release") {
-                    assert(rootProject.dependents).contains.inAnyOrder.only.entries(
-                        {
-                            idAndVersions(exampleB)
-                            property(subject::commands).containsStrictly(
-                                { isJenkinsUpdateDependency(exampleA) },
-                                { isJenkinsMavenReleaseWithDependency(exampleB.nextDevVersion, exampleA) }
-                            )
-                        },
-                        {
-                            idAndVersions(exampleC)
-                            property(subject::commands).containsStrictly(
-                                { isJenkinsUpdateDependency(exampleB) },
-                                { isJenkinsUpdateDependency(exampleA) },
-                                { isJenkinsMavenReleaseWithDependency(exampleC.nextDevVersion, exampleA, exampleB) }
-                            )
-                            property(subject::dependents).isEmpty()
-                        }
-                    )
+                it("has two dependent") {
+                    assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleC)
+                }
+                test("the direct dependent project has two commands, updateVersion and Release") {
+                    assert(releasePlan.projects[exampleB.id]).isNotNull {
+                        idAndVersions(exampleB)
+                        property(subject::commands).containsStrictly(
+                            { isJenkinsUpdateDependency(exampleA) },
+                            { isJenkinsMavenReleaseWithDependency(exampleB.nextDevVersion, exampleA) }
+                        )
+                    }
+                }
+                test("the direct dependent has one dependent") {
+                    assert(releasePlan).hasDependentsForProject(exampleB, exampleC)
+                }
+
+                test("the indirect dependent project has two commands, updateVersion and Release") {
+                    assert(releasePlan.projects[exampleC.id]).isNotNull {
+                        idAndVersions(exampleC)
+                        property(subject::commands).containsStrictly(
+                            { isJenkinsUpdateDependency(exampleB) },
+                            { isJenkinsUpdateDependency(exampleA) },
+                            { isJenkinsMavenReleaseWithDependency(exampleC.nextDevVersion, exampleA, exampleB) }
+                        )
+                    }
+                }
+                test("the indirect dependent does not have dependents") {
+                    assert(releasePlan).hasNotDependentsForProject(exampleC)
+                }
+
+                test("release plan has three projects and three dependents") {
+                    assert(releasePlan) {
+                        property(subject::projects).size(3)
+                        property(subject::dependents).size(3)
+                    }
                 }
             }
         }

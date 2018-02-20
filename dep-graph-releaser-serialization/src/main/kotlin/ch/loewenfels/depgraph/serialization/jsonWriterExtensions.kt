@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.serialization
 
+import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.JsonWriter
 
 fun JsonWriter.writeNameAndValue(name: String, value: String) {
@@ -7,19 +8,19 @@ fun JsonWriter.writeNameAndValue(name: String, value: String) {
     value(value)
 }
 
-inline fun JsonWriter.writeObject(act: () -> Unit) {
+fun <T> JsonWriter.writeNameAndValue(name: String, value: T, adapter: JsonAdapter<T>) {
+    name(name)
+    adapter.toJson(this, value)
+}
+
+inline fun JsonWriter.writeObject(act: JsonWriter.() -> Unit) {
     beginObject()
-    act()
+    act(this)
     endObject()
 }
 
-fun JsonWriter.writeEmptyArray(name: String) {
-    name(name)
-    writeArray {}
-}
-
-inline fun JsonWriter.writeArray(act: () -> Unit) {
+inline fun JsonWriter.writeArray(act: JsonWriter.() -> Unit) {
     beginArray()
-    act()
+    act(this)
     endArray()
 }

@@ -40,8 +40,7 @@ object MainSpec : Spek({
                 assert(jsonFile).returnValueOf(jsonFile::exists).isTrue()
             }
 
-            it("the json file can be deserialized and is expected project A with dependent B") {
-                Charsets.UTF_8
+            test("the json file can be de-serialized and is expected project A with dependent B") {
                 val json = Files.readFirstLine(jsonFile, Charsets.UTF_8)
                 val rootProject = Serializer().deserialize(json)
                 assertProjectAWithDependentB(rootProject)
