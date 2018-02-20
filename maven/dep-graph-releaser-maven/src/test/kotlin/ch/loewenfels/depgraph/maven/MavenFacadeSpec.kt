@@ -2,13 +2,8 @@ package ch.loewenfels.depgraph.maven
 
 import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
-import ch.tutteli.atrium.IdAndVersions
-import ch.tutteli.atrium.api.cc.en_UK.contains
-import ch.tutteli.atrium.api.cc.en_UK.isEmpty
-import ch.tutteli.atrium.api.cc.en_UK.message
-import ch.tutteli.atrium.api.cc.en_UK.toThrow
-import ch.tutteli.atrium.assert
-import ch.tutteli.atrium.expect
+import ch.tutteli.atrium.*
+import ch.tutteli.atrium.api.cc.en_UK.*
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.*
 import java.io.File
@@ -111,15 +106,45 @@ object MavenFacadeSpec : Spek({
         }
     }
 
-    given("project with two dependent in line") {
+    given("project with two dependents in line (aka transitive)") {
         describe(testee::analyseAndCreateReleasePlan.name) {
             action("the root project is the one we want to release") {
-                val rootProject = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("twoDependentsInLine"))
+                val rootProject = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("transitiveImplicit"))
                 assertRootProjectOnlyReleaseAndReady(rootProject, exampleA)
 
                 assertWithDependent(rootProject, exampleA, exampleB)
                 test("the dependent has itself a dependent with two commands, updateVersion and Release") {
                     assertWithDependent(rootProject.dependents[0], exampleB, exampleC)
+                }
+            }
+        }
+    }
+
+    given("project with two dependents not in line (not transitive)") {
+        describe(testee::analyseAndCreateReleasePlan.name) {
+            action("the root project is the one we want to release") {
+                val rootProject = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("transitiveExplicit"))
+                assertRootProjectOnlyReleaseAndReady(rootProject, exampleA)
+
+                test("it has two dependents with two commands, updateVersion and Release") {
+                    assert(rootProject.dependents).contains.inAnyOrder.only.entries(
+                        {
+                            idAndVersions(exampleB)
+                            property(subject::commands).containsStrictly(
+                                { isJenkinsUpdateDependency(exampleA) },
+                                { isJenkinsMavenReleaseWithDependency(exampleA, exampleB.nextDevVersion) }
+                            )
+                        },
+                        {
+                            idAndVersions(exampleC)
+                            property(subject::commands).containsStrictly(
+                                { isJenkinsUpdateDependency(exampleB) },
+                                { isJenkinsUpdateDependency(exampleA) },
+                                { isJenkinsMavenReleaseWithDependency(exampleA, exampleC.nextDevVersion) }
+                            )
+                            property(subject::dependents).isEmpty()
+                        }
+                    )
                 }
             }
         }

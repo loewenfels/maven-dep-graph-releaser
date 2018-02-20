@@ -1,6 +1,6 @@
 package ch.loewenfels.depgraph.runner
 
-import ch.loewenfels.depgraph.maven.assertProjectAWithDependentB
+import ch.tutteli.atrium.assertProjectAWithDependentB
 import ch.loewenfels.depgraph.maven.getTestDirectory
 import ch.loewenfels.depgraph.serialization.Serializer
 import ch.tutteli.atrium.api.cc.en_UK.isTrue
