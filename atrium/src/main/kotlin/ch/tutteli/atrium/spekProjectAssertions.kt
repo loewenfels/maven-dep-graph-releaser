@@ -8,6 +8,7 @@ import ch.tutteli.atrium.api.cc.en_UK.isA
 import ch.tutteli.atrium.api.cc.en_UK.property
 import ch.tutteli.atrium.api.cc.en_UK.toBe
 import org.jetbrains.spek.api.dsl.ActionBody
+import org.jetbrains.spek.api.dsl.it
 
 val exampleA = IdAndVersions(MavenProjectId("com.example", "a"), "1.1.1-SNAPSHOT", "1.1.1", "1.1.2-SNAPSHOT")
 val exampleB = IdAndVersions(MavenProjectId("com.example", "b"), "1.0.1-SNAPSHOT", "1.0.1", "1.0.2-SNAPSHOT")
@@ -46,12 +47,12 @@ fun ActionBody.assertProjectWithOneDependent(
 }
 
 fun ActionBody.assertWithDependent(rootProject: Project, dependency: IdAndVersions, dependent: IdAndVersions) {
-    test("it has one dependent with two commands, updateVersion and Release") {
+    it("has one dependent with two commands, updateVersion and Release") {
         assert(rootProject.dependents).containsStrictly({
             idAndVersions(dependent)
             property(subject::commands).containsStrictly(
                 { isJenkinsUpdateDependency(dependency) },
-                { isJenkinsMavenReleaseWithDependency(dependency, dependent.nextDevVersion) }
+                { isJenkinsMavenReleaseWithDependency(dependent.nextDevVersion, dependency) }
             )
         })
     }

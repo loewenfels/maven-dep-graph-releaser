@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.maven
 
+import ch.loewenfels.depgraph.data.Command
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ProjectId
@@ -20,10 +21,10 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
 
         val rootProject = createInitialProject(projectToRelease, currentVersion!!, CommandState.Ready)
         val visitedProjects = hashMapOf<ProjectId, Project>()
-        val projectsToVisit = mutableListOf(projectToRelease to rootProject)
+        val projectsToVisit = mutableListOf(rootProject)
         while (projectsToVisit.isNotEmpty()) {
-            val dependencyPair = projectsToVisit.removeAt(0)
-            createCommandsForDependents(analyser, dependencyPair, visitedProjects, projectsToVisit)
+            val project = projectsToVisit.removeAt(0)
+            createCommandsForDependents(analyser, project, visitedProjects, projectsToVisit)
         }
 
         return rootProject
@@ -39,17 +40,26 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         )
     }
 
-    private fun createCommandsForDependents(analyser: Analyser, dependencyPair: Pair<MavenProjectId, Project>, visitedProjects: HashMap<ProjectId, Project>, projectsToVisit: MutableList<Pair<MavenProjectId, Project>>) {
-        val (dependencyId, dependency) = dependencyPair
+    private fun createCommandsForDependents(analyser: Analyser, dependency: Project, visitedProjects: HashMap<ProjectId, Project>, projectsToVisit: MutableList<Project>) {
+        val dependencyId = dependency.id as MavenProjectId
         visitedProjects[dependencyId] = dependency
         analyser.getDependentsOf(dependencyId).forEach { dependentIdWithVersion ->
             val dependent = visitedProjects.getOrPut(dependentIdWithVersion.id, {
-                createInitialProject(dependentIdWithVersion.id, dependentIdWithVersion.currentVersion, CommandState.Waiting(setOf(dependencyId)))
+                createInitialProject(dependentIdWithVersion.id, dependentIdWithVersion.currentVersion, CommandState.Waiting(mutableSetOf(dependencyId)))
             })
             (dependency.dependents as MutableList).add(dependent)
             val list = dependent.commands as MutableList
+            addDependencyToJenkinsReleaseCommand(list, dependencyId)
             list.add(0, JenkinsUpdateDependency(CommandState.Waiting(setOf(dependencyId)), dependencyId))
-            projectsToVisit.add(dependentIdWithVersion.id to dependent)
+            projectsToVisit.add(dependent)
         }
+    }
+
+    private fun addDependencyToJenkinsReleaseCommand(list: MutableList<Command>, dependencyId: MavenProjectId) {
+        val last = list.last()
+        check(last is JenkinsMavenReleasePlugin) {
+            "The last command has to be a ${JenkinsMavenReleasePlugin::class.simpleName}"
+        }
+        ((last.state as CommandState.Waiting).dependencies as MutableSet).add(dependencyId)
     }
 }

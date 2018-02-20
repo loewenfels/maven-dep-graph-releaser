@@ -106,7 +106,7 @@ object MavenFacadeSpec : Spek({
         }
     }
 
-    given("project with two dependents in line (aka transitive)") {
+    given("project with implicit transitive dependent") {
         describe(testee::analyseAndCreateReleasePlan.name) {
             action("the root project is the one we want to release") {
                 val rootProject = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("transitiveImplicit"))
@@ -120,7 +120,7 @@ object MavenFacadeSpec : Spek({
         }
     }
 
-    given("project with two dependents not in line (not transitive)") {
+    given("project with explicit transitive dependent") {
         describe(testee::analyseAndCreateReleasePlan.name) {
             action("the root project is the one we want to release") {
                 val rootProject = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("transitiveExplicit"))
@@ -132,7 +132,7 @@ object MavenFacadeSpec : Spek({
                             idAndVersions(exampleB)
                             property(subject::commands).containsStrictly(
                                 { isJenkinsUpdateDependency(exampleA) },
-                                { isJenkinsMavenReleaseWithDependency(exampleA, exampleB.nextDevVersion) }
+                                { isJenkinsMavenReleaseWithDependency(exampleB.nextDevVersion, exampleA) }
                             )
                         },
                         {
@@ -140,7 +140,7 @@ object MavenFacadeSpec : Spek({
                             property(subject::commands).containsStrictly(
                                 { isJenkinsUpdateDependency(exampleB) },
                                 { isJenkinsUpdateDependency(exampleA) },
-                                { isJenkinsMavenReleaseWithDependency(exampleA, exampleC.nextDevVersion) }
+                                { isJenkinsMavenReleaseWithDependency(exampleC.nextDevVersion, exampleA, exampleB) }
                             )
                             property(subject::dependents).isEmpty()
                         }

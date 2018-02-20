@@ -24,9 +24,9 @@ fun Assert<Command>.isJenkinsUpdateDependency(dependency: IdAndVersions) {
     }
 }
 
-fun Assert<Command>.isJenkinsMavenReleaseWithDependency(dependency: IdAndVersions, nextDevVersion: String) {
+fun Assert<Command>.isJenkinsMavenReleaseWithDependency(nextDevVersion: String, dependency: IdAndVersions, vararg otherDependencies: IdAndVersions) {
     isA<JenkinsMavenReleasePlugin> {
-        stateWaitingWithDependencies(dependency.id)
+        stateWaitingWithDependencies(dependency.id, *(otherDependencies.map { it.id }.toTypedArray()))
         property(subject::nextDevVersion).toBe(nextDevVersion)
     }
 }
