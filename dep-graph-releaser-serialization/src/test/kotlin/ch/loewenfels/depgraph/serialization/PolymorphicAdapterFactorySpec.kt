@@ -64,21 +64,18 @@ object PolymorphicAdapterFactorySpec : Spek({
     describe("serialization") {
         describe("validation errors") {
 
-            //TODO, have yet to find out how I can detect anonymous objects
-            /*given("anonymous class") {
+            given("anonymous class") {
                 it("throws an IllegalArgumentException") {
                     val value = object : ProjectId {
                         override val identifier = "test"
-                        override val version = "1.0"
                     }
                     expect {
-                        value::class.qualifiedName
                         adapter.toJson(value)
                     }.toThrow<IllegalArgumentException>{
-                        message { contains(value::class.java.name, "asdf") }
+                        message { contains(value::class.java.name) }
                     }
                 }
-            }*/
+            }
         }
 
         on("serialize ${DummyProjectId::class.java.simpleName}") {
