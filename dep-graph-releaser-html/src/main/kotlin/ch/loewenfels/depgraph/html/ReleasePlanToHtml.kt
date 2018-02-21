@@ -1,9 +1,6 @@
 package ch.loewenfels.depgraph.html
 
-import ch.loewenfels.depgraph.data.Command
-import ch.loewenfels.depgraph.data.CommandState
-import ch.loewenfels.depgraph.data.Project
-import ch.loewenfels.depgraph.data.ReleasePlan
+import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
@@ -88,8 +85,7 @@ class ReleasePlanToHtml {
                 htmlFor = id
                 +label
             }
-            input {
-                type = InputType.text
+            input(InputType.text) {
                 this.disabled = disabled
                 this.id = id
                 value = text
@@ -99,7 +95,12 @@ class ReleasePlanToHtml {
 
 
     private fun DIV.fieldsForCommand(idPrefix: String, command: Command) {
-        toggle("$idPrefix:disable", command.state !is CommandState.Deactivated)
+        val cssClass = when(command){
+            is ReleaseCommand -> "release"
+            else -> ""
+        }
+        toggle("$idPrefix:disable", command.state !is CommandState.Deactivated, cssClass)
+
         when (command) {
             is JenkinsMavenReleasePlugin -> {
                 fieldWithLabel("$idPrefix:nextDevVersion", "Next Dev Version", command.nextDevVersion)
@@ -111,10 +112,9 @@ class ReleasePlanToHtml {
 
     }
 
-    private fun DIV.toggle(id: String, checked: Boolean) {
+    private fun DIV.toggle(id: String, checked: Boolean, checkboxCssClass: String = "") {
         label("toggle") {
-            input {
-                type = InputType.checkBox
+            input(InputType.checkBox, classes = checkboxCssClass) {
                 this.id = id
                 this.checked = checked
                 onClick = "toggle('$id')"
@@ -152,6 +152,4 @@ class ReleasePlanToHtml {
             raw("\n" + fileContent)
         }
     }
-
-
 }
