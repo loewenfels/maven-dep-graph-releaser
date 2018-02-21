@@ -11,4 +11,7 @@ data class Project(
     val currentVersion: String,
     val releaseVersion: String,
     val commands: List<Command>
-)
+) {
+    constructor(project: Project, commands: List<Command>) :
+        this(project.id, project.currentVersion, project.releaseVersion, commands)
+}

@@ -41,8 +41,8 @@ fun ActionBody.assertProjectAWithDependentB(releasePlan: ReleasePlan) {
 
     test("release plan has only two projects and two dependents") {
         assert(releasePlan) {
-            property(subject::projects).size(2)
-            property(subject::dependents).size(2)
+            property(subject::projects).hasSize(2)
+            property(subject::dependents).hasSize(2)
         }
     }
 }
@@ -55,8 +55,8 @@ fun ActionBody.assertWithDependent(releasePlan: ReleasePlan, dependency: IdAndVe
         assert(releasePlan.projects[dependent.id]).isNotNull {
             idAndVersions(dependent)
             property(subject::commands).containsStrictly(
-                { isJenkinsUpdateDependency(dependency) },
-                { isJenkinsMavenReleaseWithDependency(dependent.nextDevVersion, dependency) }
+                { isJenkinsUpdateDependencyWaiting(dependency) },
+                { isJenkinsMavenReleaseWaiting(dependent.nextDevVersion, dependency) }
             )
         }
     }

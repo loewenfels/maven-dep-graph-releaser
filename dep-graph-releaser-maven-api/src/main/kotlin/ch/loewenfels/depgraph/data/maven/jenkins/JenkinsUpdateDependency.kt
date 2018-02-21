@@ -11,4 +11,6 @@ import ch.loewenfels.depgraph.data.maven.MavenProjectId
 data class JenkinsUpdateDependency(
     override val state: CommandState,
     val projectId: MavenProjectId
-) : Command
+) : Command {
+    override fun asNewState(newState: CommandState) = JenkinsUpdateDependency(newState, projectId)
+}

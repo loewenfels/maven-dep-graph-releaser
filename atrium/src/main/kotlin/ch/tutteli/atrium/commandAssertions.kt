@@ -17,16 +17,30 @@ fun Assert<Command>.stateWaitingWithDependencies(dependency: ProjectId, vararg o
 inline fun <reified T : CommandState> Assert<Command>.withState(noinline assertionCreator: Assert<T>.() -> Unit) =
     property(subject::state).isA(assertionCreator)
 
-fun Assert<Command>.isJenkinsUpdateDependency(dependency: IdAndVersions) {
+fun Assert<Command>.isJenkinsUpdateDependencyWaiting(dependency: IdAndVersions) {
     isA<JenkinsUpdateDependency> {
         stateWaitingWithDependencies(dependency.id)
         property(subject::projectId).toBe(dependency.id)
     }
 }
 
-fun Assert<Command>.isJenkinsMavenReleaseWithDependency(nextDevVersion: String, dependency: IdAndVersions, vararg otherDependencies: IdAndVersions) {
+fun Assert<Command>.isJenkinsMavenReleaseWaiting(nextDevVersion: String, dependency: IdAndVersions, vararg otherDependencies: IdAndVersions) {
     isA<JenkinsMavenReleasePlugin> {
         stateWaitingWithDependencies(dependency.id, *(otherDependencies.map { it.id }.toTypedArray()))
         property(subject::nextDevVersion).toBe(nextDevVersion)
+    }
+}
+
+fun Assert<Command>.isJenkinsUpdateDependencyDeactivated(oldCommand: JenkinsUpdateDependency) {
+    isA<JenkinsUpdateDependency> {
+        property(subject::state).toBe(CommandState.Deactivated(oldCommand.state))
+        property(subject::projectId).toBe(oldCommand.projectId)
+    }
+}
+
+fun Assert<Command>.isJenkinsMavenReleaseDeactivated(oldCommand: JenkinsMavenReleasePlugin) {
+    isA<JenkinsMavenReleasePlugin> {
+        property(subject::state).toBe(CommandState.Deactivated(oldCommand.state))
+        property(subject::nextDevVersion).toBe(oldCommand.nextDevVersion)
     }
 }

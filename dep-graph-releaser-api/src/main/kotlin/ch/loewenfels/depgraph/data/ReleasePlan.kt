@@ -11,4 +11,16 @@ data class ReleasePlan(
     val rootProjectId: ProjectId,
     val projects: Map<ProjectId, Project>,
     val dependents: Map<ProjectId, Set<ProjectId>>
-)
+) {
+    constructor(releasePlan: ReleasePlan, projects: Map<ProjectId, Project>) :
+        this(releasePlan.rootProjectId, projects, releasePlan.dependents)
+
+    fun getProject(projectId: ProjectId): Project {
+        return projects[projectId] ?: throw IllegalArgumentException("Could not find the project with id $projectId")
+    }
+
+    fun getDependents(projectId: ProjectId): Set<ProjectId> {
+        return dependents[projectId]
+            ?: throw IllegalArgumentException("Could not find dependents for project with id $projectId")
+    }
+}

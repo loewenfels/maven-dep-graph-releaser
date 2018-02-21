@@ -13,4 +13,6 @@ import  ch.loewenfels.depgraph.data.Project
 data class JenkinsMavenReleasePlugin(
     override val state: CommandState,
     val nextDevVersion: String
-) : Command
+) : Command {
+    override fun asNewState(newState: CommandState) = JenkinsMavenReleasePlugin(newState, nextDevVersion)
+}

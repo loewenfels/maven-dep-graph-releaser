@@ -122,8 +122,8 @@ object MavenFacadeSpec : Spek({
 
                 test("release plan has three projects and three dependents") {
                     assert(releasePlan) {
-                        property(subject::projects).size(3)
-                        property(subject::dependents).size(3)
+                        property(subject::projects).hasSize(3)
+                        property(subject::dependents).hasSize(3)
                     }
                 }
             }
@@ -143,8 +143,8 @@ object MavenFacadeSpec : Spek({
                     assert(releasePlan.projects[exampleB.id]).isNotNull {
                         idAndVersions(exampleB)
                         property(subject::commands).containsStrictly(
-                            { isJenkinsUpdateDependency(exampleA) },
-                            { isJenkinsMavenReleaseWithDependency(exampleB.nextDevVersion, exampleA) }
+                            { isJenkinsUpdateDependencyWaiting(exampleA) },
+                            { isJenkinsMavenReleaseWaiting(exampleB.nextDevVersion, exampleA) }
                         )
                     }
                 }
@@ -156,9 +156,9 @@ object MavenFacadeSpec : Spek({
                     assert(releasePlan.projects[exampleC.id]).isNotNull {
                         idAndVersions(exampleC)
                         property(subject::commands).containsStrictly(
-                            { isJenkinsUpdateDependency(exampleB) },
-                            { isJenkinsUpdateDependency(exampleA) },
-                            { isJenkinsMavenReleaseWithDependency(exampleC.nextDevVersion, exampleA, exampleB) }
+                            { isJenkinsUpdateDependencyWaiting(exampleB) },
+                            { isJenkinsUpdateDependencyWaiting(exampleA) },
+                            { isJenkinsMavenReleaseWaiting(exampleC.nextDevVersion, exampleA, exampleB) }
                         )
                     }
                 }
@@ -168,8 +168,8 @@ object MavenFacadeSpec : Spek({
 
                 test("release plan has three projects and three dependents") {
                     assert(releasePlan) {
-                        property(subject::projects).size(3)
-                        property(subject::dependents).size(3)
+                        property(subject::projects).hasSize(3)
+                        property(subject::dependents).hasSize(3)
                     }
                 }
             }
