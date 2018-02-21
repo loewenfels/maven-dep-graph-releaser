@@ -1,6 +1,9 @@
 package ch.loewenfels.depgraph.html
 
-import ch.loewenfels.depgraph.data.*
+import ch.loewenfels.depgraph.data.Command
+import ch.loewenfels.depgraph.data.CommandState
+import ch.loewenfels.depgraph.data.Project
+import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
@@ -19,17 +22,9 @@ class ReleasePlanToHtml {
 
     private fun HTML.body(releasePlan: ReleasePlan) {
         body {
-            val projectsToVisit = mutableListOf(releasePlan.rootProjectId)
-            val visitedProjects = hashSetOf<ProjectId>()
-            while (projectsToVisit.isNotEmpty()) {
-                val projectId = projectsToVisit.removeAt(0)
-                val project = releasePlan.getProject(projectId)
-                if (!visitedProjects.contains(projectId)) {
-                    project(project)
-                    projectsToVisit.addAll(releasePlan.getDependents(projectId))
-                }
+            for (project in releasePlan.iterator()) {
+                project(project)
             }
-
         }
     }
 

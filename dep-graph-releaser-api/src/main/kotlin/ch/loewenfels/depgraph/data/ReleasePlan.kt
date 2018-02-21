@@ -23,4 +23,23 @@ data class ReleasePlan(
         return dependents[projectId]
             ?: throw IllegalArgumentException("Could not find dependents for project with id $projectId")
     }
+
+    fun iterator(): Iterator<Project> = ReleasePlanIterator(this)
+
+    private class ReleasePlanIterator(private val releasePlan: ReleasePlan) : Iterator<Project> {
+        private val projectsToVisit = mutableListOf(releasePlan.rootProjectId)
+        private val visitedProjects = hashSetOf<ProjectId>()
+
+        override fun hasNext() = projectsToVisit.isNotEmpty()
+        override fun next(): Project {
+            val projectId = projectsToVisit.removeAt(0)
+            if (!visitedProjects.contains(projectId)) {
+                visitedProjects.add(projectId)
+                projectsToVisit.addAll(releasePlan.getDependents(projectId).filter { !visitedProjects.contains(it) })
+                return releasePlan.getProject(projectId)
+            } else {
+                throw NoSuchElementException("No project left; rootProjectId was ${releasePlan.rootProjectId}")
+            }
+        }
+    }
 }
