@@ -95,7 +95,7 @@ class ReleasePlanToHtml {
 
 
     private fun DIV.fieldsForCommand(idPrefix: String, command: Command) {
-        val cssClass = when(command){
+        val cssClass = when (command) {
             is ReleaseCommand -> "release"
             else -> ""
         }
@@ -131,9 +131,18 @@ class ReleasePlanToHtml {
             style {
                 unsafeRawFromFileFile("/style.css")
             }
-            script("text/javascript") {
-                unsafeRawFromFileFile("/script.js")
+            javascript(releasePlan)
+        }
+    }
+
+    private fun HEAD.javascript(releasePlan: ReleasePlan) {
+        script("text/javascript") {
+            val dependents = releasePlan.dependents.entries.joinToString(",\n") { (k, v) ->
+                """"${k.identifier}": [${v.joinToString { "\"${it.identifier}\"" }}]"""
             }
+            unsafeRaw("\nvar releasePlan = {$dependents}")
+
+            unsafeRawFromFileFile("/script.js")
         }
     }
 
@@ -148,8 +157,10 @@ class ReleasePlanToHtml {
                 ""
             }
         }
-        unsafe {
-            raw("\n" + fileContent)
-        }
+        unsafeRaw("\n" + fileContent)
+    }
+
+    private fun HTMLTag.unsafeRaw(content: String) {
+        unsafe { raw(content) }
     }
 }

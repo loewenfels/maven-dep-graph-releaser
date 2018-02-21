@@ -10,22 +10,41 @@ function toggle(id) {
 function toggleProject(checkbox, id) {
     var checked = checkbox.checked
     var prefix = id.substr(0, id.indexOf(':disableAll'))
-    iterate(prefix, x => x.checked = checked)
+    iterate(prefix, (x, i) => {
+        x.checked = checked
+        if (isReleaseCommand(x) && !checked) {
+            toggleCommand(x, prefix + ':' + i + ':disable')
+        }
+    })
 }
 
 function toggleCommand(checkbox, id) {
     var prefix = /(.*):[0-9]+:disable/.exec(id)[1]
     if (!checkbox.checked) {
-        iterate(prefix, x => {
-            if (x.id != id && isReleaseCommand(x)) {
-                x.checked = false
-            }
-        })
+        deactivateReleaseCommands(prefix, id)
+        deactivateDependents(prefix)
     } else if (isReleaseCommand(checkbox)) {
         //can only activate release if all checkboxes are activated
         if (notAllChecked(prefix, id)) {
             checkbox.checked = false
         }
+    }
+}
+
+function deactivateReleaseCommands(prefix, id){
+    iterate(prefix, x => {
+        if (x.id != id && isReleaseCommand(x)) {
+            x.checked = false
+        }
+    })
+}
+
+function deactivateDependents(prefix) {
+    var dependents = releasePlan[prefix]
+    for (var i in dependents) {
+        var disableAll = dependents[i] + ':disableAll'
+        document.getElementById(disableAll).checked = false
+        toggle(disableAll)
     }
 }
 
@@ -51,7 +70,7 @@ function iterate(prefix, act) {
         var checkbox = document.getElementById(prefix + ':' + i+ ':disable')
         found = checkbox != null
         if (found) {
-            act(checkbox)
+            act(checkbox, i)
         }
         ++i
     }
