@@ -55,9 +55,8 @@ object ReleasePlanToHtmlSpec : Spek({
 
     action("describe release plan to HTML smoke tests") {
         val result = testee.createHtml(releasePlan).toString()
-        FileWriter(File("test.html")).use {
-            it.write(result)
-        }
+        //TODO remove at some point, that's a hack to produce a html file
+        FileWriter(File("test.html")).use { it.write(result) }
 
         it("contains all projects") {
             val keys = releasePlan.projects.keys.map { """title="${it.identifier}"""" }
