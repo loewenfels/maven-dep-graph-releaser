@@ -33,20 +33,32 @@ class ReleasePlanToHtml {
             div("title") {
                 toggle("${id.identifier}:disableAll", project.commands.any { it.state !is CommandState.Deactivated })
                 span {
-                    if (id is MavenProjectId) {
-                        title = id.identifier
-                        +id.artifactId
-                    } else {
-                        +id.identifier
-                    }
+                    projectId(id)
                 }
-
             }
             div("fields") {
                 fieldReadOnlyWithLabel("${id.identifier}:currentVersion", "Current Version", project.currentVersion)
                 fieldWithLabel("${id.identifier}:releaseVersion", "Release Version", project.releaseVersion)
             }
             commands(project)
+        }
+    }
+
+    private fun CommonAttributeGroupFacade.projectId(id: ProjectId) {
+        if (id is MavenProjectId) {
+            title = id.identifier
+            +id.artifactId
+        } else {
+            +id.identifier
+        }
+    }
+
+    private fun INPUT.projectId(id: ProjectId) {
+        if (id is MavenProjectId) {
+            title = id.identifier
+            value = id.artifactId
+        } else {
+            value = id.identifier
         }
     }
 
@@ -72,23 +84,23 @@ class ReleasePlanToHtml {
     }
 
     private fun DIV.fieldWithLabel(id: String, label: String, text: String) {
-        fieldWithLabel(id, label, text, false)
+        fieldWithLabel(id, label, text, {})
     }
 
-    private fun DIV.fieldReadOnlyWithLabel(id: String, label: String, text: String) {
-        fieldWithLabel(id, label, text, true)
+    private fun DIV.fieldReadOnlyWithLabel(id: String, label: String, text: String, inputAct: INPUT.() -> Unit = {}) {
+        fieldWithLabel(id, label, text, { disabled = true; inputAct() })
     }
 
-    private fun DIV.fieldWithLabel(id: String, label: String, text: String, disabled: Boolean) {
+    private fun DIV.fieldWithLabel(id: String, label: String, text: String, inputAct: INPUT.() -> Unit) {
         div {
             label("fields") {
                 htmlFor = id
                 +label
             }
             input(InputType.text) {
-                this.disabled = disabled
                 this.id = id
                 value = text
+                inputAct()
             }
         }
     }
@@ -106,7 +118,7 @@ class ReleasePlanToHtml {
                 fieldWithLabel("$idPrefix:nextDevVersion", "Next Dev Version", command.nextDevVersion)
             }
             is JenkinsUpdateDependency -> {
-                fieldReadOnlyWithLabel("$idPrefix:groupId", "Dependency", command.projectId.identifier)
+                fieldReadOnlyWithLabel("$idPrefix:groupId", "Dependency", command.projectId.identifier, { projectId(command.projectId) })
             }
         }
 
