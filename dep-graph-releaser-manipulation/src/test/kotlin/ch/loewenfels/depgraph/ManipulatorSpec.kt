@@ -16,16 +16,22 @@ object ManipulatorSpec : Spek({
     val rootProjectId = MavenProjectId("com.example", "a")
     val rootProject = Project(rootProjectId, "1.1.0-SNAPSHOT", "1.2.0", listOf())
     val projectWithDependentId = MavenProjectId("com.example", "b")
+    val projectWithDependentUpdateDependency = JenkinsUpdateDependency(CommandState.Waiting(setOf(rootProjectId)), rootProjectId)
+    val projectWithDependentJenkinsRelease = JenkinsMavenReleasePlugin(CommandState.Waiting(setOf(rootProjectId)), "3.1-SNAPSHOT")
     val projectWithDependentCommands = listOf(
-        JenkinsUpdateDependency(CommandState.Waiting(setOf(rootProjectId)), rootProjectId),
-        JenkinsMavenReleasePlugin(CommandState.Waiting(setOf(rootProjectId)), "3.1-SNAPSHOT")
+        projectWithDependentUpdateDependency,
+        projectWithDependentJenkinsRelease
     )
     val projectWithDependent = Project(projectWithDependentId, "2.0", "3.0", projectWithDependentCommands)
+
     val projectWithoutDependentId = MavenProjectId("com.example", "c")
+    val projectWithoutDependentUpdateDependency1 = JenkinsUpdateDependency(CommandState.Waiting(setOf(rootProjectId)), rootProjectId)
+    val projectWithoutDependentUpdateDependency2 = JenkinsUpdateDependency(CommandState.Waiting(setOf(projectWithDependentId)), projectWithDependentId)
+    val projectWithoutDependentJenkinsRelease = JenkinsMavenReleasePlugin(CommandState.Deactivated(CommandState.Waiting(setOf(projectWithDependentId, rootProjectId))), "4.2-SNAPSHOT")
     val projectWithoutDependentCommands = listOf(
-        JenkinsUpdateDependency(CommandState.Waiting(setOf(rootProjectId)), rootProjectId),
-        JenkinsUpdateDependency(CommandState.Waiting(setOf(projectWithDependentId)), projectWithDependentId),
-        JenkinsMavenReleasePlugin(CommandState.Waiting(setOf(projectWithDependentId, rootProjectId)), "4.2-SNAPSHOT")
+        projectWithoutDependentUpdateDependency1,
+        projectWithoutDependentUpdateDependency2,
+        projectWithoutDependentJenkinsRelease
     )
     val projectWithoutDependent = Project(projectWithoutDependentId, "4.0", "4.1", projectWithoutDependentCommands)
 
@@ -43,7 +49,7 @@ object ManipulatorSpec : Spek({
         dependents
     ))
 
-    fun ActionBody.assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan: ReleasePlan, rootProjectId: MavenProjectId, rootProject: Project) {
+    fun ActionBody.assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan: ReleasePlan) {
         test("rootProjectId is still the same") {
             assert(newReleasePlan.rootProjectId).toBe(rootProjectId)
         }
@@ -64,71 +70,143 @@ object ManipulatorSpec : Spek({
         }
     }
 
+    fun ActionBody.assertProjectWithDependentStillSame(newReleasePlan: ReleasePlan) {
+        test("project with dependent is still the same") {
+            assert(newReleasePlan.getProject(projectWithDependentId)).isSame(projectWithDependent)
+        }
+    }
+
+    fun SpecBody.errorCasesInvalidProjectId(act: (ProjectId) -> Unit) {
+        given("id of the root project") {
+            it("throws an IllegalArgumentException which contains rootProjectId") {
+                expect {
+                    act(rootProjectId)
+                }.toThrow<IllegalArgumentException> { message { contains(rootProjectId.toString()) } }
+            }
+        }
+
+        given("projectId which is not part of the analysis") {
+            it("throws an IllegalArgumentException which contains projectId") {
+                val projectId = MavenProjectId("test", "one")
+                expect {
+                    act(projectId)
+                }.toThrow<IllegalArgumentException> { message { contains(projectId.toString()) } }
+            }
+        }
+    }
+
     describe("fun ${testee::deactivateProject.name}") {
+
+        describe("error cases") {
+            errorCasesInvalidProjectId { projectId ->
+                testee.deactivateProject(projectId)
+            }
+        }
 
         given("rootProject with dependent project with another dependent project") {
 
             on("deactivating project with dependent") {
                 val newReleasePlan = testee.deactivateProject(projectWithDependentId)
-                assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan, rootProjectId, rootProject)
+                assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan)
 
                 it("deactivates the project with dependent (all commands)") {
-                    val oldJenkinsUpdateDependency = projectWithDependentCommands[0] as JenkinsUpdateDependency
-                    val oldJenkinsMavenReleasePlugin = projectWithDependentCommands[1] as JenkinsMavenReleasePlugin
                     assert(newReleasePlan.getProject(projectWithDependentId).commands).containsStrictly(
-                        { isJenkinsUpdateDependencyDeactivated(oldJenkinsUpdateDependency) },
-                        { isJenkinsMavenReleaseDeactivated(oldJenkinsMavenReleasePlugin) }
+                        { isJenkinsUpdateDependencyDeactivated(projectWithDependentUpdateDependency) },
+                        { isJenkinsMavenReleaseDeactivated(projectWithDependentJenkinsRelease) }
                     )
                 }
 
-                it("deactivates the dependent project (all commands)") {
-                    val oldJenkinsUpdateDependency1 = projectWithoutDependentCommands[0] as JenkinsUpdateDependency
-                    val oldJenkinsUpdateDependency2 = projectWithoutDependentCommands[1] as JenkinsUpdateDependency
-                    val oldJenkinsMavenReleasePlugin = projectWithoutDependentCommands[2] as JenkinsMavenReleasePlugin
+                it("deactivates the dependent project (only the update commands, release is already deactivated)") {
                     assert(newReleasePlan.getProject(projectWithoutDependentId).commands).containsStrictly(
-                        { isJenkinsUpdateDependencyDeactivated(oldJenkinsUpdateDependency1) },
-                        { isJenkinsUpdateDependencyDeactivated(oldJenkinsUpdateDependency2) },
-                        { isJenkinsMavenReleaseDeactivated(oldJenkinsMavenReleasePlugin) }
+                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateDependency1) },
+                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateDependency2) },
+                        { isSame(projectWithoutDependentJenkinsRelease) }
                     )
                 }
             }
 
             on("deactivating the project without dependents") {
                 val newReleasePlan = testee.deactivateProject(projectWithoutDependentId)
-                assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan, rootProjectId, rootProject)
+                assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan)
+                assertProjectWithDependentStillSame(newReleasePlan)
 
-                test("project with dependent is still the same") {
-                    assert(newReleasePlan.getProject(projectWithDependentId)).isSame(projectWithDependent)
-                }
-
-                it("deactivates the project without dependents (all commands)") {
-                    val oldJenkinsUpdateDependency1 = projectWithoutDependentCommands[0] as JenkinsUpdateDependency
-                    val oldJenkinsUpdateDependency2 = projectWithoutDependentCommands[1] as JenkinsUpdateDependency
-                    val oldJenkinsMavenReleasePlugin = projectWithoutDependentCommands[2] as JenkinsMavenReleasePlugin
+                it("deactivates the project without dependents (only the update commands, release is already deactivated)") {
                     assert(newReleasePlan.getProject(projectWithoutDependentId).commands).containsStrictly(
-                        { isJenkinsUpdateDependencyDeactivated(oldJenkinsUpdateDependency1) },
-                        { isJenkinsUpdateDependencyDeactivated(oldJenkinsUpdateDependency2) },
-                        { isJenkinsMavenReleaseDeactivated(oldJenkinsMavenReleasePlugin) }
+                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateDependency1) },
+                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateDependency2) },
+                        { isSame(projectWithoutDependentJenkinsRelease) }
                     )
                 }
             }
         }
+    }
+
+    describe("fun ${testee::deactivateCommand.name}") {
 
         describe("error cases") {
-            given("id of the root project") {
-                it("throws an IllegalArgumentException which contains rootProjectId") {
+            errorCasesInvalidProjectId { projectId ->
+                testee.deactivateCommand(projectId, 0)
+            }
+
+            given("index which is bigger than the number of commands the project has") {
+                it("throws an IllegalArgumentException, containing the index and the projectId") {
                     expect {
-                        testee.deactivateProject(rootProjectId)
-                    }.toThrow<IllegalArgumentException> { message { contains(rootProjectId.toString()) } }
+                        testee.deactivateCommand(projectWithDependentId, 5)
+                    }.toThrow<IllegalArgumentException> {
+                        message { contains(5, projectWithDependentId.toString()) }
+                    }
                 }
             }
 
-            given("projectId which is not part of the analysis") {
-                it("throws an IllegalArgumentException which contains projectId") {
-                    val projectId = MavenProjectId("test", "one")
+            given("deactivate already deactivated command") {
+                it("throws an IllegalArgumentException, containing the index and the projectId") {
                     expect {
-                        testee.deactivateProject(projectId)
-                    }.toThrow<IllegalArgumentException> { message { contains(projectId.toString()) } }
+                        testee.deactivateCommand(projectWithoutDependentId, 2)
+                    }.toThrow<IllegalArgumentException> {
+                        message {
+                            contains(
+                                projectWithoutDependentJenkinsRelease.toString(),
+                                projectWithoutDependentId.toString()
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        given("rootProject with dependent project with another dependent project") {
+
+            on("deactivate first ${JenkinsUpdateDependency::class.simpleName} on project with dependent") {
+                val newReleasePlan = testee.deactivateCommand(projectWithDependentId, 0)
+                assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan)
+
+                it("has deactivated both commands (since second is release command)") {
+                    assert(newReleasePlan.getProject(projectWithDependentId).commands).containsStrictly(
+                        { isJenkinsUpdateDependencyDeactivated(projectWithDependentUpdateDependency) },
+                        { isJenkinsMavenReleaseDeactivated(projectWithDependentJenkinsRelease) }
+                    )
+                }
+
+                it("deactivates the project without dependents (only the update commands, release is already deactivated)") {
+                    assert(newReleasePlan.getProject(projectWithoutDependentId).commands).containsStrictly(
+                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateDependency1) },
+                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateDependency2) },
+                        { isSame(projectWithoutDependentJenkinsRelease) }
+                    )
+                }
+            }
+
+            on("deactivate first ${JenkinsUpdateDependency::class.simpleName} on project without dependent") {
+                val newReleasePlan = testee.deactivateCommand(projectWithoutDependentId, 0)
+                assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan)
+                assertProjectWithDependentStillSame(newReleasePlan)
+
+                it("has deactivated only first update command") {
+                    assert(newReleasePlan.getProject(projectWithoutDependentId).commands).containsStrictly(
+                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateDependency1) },
+                        { isSame(projectWithoutDependentUpdateDependency2) },
+                        { isSame(projectWithoutDependentJenkinsRelease) }
+                    )
                 }
             }
         }

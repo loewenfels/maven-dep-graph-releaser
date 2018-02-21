@@ -1,8 +1,8 @@
 package ch.loewenfels.depgraph.data.maven.jenkins
 
-import ch.loewenfels.depgraph.data.Command
 import ch.loewenfels.depgraph.data.CommandState
-import  ch.loewenfels.depgraph.data.Project
+import ch.loewenfels.depgraph.data.Project
+import ch.loewenfels.depgraph.data.ReleaseCommand
 
 /**
  * Represents the command to execute the M2 Release Plugin for a Jenkins job (executes the maven-release-plugin).
@@ -13,6 +13,6 @@ import  ch.loewenfels.depgraph.data.Project
 data class JenkinsMavenReleasePlugin(
     override val state: CommandState,
     val nextDevVersion: String
-) : Command {
+) : ReleaseCommand {
     override fun asNewState(newState: CommandState) = JenkinsMavenReleasePlugin(newState, nextDevVersion)
 }
