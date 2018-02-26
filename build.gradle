@@ -17,6 +17,7 @@ buildscript {
         jacoco_tool_version = '0.7.9'
         spek_version = '1.1.5'
         junit_version = '1.0.2'
+        tutteli_spek_extensions = '0.2.0'
 
         //publish.gradle
         bintray_version = '1.7.3'
@@ -64,6 +65,7 @@ subprojects {
         mavenCentral()
         jcenter()
         maven { url  "https://dl.bintray.com/robstoll/copies" }
+        maven { url  "https://dl.bintray.com/robstoll/tutteli-jars" }
     }
 
     apply plugin: 'kotlin'
@@ -128,6 +130,7 @@ configure(jacocoMulti.jacocoProjects) {
 
     dependencies {
         testCompile project(':atrium')
+        testCompile "ch.tutteli:tutteli-spek-extensions:$tutteli_spek_extensions"
     }
 }
 

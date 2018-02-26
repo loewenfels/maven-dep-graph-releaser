@@ -1,36 +1,32 @@
 package ch.loewenfels.depgraph.runner
 
-import ch.tutteli.atrium.assertProjectAWithDependentB
 import ch.loewenfels.depgraph.maven.getTestDirectory
 import ch.loewenfels.depgraph.serialization.Serializer
 import ch.tutteli.atrium.api.cc.en_UK.isTrue
 import ch.tutteli.atrium.api.cc.en_UK.returnValueOf
 import ch.tutteli.atrium.assert
-import com.google.common.io.Files
+import ch.tutteli.atrium.assertProjectAWithDependentB
+import ch.tutteli.spek.extensions.TempFolder
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
 import org.jetbrains.spek.api.dsl.on
 import java.io.File
+import java.util.*
+
 
 object MainSpec : Spek({
-    errorHandler = object: ErrorHandler{
+    val tempFolder = TempFolder.perAction()
+    registerListener(tempFolder)
+    errorHandler = object : ErrorHandler {
         override fun error(msg: String) {
             throw AssertionError(msg)
         }
     }
 
-    var tmp = File("we need to initialise tmp")
-    beforeEachTest {
-        tmp = Files.createTempDir()
-    }
-    afterEachTest {
-        tmp.delete()
-    }
-
     describe("happy case, project A with dependent project B") {
         on("calling main") {
-            val jsonFile = File(tmp.absolutePath, "test.json")
+            val jsonFile = File(tempFolder.tmpDir, "test.json")
             main(
                 "json", "com.example", "a",
                 getTestDirectory("projectWithDependency").absolutePath,
@@ -41,7 +37,7 @@ object MainSpec : Spek({
             }
 
             test("the json file can be de-serialized and is expected project A with dependent B") {
-                val json = Files.readFirstLine(jsonFile, Charsets.UTF_8)
+                val json = Scanner(jsonFile, Charsets.UTF_8.name()).useDelimiter("\\Z").use { it.next() }
                 val rootProject = Serializer().deserialize(json)
                 assertProjectAWithDependentB(rootProject)
             }
