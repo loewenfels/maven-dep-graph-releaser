@@ -8,5 +8,8 @@ Dependent Graph Releaser is a tool which helps you with releasing a project and 
 It will start of with supporting only maven projects and requires Jenkins integration.
 More information will follow...
 
+You can also use it to get an HTML which represents a Pipeline showing you, how you would need to release the projects 
+manually. It generates kind of a bottom up dependency graph, or in other words a dependents graph. 
+
 # License
 Dependent Graph Releaser is published under [Apache 2.0](http://opensource.org/licenses/Apache2.0). 
