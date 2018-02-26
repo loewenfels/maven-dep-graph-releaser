@@ -33,7 +33,6 @@ buildscript {
         jacocoMulti = [
             sourceProjects: subprojects - project(':atrium'),
             jacocoProjects: subprojects.findAll{
-                it.name != "${rootProject.name}-api" &&
                 it.name != "${rootProject.name}-maven-api" &&
                 it.name != "atrium"
             } - projectsWithoutSources
