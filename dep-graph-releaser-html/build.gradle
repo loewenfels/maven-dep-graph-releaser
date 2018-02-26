@@ -8,4 +8,5 @@ dependencies{
     compile ownProject('api')
     compile ownProject('maven-api')
     compile "org.jetbrains.kotlinx:kotlinx-html-jvm:$kotlin_html_version"
+    compile "ch.tutteli:kbox:$kbox_version"
 }

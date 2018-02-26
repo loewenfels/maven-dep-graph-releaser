@@ -8,6 +8,7 @@ import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.tutteli.atrium.api.cc.en_UK.contains
+import ch.tutteli.atrium.api.cc.en_UK.containsRegex
 import ch.tutteli.atrium.assert
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.it
@@ -40,11 +41,12 @@ object ReleasePlanToHtmlSpec : Spek({
     val projectWithoutDependent = Project(projectWithoutDependentId, "4.0", "4.1", 2, projectWithoutDependentCommands)
 
     val dependents = mapOf<ProjectId, Set<MavenProjectId>>(
-        rootProjectId to setOf(projectWithDependentId),
+        rootProjectId to setOf(projectWithDependentId, projectWithoutDependentId),
         projectWithDependentId to setOf(projectWithoutDependentId),
         projectWithoutDependentId to setOf()
     )
-    val releasePlan = ReleasePlan(rootProjectId,
+    val releasePlan = ReleasePlan(
+        rootProjectId,
         mapOf(
             rootProjectId to rootProject,
             projectWithDependentId to projectWithDependent,
@@ -62,6 +64,14 @@ object ReleasePlanToHtmlSpec : Spek({
         it("contains all projects") {
             val keys = releasePlan.projects.keys.map { """title="${it.identifier}"""" }
             assert(result).contains(keys[0], *keys.subList(1, keys.size).toTypedArray())
+        }
+
+        it("they are in the correct level div") {
+            assert(result).containsRegex(
+                """<div class="level l0">[^#]*<div class="project" id="${rootProjectId.identifier}">[^#]+"""
+                    + """<div class="level l1">[^#]*<div class="project" id="${projectWithDependentId.identifier}">[^#]+"""
+                    + """<div class="level l2">[^#]*<div class="project" id="${projectWithoutDependentId.identifier}">"""
+            )
         }
     }
 

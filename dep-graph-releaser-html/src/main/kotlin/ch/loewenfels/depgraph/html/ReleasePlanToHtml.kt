@@ -4,6 +4,8 @@ import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
+import ch.tutteli.kbox.PeekingIterator
+import ch.tutteli.kbox.toPeekingIterator
 import kotlinx.html.*
 import kotlinx.html.stream.appendHTML
 import java.util.*
@@ -20,13 +22,28 @@ class ReleasePlanToHtml {
 
     private fun HTML.body(releasePlan: ReleasePlan) {
         body {
-            for (project in releasePlan.iterator()) {
-                project(project)
+            var level: Int
+            val itr = releasePlan.iterator().toPeekingIterator()
+            while (itr.hasNext()) {
+                val project = itr.next()
+                level = project.level
+
+                div("level l$level") {
+                    project(project)
+                    while (hasNextOnTheSameLevel(itr, level)) {
+                        project(itr.next())
+                    }
+                }
             }
         }
     }
 
-    private fun BODY.project(project: Project) {
+    private fun hasNextOnTheSameLevel(
+        itr: PeekingIterator<Project>,
+        level: Int
+    ) = itr.hasNext() && level == itr.peek().level
+
+    private fun DIV.project(project: Project) {
         val id = project.id
         div("project") {
             this.id = id.identifier
@@ -118,7 +135,11 @@ class ReleasePlanToHtml {
                 fieldWithLabel("$idPrefix:nextDevVersion", "Next Dev Version", command.nextDevVersion)
             }
             is JenkinsUpdateDependency -> {
-                fieldReadOnlyWithLabel("$idPrefix:groupId", "Dependency", command.projectId.identifier, { projectId(command.projectId) })
+                fieldReadOnlyWithLabel(
+                    "$idPrefix:groupId",
+                    "Dependency",
+                    command.projectId.identifier,
+                    { projectId(command.projectId) })
             }
         }
 
