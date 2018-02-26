@@ -23,15 +23,15 @@ object SerializerSpec : Spek({
 
     fun createReleasePlan(state: CommandState): ReleasePlan {
         val rootProjectId = DummyProjectId("x")
-        val project = Project(rootProjectId, "8.2", "9.0.0", listOf(DummyCommand(state)))
+        val project = Project(rootProjectId, "8.2", "9.0.0", 0, listOf(DummyCommand(state)))
         return createReleasePlan(project)
     }
 
     describe("serialize and deserialize") {
         val aId = DummyProjectId("a")
-        val projectWithoutCommandsAndDependents = Project(aId, "5.0", "5.1", listOf())
-        val projectWithCommandsWithoutDependents = Project(DummyProjectId("b"), "1.2", "2.0", listOf(DummyCommand(CommandState.Failed("oh no"))))
-        val projectWithoutCommandsButDependents = Project(DummyProjectId("c"), "1.5", "3.0", listOf())
+        val projectWithoutCommandsAndDependents = Project(aId, "5.0", "5.1", 1, listOf())
+        val projectWithCommandsWithoutDependents = Project(DummyProjectId("b"), "1.2", "2.0", 2, listOf(DummyCommand(CommandState.Failed("oh no"))))
+        val projectWithoutCommandsButDependents = Project(DummyProjectId("c"), "1.5", "3.0", 1, listOf())
         val releasePlanWithoutCommandsButDependents = ReleasePlan(
             projectWithoutCommandsButDependents.id,
             mapOf(
@@ -42,7 +42,7 @@ object SerializerSpec : Spek({
                 projectWithoutCommandsButDependents.id to setOf(projectWithCommandsWithoutDependents.id)
             )
         )
-        val projectWithCommandsAndDependents = Project(DummyProjectId("d"), "1.5", "3.0", listOf(DummyCommand(CommandState.Waiting(setOf(aId)))))
+        val projectWithCommandsAndDependents = Project(DummyProjectId("d"), "1.5", "3.0", 0, listOf(DummyCommand(CommandState.Waiting(setOf(aId)))))
         val releasePlanWithCommandsAndDependents = ReleasePlan(
             projectWithCommandsAndDependents.id,
             mapOf(

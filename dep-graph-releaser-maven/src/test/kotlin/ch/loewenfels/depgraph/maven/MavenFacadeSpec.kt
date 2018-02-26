@@ -115,10 +115,8 @@ object MavenFacadeSpec : Spek({
                 val releasePlan = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("transitiveImplicit"))
                 assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
 
-                assertWithDependent(releasePlan, exampleA, exampleB)
-                test("the dependent has itself a dependent with two commands, updateVersion and Release") {
-                    assertWithDependent(releasePlan, exampleB, exampleC)
-                }
+                assertWithDependent("root project", releasePlan, exampleA, exampleB, 1)
+                assertWithDependent("dependent project", releasePlan, exampleB, exampleC, 2)
 
                 test("release plan has three projects and three dependents") {
                     assert(releasePlan) {
@@ -136,7 +134,7 @@ object MavenFacadeSpec : Spek({
                 val releasePlan = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("transitiveExplicit"))
                 assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
 
-                it("has two dependent") {
+                it("has two dependent projects") {
                     assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleC)
                 }
                 test("the direct dependent project has two commands, updateVersion and Release") {
@@ -150,6 +148,9 @@ object MavenFacadeSpec : Spek({
                 }
                 test("the direct dependent has one dependent") {
                     assert(releasePlan).hasDependentsForProject(exampleB, exampleC)
+                }
+                test("the direct dependent is on level 1") {
+                    assert(releasePlan.getProject(exampleB.id).level).toBe(1)
                 }
 
                 test("the indirect dependent project has two commands, updateVersion and Release") {
@@ -165,6 +166,9 @@ object MavenFacadeSpec : Spek({
                 test("the indirect dependent does not have dependents") {
                     assert(releasePlan).hasNotDependentsForProject(exampleC)
                 }
+                test("the direct dependent is on level 2") {
+                    assert(releasePlan.getProject(exampleC.id).level).toBe(2)
+                }
 
                 test("release plan has three projects and three dependents") {
                     assert(releasePlan) {
@@ -176,4 +180,3 @@ object MavenFacadeSpec : Spek({
         }
     }
 })
-

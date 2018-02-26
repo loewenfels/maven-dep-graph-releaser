@@ -22,7 +22,12 @@ fun ActionBody.assertRootProjectOnlyReleaseAndReady(releasePlan: ReleasePlan, id
             idAndVersions(idAndVersions)
         }
     }
-    test("it contains just the ${JenkinsMavenReleasePlugin::class.simpleName} command, which is Ready with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = ${idAndVersions.nextDevVersion}") {
+    test("root project's level is 0") {
+        assert(rootProject) {
+            property(subject::level).toBe(0)
+        }
+    }
+    test("root project contains just the ${JenkinsMavenReleasePlugin::class.simpleName} command, which is Ready with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = ${idAndVersions.nextDevVersion}") {
         assert(rootProject) {
             property(subject::commands).containsStrictly({
                 isA<JenkinsMavenReleasePlugin> {
@@ -37,7 +42,7 @@ fun ActionBody.assertRootProjectOnlyReleaseAndReady(releasePlan: ReleasePlan, id
 fun ActionBody.assertProjectAWithDependentB(releasePlan: ReleasePlan) {
     assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
 
-    assertWithDependent(releasePlan, exampleA, exampleB)
+    assertWithDependent("root project", releasePlan, exampleA, exampleB, 1)
 
     test("release plan has only two projects and two dependents") {
         assert(releasePlan) {
@@ -47,11 +52,11 @@ fun ActionBody.assertProjectAWithDependentB(releasePlan: ReleasePlan) {
     }
 }
 
-fun ActionBody.assertWithDependent(releasePlan: ReleasePlan, dependency: IdAndVersions, dependent: IdAndVersions) {
-    it("has one dependent") {
+fun ActionBody.assertWithDependent(projectName: String, releasePlan: ReleasePlan, dependency: IdAndVersions, dependent: IdAndVersions, level: Int) {
+    test("$projectName has one dependent") {
         assert(releasePlan).hasDependentsForProject(dependency, dependent)
     }
-    test("the dependent project has two commands, updateVersion and Release") {
+    test("$projectName's dependent project has two commands, updateVersion and Release") {
         assert(releasePlan.projects[dependent.id]).isNotNull {
             idAndVersions(dependent)
             property(subject::commands).containsStrictly(
@@ -60,8 +65,7 @@ fun ActionBody.assertWithDependent(releasePlan: ReleasePlan, dependency: IdAndVe
             )
         }
     }
+    test("$projectName's dependent project is on level $level") {
+        assert(releasePlan.getProject(dependent.id).level).toBe(level)
+    }
 }
-
-
-
-

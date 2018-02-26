@@ -17,7 +17,8 @@ import java.io.FileWriter
 object ReleasePlanToHtmlSpec : Spek({
 
     val rootProjectId = MavenProjectId("com.example", "a")
-    val rootProject = Project(rootProjectId, "1.1.0-SNAPSHOT", "1.2.0", listOf(JenkinsMavenReleasePlugin(CommandState.Ready, "1.2.1-SNAPSHOT")))
+    val rootProject = Project(rootProjectId, "1.1.0-SNAPSHOT", "1.2.0", 0, listOf(JenkinsMavenReleasePlugin(CommandState.Ready, "1.2.1-SNAPSHOT")))
+
     val projectWithDependentId = MavenProjectId("com.example", "b")
     val projectWithDependentUpdateDependency = JenkinsUpdateDependency(CommandState.Waiting(setOf(rootProjectId)), rootProjectId)
     val projectWithDependentJenkinsRelease = JenkinsMavenReleasePlugin(CommandState.Waiting(setOf(rootProjectId)), "3.1-SNAPSHOT")
@@ -25,7 +26,7 @@ object ReleasePlanToHtmlSpec : Spek({
         projectWithDependentUpdateDependency,
         projectWithDependentJenkinsRelease
     )
-    val projectWithDependent = Project(projectWithDependentId, "2.0", "3.0", projectWithDependentCommands)
+    val projectWithDependent = Project(projectWithDependentId, "2.0", "3.0", 1, projectWithDependentCommands)
 
     val projectWithoutDependentId = MavenProjectId("com.example", "c")
     val projectWithoutDependentUpdateDependency1 = JenkinsUpdateDependency(CommandState.Waiting(setOf(rootProjectId)), rootProjectId)
@@ -36,7 +37,7 @@ object ReleasePlanToHtmlSpec : Spek({
         projectWithoutDependentUpdateDependency2,
         projectWithoutDependentJenkinsRelease
     )
-    val projectWithoutDependent = Project(projectWithoutDependentId, "4.0", "4.1", projectWithoutDependentCommands)
+    val projectWithoutDependent = Project(projectWithoutDependentId, "4.0", "4.1", 2, projectWithoutDependentCommands)
 
     val dependents = mapOf<ProjectId, Set<MavenProjectId>>(
         rootProjectId to setOf(projectWithDependentId),
@@ -55,7 +56,7 @@ object ReleasePlanToHtmlSpec : Spek({
 
     action("describe release plan to HTML smoke tests") {
         val result = testee.createHtml(releasePlan).toString()
-        //TODO remove at some point, that's a hack to produce a html file
+        //TODO remove at some point, that's a hack to produce a html file to ease development (misuse of the test as build tool)
         FileWriter(File("test.html")).use { it.write(result) }
 
         it("contains all projects") {

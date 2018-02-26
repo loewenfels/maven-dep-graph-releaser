@@ -16,27 +16,46 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
             """.trimMargin()
         }
 
-        val rootProject = createInitialProject(projectToRelease, currentVersion!!, CommandState.Ready)
+        val rootProject = createInitialProject(projectToRelease, currentVersion!!, 0, CommandState.Ready)
         val projects = hashMapOf<ProjectId, Project>()
         val dependents = hashMapOf<ProjectId, Set<ProjectId>>()
         projects[rootProject.id] = rootProject
         dependents[rootProject.id] = hashSetOf()
 
-        val projectsToVisit = mutableListOf(rootProject)
-        while (projectsToVisit.isNotEmpty()) {
-            val project = projectsToVisit.removeAt(0)
-            createCommandsForDependents(analyser, project, projects, dependents, projectsToVisit)
-        }
+        createDependents(rootProject, analyser, projects, dependents)
         return ReleasePlan(rootProject.id, projects, dependents)
     }
 
-    private fun createInitialProject(projectId: MavenProjectId, currentVersion: String, state: CommandState): Project {
-        return Project(
-            projectId,
-            currentVersion,
-            versionDeterminer.releaseVersion(currentVersion),
-            mutableListOf(JenkinsMavenReleasePlugin(state, versionDeterminer.nextDevVersion(currentVersion)))
-        )
+    private fun createInitialProject(
+        projectId: MavenProjectId,
+        currentVersion: String,
+        level: Int,
+        state: CommandState
+    ) = Project(
+        projectId,
+        currentVersion,
+        versionDeterminer.releaseVersion(currentVersion),
+        level,
+        mutableListOf(JenkinsMavenReleasePlugin(state, versionDeterminer.nextDevVersion(currentVersion)))
+    )
+
+    private fun createDependents(
+        rootProject: Project,
+        analyser: Analyser,
+        projects: HashMap<ProjectId, Project>,
+        dependents: HashMap<ProjectId, Set<ProjectId>>
+    ) {
+        var level = 1
+        val dependentsToVisit = mutableListOf(mutableListOf(rootProject))
+        while (dependentsToVisit.isNotEmpty()) {
+            val dependentsOnSameLevel = dependentsToVisit[0]
+            val dependent = dependentsOnSameLevel.removeAt(0)
+            createCommandsForDependents(analyser, dependent, projects, dependents, level, dependentsToVisit)
+            if (dependentsOnSameLevel.isEmpty()) {
+                dependentsToVisit.removeAt(0)
+                ++level
+            }
+        }
     }
 
     private fun createCommandsForDependents(
@@ -44,24 +63,63 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         dependency: Project,
         projects: HashMap<ProjectId, Project>,
         dependents: HashMap<ProjectId, Set<ProjectId>>,
-        projectsToVisit: MutableList<Project>
+        level: Int,
+        dependentsToVisit: MutableList<MutableList<Project>>
     ) {
         val dependencyId = dependency.id as MavenProjectId
         analyser.getDependentsOf(dependencyId).forEach { dependentIdWithVersion ->
-            val dependent = if (!projects.containsKey(dependentIdWithVersion.id)) {
-                val dependent = createInitialProject(dependentIdWithVersion.id, dependentIdWithVersion.currentVersion, CommandState.Waiting(mutableSetOf(dependencyId)))
-                projects[dependent.id] = dependent
-                dependents[dependent.id] = hashSetOf()
-                dependent
+            val dependent = if (isNewProject(projects, dependentIdWithVersion)) {
+                val newDependent = createInitialWaitingProject(dependentIdWithVersion, level, dependencyId)
+                dependents[newDependent.id] = hashSetOf()
+                addToNextLevelOfDependentsToVisit(dependentsToVisit, newDependent)
+                newDependent
             } else {
-                projects[dependentIdWithVersion.id]!!
+                val existingDependent = projects[dependentIdWithVersion.id]!!
+                Project(existingDependent, level)
             }
-            (dependents[dependencyId] as MutableSet).add(dependent.id)
-            val list = dependent.commands as MutableList
-            addDependencyToJenkinsReleaseCommand(list, dependencyId)
-            list.add(0, JenkinsUpdateDependency(CommandState.Waiting(setOf(dependencyId)), dependencyId))
-            projectsToVisit.add(dependent)
+
+            registerNewOrUpdatedDependent(projects, dependent)
+            addAndUpdateCommandsOfDependent(dependent, dependencyId)
+            addDependentToDependentsOfDependency(dependent.id, dependents, dependencyId)
         }
+    }
+
+    private fun isNewProject(
+        projects: HashMap<ProjectId, Project>,
+        dependentIdWithVersion: ProjectIdWithCurrentVersion<MavenProjectId>
+    ) = !projects.containsKey(dependentIdWithVersion.id)
+
+    private fun createInitialWaitingProject(
+        dependentIdWithVersion: ProjectIdWithCurrentVersion<MavenProjectId>,
+        level: Int,
+        dependencyId: MavenProjectId
+    ): Project = createInitialProject(
+        dependentIdWithVersion.id,
+        dependentIdWithVersion.currentVersion,
+        level,
+        CommandState.Waiting(mutableSetOf(dependencyId))
+    )
+
+    private fun registerNewOrUpdatedDependent(projects: HashMap<ProjectId, Project>, dependent: Project) {
+        //either we register the new project or overwrite a current project with its updated version
+        projects[dependent.id] = dependent
+    }
+
+    private fun addDependentToDependentsOfDependency(
+        dependentId: ProjectId,
+        dependents: HashMap<ProjectId, Set<ProjectId>>,
+        dependencyId: MavenProjectId
+    ) {
+        (dependents[dependencyId] as MutableSet).add(dependentId)
+    }
+
+    private fun addAndUpdateCommandsOfDependent(
+        dependent: Project,
+        dependencyId: MavenProjectId
+    ) {
+        val list = dependent.commands as MutableList
+        addDependencyToJenkinsReleaseCommand(list, dependencyId)
+        list.add(0, JenkinsUpdateDependency(CommandState.Waiting(setOf(dependencyId)), dependencyId))
     }
 
     private fun addDependencyToJenkinsReleaseCommand(list: MutableList<Command>, dependencyId: MavenProjectId) {
@@ -70,5 +128,16 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
             "The last command has to be a ${JenkinsMavenReleasePlugin::class.simpleName}"
         }
         ((last.state as CommandState.Waiting).dependencies as MutableSet).add(dependencyId)
+    }
+
+    private fun addToNextLevelOfDependentsToVisit(
+        dependentsToVisit: MutableList<MutableList<Project>>,
+        dependent: Project
+    ) {
+        if (dependentsToVisit.size < 2) {
+            dependentsToVisit.add(mutableListOf())
+        }
+        val nextLevelProjects = dependentsToVisit.last()
+        nextLevelProjects.add(dependent)
     }
 }

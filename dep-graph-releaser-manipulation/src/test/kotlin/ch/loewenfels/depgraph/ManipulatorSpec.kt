@@ -14,7 +14,8 @@ import org.jetbrains.spek.api.dsl.*
 
 object ManipulatorSpec : Spek({
     val rootProjectId = MavenProjectId("com.example", "a")
-    val rootProject = Project(rootProjectId, "1.1.0-SNAPSHOT", "1.2.0", listOf())
+    val rootProject = Project(rootProjectId, "1.1.0-SNAPSHOT", "1.2.0", 0, listOf())
+
     val projectWithDependentId = MavenProjectId("com.example", "b")
     val projectWithDependentUpdateDependency = JenkinsUpdateDependency(CommandState.Waiting(setOf(rootProjectId)), rootProjectId)
     val projectWithDependentJenkinsRelease = JenkinsMavenReleasePlugin(CommandState.Waiting(setOf(rootProjectId)), "3.1-SNAPSHOT")
@@ -22,7 +23,7 @@ object ManipulatorSpec : Spek({
         projectWithDependentUpdateDependency,
         projectWithDependentJenkinsRelease
     )
-    val projectWithDependent = Project(projectWithDependentId, "2.0", "3.0", projectWithDependentCommands)
+    val projectWithDependent = Project(projectWithDependentId, "2.0", "3.0", 1, projectWithDependentCommands)
 
     val projectWithoutDependentId = MavenProjectId("com.example", "c")
     val projectWithoutDependentUpdateDependency1 = JenkinsUpdateDependency(CommandState.Waiting(setOf(rootProjectId)), rootProjectId)
@@ -33,7 +34,7 @@ object ManipulatorSpec : Spek({
         projectWithoutDependentUpdateDependency2,
         projectWithoutDependentJenkinsRelease
     )
-    val projectWithoutDependent = Project(projectWithoutDependentId, "4.0", "4.1", projectWithoutDependentCommands)
+    val projectWithoutDependent = Project(projectWithoutDependentId, "4.0", "4.1", 2,  projectWithoutDependentCommands)
 
     val dependents = mapOf<ProjectId, Set<MavenProjectId>>(
         rootProjectId to setOf(projectWithDependentId),
@@ -62,11 +63,19 @@ object ManipulatorSpec : Spek({
         test("the dependents are unchanged, is still the same instance") {
             assert(newReleasePlan.dependents).isSame(dependents)
         }
-        it("the project with dependent still has the same versions") {
+
+        test("the project with dependent still has the same versions") {
             assert(newReleasePlan.getProject(projectWithDependentId)).hasSameVersionsAs(projectWithDependent)
         }
-        it("the project without dependent still has the same versions") {
+        test("the project with dependent still has the same level") {
+            assert(newReleasePlan.getProject(projectWithDependentId).level).toBe(projectWithDependent.level)
+        }
+
+        test("the project without dependent still has the same versions") {
             assert(newReleasePlan.getProject(projectWithoutDependentId)).hasSameVersionsAs(projectWithoutDependent)
+        }
+        test("the project without dependent still has the same level") {
+            assert(newReleasePlan.getProject(projectWithoutDependentId).level).toBe(projectWithoutDependent.level)
         }
     }
 
