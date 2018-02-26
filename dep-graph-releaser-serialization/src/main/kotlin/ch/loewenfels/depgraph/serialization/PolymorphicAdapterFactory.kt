@@ -69,7 +69,7 @@ class PolymorphicAdapterFactory<T : Any>(private val abstractType: Class<T>) : J
 
         private fun getAdapter(runtimeClass: Class<out T>): JsonAdapter<T> {
             //TODO change if https://youtrack.jetbrains.com/issue/KT-20372 is solved
-            require(!runtimeClass.simpleName.matches(anonymousClass)) {
+            require(!runtimeClass.name.matches(ANONYMOUS_CLASSNAME_REGEX)) {
                 "Cannot serialize an anonymous class, given: ${runtimeClass.name}"
             }
             @Suppress("UNCHECKED_CAST" /* entity is of type T, should be fine, required for toJson */)
@@ -80,6 +80,6 @@ class PolymorphicAdapterFactory<T : Any>(private val abstractType: Class<T>) : J
     companion object {
         const val TYPE = "t"
         const val PAYLOAD = "p"
-        val anonymousClass = Regex(".*\\$[0-9]+$")
+        val ANONYMOUS_CLASSNAME_REGEX = Regex(".*\\$[0-9]+$")
     }
 }
