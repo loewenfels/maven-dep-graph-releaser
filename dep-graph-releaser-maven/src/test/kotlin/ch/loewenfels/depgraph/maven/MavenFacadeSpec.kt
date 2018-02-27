@@ -1,6 +1,7 @@
 package ch.loewenfels.depgraph.maven
 
 import ch.loewenfels.depgraph.data.ProjectId
+import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.tutteli.atrium.*
 import ch.tutteli.atrium.api.cc.en_UK.*
@@ -31,11 +32,11 @@ object MavenFacadeSpec : Spek({
         }
     }
 
-    fun SpecBody.testReleaseAWithDependentBWithDependentC(directory: String) {
+    fun SpecBody.testReleaseAWithDependentBWithDependentC(directory: String, projectB: IdAndVersions = exampleB) {
         describe(testee::analyseAndCreateReleasePlan.name) {
             action("the root project is the one we want to release") {
                 val releasePlan = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
-                assertReleaseAWithDependentBWithDependentC(releasePlan)
+                assertReleaseAWithDependentBWithDependentC(releasePlan, projectB)
             }
         }
     }
@@ -53,6 +54,24 @@ object MavenFacadeSpec : Spek({
         action("we release project B (no dependent at all)") {
             testReleaseSingleProject(exampleB, directory)
         }
+    }
+
+    fun analyseAndCreateReleasePlanWithResolvingAnalyser(testDirectory: String): ReleasePlan {
+        val oldPomsDir = getTestDirectory("oldPoms")
+        val pomFileLoader = mock<PomFileLoader> {
+            on {
+                it.loadPomFileForGav(eq(Gav(exampleA.id.groupId, exampleA.id.artifactId, "1.0.0")), eq(null), any())
+            }.thenReturn(File(oldPomsDir, "a-1.0.0.pom"))
+            on {
+                it.loadPomFileForGav(eq(Gav(exampleA.id.groupId, exampleA.id.artifactId, "0.9.0")), eq(null), any())
+            }.thenReturn(File(oldPomsDir, "a-0.9.0.pom"))
+            on {
+                it.loadPomFileForGav(eq(Gav(exampleB.id.groupId, exampleB.id.artifactId, "1.0.0")), eq(null), any())
+            }.thenReturn(File(oldPomsDir, "b-1.0.0.pom"))
+        }
+        val analyser = Analyser(getTestDirectory(testDirectory), Session(), pomFileLoader)
+        val jenkinsReleasePlanCreator = JenkinsReleasePlanCreator(VersionDeterminer())
+        return  jenkinsReleasePlanCreator.create(exampleA.id, analyser)
     }
 
     describe("validation errors") {
@@ -138,20 +157,20 @@ object MavenFacadeSpec : Spek({
 
     given("project with parent which itself has a parent, old parents are resolved") {
         action("context use an Analyser with a mocked PomFileResolver") {
-            val oldPomsDir = getTestDirectory("oldPoms")
-            val pomFileLoader = mock<PomFileLoader> {
-                on {
-                    it.loadPomFileForGav(eq(Gav(exampleA.id.groupId, exampleA.id.artifactId, "1.0.0")), eq(null), any())
-                }.thenReturn(File(oldPomsDir, "a-1.0.0.pom"))
-                on {
-                    it.loadPomFileForGav(eq(Gav(exampleA.id.groupId, exampleA.id.artifactId, "0.9.0")), eq(null), any())
-                }.thenReturn(File(oldPomsDir, "a-0.9.0.pom"))
-            }
-            val analyser = Analyser(getTestDirectory("parentWithParent"), Session(), pomFileLoader)
-            val jenkinsReleasePlanCreator = JenkinsReleasePlanCreator(VersionDeterminer())
-            val releasePlan = jenkinsReleasePlanCreator.create(exampleA.id, analyser)
-
+            val releasePlan = analyseAndCreateReleasePlanWithResolvingAnalyser("parentWithParent")
             assertReleaseAWithDependentBWithDependentC(releasePlan)
+        }
+    }
+
+    given("project with multi-module parent (parent has SNAPSHOT dependency to parent), old parents are not resolved") {
+        testReleaseAWithDependentBWithDependentC("multiModuleParent", IdAndVersions(exampleB.id, exampleA))
+    }
+
+    given("project with multi-module parent (parent has SNAPSHOT dependency to parent), old parents are resolved") {
+        action("context use an Analyser with a mocked PomFileResolver") {
+            val releasePlan = analyseAndCreateReleasePlanWithResolvingAnalyser("multiModuleParent")
+
+            assertReleaseAWithDependentBWithDependentC(releasePlan, IdAndVersions(exampleB.id, exampleA))
         }
     }
 

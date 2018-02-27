@@ -38,11 +38,11 @@ fun ActionBody.assertRootProjectOnlyReleaseAndReady(releasePlan: ReleasePlan, id
     }
 }
 
-fun ActionBody.assertReleaseAWithDependentBWithDependentC(releasePlan: ReleasePlan) {
+fun ActionBody.assertReleaseAWithDependentBWithDependentC(releasePlan: ReleasePlan, projectB: IdAndVersions = exampleB) {
     assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
 
-    assertWithDependent("root project", releasePlan, exampleA, exampleB, 1)
-    assertWithDependent("dependent project", releasePlan, exampleB, exampleC, 2)
+    assertWithDependent("root project", releasePlan, exampleA, projectB, 1)
+    assertWithDependent("dependent project", releasePlan, projectB, exampleC, 2)
 
     test("release plan has three projects and three dependents") {
         assert(releasePlan) {

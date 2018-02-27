@@ -6,7 +6,9 @@ import ch.tutteli.atrium.api.cc.en_UK.property
 import ch.tutteli.atrium.api.cc.en_UK.toBe
 import ch.tutteli.atrium.creating.Assert
 
-data class IdAndVersions(val id: MavenProjectId, val currentVersion: String, val releaseVersion: String, val nextDevVersion: String)
+data class IdAndVersions(val id: MavenProjectId, val currentVersion: String, val releaseVersion: String, val nextDevVersion: String) {
+    constructor(id: MavenProjectId, parent: IdAndVersions) : this(id, parent.currentVersion, parent.releaseVersion, parent.nextDevVersion)
+}
 
 fun Assert<Project>.idAndVersions(idAndVersions: IdAndVersions): Assert<Project> {
     property(subject::id).toBe(idAndVersions.id)

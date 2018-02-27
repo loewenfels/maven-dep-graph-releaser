@@ -63,7 +63,7 @@ class Analyser internal constructor(
             .map { it.toMapKey() }
             .toSet()
         val dependents = hashMapOf<String, MutableSet<ProjectIdWithCurrentVersion<MavenProjectId>>>()
-        session.projects().keySet().forEach { gav ->
+        getInternalAnalysedProjects().forEach { gav ->
             session.graph().read().relations(gav)
                 .asSequence()
                 .filter { analysedProjects.contains(it.targetToMapKey()) }
