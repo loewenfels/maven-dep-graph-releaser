@@ -5,6 +5,7 @@ buildscript {
 dependencies {
     compile ownProject('maven')
     compile ownProject('serialization')
+    compile ownProject('html')
 
     runtimeOnly "org.jetbrains.kotlin:kotlin-runtime:$kotlin_version"
     testCompile ownProject('maven').sourceSets.test.output

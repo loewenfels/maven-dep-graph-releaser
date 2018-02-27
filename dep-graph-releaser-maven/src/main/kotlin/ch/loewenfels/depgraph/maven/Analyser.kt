@@ -80,5 +80,10 @@ class Analyser(directoryWithProjects: File) {
     fun getDependentsOf(projectId: MavenProjectId): Set<ProjectIdWithCurrentVersion<MavenProjectId>> {
         return dependents[projectId.identifier] ?: emptySet()
     }
+
+    /**
+     * Returns the number of analysed projects.
+     */
+    fun getNumberOfProjects(): Int = session.projects().size()
 }
 
