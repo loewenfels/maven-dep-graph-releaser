@@ -86,18 +86,18 @@ object MavenFacadeSpec : Spek({
     }
 
     given("project with dependency incl. version") {
-        testReleaseAWithDependentB("projectWithDependency")
-        testReleaseBWithNoDependent("projectWithDependency")
+        testReleaseAWithDependentB("oneDependency")
+        testReleaseBWithNoDependent("oneDependency")
     }
 
     given("project with dependency and version in dependency management") {
-        testReleaseAWithDependentB("projectWithDependencyManagement")
-        testReleaseBWithNoDependent("projectWithDependencyManagement")
+        testReleaseAWithDependentB("oneDependencyOverManagement")
+        testReleaseBWithNoDependent("oneDependencyOverManagement")
     }
 
     given("project with parent dependency") {
-        testReleaseAWithDependentB("projectWithParent")
-        testReleaseBWithNoDependent("projectWithParent")
+        testReleaseAWithDependentB("parent")
+        testReleaseBWithNoDependent("parent")
     }
 
     given("two projects unrelated but one has other in dependency management") {
