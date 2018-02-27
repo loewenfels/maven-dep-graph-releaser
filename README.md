@@ -11,5 +11,11 @@ More information will follow...
 You can also use it to get an HTML which represents a Pipeline showing you, how you would need to release the projects 
 manually. It generates kind of a bottom up dependency graph, or in other words a dependents graph. 
 
+Add the projects you want to analyse the folder `repos` (in the project directory) and run the following gradle command:
+````
+gr html -Pg=your.group.id -Pa=the.artifact.id
+````
+This creates a `pipeline.html` in the folder build.
+
 # License
 Dependent Graph Releaser is published under [Apache 2.0](http://opensource.org/licenses/Apache2.0). 

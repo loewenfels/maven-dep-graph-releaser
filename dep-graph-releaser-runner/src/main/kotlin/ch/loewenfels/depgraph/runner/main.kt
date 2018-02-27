@@ -108,7 +108,7 @@ fun html(args: Array<out String>) {
     Orchestrator.createHtmlFromJson(json, html)
 }
 
-private fun getGivenArgs(args: Array<out String>) = "Given: ${args.joinToString(",")}"
+private fun getGivenArgs(args: Array<out String>) = "Given: ${args.joinToString()}"
 
 
 private val jsonArguments = """

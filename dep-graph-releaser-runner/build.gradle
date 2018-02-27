@@ -40,3 +40,40 @@ task distZip(type: Zip) {
 configure(project) {
     ext.publish_artifacts += [distZip]
 }
+
+def jsonFile = file("$rootProject.buildDir/release.json")
+
+task json {
+    inputs.property('g', findProperty('g'))
+    inputs.property('a', findProperty('a'))
+    inputs.files dist
+    outputs.file jsonFile
+    doLast {
+        def groupId = findProperty('g')
+        def artifactId = findProperty('a')
+        if (groupId == null) {
+            throw new IllegalArgumentException("you need to specify the groupId with g")
+        }
+        if (artifactId == null) {
+            throw new IllegalArgumentException("you need to specify the artifactId with a")
+        }
+        javaexec {
+            classpath fileTree("${project.buildDir}/dist/lib/")
+            main = 'ch.loewenfels.depgraph.runner.MainKt'
+            args = ['json', groupId, artifactId, "${rootProject.projectDir}/repos", jsonFile.absolutePath]
+        }
+    }
+}
+
+task html {
+    def htmlFile = file("$rootProject.buildDir/pipeline.html")
+    inputs.files json
+    outputs.file htmlFile
+    doLast {
+        javaexec {
+            classpath fileTree("${project.buildDir}/dist/lib/")
+            main = 'ch.loewenfels.depgraph.runner.MainKt'
+            args = ['html', jsonFile.absolutePath,  htmlFile.absolutePath]
+        }
+    }
+}
