@@ -73,6 +73,7 @@ label.toggle {
 }
 label.toggle input {
     display:none;
+    width: 35px;
 }
 label.toggle .slider {
     position: absolute;
