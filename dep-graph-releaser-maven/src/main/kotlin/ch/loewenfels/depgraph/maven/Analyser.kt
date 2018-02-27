@@ -61,9 +61,9 @@ class Analyser(directoryWithProjects: File) {
         session.projects().keySet().forEach { gav ->
             session.graph().read().relations(gav)
                 .asSequence()
-                .filter { analysedProjects.contains(it.toMapKey()) }
+                .filter { analysedProjects.contains(it.targetToMapKey()) }
                 .forEach { relation ->
-                    val set = dependents.getOrPut(relation.toMapKey(), { mutableSetOf() })
+                    val set = dependents.getOrPut(relation.targetToMapKey(), { mutableSetOf() })
                     set.add(gav.toProjectIdWithCurrentVersion())
                 }
         }
@@ -80,7 +80,7 @@ class Analyser(directoryWithProjects: File) {
     private val Project.isNotExternal get() = !isExternal
 
     private fun Gav.toProjectIdWithCurrentVersion() = ProjectIdWithCurrentVersion(toMavenProjectId(), version)
-    private fun Relation.toMapKey() = target.toMapKey()
+    private fun Relation.targetToMapKey() = target.toMapKey()
     private fun Gav.toMapKey() = toMavenProjectId().identifier
     private fun Gav.toMavenProjectId() = MavenProjectId(groupId, artifactId)
 
