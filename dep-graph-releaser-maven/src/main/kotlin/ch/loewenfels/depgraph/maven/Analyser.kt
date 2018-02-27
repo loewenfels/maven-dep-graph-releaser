@@ -2,10 +2,7 @@ package ch.loewenfels.depgraph.maven
 
 import ch.loewenfels.depgraph.data.ProjectIdWithCurrentVersion
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
-import fr.lteconsulting.pomexplorer.DefaultPomFileLoader
-import fr.lteconsulting.pomexplorer.Log
-import fr.lteconsulting.pomexplorer.PomAnalysis
-import fr.lteconsulting.pomexplorer.Session
+import fr.lteconsulting.pomexplorer.*
 import fr.lteconsulting.pomexplorer.graph.relation.Relation
 import fr.lteconsulting.pomexplorer.model.Gav
 import java.io.File
@@ -20,9 +17,10 @@ class Analyser(directoryWithProjects: File) {
             "Cannot analyse because the given directory does not exists: ${directoryWithProjects.absolutePath}"
         }
         session = analyseDirectory(directoryWithProjects)
+        checkNoDuplicates(directoryWithProjects)
+
         dependents = analyseDependents()
-        projectIds = session.projects().keySet()
-            .asSequence()
+        projectIds = getInternalAnalysedProjects()
             .associateBy({ it.toMavenProjectId() }, { it.version })
     }
 
@@ -33,10 +31,30 @@ class Analyser(directoryWithProjects: File) {
         return session
     }
 
-    private fun analyseDependents(): Map<String, Set<ProjectIdWithCurrentVersion<MavenProjectId>>> {
-        val analysedProjects = session.projects().keySet()
+    private fun checkNoDuplicates(directoryWithProjects: File) {
+
+        val map = hashMapOf<String, Project>()
+        session.projects().keySet()
             .asSequence()
-            .filter { isNotExternal(it) }
+            .map { it.toProject() }
+            .filter { it.isNotExternal }
+            .forEach { second ->
+                val key = second.gav.toMapKey()
+                val first = map[key]
+                check(first == null) {
+                    "found twice the same project in the given directoryWithProjects.\n" +
+                        "directory: ${directoryWithProjects.canonicalPath}\n" +
+                        "first: ${projectToString(first!!)}\n" +
+                        "second: ${projectToString(second)}"
+                }
+                map[key] = second
+            }
+    }
+
+    private fun projectToString(project: Project): String = "${project.gav} (${project.pomFile.canonicalPath})"
+
+    private fun analyseDependents(): Map<String, Set<ProjectIdWithCurrentVersion<MavenProjectId>>> {
+        val analysedProjects = getInternalAnalysedProjects()
             .map { it.toMapKey() }
             .toSet()
         val dependents = hashMapOf<String, MutableSet<ProjectIdWithCurrentVersion<MavenProjectId>>>()
@@ -52,7 +70,14 @@ class Analyser(directoryWithProjects: File) {
         return dependents
     }
 
-    private fun isNotExternal(it: Gav?) = session.projects().forGav(it).isExternal.not()
+    private fun getInternalAnalysedProjects() = session.projects()
+        .keySet()
+        .asSequence()
+        .filter { it.isNotExternal }
+
+    private val Gav.isNotExternal get() = toProject().isNotExternal
+    private fun Gav.toProject() = session.projects().forGav(this)
+    private val Project.isNotExternal get() = !isExternal
 
     private fun Gav.toProjectIdWithCurrentVersion() = ProjectIdWithCurrentVersion(toMavenProjectId(), version)
     private fun Relation.toMapKey() = target.toMapKey()
@@ -89,6 +114,6 @@ class Analyser(directoryWithProjects: File) {
     /**
      * Returns the number of analysed projects.
      */
-    fun getNumberOfProjects(): Int = session.projects().size()
+    fun getNumberOfProjects(): Int = projectIds.size
 }
 

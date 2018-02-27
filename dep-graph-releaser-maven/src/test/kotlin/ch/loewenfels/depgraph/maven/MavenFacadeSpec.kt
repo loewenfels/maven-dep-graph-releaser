@@ -93,8 +93,25 @@ object MavenFacadeSpec : Spek({
                 }
             }
         }
-    }
 
+        given("duplicate projects") {
+            it("throws an IllegalStateException, containing versions of both projects inclusive path") {
+                val testDirectory = getTestDirectory("duplicateProject")
+                val pathNew = File(testDirectory, "a.pom")
+                val pathOld = File(testDirectory, "aOld.pom")
+                expect {
+                    testee.analyseAndCreateReleasePlan(exampleA.id, testDirectory)
+                }.toThrow<IllegalStateException> {
+                    message {
+                        contains(
+                            "${exampleA.id.identifier}:1.1.1-SNAPSHOT (${pathNew.canonicalPath})",
+                            "${exampleA.id.identifier}:1.0.1-SNAPSHOT (${pathOld.canonicalPath})"
+                        )
+                    }
+                }
+            }
+        }
+    }
 
     given("single project with third party dependencies") {
         describe(testee::analyseAndCreateReleasePlan.name) {
