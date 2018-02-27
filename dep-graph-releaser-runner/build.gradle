@@ -15,7 +15,8 @@ task dist {
     def outputDir = "${project.buildDir}/dist"
     def bat = file("src/main/produce.bat")
     outputs.dir outputDir
-    inputs.files bat, jar
+    inputs.files bat
+    inputs.files rootProject.subprojects.jar
 
     doLast {
         copy {
