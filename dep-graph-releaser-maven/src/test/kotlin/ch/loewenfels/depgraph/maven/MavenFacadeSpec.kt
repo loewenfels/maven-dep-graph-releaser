@@ -25,6 +25,25 @@ object MavenFacadeSpec : Spek({
         }
     }
 
+    fun SpecBody.testReleaseAWithDependentBWithDependentC(directory: String) {
+        describe(testee::analyseAndCreateReleasePlan.name) {
+            action("the root project is the one we want to release") {
+                val releasePlan = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
+                assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+
+                assertWithDependent("root project", releasePlan, exampleA, exampleB, 1)
+                assertWithDependent("dependent project", releasePlan, exampleB, exampleC, 2)
+
+                test("release plan has three projects and three dependents") {
+                    assert(releasePlan) {
+                        property(subject::projects).hasSize(3)
+                        property(subject::dependents).hasSize(3)
+                    }
+                }
+            }
+        }
+    }
+
     fun SpecBody.testReleaseAWithDependentB(directory: String) {
         describe(testee::analyseAndCreateReleasePlan.name) {
             action("the root project is the one we want to release") {
@@ -100,6 +119,10 @@ object MavenFacadeSpec : Spek({
         testReleaseBWithNoDependent("parent")
     }
 
+    given("project with parent which itself has a parent") {
+        testReleaseAWithDependentBWithDependentC("parentWithParent")
+    }
+
     given("two projects unrelated but one has other in dependency management") {
         describe(testee::analyseAndCreateReleasePlan.name) {
             action("we release project A (is in B in dependency management)") {
@@ -110,22 +133,7 @@ object MavenFacadeSpec : Spek({
     }
 
     given("project with implicit transitive dependent") {
-        describe(testee::analyseAndCreateReleasePlan.name) {
-            action("the root project is the one we want to release") {
-                val releasePlan = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("transitiveImplicit"))
-                assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
-
-                assertWithDependent("root project", releasePlan, exampleA, exampleB, 1)
-                assertWithDependent("dependent project", releasePlan, exampleB, exampleC, 2)
-
-                test("release plan has three projects and three dependents") {
-                    assert(releasePlan) {
-                        property(subject::projects).hasSize(3)
-                        property(subject::dependents).hasSize(3)
-                    }
-                }
-            }
-        }
+        testReleaseAWithDependentBWithDependentC("transitiveImplicit")
     }
 
     given("project with explicit transitive dependent") {
