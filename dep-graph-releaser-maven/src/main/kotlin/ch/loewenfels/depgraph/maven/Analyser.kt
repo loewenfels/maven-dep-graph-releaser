@@ -6,6 +6,7 @@ import fr.lteconsulting.pomexplorer.DefaultPomFileLoader
 import fr.lteconsulting.pomexplorer.Log
 import fr.lteconsulting.pomexplorer.PomAnalysis
 import fr.lteconsulting.pomexplorer.Session
+import fr.lteconsulting.pomexplorer.graph.relation.Relation
 import fr.lteconsulting.pomexplorer.model.Gav
 import java.io.File
 
@@ -33,32 +34,36 @@ class Analyser(directoryWithProjects: File) {
     }
 
     private fun analyseDependents(): Map<String, Set<ProjectIdWithCurrentVersion<MavenProjectId>>> {
-        val analysedGroupIdsAndArtifactIds = session.projects().keySet()
+        val analysedProjects = session.projects().keySet()
             .asSequence()
-            .map { "${it.groupId}:${it.artifactId}" }
+            .filter { isNotExternal(it) }
+            .map { it.toMapKey() }
             .toSet()
         val dependents = hashMapOf<String, MutableSet<ProjectIdWithCurrentVersion<MavenProjectId>>>()
         session.projects().keySet().forEach { gav ->
             session.graph().read().relations(gav)
                 .asSequence()
-                .filter { analysedGroupIdsAndArtifactIds.contains("${it.target.groupId}:${it.target.artifactId}") }
+                .filter { analysedProjects.contains(it.toMapKey()) }
                 .forEach { relation ->
-                    val set = dependents.getOrPut(relation.target.toMavenProjectId().identifier, { mutableSetOf() })
+                    val set = dependents.getOrPut(relation.toMapKey(), { mutableSetOf() })
                     set.add(gav.toProjectIdWithCurrentVersion())
                 }
         }
         return dependents
     }
 
+    private fun isNotExternal(it: Gav?) = session.projects().forGav(it).isExternal.not()
+
     private fun Gav.toProjectIdWithCurrentVersion() = ProjectIdWithCurrentVersion(toMavenProjectId(), version)
+    private fun Relation.toMapKey() = target.toMapKey()
+    private fun Gav.toMapKey() = toMavenProjectId().identifier
     private fun Gav.toMavenProjectId() = MavenProjectId(groupId, artifactId)
 
     /**
      * Returns the current version for the given [projectId] if it was involved in the analysis; `null` otherwise.
      * @return The current version or `null` if [projectId] was not part of the analysis.
      */
-    fun getCurrentVersion(projectId: MavenProjectId): String?
-        =  projectIds[projectId]
+    fun getCurrentVersion(projectId: MavenProjectId): String? = projectIds[projectId]
 
 
     /**
