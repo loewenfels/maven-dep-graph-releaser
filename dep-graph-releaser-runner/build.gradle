@@ -47,6 +47,7 @@ def jsonFile = file("$rootProject.buildDir/release.json")
 task json {
     inputs.property('g', findProperty('g'))
     inputs.property('a', findProperty('a'))
+    inputs.property('f', findProperty('f'))
     inputs.files dist
     outputs.file jsonFile
     doLast {
@@ -69,6 +70,7 @@ task json {
 task html {
     def htmlFile = file("$rootProject.buildDir/pipeline.html")
     inputs.files json
+    inputs.property('f', findProperty('f'))
     outputs.file htmlFile
     doLast {
         javaexec {
