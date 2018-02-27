@@ -7,8 +7,14 @@ import fr.lteconsulting.pomexplorer.graph.relation.Relation
 import fr.lteconsulting.pomexplorer.model.Gav
 import java.io.File
 
-class Analyser(directoryWithProjects: File) {
-    private val session: Session
+class Analyser internal constructor(
+    directoryWithProjects: File,
+    private val session: Session,
+    pomFileLoader: PomFileLoader
+) {
+    constructor(directoryWithProjects: File) : this(directoryWithProjects, Session())
+    private constructor(directoryWithProjects: File, session: Session) : this(directoryWithProjects, session, DefaultPomFileLoader(session, true))
+
     private val dependents: Map<String, Set<ProjectIdWithCurrentVersion<MavenProjectId>>>
     private val projectIds: Map<MavenProjectId, String>
 
@@ -16,7 +22,7 @@ class Analyser(directoryWithProjects: File) {
         require(directoryWithProjects.exists()) {
             "Cannot analyse because the given directory does not exists: ${directoryWithProjects.absolutePath}"
         }
-        session = analyseDirectory(directoryWithProjects)
+        analyseDirectory(directoryWithProjects, pomFileLoader)
         checkNoDuplicates(directoryWithProjects)
 
         dependents = analyseDependents()
@@ -24,10 +30,9 @@ class Analyser(directoryWithProjects: File) {
             .associateBy({ it.toMavenProjectId() }, { it.version })
     }
 
-    private fun analyseDirectory(directoryWithProjects: File): Session {
-        val session = Session()
+    private fun analyseDirectory(directoryWithProjects: File, pomFileLoader: PomFileLoader): Session {
         val nullLogger = Log { }
-        PomAnalysis.runFullRecursiveAnalysis(directoryWithProjects.absolutePath, session, DefaultPomFileLoader(session, true), null, false, nullLogger)
+        PomAnalysis.runFullRecursiveAnalysis(directoryWithProjects.absolutePath, session, pomFileLoader, null, false, nullLogger)
         return session
     }
 

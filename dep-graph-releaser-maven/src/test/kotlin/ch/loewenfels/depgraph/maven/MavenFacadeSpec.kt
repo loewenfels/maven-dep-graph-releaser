@@ -4,6 +4,12 @@ import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.tutteli.atrium.*
 import ch.tutteli.atrium.api.cc.en_UK.*
+import com.nhaarman.mockito_kotlin.any
+import com.nhaarman.mockito_kotlin.eq
+import com.nhaarman.mockito_kotlin.mock
+import fr.lteconsulting.pomexplorer.PomFileLoader
+import fr.lteconsulting.pomexplorer.Session
+import fr.lteconsulting.pomexplorer.model.Gav
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.*
 import java.io.File
@@ -29,17 +35,7 @@ object MavenFacadeSpec : Spek({
         describe(testee::analyseAndCreateReleasePlan.name) {
             action("the root project is the one we want to release") {
                 val releasePlan = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
-                assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
-
-                assertWithDependent("root project", releasePlan, exampleA, exampleB, 1)
-                assertWithDependent("dependent project", releasePlan, exampleB, exampleC, 2)
-
-                test("release plan has three projects and three dependents") {
-                    assert(releasePlan) {
-                        property(subject::projects).hasSize(3)
-                        property(subject::dependents).hasSize(3)
-                    }
-                }
+                assertReleaseAWithDependentBWithDependentC(releasePlan)
             }
         }
     }
@@ -136,8 +132,27 @@ object MavenFacadeSpec : Spek({
         testReleaseBWithNoDependent("parent")
     }
 
-    given("project with parent which itself has a parent") {
+    given("project with parent which itself has a parent, old parents are not resolved") {
         testReleaseAWithDependentBWithDependentC("parentWithParent")
+    }
+
+    given("project with parent which itself has a parent, old parents are resolved") {
+        action("context use an Analyser with a mocked PomFileResolver") {
+            val oldPomsDir = getTestDirectory("oldPoms")
+            val pomFileLoader = mock<PomFileLoader> {
+                on {
+                    it.loadPomFileForGav(eq(Gav(exampleA.id.groupId, exampleA.id.artifactId, "1.0.0")), eq(null), any())
+                }.thenReturn(File(oldPomsDir, "a-1.0.0.pom"))
+                on {
+                    it.loadPomFileForGav(eq(Gav(exampleA.id.groupId, exampleA.id.artifactId, "0.9.0")), eq(null), any())
+                }.thenReturn(File(oldPomsDir, "a-0.9.0.pom"))
+            }
+            val analyser = Analyser(getTestDirectory("parentWithParent"), Session(), pomFileLoader)
+            val jenkinsReleasePlanCreator = JenkinsReleasePlanCreator(VersionDeterminer())
+            val releasePlan = jenkinsReleasePlanCreator.create(exampleA.id, analyser)
+
+            assertReleaseAWithDependentBWithDependentC(releasePlan)
+        }
     }
 
     given("two projects unrelated but one has other in dependency management") {

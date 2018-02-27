@@ -6,7 +6,6 @@ import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.tutteli.atrium.api.cc.en_UK.*
 import org.jetbrains.spek.api.dsl.ActionBody
-import org.jetbrains.spek.api.dsl.it
 
 val exampleA = IdAndVersions(MavenProjectId("com.example", "a"), "1.1.1-SNAPSHOT", "1.1.1", "1.1.2-SNAPSHOT")
 val exampleB = IdAndVersions(MavenProjectId("com.example", "b"), "1.0.1-SNAPSHOT", "1.0.1", "1.0.2-SNAPSHOT")
@@ -35,6 +34,20 @@ fun ActionBody.assertRootProjectOnlyReleaseAndReady(releasePlan: ReleasePlan, id
                     property(subject::nextDevVersion).toBe(idAndVersions.nextDevVersion)
                 }
             })
+        }
+    }
+}
+
+fun ActionBody.assertReleaseAWithDependentBWithDependentC(releasePlan: ReleasePlan) {
+    assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+
+    assertWithDependent("root project", releasePlan, exampleA, exampleB, 1)
+    assertWithDependent("dependent project", releasePlan, exampleB, exampleC, 2)
+
+    test("release plan has three projects and three dependents") {
+        assert(releasePlan) {
+            property(subject::projects).hasSize(3)
+            property(subject::dependents).hasSize(3)
         }
     }
 }
