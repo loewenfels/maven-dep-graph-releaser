@@ -6,4 +6,5 @@ dependencies {
     compile ownProject('api')
     compile ownProject('maven-api')
     compile "ch.tutteli.copies:pom-explorer-core:$pom_explorer_version"
+    compile "ch.tutteli:kbox:$kbox_version"
 }

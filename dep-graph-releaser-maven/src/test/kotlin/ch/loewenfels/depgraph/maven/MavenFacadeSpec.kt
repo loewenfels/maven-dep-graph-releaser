@@ -79,6 +79,24 @@ object MavenFacadeSpec : Spek({
         }
     }
 
+    fun SpecBody.testDuplicateProject(directory: String, vararg poms: Pair<String, String>) {
+        it("throws an IllegalStateException, containing versions of both projects inclusive path") {
+            val testDirectory = getTestDirectory(directory)
+            expect {
+                testee.analyseAndCreateReleasePlan(exampleA.id, testDirectory)
+            }.toThrow<IllegalStateException> {
+                message {
+                    contains(
+                        "directory: ${testDirectory.canonicalPath}",
+                        *poms.map {
+                            "${exampleA.id.identifier}:${it.second} (${File(testDirectory, it.first).canonicalPath})"
+                        }.toTypedArray()
+                    )
+                }
+            }
+        }
+    }
+
     fun analyseAndCreateReleasePlanWithResolvingAnalyser(testDirectory: String): ReleasePlan {
         val oldPomsDir = getTestDirectory("oldPoms")
         val pomFileLoader = mock<PomFileLoader> {
@@ -132,22 +150,29 @@ object MavenFacadeSpec : Spek({
             }
         }
 
-        given("duplicate projects") {
-            it("throws an IllegalStateException, containing versions of both projects inclusive path") {
-                val testDirectory = getTestDirectory("duplicateProjectCurrentAndOld")
-                val pathNew = File(testDirectory, "a.pom")
-                val pathOld = File(testDirectory, "aOld.pom")
-                expect {
-                    testee.analyseAndCreateReleasePlan(exampleA.id, testDirectory)
-                }.toThrow<IllegalStateException> {
-                    message {
-                        contains(
-                            "${exampleA.id.identifier}:1.1.1-SNAPSHOT (${pathNew.canonicalPath})",
-                            "${exampleA.id.identifier}:1.0.1-SNAPSHOT (${pathOld.canonicalPath})"
-                        )
-                    }
-                }
-            }
+        given("duplicate projects, twice the same version") {
+            testDuplicateProject(
+                "duplicatedProjectTwiceTheSameVersion",
+                "a.pom" to exampleA.currentVersion,
+                "a/a.pom" to exampleA.currentVersion
+            )
+        }
+
+        given("duplicate projects, current and an older version") {
+            testDuplicateProject(
+                "duplicatedProjectCurrentAndOld",
+                "a.pom" to exampleA.currentVersion,
+                "aOld.pom" to "1.0.1-SNAPSHOT"
+            )
+        }
+
+        given("duplicate projects, twice the same version and an older version") {
+            testDuplicateProject(
+                "duplicatedProjectTwiceTheSameVersionAndAnOld",
+                "a.pom" to exampleA.currentVersion,
+                "a/a.pom" to exampleA.currentVersion,
+                "aOld.pom" to "1.0.1-SNAPSHOT"
+            )
         }
     }
 

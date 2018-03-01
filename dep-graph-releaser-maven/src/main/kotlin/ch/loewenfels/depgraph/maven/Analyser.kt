@@ -2,6 +2,7 @@ package ch.loewenfels.depgraph.maven
 
 import ch.loewenfels.depgraph.data.ProjectIdWithCurrentVersion
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
+import ch.tutteli.kbox.appendToStringBuilder
 import fr.lteconsulting.pomexplorer.*
 import fr.lteconsulting.pomexplorer.graph.relation.Relation
 import fr.lteconsulting.pomexplorer.model.Gav
@@ -22,38 +23,60 @@ class Analyser internal constructor(
         require(directoryWithProjects.exists()) {
             "Cannot analyse because the given directory does not exists: ${directoryWithProjects.absolutePath}"
         }
-        analyseDirectory(directoryWithProjects, pomFileLoader)
-        checkNoDuplicates(directoryWithProjects)
+        val pomAnalysis = analyseDirectory(directoryWithProjects, pomFileLoader)
+        checkNoDuplicates(pomAnalysis, directoryWithProjects)
 
         dependents = analyseDependents()
         projectIds = getInternalAnalysedProjects()
             .associateBy({ it.toMavenProjectId() }, { it.version })
     }
 
-    private fun analyseDirectory(directoryWithProjects: File, pomFileLoader: PomFileLoader): Session {
+    private fun analyseDirectory(directoryWithProjects: File, pomFileLoader: PomFileLoader): PomAnalysis {
         val nullLogger = Log { }
-        PomAnalysis.runFullRecursiveAnalysis(directoryWithProjects.absolutePath, session, pomFileLoader, null, false, nullLogger)
-        return session
+        return PomAnalysis.runFullRecursiveAnalysis(directoryWithProjects.absolutePath, session, pomFileLoader, null, false, nullLogger)
     }
 
-    private fun checkNoDuplicates(directoryWithProjects: File) {
+    private fun checkNoDuplicates(pomAnalysis: PomAnalysis, directoryWithProjects: File) {
+        val duplicates = collectDuplicates(pomAnalysis)
+        check(duplicates.isEmpty()) {
+            val sb = StringBuilder()
+            duplicates.values.appendToStringBuilder(sb, "\n\n") { projects, _ ->
+                projects.appendToStringBuilder(sb, "\n") { project, _ ->
+                    sb.append(projectToString(project))
+                }
+            }
+            "found duplicated projects in the given `directoryWithProjects`.\n" +
+                "directory: ${directoryWithProjects.canonicalPath}\n" +
+                "duplicates:\n\n" +
+                sb.toString()
+        }
+    }
 
-        val map = hashMapOf<String, Project>()
+    private fun collectDuplicates(pomAnalysis: PomAnalysis): HashMap<String, MutableList<Project>> {
+        val visitedProjects = hashMapOf<String, Project>()
+        pomAnalysis.duplicatedProjects.forEach { it ->
+            visitedProjects[it.gav.toMapKey()] = it
+        }
+
+        val duplicates = hashMapOf<String, MutableList<Project>>()
         session.projects().keySet()
             .asSequence()
             .map { it.toProject() }
             .filter { it.isNotExternal }
             .forEach { second ->
                 val key = second.gav.toMapKey()
-                val first = map[key]
-                check(first == null) {
-                    "found twice the same project in the given directoryWithProjects.\n" +
-                        "directory: ${directoryWithProjects.canonicalPath}\n" +
-                        "first: ${projectToString(first!!)}\n" +
-                        "second: ${projectToString(second)}"
+                val first = visitedProjects[key]
+                if (first != null) {
+                    val projects = duplicates.getOrPut(key, { mutableListOf() })
+                    if (projects.isEmpty()) {
+                        projects.add(first)
+                    }
+                    projects.add(second)
+                } else {
+                    visitedProjects[key] = second
                 }
-                map[key] = second
             }
+        return duplicates
     }
 
     private fun projectToString(project: Project): String = "${project.gav} (${project.pomFile.canonicalPath})"
