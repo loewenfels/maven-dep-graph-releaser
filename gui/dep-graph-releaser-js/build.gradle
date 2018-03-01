@@ -1,0 +1,13 @@
+buildscript {
+    ext.publish_description = 'Provides the javascript for the HTML-Pipeline.'
+}
+
+apply plugin: "kotlin2js"
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib-js:$kotlin_version"
+}
+
+compileKotlin2Js {
+    kotlinOptions.moduleKind = "umd"
+}

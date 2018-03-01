@@ -8,7 +8,6 @@ import ch.tutteli.kbox.PeekingIterator
 import ch.tutteli.kbox.toPeekingIterator
 import kotlinx.html.*
 import kotlinx.html.stream.appendHTML
-import java.util.*
 
 class ReleasePlanToHtml {
     fun createHtml(releasePlan: ReleasePlan): StringBuilder {
@@ -161,39 +160,26 @@ class ReleasePlanToHtml {
             title {
                 +"Release ${releasePlan.rootProjectId.identifier}"
             }
-            style {
-                unsafeRawFromFileFile("/style.css")
+            styleLink("style.css")
+            script("text/javascript") {
+                src = "kotlin.js"
             }
-            javascript(releasePlan)
-        }
-    }
-
-    private fun HEAD.javascript(releasePlan: ReleasePlan) {
-        script("text/javascript") {
-            val dependents = releasePlan.dependents.entries.joinToString(",\n") { (k, v) ->
-                """"${k.identifier}": [${v.joinToString { "\"${it.identifier}\"" }}]"""
+            script("text/javascript") {
+                src = "script.js"
             }
-            unsafeRaw("\nvar releasePlan = {$dependents}")
-
-            unsafeRawFromFileFile("/script.js")
-        }
-    }
-
-    private fun HTMLTag.unsafeRawFromFileFile(file: String) {
-        val scanner = Scanner(this::class.java.getResourceAsStream(file), Charsets.UTF_8.name())
-            .useDelimiter("\\A")
-
-        val fileContent = scanner.use {
-            if (it.hasNext()) {
-                it.next()
-            } else {
-                ""
+            script("text/javascript") {
+                val dependents = releasePlan.dependents.entries.joinToString(",\n") { (k, v) ->
+                    """"${k.identifier}": [${v.joinToString { "\"${it.identifier}\"" }}]"""
+                }
+                unsafe {
+                    raw("\n" +
+                        "var toggler = new window['dep-graph-releaser-js'].ch.loewenfels.depgraph.Toggler(\n" +
+                        "{$dependents}\n" +
+                        ")\n" +
+                        "function toggle(id) { toggler.toggle(id) }"
+                    )
+                }
             }
         }
-        unsafeRaw("\n" + fileContent)
-    }
-
-    private fun HTMLTag.unsafeRaw(content: String) {
-        unsafe { raw(content) }
     }
 }

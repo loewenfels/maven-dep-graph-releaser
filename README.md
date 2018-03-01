@@ -15,13 +15,13 @@ Add the projects you want to analyse the folder `repos` (in the project director
 ````
 gr html -Pg=your.group.id -Pa=the.artifact.id
 ````
-This creates a `pipeline.html` in the folder build. 
-Notice, the task is clever and does not regenerate the html if nothing has changed in the code 
-(the gradle task is mainly there to ease development).
-Thus, if you add another project to the `repos` folder and want to rerun the task, then add the extra parameter 
-`-Pf` (this way the inputs of the task changes which forces it to run again).
-Next time you should remove it again (or assign something to it) to force the task again. 
+This creates a `pipeline.html` in the folder `rootFolder/build/html`. 
 
+Notice, the task is clever and does not regenerate the html if nothing has changed in the code 
+(the gradle task is mainly there to ease development, 
+using `repos` as input of the task takes too much time depending on the number of projects you have).
+Thus, if you add another project to the `repos` folder and want to rerun the task, then call `cleanHtml` first. 
+Or just always call `gr cleanHtml html` :wink:. 
 
 # License
 Dependent Graph Releaser is published under [Apache 2.0](http://opensource.org/licenses/Apache2.0). 

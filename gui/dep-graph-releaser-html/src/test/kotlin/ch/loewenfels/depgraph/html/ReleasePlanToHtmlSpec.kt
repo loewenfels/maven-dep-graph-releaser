@@ -12,8 +12,6 @@ import ch.tutteli.atrium.api.cc.en_UK.containsRegex
 import ch.tutteli.atrium.assert
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.it
-import java.io.File
-import java.io.FileWriter
 
 object ReleasePlanToHtmlSpec : Spek({
 

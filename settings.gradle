@@ -21,7 +21,11 @@ include {
     _ 'maven-api'
     _ maven
     _ manipulation
-    _ html
+
+    gui {
+        _ html
+        _ js
+    }
 
     project 'atrium'
 }

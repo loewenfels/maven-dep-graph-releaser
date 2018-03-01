@@ -31,9 +31,10 @@ buildscript {
 
         //jacoco-multi-project.gradle
         projectsWithoutSources = [] //currently all have sources
+        jvmProjects = subprojects - project(":${rootProject.name}-js")
         jacocoMulti = [
-            sourceProjects: subprojects - project(':atrium'),
-            jacocoProjects: subprojects.findAll{
+            sourceProjects: jvmProjects - project(':atrium'),
+            jacocoProjects: jvmProjects.findAll{
                 it.name != "${rootProject.name}-maven-api" &&
                 it.name != "atrium"
             } - projectsWithoutSources
@@ -67,7 +68,9 @@ subprojects {
         maven { url  "https://dl.bintray.com/robstoll/copies" }
         maven { url  "https://dl.bintray.com/robstoll/tutteli-jars" }
     }
+}
 
+configure(jvmProjects) {
     apply plugin: 'kotlin'
 
     dependencies {
@@ -76,7 +79,7 @@ subprojects {
     }
 }
 
-def publishedProjects = subprojects - project(':atrium')
+def publishedProjects = jvmProjects - project(':atrium')
 configure(publishedProjects) {
     it.ext.publish_artifacts = []
 }

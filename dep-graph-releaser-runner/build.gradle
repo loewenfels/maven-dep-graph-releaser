@@ -49,7 +49,6 @@ def jsonFile = file("$rootProject.buildDir/release.json")
 task json {
     inputs.property('g', findProperty('g'))
     inputs.property('a', findProperty('a'))
-    inputs.property('f', findProperty('f') ?: '0')
     inputs.files dist
     outputs.file jsonFile
     doLast {
@@ -70,16 +69,17 @@ task json {
 }
 
 task html {
-    def htmlFile = file("$rootProject.buildDir/pipeline.html")
+    def outDir = file("${rootProject.buildDir}/html")
     inputs.files json
     inputs.files dist
-    inputs.property('f', findProperty('f') ?: '0')
-    outputs.file htmlFile
+    outputs.file outDir
+
     doLast {
+        mkdir(outDir)
         javaexec {
             classpath fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.MainKt'
-            args = ['html', jsonFile.absolutePath,  htmlFile.absolutePath]
+            args = ['html', jsonFile.absolutePath, outDir.absolutePath]
         }
     }
 }

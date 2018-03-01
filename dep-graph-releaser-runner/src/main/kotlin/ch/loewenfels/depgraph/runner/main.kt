@@ -58,17 +58,12 @@ private fun json(args: Array<out String>) {
             |Directory: ${json.parentFile.canonicalPath}
         """.trimMargin())
     }
-
-    if (json.exists()) {
-        logger.info("The resulting JSON file already exists, going to overwrite it.")
-    }
-
     val mavenProjectId = MavenProjectId(args[JSON_GROUP_ID], args[JSON_ARTIFACT_ID])
     Orchestrator.analyseAndCreateJson(directoryToAnalyse, json, mavenProjectId)
 }
 
 private const val HTML_JSON = 1
-private const val HTML_HTML = 2
+private const val HTML_OUTPUT_DIR = 2
 
 fun html(args: Array<out String>) {
     if (args.size != 3) {
@@ -95,17 +90,14 @@ fun html(args: Array<out String>) {
         """.trimMargin())
     }
 
-    val html = File(args[HTML_HTML])
-    if (!html.parentFile.exists()) {
-        error("""The directory in which the resulting HTML file shall be created does not exists:
-            |Directory: ${html.parentFile.canonicalPath}
+    val outputDir = File(args[HTML_OUTPUT_DIR])
+    if (!outputDir.exists()) {
+        error("""The directory in which the resulting HTML file (and resources) shall be created does not exists:
+            |Directory: ${outputDir.canonicalPath}
         """.trimMargin())
     }
 
-    if (html.exists()) {
-        logger.info("The resulting HTML file already exists, going to overwrite it.")
-    }
-    Orchestrator.createHtmlFromJson(json, html)
+    Orchestrator.createHtmlFromJson(json, outputDir)
 }
 
 private fun getGivenArgs(args: Array<out String>) = "Given: ${args.joinToString()}"
@@ -123,7 +115,7 @@ private val jsonArguments = """
 private val htmlArguments = """
 |html requires the following arguments in the given order:
 |json       // path + file name for the input json file
-|html       // path + file name for the resulting html file
+|outDir     // path to the directory in which the html file and resources shall be created
 """.trimMargin()
 
 private val allCommands = """
