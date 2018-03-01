@@ -24,11 +24,16 @@ class Analyser internal constructor(
             "Cannot analyse because the given directory does not exists: ${directoryWithProjects.absolutePath}"
         }
         val pomAnalysis = analyseDirectory(directoryWithProjects, pomFileLoader)
-        checkNoDuplicates(pomAnalysis, directoryWithProjects)
+        val analysedProjects = getAnalysedProjects()
 
-        dependents = analyseDependents()
+        val duplicates = collectDuplicates(pomAnalysis)
+        val parentsNotInAnalysis = collectParentsNotInAnalysis(analysedProjects)
+        reportDuplicatesAndMissingParentsIfNecessary(directoryWithProjects, duplicates, parentsNotInAnalysis)
+
+        dependents = analyseDependents(analysedProjects)
         projectIds = getInternalAnalysedProjects()
             .associateBy({ it.toMavenProjectId() }, { it.version })
+
     }
 
     private fun analyseDirectory(directoryWithProjects: File, pomFileLoader: PomFileLoader): PomAnalysis {
@@ -36,23 +41,14 @@ class Analyser internal constructor(
         return PomAnalysis.runFullRecursiveAnalysis(directoryWithProjects.absolutePath, session, pomFileLoader, null, false, nullLogger)
     }
 
-    private fun checkNoDuplicates(pomAnalysis: PomAnalysis, directoryWithProjects: File) {
-        val duplicates = collectDuplicates(pomAnalysis)
-        check(duplicates.isEmpty()) {
-            val sb = StringBuilder()
-            duplicates.values.appendToStringBuilder(sb, "\n\n") { projects, _ ->
-                projects.appendToStringBuilder(sb, "\n") { project, _ ->
-                    sb.append(projectToString(project))
-                }
-            }
-            "found duplicated projects in the given `directoryWithProjects`.\n" +
-                "directory: ${directoryWithProjects.canonicalPath}\n" +
-                "duplicates:\n\n" +
-                sb.toString()
-        }
+    private fun getAnalysedProjects(): Set<String> {
+        return getInternalAnalysedProjects()
+            .asSequence()
+            .map { it.toMapKey() }
+            .toSet()
     }
 
-    private fun collectDuplicates(pomAnalysis: PomAnalysis): HashMap<String, MutableList<Project>> {
+    private fun collectDuplicates(pomAnalysis: PomAnalysis): Map<String, List<Project>> {
         val visitedProjects = hashMapOf<String, Project>()
         pomAnalysis.duplicatedProjects.forEach { it ->
             visitedProjects[it.gav.toMapKey()] = it
@@ -79,12 +75,18 @@ class Analyser internal constructor(
         return duplicates
     }
 
-    private fun projectToString(project: Project): String = "${project.gav} (${project.pomFile.canonicalPath})"
 
-    private fun analyseDependents(): Map<String, Set<ProjectIdWithCurrentVersion<MavenProjectId>>> {
-        val analysedProjects = getInternalAnalysedProjects()
-            .map { it.toMapKey() }
-            .toSet()
+    private fun collectParentsNotInAnalysis(analysedProjects: Set<String>): Map<Project, Gav> {
+        return getInternalAnalysedProjects()
+            .map { it.toProject() }
+            .filter { project ->
+                val parentGav = project.parentGav
+                parentGav != null && !analysedProjects.contains(parentGav.toMapKey())
+            }
+            .associateBy({ it }, { it.parentGav })
+    }
+
+    private fun analyseDependents(analysedProjects: Set<String>): Map<String, Set<ProjectIdWithCurrentVersion<MavenProjectId>>> {
         val dependents = hashMapOf<String, MutableSet<ProjectIdWithCurrentVersion<MavenProjectId>>>()
         getInternalAnalysedProjects().forEach { gav ->
             session.graph().read().relations(gav)
@@ -111,6 +113,40 @@ class Analyser internal constructor(
     private fun Relation.targetToMapKey() = target.toMapKey()
     private fun Gav.toMapKey() = toMavenProjectId().identifier
     private fun Gav.toMavenProjectId() = MavenProjectId(groupId, artifactId)
+
+
+    private fun reportDuplicatesAndMissingParentsIfNecessary(
+        directoryWithProjects: File,
+        duplicates: Map<String, List<Project>>,
+        parentsNotInAnalysis: Map<Project, Gav>
+    ) {
+        val sb = StringBuilder()
+
+        if (duplicates.isNotEmpty()) {
+            sb.append("Found duplicated projects in the given `directoryWithProjects`.\n")
+                .append("directory: ${directoryWithProjects.canonicalPath}\n")
+                .append("duplicates:\n\n")
+            duplicates.values.appendToStringBuilder(sb, "\n\n") { projects, _ ->
+                projects.appendToStringBuilder(sb, "\n") { project, _ ->
+                    sb.append(projectToString(project))
+                }
+            }
+        }
+
+        if (parentsNotInAnalysis.isNotEmpty()) {
+            if (sb.isNotEmpty()) sb.append("\n")
+            sb.append("Found projects with parents where the parents are not part of this analysis.\n\n")
+            parentsNotInAnalysis.entries.appendToStringBuilder(sb, "\n\n") { (project, parent), _ ->
+                sb.append("project: ").append(projectToString(project)).append("\n")
+                sb.append("parent: ").append(parent.groupId).append(":").append(parent.artifactId).append(":").append(parent.version)
+            }
+        }
+
+        check(sb.isEmpty()) { sb.toString() }
+    }
+
+
+    private fun projectToString(project: Project): String = "${project.gav} (${project.pomFile.canonicalPath})"
 
     /**
      * Returns the current version for the given [projectId] if it was involved in the analysis; `null` otherwise.

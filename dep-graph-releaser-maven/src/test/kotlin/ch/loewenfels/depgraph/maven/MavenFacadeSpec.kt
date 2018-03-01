@@ -80,7 +80,7 @@ object MavenFacadeSpec : Spek({
     }
 
     fun SpecBody.testDuplicateProject(directory: String, vararg poms: Pair<String, String>) {
-        it("throws an IllegalStateException, containing versions of both projects inclusive path") {
+        it("throws an IllegalStateException, containing versions of all projects inclusive path") {
             val testDirectory = getTestDirectory(directory)
             expect {
                 testee.analyseAndCreateReleasePlan(exampleA.id, testDirectory)
@@ -173,6 +173,26 @@ object MavenFacadeSpec : Spek({
                 "a/a.pom" to exampleA.currentVersion,
                 "aOld.pom" to "1.0.1-SNAPSHOT"
             )
+        }
+
+        given("parent not in analysis") {
+            it("throws an IllegalStateException, containing versions of project and parent and path of project") {
+                val testDirectory = getTestDirectory("parentNotInAnalysis")
+                val b = File(testDirectory, "b.pom")
+                expect {
+                    testee.analyseAndCreateReleasePlan(exampleB.id, testDirectory)
+                }.toThrow<IllegalStateException> {
+                    message {
+                        contains(
+                            "${exampleB.id.identifier}:${exampleB.currentVersion} (${b.canonicalPath})",
+                            "${exampleA.id.identifier}:1.0.0"
+                        )
+                    }
+                }
+            }
+            //TODO needs to be catched and forbidden if we want to be sure that the parent does not have
+            // an old dependency -> well, we could check if it has? => nope, the current version could have one
+            // and thus it needs to be included in the analysis.
         }
     }
 
