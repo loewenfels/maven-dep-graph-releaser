@@ -16,7 +16,8 @@ task dist {
     def bat = file("src/main/produce.bat")
     outputs.dir outputDir
     inputs.files bat
-    inputs.files rootProject.subprojects.jar
+    inputs.files jar.outputs.files
+    inputs.files sourceSets.main.runtimeClasspath
 
     doLast {
         copy {
@@ -25,7 +26,7 @@ task dist {
         }
         copy {
             from sourceSets.main.runtimeClasspath.asFileTree.findAll { it.name.endsWith(".jar") }
-            from jar.outputs.files.getFiles()
+            from jar.outputs.files
             into "$outputDir/lib"
         }
     }
@@ -33,6 +34,7 @@ task dist {
 
 task distZip(type: Zip) {
     def outputDir = file("${project.buildDir}/distZip")
+    inputs.files dist
     outputs.dir outputDir
     from dist
     destinationDir outputDir
@@ -70,6 +72,7 @@ task json {
 task html {
     def htmlFile = file("$rootProject.buildDir/pipeline.html")
     inputs.files json
+    inputs.files dist
     inputs.property('f', findProperty('f') ?: '0')
     outputs.file htmlFile
     doLast {
