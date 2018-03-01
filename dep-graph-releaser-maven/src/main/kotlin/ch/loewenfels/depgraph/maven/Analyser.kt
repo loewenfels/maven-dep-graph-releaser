@@ -31,7 +31,7 @@ class Analyser internal constructor(
         reportDuplicatesAndMissingParentsIfNecessary(directoryWithProjects, duplicates, parentsNotInAnalysis)
 
         dependents = analyseDependents(analysedProjects)
-        projectIds = getInternalAnalysedProjects()
+        projectIds = getInternalAnalysedGavs()
             .associateBy({ it.toMavenProjectId() }, { it.version })
 
     }
@@ -42,45 +42,24 @@ class Analyser internal constructor(
     }
 
     private fun getAnalysedProjects(): Set<String> {
-        return getInternalAnalysedProjects()
+        return getInternalAnalysedGavs()
             .asSequence()
             .map { it.toMapKey() }
             .toSet()
     }
 
     private fun collectDuplicates(pomAnalysis: PomAnalysis): Map<String, List<Project>> {
-        val visitedProjects = hashMapOf<String, Project>()
-        pomAnalysis.duplicatedProjects.forEach { it ->
-            visitedProjects[it.gav.toMapKey()] = it
-        }
-
-        val duplicates = hashMapOf<String, MutableList<Project>>()
-        session.projects().keySet()
-            .asSequence()
-            .map { it.toProject() }
-            .filter { it.isNotExternal }
-            .forEach { second ->
-                val key = second.gav.toMapKey()
-                val first = visitedProjects[key]
-                if (first != null) {
-                    val projects = duplicates.getOrPut(key, { mutableListOf() })
-                    if (projects.isEmpty()) {
-                        projects.add(first)
-                    }
-                    projects.add(second)
-                } else {
-                    visitedProjects[key] = second
-                }
-            }
-        return duplicates
+        val sequence = pomAnalysis.duplicatedProjects.asSequence() + getInternalAnalysedProjects()
+        return sequence
+            .groupBy { it.gav.toMapKey() }
+            .filterValues { it.size > 1 }
     }
 
 
     private fun collectParentsNotInAnalysis(analysedProjects: Set<String>): Map<Project, Gav> {
         return getInternalAnalysedProjects()
-            .map { it.toProject() }
-            .filter { project ->
-                val parentGav = project.parentGav
+            .filter { it ->
+                val parentGav = it.parentGav
                 parentGav != null && !analysedProjects.contains(parentGav.toMapKey())
             }
             .associateBy({ it }, { it.parentGav })
@@ -88,7 +67,7 @@ class Analyser internal constructor(
 
     private fun analyseDependents(analysedProjects: Set<String>): Map<String, Set<ProjectIdWithCurrentVersion<MavenProjectId>>> {
         val dependents = hashMapOf<String, MutableSet<ProjectIdWithCurrentVersion<MavenProjectId>>>()
-        getInternalAnalysedProjects().forEach { gav ->
+        getInternalAnalysedGavs().forEach { gav ->
             session.graph().read().relations(gav)
                 .asSequence()
                 .filter { analysedProjects.contains(it.targetToMapKey()) }
@@ -100,12 +79,17 @@ class Analyser internal constructor(
         return dependents
     }
 
+    private fun getInternalAnalysedGavs() = session.projects()
+        .keySet()
+        .asSequence()
+        .filter { it.toProject().isNotExternal }
+
     private fun getInternalAnalysedProjects() = session.projects()
         .keySet()
         .asSequence()
+        .map { it.toProject() }
         .filter { it.isNotExternal }
 
-    private val Gav.isNotExternal get() = toProject().isNotExternal
     private fun Gav.toProject() = session.projects().forGav(this)
     private val Project.isNotExternal get() = !isExternal
 
