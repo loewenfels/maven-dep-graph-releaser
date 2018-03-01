@@ -134,7 +134,7 @@ object MavenFacadeSpec : Spek({
 
         given("duplicate projects") {
             it("throws an IllegalStateException, containing versions of both projects inclusive path") {
-                val testDirectory = getTestDirectory("duplicateProject")
+                val testDirectory = getTestDirectory("duplicateProjectCurrentAndOld")
                 val pathNew = File(testDirectory, "a.pom")
                 val pathOld = File(testDirectory, "aOld.pom")
                 expect {
