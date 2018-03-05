@@ -23,7 +23,7 @@ buildscript {
         //publish.gradle
         bintray_version = '1.7.3'
         publish_pkg_name = project.name
-        github_url= "https://github.com/loewenfels/${project.name}"
+        github_url = "https://github.com/loewenfels/${project.name}"
         publish_vcsUrl = "${github_url}.git"
 
         //gh-pages.gradle
@@ -34,9 +34,9 @@ buildscript {
         jvmProjects = subprojects - project(":${rootProject.name}-js")
         jacocoMulti = [
             sourceProjects: jvmProjects - project(':atrium'),
-            jacocoProjects: jvmProjects.findAll{
+            jacocoProjects: jvmProjects.findAll {
                 it.name != "${rootProject.name}-maven-api" &&
-                it.name != "atrium"
+                    it.name != "atrium"
             } - projectsWithoutSources
         ]
 
@@ -65,8 +65,8 @@ subprojects {
     repositories {
         mavenCentral()
         jcenter()
-        maven { url  "https://dl.bintray.com/robstoll/copies" }
-        maven { url  "https://dl.bintray.com/robstoll/tutteli-jars" }
+        maven { url "https://dl.bintray.com/robstoll/copies" }
+        maven { url "https://dl.bintray.com/robstoll/tutteli-jars" }
     }
 }
 
@@ -125,6 +125,22 @@ configure(publishedProjects) { subproject ->
     }
     afterEvaluate {
         apply from: "${rootProject.projectDir}/gradle/scripts/publish.gradle", to: subproject
+
+        def includeBuildTime = task('includeBuildTime') {
+            doLast {
+                project.tasks.withType(Jar) { jarTask ->
+                    jarTask.manifest {
+                        attributes('Build-Time': new Date().format('yyyy-MM-dd\'T\'HH:mm:ssZ'))
+                    }
+                }
+            }
+        }
+
+        task publishBintray {
+            dependsOn includeBuildTime
+            dependsOn bintrayUpload
+            bintrayUpload.mustRunAfter(includeBuildTime)
+        }
     }
 }
 
@@ -140,3 +156,30 @@ configure(jacocoMulti.jacocoProjects) {
 
 apply from: 'gradle/scripts/jacoco-multi-project.gradle'
 apply from: 'gradle/scripts/gh-pages.gradle'
+
+/*
+
+Release & deploy a commit
+--------------------------------
+1. change version in build.gradle to X.Y.Z
+2. update master:
+    a) point to the tag
+        1) search for `branch=master` and replace it with `tag=vX.Y.Z` (build status and coverage in README.md)
+        2) search for `tree/master` and replace it with `tree/vX.Y.Z` (README.md)
+    b) commit (modified build.gradle, README.md and differences.md)
+    c) git tag vX.Y.Z
+    d) git push origin vX.Y.Z
+3. deploy to bintray:
+    a) gr publishBintray
+    b) Log in to bintray, check and publish new jars
+4. create release on github
+
+Prepare next dev cycle
+-----------------------
+1. change version in build.gradle to X.Y.Z-SNAPSHOT
+2. point to master
+   a) search for `tag=vX.Y.Z` and replace it with `branch=master`
+   b) search for `tree/vX.Y.Z` and replace it with `tree/master`
+3. commit & push changes
+
+*/

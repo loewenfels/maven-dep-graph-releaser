@@ -1,6 +1,8 @@
 import com.jfrog.bintray.gradle.BintrayPlugin
 
-logger.info("setting up publish for $project, $publish_groupId:$publish_artifactId:$version")
+def publish_version = project.version
+
+logger.info("setting up publish for $project, $publish_groupId:$publish_artifactId:$publish_version")
 logger.info("publish_description: $publish_description")
 logger.info("publish_artifacts: $publish_artifacts\n")
 
@@ -18,11 +20,11 @@ buildscript {
         publish_dev_name = findProperty('publish_dev_name') ?: 'Robert Stoll'
         publish_dev_email = findProperty('publish_dev_email') ?: 'robert.stoll@loewenfels.ch'
 
-        publish_repo = findProperty('publish_repo') ?: 'loewenfels'
+        publish_repo = findProperty('publish_repo') ?: 'oss'
+        publish_organisation = findProperty('publish_organisation') ?: 'loewenfels'
         publish_pkg_name = findProperty('publish_pkg_name') ?: publish_artifactId
         publish_groupId = findProperty('publish_groupId') ?: 'ch.loewenfels'
         publish_vendor = findProperty('publish_vendor') ?: 'Löwenfels Partner AG'
-        publish_manifest_includeTime = findProperty('publish_manifest_includeTime') ?: false
     }
 
     repositories {
@@ -62,10 +64,12 @@ publishing {
     publications {
         mavenJava(MavenPublication) {
             from components.java
-            setArtifacts publish_artifacts
+            publish_artifacts.each{
+                artifact it
+            }
             groupId publish_groupId
             artifactId publish_artifactId
-            version version
+            version publish_version
 
             pom.withXml {
                 def root = asNode()
@@ -84,13 +88,14 @@ bintray {
     pkg {
         repo = publish_repo
         name = publish_pkg_name
+        userOrg = publish_organisation
         licenses = [publish_license_name]
         vcsUrl = publish_vcsUrl
         version {
-            name = version
-            desc = "$publish_pkg_name $version"
+            name = publish_version
+            desc = "$publish_pkg_name $publish_version"
             released  = new Date()
-            vcsTag = "v$version"
+            vcsTag = "v$publish_version"
             gpg {
                 sign = true
                 passphrase = findProperty('gpgPassphrase') ?: System.getenv('GPG_PASSPHRASE')
@@ -103,13 +108,9 @@ tasks.withType(Jar) { task ->
     task.manifest {
         attributes \
             'Implementation-Title': publish_artifactId, \
-            'Implementation-Version': version, \
+            'Implementation-Version': publish_version, \
             'Implementation-Vendor': publish_vendor, \
             'Implementation-URL': publish_vcsUrl, \
             'Implementation-Kotlin-Version': kotlin_version
-
-        if (publish_manifest_includeTime) {
-            attributes('Build-Time': new Date().format('yyyy-MM-dd\'T\'HH:mm:ssZ'))
-        }
     }
 }
