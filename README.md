@@ -21,8 +21,11 @@ This creates a `pipeline.html` in the folder `rootFolder/build/html`.
 Notice, the task is clever and does not regenerate the html if nothing has changed in the code 
 (the gradle task is mainly there to ease development, 
 using `repos` as input of the task takes too much time depending on the number of projects you have).
-Thus, if you add another project to the `repos` folder and want to rerun the task, then call `cleanHtml` first. 
-Or just always call `gr cleanHtml html` :wink:. 
+Thus, if you add another project to the `repos` folder and want to rerun the task, then call `cleanJson` first. 
+Or just always call `gr cleanJson html` :wink:. 
+
+You can use `gr server` to start a lightweight local server serving `pipeline.html`. 
+This is necessary since the `pipeline.html` wants to include a javascript file and your browser forbids that to protect you from XSS attacks.  
 
 # License
 Dependent Graph Releaser is published under [Apache 2.0](http://opensource.org/licenses/Apache2.0). 

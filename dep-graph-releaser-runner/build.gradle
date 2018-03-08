@@ -83,3 +83,16 @@ task html {
         }
     }
 }
+
+task server {
+    copy {
+        from jsonFile
+        into "$rootProject.buildDir/html"
+    }
+    doLast {
+        SimpleHttpFileServerFactory factory = new SimpleHttpFileServerFactory()
+        HttpFileServer server = factory.start(file("$rootProject.buildDir/html"), 8085)
+        println("Server Started on 8085 CTRL+C to kill it")
+        java.lang.Thread.sleep(Long.MAX_VALUE)
+    }
+}
