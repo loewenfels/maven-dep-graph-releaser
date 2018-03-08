@@ -72,7 +72,7 @@ task html {
     def outDir = file("${rootProject.buildDir}/html")
     inputs.files json
     inputs.files dist
-    outputs.file outDir
+    outputs.dir outDir
 
     doLast {
         mkdir(outDir)
