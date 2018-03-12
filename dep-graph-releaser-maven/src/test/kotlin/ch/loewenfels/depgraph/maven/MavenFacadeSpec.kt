@@ -160,6 +160,9 @@ object MavenFacadeSpec : Spek({
             on {
                 it.loadPomFileForGav(eq(Gav(exampleB.id.groupId, exampleB.id.artifactId, "1.0.0")), eq(null), any())
             }.thenReturn(File(oldPomsDir, "b-1.0.0.pom"))
+            on {
+                it.loadPomFileForGav(eq(Gav(exampleDeps.id.groupId, exampleDeps.id.artifactId, "8")), eq(null), any())
+            }.thenReturn(File(oldPomsDir, "deps-8.pom"))
         }
         val analyser = Analyser(getTestDirectory(testDirectory), Session(), pomFileLoader)
         val jenkinsReleasePlanCreator = JenkinsReleasePlanCreator(VersionDeterminer())
@@ -258,8 +261,15 @@ object MavenFacadeSpec : Spek({
     }
 
     given("project with dependency and version in dependency management") {
-        testReleaseAWithDependentB("oneDependencyOverManagement")
-        testReleaseBWithNoDependent("oneDependencyOverManagement")
+        testReleaseAWithDependentB("oneDependencyViaManagement")
+        testReleaseBWithNoDependent("oneDependencyViaManagement")
+    }
+
+    given("project with dependency and version in bom") {
+        action("context use an Analyser with a mocked PomFileResolver") {
+            val releasePlan = analyseAndCreateReleasePlanWithResolvingAnalyser("oneDependencyViaBom")
+            assertProjectAWithDependentB(releasePlan)
+        }
     }
 
     given("project with parent dependency") {
