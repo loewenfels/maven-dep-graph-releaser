@@ -55,13 +55,13 @@ task json {
         def groupId = findProperty('g')
         def artifactId = findProperty('a')
         if (groupId == null) {
-            throw new IllegalArgumentException("you need to specify the groupId with g")
+            throw new IllegalArgumentException("you need to specify the groupId with -Pg")
         }
         if (artifactId == null) {
-            throw new IllegalArgumentException("you need to specify the artifactId with a")
+            throw new IllegalArgumentException("you need to specify the artifactId with -Pa")
         }
         javaexec {
-            classpath fileTree("${project.buildDir}/dist/lib/")
+            classpath = fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.MainKt'
             args = ['json', groupId, artifactId, "${rootProject.projectDir}/repos", jsonFile.absolutePath]
         }
@@ -77,7 +77,7 @@ task html {
     doLast {
         mkdir(outDir)
         javaexec {
-            classpath fileTree("${project.buildDir}/dist/lib/")
+            classpath = fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.MainKt'
             args = ['html', jsonFile.absolutePath, outDir.absolutePath]
         }
@@ -91,7 +91,7 @@ task server {
     }
     doLast {
         SimpleHttpFileServerFactory factory = new SimpleHttpFileServerFactory()
-        HttpFileServer server = factory.start(file("$rootProject.buildDir/html"), 8085)
+        factory.start(file("$rootProject.buildDir/html"), 8085)
         println("Server Started on 8085 CTRL+C to kill it")
         java.lang.Thread.sleep(Long.MAX_VALUE)
     }
