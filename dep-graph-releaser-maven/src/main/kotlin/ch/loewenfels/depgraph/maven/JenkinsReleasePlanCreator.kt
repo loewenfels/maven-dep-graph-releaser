@@ -68,17 +68,22 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     ) {
         val dependencyId = dependency.id as MavenProjectId
         analyser.getDependentsOf(dependencyId).forEach { dependentIdWithVersion ->
-            val dependent = if (isNewProject(projects, dependentIdWithVersion)) {
+            val dependent: Project = if (isNewProject(projects, dependentIdWithVersion)) {
                 val newDependent = createInitialWaitingProject(dependentIdWithVersion, level, dependencyId)
                 dependents[newDependent.id] = hashSetOf()
                 addToNextLevelOfDependentsToVisit(dependentsToVisit, newDependent)
+                projects[newDependent.id] = newDependent
                 newDependent
             } else {
                 val existingDependent = projects[dependentIdWithVersion.id]!!
-                Project(existingDependent, level)
+                if (existingDependent.level < level) {
+                    val updatedProject = Project(existingDependent, level)
+                    projects[existingDependent.id] = updatedProject
+                    updatedProject
+                } else {
+                    existingDependent
+                }
             }
-
-            registerNewOrUpdatedDependent(projects, dependent)
             addAndUpdateCommandsOfDependent(dependent, dependencyId)
             addDependentToDependentsOfDependency(dependent.id, dependents, dependencyId)
         }
@@ -99,11 +104,6 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         level,
         CommandState.Waiting(mutableSetOf(dependencyId))
     )
-
-    private fun registerNewOrUpdatedDependent(projects: HashMap<ProjectId, Project>, dependent: Project) {
-        //either we register the new project or overwrite a current project with its updated version
-        projects[dependent.id] = dependent
-    }
 
     private fun addDependentToDependentsOfDependency(
         dependentId: ProjectId,
