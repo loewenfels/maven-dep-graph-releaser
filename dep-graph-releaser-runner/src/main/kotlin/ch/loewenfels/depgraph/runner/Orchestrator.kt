@@ -1,20 +1,19 @@
 package ch.loewenfels.depgraph.runner
 
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
-import ch.loewenfels.depgraph.html.ReleasePlanToHtml
 import ch.loewenfels.depgraph.maven.Analyser
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
 import ch.loewenfels.depgraph.maven.VersionDeterminer
 import ch.loewenfels.depgraph.serialization.Serializer
 import java.io.File
-import java.util.*
+import java.io.FileOutputStream
+import java.io.InputStream
 import java.util.logging.Logger
 
 object Orchestrator {
     private val logger = Logger.getLogger(Orchestrator::class.qualifiedName)
     private val releasePlaner = JenkinsReleasePlanCreator(VersionDeterminer())
     private val serializer = Serializer()
-    private val toHtmlConverter = ReleasePlanToHtml()
 
     fun analyseAndCreateJson(directoryToAnalyse: File, outputFile: File, projectToRelease: MavenProjectId) {
         logger.info({ "Going to analyse: ${directoryToAnalyse.canonicalPath}" })
@@ -34,37 +33,41 @@ object Orchestrator {
         logger.info({ "Created json file at: ${outputFile.canonicalPath}" })
     }
 
-    fun createHtmlFromJson(inputJsonFile: File, outputDir: File) {
-        logger.info({ "Going to deserialize the json file ${inputJsonFile.canonicalPath}" })
-        val jsonString = Scanner(inputJsonFile, Charsets.UTF_8.name()).useDelimiter("\\Z").use { it.next() }
-        val releasePlan = serializer.deserialize(jsonString)
-        logger.info("Json deserialized")
-
-        logger.info("Going to create the html pipeline file based on the release plan.")
-        val html = toHtmlConverter.createHtml(releasePlan)
-        val outputHtmlFile = File(outputDir, "pipeline.html")
-        if (outputHtmlFile.exists()) {
-            logger.info("The resulting html file already exists, going to overwrite it.")
-        }
-        outputHtmlFile.writeText(html.toString())
-        logger.info({ "Created html file at: ${outputHtmlFile.canonicalPath}" })
-
+    fun createHtmlFromJson(jsonUrl: String, outputDir: File) {
         logger.info("Going to copy resource files")
         copyResourceToFile(outputDir, "kotlin.js")
-        copyResourceToFile(outputDir, "dep-graph-releaser-js.js", "script.js")
+        copyResourceToFile(outputDir, "kotlinx-html-js.js")
+        copyResourceToFile(outputDir, "dep-graph-releaser-api-js.js")
+        copyResourceToFile(outputDir, "dep-graph-releaser-maven-api-js.js")
+        copyResourceToFile(outputDir, "dep-graph-releaser-js.js")
         copyResourceToFile(outputDir, "style.css")
+        copyResourceToFile(outputDir, "pipeline.html") { inputStream, fileOut ->
+            val htmlTemplate = inputStream.bufferedReader().use { it.readText() }
+            val html = htmlTemplate.replace("JSON_URL", jsonUrl)
+            fileOut.write(html.toByteArray(Charsets.UTF_8))
+        }
         logger.info("copied resources files")
         logger.info("Everything done :)")
     }
 
-    private fun copyResourceToFile(outputDir: File, input: String, output: String = input) {
-        val outputFile = File(outputDir, output)
-        if (outputFile.exists()) {
-            logger.info("The file $output already exists, going to overwrite it.")
+    private fun copyResourceToFile(outputDir: File, input: String) {
+        return copyResourceToFile(outputDir, input) { inputStream, fileOut ->
+            inputStream.copyTo(fileOut)
         }
-        this::class.java.getResourceAsStream("/$input").use { jsInput ->
+    }
+
+    private fun copyResourceToFile(outputDir: File, input: String, copier: (InputStream, FileOutputStream) -> Unit) {
+        val outputFile = File(outputDir, input)
+        if (outputFile.exists()) {
+            logger.info("The file $input already exists, going to overwrite it.")
+        }
+        val stream = this::class.java.getResourceAsStream("/$input")
+        check(stream != null) {
+            "Could not find /$input, please verify it is part of the classpath"
+        }
+        stream.use { inputStream ->
             outputFile.outputStream().use { fileOut ->
-                jsInput.copyTo(fileOut)
+                copier(inputStream, fileOut)
             }
         }
         logger.info("Created ${outputFile.canonicalPath}")

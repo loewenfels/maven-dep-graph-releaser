@@ -5,7 +5,7 @@ buildscript {
 dependencies {
     compile ownProject('maven')
     compile ownProject('serialization')
-    compile ownProject('html')
+    compile(ownProject('js'))
 
     runtimeOnly "org.jetbrains.kotlin:kotlin-runtime:$kotlin_version"
     testCompile ownProject('maven').sourceSets.test.output
@@ -44,7 +44,8 @@ configure(project) {
     ext.publish_artifacts += [distZip]
 }
 
-def jsonFile = file("$rootProject.buildDir/release.json")
+def jsonFileName = 'release.json'
+def jsonFile = file("$rootProject.buildDir/$jsonFileName")
 
 task json {
     inputs.property('g', findProperty('g'))
@@ -79,7 +80,7 @@ task html {
         javaexec {
             classpath = fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.MainKt'
-            args = ['html', jsonFile.absolutePath, outDir.absolutePath]
+            args = ['html', "./$jsonFileName", outDir.absolutePath]
         }
     }
 }

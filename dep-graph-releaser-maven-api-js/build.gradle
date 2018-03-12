@@ -1,0 +1,6 @@
+buildscript {
+    ext.publish_description = 'Contains the maven related API of the dep-graph-analyser, e.g. data structures, for the JS target'
+}
+dependencies {
+    compile ownProject('api-js')
+}

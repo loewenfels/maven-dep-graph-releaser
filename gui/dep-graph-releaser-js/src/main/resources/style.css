@@ -5,6 +5,22 @@ body {
     display: table;
     height: 100%;
 }
+
+#messages {
+    position: absolute;
+    left: 15;
+    right: 15;
+}
+#messages > .error {
+    border: 2px solid #a01c1c;
+    border-radius: 6px;
+    padding: 10px;
+    background-color: #f7dede;
+    color: #a01c1c;
+    font-size: 1.5em;
+    margin-top: 20px;
+}
+
 div.level{
     display: table-cell;
     height: 100%;

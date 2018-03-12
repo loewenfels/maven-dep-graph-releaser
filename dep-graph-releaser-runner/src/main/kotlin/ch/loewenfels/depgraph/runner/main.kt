@@ -2,9 +2,6 @@ package ch.loewenfels.depgraph.runner
 
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import java.io.File
-import java.util.logging.Logger
-
-private val logger = Logger.getLogger("ch.loewenfels.depgraph.runner.MainKt")
 
 fun main(vararg args: String) {
     if (args.isEmpty()) {
@@ -62,7 +59,7 @@ private fun json(args: Array<out String>) {
     Orchestrator.analyseAndCreateJson(directoryToAnalyse, json, mavenProjectId)
 }
 
-private const val HTML_JSON = 1
+private const val HTML_JSON_URL = 1
 private const val HTML_OUTPUT_DIR = 2
 
 fun html(args: Array<out String>) {
@@ -79,16 +76,7 @@ fun html(args: Array<out String>) {
         """.trimMargin())
     }
 
-    val json = File(args[HTML_JSON])
-    if (!json.exists()) {
-        error("""
-            |The given JSON file $json does not exist. Maybe you mixed up the order of the arguments?
-            |
-            |$jsonArguments
-            |
-            |${getGivenArgs(args)}
-        """.trimMargin())
-    }
+    val jsonUrl = args[HTML_JSON_URL]
 
     val outputDir = File(args[HTML_OUTPUT_DIR])
     if (!outputDir.exists()) {
@@ -97,7 +85,7 @@ fun html(args: Array<out String>) {
         """.trimMargin())
     }
 
-    Orchestrator.createHtmlFromJson(json, outputDir)
+    Orchestrator.createHtmlFromJson(jsonUrl, outputDir)
 }
 
 private fun getGivenArgs(args: Array<out String>) = "Given: ${args.joinToString()}"

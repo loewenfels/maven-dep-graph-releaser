@@ -29,20 +29,28 @@ buildscript {
         //gh-pages.gradle
         docProjects = subprojects
 
+        ownProject = { String name -> project(":${rootProject.name}-$name") }
+        srcKotlin = 'src/main/kotlin'
+        srcOwnProject = { String name -> "${project.projectDir}/${ext.srcKotlin}" }
+
         //jacoco-multi-project.gradle
         projectsWithoutSources = [] //currently all have sources
-        jvmProjects = subprojects - project(":${rootProject.name}-js")
+
+        apiProjects = subprojects.findAll { it.name.contains('api') }
+        apiJvmProjects = ext.apiProjects.findAll { it.name.endsWith('-jvm') }
+        apiJsProjects = ext.apiProjects.findAll { it.name.endsWith('-js') }
+        commonApiProjects = ext.apiProjects - ext.apiJvmProjects - ext.apiJsProjects
+
+        jvmProjects = subprojects - ext.ownProject('js') - apiProjects
         jacocoMulti = [
-            sourceProjects: jvmProjects - project(':atrium'),
+            sourceProjects: jvmProjects - project(':atrium') + apiJvmProjects,
             jacocoProjects: jvmProjects.findAll {
                 it.name != "${rootProject.name}-maven-api" &&
                     it.name != "atrium"
-            } - projectsWithoutSources
+            } - projectsWithoutSources + apiJvmProjects
         ]
 
-        ownProject = { String name -> project(":${rootProject.name}-$name") }
-        srcKotlin = 'src/main/kotlin'
-        srcOwnProject = { String name -> "${rootProject.projectDir}/${rootProject.name}-$name/${ext.srcKotlin}" }
+
     }
 
     repositories {
@@ -70,7 +78,35 @@ subprojects {
     }
 }
 
-configure(jvmProjects) {
+configure(commonApiProjects) {
+    apply plugin: 'kotlin-platform-common'
+
+    dependencies {
+        compile "org.jetbrains.kotlin:kotlin-stdlib-common:$kotlin_version"
+    }
+}
+
+def getApiProject(String name, String suffix) {
+    return ":" + name.substring(0, name.indexOf(suffix))
+}
+configure(apiJsProjects) { subproject ->
+    apply plugin: 'kotlin-platform-js'
+
+    dependencies {
+        compile "org.jetbrains.kotlin:kotlin-stdlib-js:$kotlin_version"
+        expectedBy project(getApiProject(subproject.name, '-js'))
+    }
+}
+configure(apiJvmProjects) { subproject ->
+    apply plugin: 'kotlin-platform-jvm'
+
+    dependencies {
+        compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+        expectedBy project(getApiProject(subproject.name, '-jvm'))
+    }
+}
+
+configure(jvmProjects - apiProjects) {
     apply plugin: 'kotlin'
 
     dependencies {

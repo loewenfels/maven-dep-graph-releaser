@@ -17,13 +17,16 @@ apply plugin: 'ch.tutteli.settings'
 include {
     _ runner
     _ api
+    _'api-jvm'
+    _'api-js'
     _ serialization
     _ 'maven-api'
+    _ 'maven-api-js'
+    _ 'maven-api-jvm'
     _ maven
     _ manipulation
 
     gui {
-        _ html
         _ js
     }
 

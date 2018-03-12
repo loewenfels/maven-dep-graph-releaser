@@ -1,28 +1,19 @@
-package ch.loewenfels.depgraph.html
+package ch.loewenfels.depgraph
 
 import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
-import ch.tutteli.kbox.PeekingIterator
-import ch.tutteli.kbox.toPeekingIterator
 import kotlinx.html.*
-import kotlinx.html.stream.appendHTML
+import kotlinx.html.dom.append
+import kotlinx.html.js.div
 
-class ReleasePlanToHtml {
-    fun createHtml(releasePlan: ReleasePlan): StringBuilder {
-        val sb = StringBuilder()
-        sb.appendHTML().html {
-            head(releasePlan)
-            body(releasePlan)
-        }
-        return sb
-    }
+class Gui(private val releasePlan: ReleasePlan) {
 
-    private fun HTML.body(releasePlan: ReleasePlan) {
-        body {
+    fun load() {
+        elementById("gui").append {
+            val itr = PeekingIterator(releasePlan.iterator())
             var level: Int
-            val itr = releasePlan.iterator().toPeekingIterator()
             while (itr.hasNext()) {
                 val project = itr.next()
                 level = project.level
@@ -82,7 +73,7 @@ class ReleasePlanToHtml {
         project.commands.forEachIndexed { index, command ->
             div {
                 classes = setOf("command", stateToCssClass(command.state))
-                div("commandTitle") { +command::class.java.simpleName }
+                div("commandTitle") { +command::class.simpleName!! }
                 div("fields") {
                     fieldsForCommand("${project.id.identifier}:$index", command)
                 }
@@ -121,7 +112,6 @@ class ReleasePlanToHtml {
         }
     }
 
-
     private fun DIV.fieldsForCommand(idPrefix: String, command: Command) {
         val cssClass = when (command) {
             is ReleaseCommand -> "release"
@@ -155,31 +145,4 @@ class ReleasePlanToHtml {
         }
     }
 
-    private fun HTML.head(releasePlan: ReleasePlan) {
-        head {
-            title {
-                +"Release ${releasePlan.rootProjectId.identifier}"
-            }
-            styleLink("style.css")
-            script("text/javascript") {
-                src = "kotlin.js"
-            }
-            script("text/javascript") {
-                src = "script.js"
-            }
-            script("text/javascript") {
-                val dependents = releasePlan.dependents.entries.joinToString(",\n") { (k, v) ->
-                    """"${k.identifier}": [${v.joinToString { "\"${it.identifier}\"" }}]"""
-                }
-                unsafe {
-                    raw("\n" +
-                        "var toggler = new window['dep-graph-releaser-js'].ch.loewenfels.depgraph.Toggler(\n" +
-                        "{$dependents}\n" +
-                        ")\n" +
-                        "function toggle(id) { toggler.toggle(id) }"
-                    )
-                }
-            }
-        }
-    }
 }

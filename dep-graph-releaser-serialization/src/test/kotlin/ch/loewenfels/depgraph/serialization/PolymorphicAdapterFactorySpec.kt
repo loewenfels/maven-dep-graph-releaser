@@ -2,6 +2,8 @@ package ch.loewenfels.depgraph.serialization
 
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.ProjectId
+import ch.loewenfels.depgraph.data.serialization.CommandStateJson
+import ch.loewenfels.depgraph.data.serialization.State
 import ch.loewenfels.depgraph.serialization.PolymorphicAdapterFactory.Companion.PAYLOAD
 import ch.loewenfels.depgraph.serialization.PolymorphicAdapterFactory.Companion.TYPE
 import ch.tutteli.atrium.api.cc.en_UK.*

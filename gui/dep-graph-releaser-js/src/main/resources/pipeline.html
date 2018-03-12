@@ -1,0 +1,24 @@
+<html>
+<head>
+    <title>Release ....</title>
+    <link rel="Stylesheet" type="text/css" href="style.css">
+    <script type="text/javascript" src="kotlin.js"></script>
+    <script type="text/javascript" src="kotlinx-html-js.js"></script>
+    <script type="text/javascript" src="dep-graph-releaser-api-js.js"></script>
+    <script type="text/javascript" src="dep-graph-releaser-maven-api-js.js"></script>
+    <script type="text/javascript" src="dep-graph-releaser-js.js"></script>
+
+    <script type="text/javascript">
+        window['dep-graph-releaser-js'].main('JSON_URL');
+
+        function toggle(id) {
+            window['dep-graph-releaser-js'].ch.loewenfels.depgraph.toggler.toggle(id);
+        }
+    </script>
+</head>
+<body>
+<div id="loader">Loading...</div>
+<div id="gui"></div>
+<div id="messages"></div>
+</body>
+</html>
