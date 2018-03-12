@@ -27,7 +27,7 @@ data class ReleasePlan(
     fun iterator(): Iterator<Project> = ReleasePlanIterator(this)
 
     private class ReleasePlanIterator(private val releasePlan: ReleasePlan) : Iterator<Project> {
-        private val projectsToVisit = mutableListOf(releasePlan.getProject(releasePlan.rootProjectId))
+        private val projectsToVisit = linkedMapOf(releasePlan.rootProjectId to releasePlan.getProject(releasePlan.rootProjectId))
         private val visitedProjects = hashSetOf<ProjectId>()
 
         override fun hasNext() = projectsToVisit.isNotEmpty()
@@ -35,14 +35,13 @@ data class ReleasePlan(
             if (projectsToVisit.isEmpty()) {
                 throw NoSuchElementException("No project left; rootProjectId was ${releasePlan.rootProjectId}")
             }
-            val project = projectsToVisit.removeAt(0)
-            releasePlan.getDependents(project.id)
+            val project = projectsToVisit.remove(projectsToVisit.iterator().next().key)
+            releasePlan.getDependents(project!!.id)
                 .asSequence()
                 .filter { !visitedProjects.contains(it) }
                 .map { releasePlan.getProject(it) }
                 .filter { project.level + 1 == it.level }
-                .toCollection(projectsToVisit)
-
+                .associateByTo(projectsToVisit, { it.id }, { it })
             return project
         }
     }

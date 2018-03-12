@@ -58,6 +58,7 @@ fun createJenkinsMavenReleasePlugin(command: Command): JenkinsMavenReleasePlugin
 
 private fun deserializeState(it: Command): CommandState {
     val json = it.state.unsafeCast<CommandStateJson>()
+    //necessary to fake an enum's name attribute (state is actually a string and not the enum)
     js("json.state = {name: json.state}")
     return fromJson(json)
 }

@@ -7,10 +7,13 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import kotlinx.html.*
 import kotlinx.html.dom.append
 import kotlinx.html.js.div
+import kotlin.browser.document
 
 class Gui(private val releasePlan: ReleasePlan) {
 
     fun load() {
+        document.title = "Release " + releasePlan.rootProjectId.identifier
+
         elementById("gui").append {
             val itr = releasePlan.iterator().toPeekingIterator()
             var level: Int
@@ -25,6 +28,7 @@ class Gui(private val releasePlan: ReleasePlan) {
                     }
                 }
             }
+            showMessage("${releasePlan.projects.size} projects loaded")
         }
     }
 
@@ -144,5 +148,4 @@ class Gui(private val releasePlan: ReleasePlan) {
             span("slider")
         }
     }
-
 }
