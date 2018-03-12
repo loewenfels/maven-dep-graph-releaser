@@ -41,7 +41,7 @@ buildscript {
         apiJsProjects = ext.apiProjects.findAll { it.name.endsWith('-js') }
         commonApiProjects = ext.apiProjects - ext.apiJvmProjects - ext.apiJsProjects
 
-        jvmProjects = subprojects - ext.ownProject('js') - apiProjects
+        jvmProjects = subprojects - ext.ownProject('gui') - apiProjects
         jacocoMulti = [
             sourceProjects: jvmProjects - project(':atrium') + apiJvmProjects,
             jacocoProjects: jvmProjects.findAll {
