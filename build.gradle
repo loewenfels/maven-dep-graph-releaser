@@ -49,8 +49,6 @@ buildscript {
                     it.name != "atrium"
             } - projectsWithoutSources + apiJvmProjects
         ]
-
-
     }
 
     repositories {
@@ -80,13 +78,12 @@ subprojects {
 
 configure(commonApiProjects) {
     apply plugin: 'kotlin-platform-common'
-
     dependencies {
         compile "org.jetbrains.kotlin:kotlin-stdlib-common:$kotlin_version"
     }
 }
 
-def getApiProject(String name, String suffix) {
+static def getApiProject(String name, String suffix) {
     return ":" + name.substring(0, name.indexOf(suffix))
 }
 configure(apiJsProjects) { subproject ->

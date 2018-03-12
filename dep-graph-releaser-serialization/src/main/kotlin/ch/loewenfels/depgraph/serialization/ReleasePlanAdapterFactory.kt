@@ -47,7 +47,6 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
 
         private fun <T> JsonReader.checkNextNameAndGetValue(expectedName: String, adapter: JsonAdapter<T>)
             = checkNextNameAndGetValue(ReleasePlan::class.java.simpleName, expectedName, adapter)
-
     }
 
     const val ID = "id"

@@ -12,7 +12,7 @@ class Gui(private val releasePlan: ReleasePlan) {
 
     fun load() {
         elementById("gui").append {
-            val itr = PeekingIterator(releasePlan.iterator())
+            val itr = releasePlan.iterator().toPeekingIterator()
             var level: Int
             while (itr.hasNext()) {
                 val project = itr.next()
