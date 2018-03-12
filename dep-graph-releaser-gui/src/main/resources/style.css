@@ -7,9 +7,10 @@ body {
 }
 
 #messages {
-    position: absolute;
-    left: 15;
-    right: 15;
+    position: fixed;
+    left: 15px;
+    right: 15px;
+    bottom: 10px;
 }
 #messages > .error {
     border: 2px solid #a01c1c;

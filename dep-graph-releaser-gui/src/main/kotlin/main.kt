@@ -1,9 +1,8 @@
 import ch.loewenfels.depgraph.Gui
-import ch.loewenfels.depgraph.Toggler
 import ch.loewenfels.depgraph.deserialize
 import ch.loewenfels.depgraph.display
+import ch.loewenfels.depgraph.showError
 import org.w3c.fetch.Request
-import kotlin.browser.document
 import kotlin.browser.window
 import kotlin.js.Promise
 
@@ -19,7 +18,7 @@ fun main(jsonUrl: String) {
             switchLoaderAndGui()
         }
         .catch {
-            addError(it)
+            showError(it)
         }
 }
 
@@ -38,14 +37,4 @@ private fun loadJson(jsonUrl: String): Promise<Any> {
 private fun switchLoaderAndGui() {
     display("loader", "none")
     display("gui", "block")
-}
-
-private fun addError(t: Throwable) {
-    document.getElementById("messages")!!.innerHTML += """
-        |<div class="error">${t::class.js.name}: ${t.message}
-        |${if (t.cause != null) "<div class=\"cause\">Cause: ${t.cause}</div>" else ""}
-        |</div>
-        |
-    """.trimMargin()
-    throw t //this way it also shows up in console with stacktrace
 }
