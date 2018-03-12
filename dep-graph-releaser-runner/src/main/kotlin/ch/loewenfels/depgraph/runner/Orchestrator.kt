@@ -39,7 +39,7 @@ object Orchestrator {
         copyResourceToFile(outputDir, "kotlinx-html-js.js")
         copyResourceToFile(outputDir, "dep-graph-releaser-api-js.js")
         copyResourceToFile(outputDir, "dep-graph-releaser-maven-api-js.js")
-        copyResourceToFile(outputDir, "dep-graph-releaser-js.js")
+        copyResourceToFile(outputDir, "dep-graph-releaser-gui.js")
         copyResourceToFile(outputDir, "style.css")
         copyResourceToFile(outputDir, "pipeline.html") { inputStream, fileOut ->
             val htmlTemplate = inputStream.bufferedReader().use { it.readText() }
