@@ -79,6 +79,57 @@ object MavenFacadeSpec : Spek({
         }
     }
 
+    fun SpecBody.testReleaseAWithDependentBDAndCViaD(directory: String) {
+        testReleaseAWithDependentBAndX(directory, exampleD) { releasePlan ->
+            test("the direct dependent has one dependent") {
+                assert(releasePlan).hasDependentsForProject(exampleB, exampleC)
+            }
+            test("the direct dependent is on level 1") {
+                assert(releasePlan.getProject(exampleB.id).level).toBe(1)
+            }
+
+            test("the parent project has one updateVersion and one Release command") {
+                assert(releasePlan.projects[exampleD.id]).isNotNull {
+                    idAndVersions(exampleD)
+                    property(subject::commands).containsStrictly(
+                        { isJenkinsUpdateDependencyWaiting(exampleA) },
+                        { isJenkinsMavenReleaseWaiting(exampleD.nextDevVersion, exampleA) }
+                    )
+                }
+            }
+            test("the parent project has one dependent") {
+                assert(releasePlan).hasDependentsForProject(exampleD, exampleC)
+            }
+            test("the parent dependent is on level 1") {
+                assert(releasePlan.getProject(exampleD.id).level).toBe(1)
+            }
+
+            test("the indirect dependent project has two updateVersion and one Release command") {
+                assert(releasePlan.projects[exampleC.id]).isNotNull {
+                    idAndVersions(exampleC)
+                    property(subject::commands).containsStrictly(
+                        { isJenkinsUpdateDependencyWaiting(exampleB) },
+                        { isJenkinsUpdateDependencyWaiting(exampleD) },
+                        { isJenkinsMavenReleaseWaiting(exampleC.nextDevVersion, exampleD, exampleB) }
+                    )
+                }
+            }
+            test("the indirect dependent does not have dependents") {
+                assert(releasePlan).hasNotDependentsForProject(exampleC)
+            }
+            test("the indirect dependent is on level 2") {
+                assert(releasePlan.getProject(exampleC.id).level).toBe(2)
+            }
+
+            test("release plan has four projects and three dependents") {
+                assert(releasePlan) {
+                    property(subject::projects).hasSize(4)
+                    property(subject::dependents).hasSize(4)
+                }
+            }
+        }
+    }
+
     fun SpecBody.testDuplicateProject(directory: String, vararg poms: Pair<String, String>) {
         it("throws an IllegalStateException, containing versions of all projects inclusive path") {
             val testDirectory = getTestDirectory(directory)
@@ -190,9 +241,6 @@ object MavenFacadeSpec : Spek({
                     }
                 }
             }
-            //TODO needs to be catched and forbidden if we want to be sure that the parent does not have
-            // an old dependency -> well, we could check if it has? => nope, the current version could have one
-            // and thus it needs to be included in the analysis.
         }
     }
 
@@ -292,53 +340,10 @@ object MavenFacadeSpec : Spek({
     }
 
     given("project with explicit transitive dependent via parent (parent with dependency)") {
-        testReleaseAWithDependentBAndX("transitiveExplicitViaParent", exampleD) { releasePlan ->
-            test("the direct dependent has one dependent") {
-                assert(releasePlan).hasDependentsForProject(exampleB, exampleC)
-            }
-            test("the direct dependent is on level 1") {
-                assert(releasePlan.getProject(exampleB.id).level).toBe(1)
-            }
+        testReleaseAWithDependentBDAndCViaD("transitiveExplicitViaParent")
+    }
 
-            test("the parent project has one updateVersion and one Release command") {
-                assert(releasePlan.projects[exampleD.id]).isNotNull {
-                    idAndVersions(exampleD)
-                    property(subject::commands).containsStrictly(
-                        { isJenkinsUpdateDependencyWaiting(exampleA) },
-                        { isJenkinsMavenReleaseWaiting(exampleD.nextDevVersion, exampleA) }
-                    )
-                }
-            }
-            test("the parent project has one dependent") {
-                assert(releasePlan).hasDependentsForProject(exampleD, exampleC)
-            }
-            test("the parent dependent is on level 1") {
-                assert(releasePlan.getProject(exampleD.id).level).toBe(1)
-            }
-
-            test("the indirect dependent project has two updateVersion and one Release command") {
-                assert(releasePlan.projects[exampleC.id]).isNotNull {
-                    idAndVersions(exampleC)
-                    property(subject::commands).containsStrictly(
-                        { isJenkinsUpdateDependencyWaiting(exampleB) },
-                        { isJenkinsUpdateDependencyWaiting(exampleD) },
-                        { isJenkinsMavenReleaseWaiting(exampleC.nextDevVersion, exampleD, exampleB) }
-                    )
-                }
-            }
-            test("the indirect dependent does not have dependents") {
-                assert(releasePlan).hasNotDependentsForProject(exampleC)
-            }
-            test("the indirect dependent is on level 2") {
-                assert(releasePlan.getProject(exampleC.id).level).toBe(2)
-            }
-
-            test("release plan has four projects and three dependents") {
-                assert(releasePlan) {
-                    property(subject::projects).hasSize(4)
-                    property(subject::dependents).hasSize(4)
-                }
-            }
-        }
+    given("project with explicit transitive dependent via pom (pom has dependency)") {
+        testReleaseAWithDependentBDAndCViaD("transitiveExplicitViaPom")
     }
 })
