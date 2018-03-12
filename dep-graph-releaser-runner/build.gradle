@@ -44,8 +44,9 @@ configure(project) {
     ext.publish_artifacts += [distZip]
 }
 
+def htmlDir = file("${rootProject.buildDir}/html")
 def jsonFileName = 'release.json'
-def jsonFile = file("$rootProject.buildDir/$jsonFileName")
+def jsonFile = file("$htmlDir/$jsonFileName")
 
 task json {
     inputs.property('g', findProperty('g'))
@@ -70,26 +71,21 @@ task json {
 }
 
 task html {
-    def outDir = file("${rootProject.buildDir}/html")
     inputs.files json
     inputs.files dist
-    outputs.dir outDir
+    outputs.dir htmlDir
 
     doLast {
-        mkdir(outDir)
+        mkdir(htmlDir)
         javaexec {
             classpath = fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.MainKt'
-            args = ['html', "./$jsonFileName", outDir.absolutePath]
+            args = ['html', "./$jsonFileName", htmlDir.absolutePath]
         }
     }
 }
 
 task server {
-    copy {
-        from jsonFile
-        into "$rootProject.buildDir/html"
-    }
     doLast {
         SimpleHttpFileServerFactory factory = new SimpleHttpFileServerFactory()
         factory.start(file("$rootProject.buildDir/html"), 8085)
