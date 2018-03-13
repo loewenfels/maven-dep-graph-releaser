@@ -15,6 +15,7 @@ class Gui(private val releasePlan: ReleasePlan) {
         document.title = "Release " + releasePlan.rootProjectId.identifier
 
         elementById("gui").append {
+            val set = hashSetOf<ProjectId>()
             val itr = releasePlan.iterator().toPeekingIterator()
             var level: Int
             while (itr.hasNext()) {
@@ -23,12 +24,22 @@ class Gui(private val releasePlan: ReleasePlan) {
 
                 div("level l$level") {
                     project(project)
+
+                    set.add(project.id)
                     while (hasNextOnTheSameLevel(itr, level)) {
-                        project(itr.next())
+                        val nextProject = itr.next()
+                        project(nextProject)
+                        set.add(nextProject.id)
                     }
                 }
             }
-            showMessage("${releasePlan.projects.size} projects loaded")
+            val involvedProjects = set.size
+            showMessage("Projects involved: $involvedProjects")
+            if (involvedProjects != releasePlan.projects.size) {
+                showError("Not all dependent projects are involved in the process, please report a bug. The following where left out\n" +
+                    (releasePlan.projects.keys - set).joinToString("\n") { it.identifier }
+                )
+            }
         }
     }
 

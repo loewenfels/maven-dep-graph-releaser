@@ -27,7 +27,7 @@ private fun loadJson(jsonUrl: String): Promise<Any> {
         .then { response ->
             response.text().then { text ->
                 require(response.ok) {
-                    "response was not ok, ${response.status}: ${response.statusText}<br/>$text"
+                    "response was not ok, ${response.status}: ${response.statusText}\n$text"
                 }
                 text
             }

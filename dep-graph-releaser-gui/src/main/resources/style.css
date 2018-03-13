@@ -22,6 +22,35 @@ body {
     margin-top: 20px;
 }
 
+.close {
+   position: absolute;
+   right: 12px;
+   margin-top: -3px;
+   opacity: 0.3;
+   cursor: pointer;
+   display: block;
+   width: 14px;
+   height: 14px;
+}
+.close:hover {
+    opacity: 1;
+}
+
+.close:before, .close:after {
+    position: absolute;
+    left: 7px;
+    content: ' ';
+    height: 15px;
+    width: 2px;
+    background-color: #333;
+}
+.close:before {
+    transform: rotate(45deg);
+}
+.close:after {
+    transform: rotate(-45deg);
+}
+
 div.level{
     display: table-cell;
     height: 100%;
