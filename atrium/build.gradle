@@ -1,6 +1,6 @@
 dependencies {
-    compile ownProject('api-jvm')
-    compile ownProject('maven')
+    compile prefixedProject('api-jvm')
+    compile prefixedProject('maven')
     compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     compile("com.nhaarman:mockito-kotlin:$mockito_kotlin_version") {
         exclude group: 'org.jetbrains.kotlin'

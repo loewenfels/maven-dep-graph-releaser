@@ -11,13 +11,12 @@ buildscript {
 
         atrium_version = '0.6.0'
         mockito_kotlin_version = '1.5.0'
-        dokka_version = '0.9.14'
+        dokka_version = '0.9.16'
         dokka_sourceMapping = 'tree/master'
 
         //spek.gradle
         jacoco_tool_version = '0.7.9'
         spek_version = '1.1.5'
-        junit_version = '1.0.2'
         tutteli_spek_extensions = '0.2.0'
 
         //publish.gradle
@@ -29,10 +28,8 @@ buildscript {
         //gh-pages.gradle
         docProjects = subprojects
 
-        ownProject = { String name -> project(":${rootProject.name}-$name") }
         srcKotlin = 'src/main/kotlin'
         srcOwnProject = { String name -> "${project.projectDir}/${ext.srcKotlin}" }
-
         //jacoco-multi-project.gradle
         projectsWithoutSources = [] //currently all have sources
 
@@ -41,7 +38,7 @@ buildscript {
         apiJsProjects = ext.apiProjects.findAll { it.name.endsWith('-js') }
         commonApiProjects = ext.apiProjects - ext.apiJvmProjects - ext.apiJsProjects
 
-        jvmProjects = subprojects - ext.ownProject('gui') - apiProjects
+        jvmProjects = subprojects - project("${rootProject.name}-gui") - apiProjects
         jacocoMulti = [
             sourceProjects: jvmProjects - project(':atrium') + apiJvmProjects,
             jacocoProjects: jvmProjects.findAll {
@@ -54,12 +51,17 @@ buildscript {
     repositories {
         mavenCentral()
         jcenter()
+        maven { url "https://plugins.gradle.org/m2/" }
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "ch.tutteli:tutteli-gradle-project-utils:${gradle.ext.tutteli_plugins_version}"
+        classpath "ch.tutteli:tutteli-gradle-spek:${gradle.ext.tutteli_plugins_version}"
         classpath "org.jetbrains.dokka:dokka-gradle-plugin:$dokka_version"
     }
 }
+
+apply plugin: 'ch.tutteli.project.utils'
 
 repositories {
     mavenCentral()
@@ -178,7 +180,7 @@ configure(publishedProjects) { subproject ->
 }
 
 configure(jacocoMulti.jacocoProjects) {
-    apply from: "${rootProject.projectDir}/gradle/scripts/spek.gradle"
+    apply plugin: 'ch.tutteli.spek'
 
     dependencies {
         testCompile project(':atrium')

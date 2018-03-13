@@ -5,8 +5,8 @@ buildscript {
 apply plugin: "kotlin2js"
 
 dependencies {
-    compile ownProject('api-js')
-    compile ownProject('maven-api-js')
+    compile prefixedProject('api-js')
+    compile prefixedProject('maven-api-js')
     compile("org.jetbrains.kotlin:kotlin-stdlib-js:$kotlin_version") {
         exclude group: 'org.jetbrains.kotlin'
     }

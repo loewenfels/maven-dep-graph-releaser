@@ -3,5 +3,5 @@ buildscript {
 }
 
 dependencies{
-    compile ownProject('api-jvm')
+    compile prefixedProject('api-jvm')
 }
