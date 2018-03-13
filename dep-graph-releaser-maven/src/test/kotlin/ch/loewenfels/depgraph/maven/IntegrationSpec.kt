@@ -15,29 +15,58 @@ import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.*
 import java.io.File
 
-object MavenFacadeSpec : Spek({
-    val testee = MavenFacade()
+object IntegrationSpec : Spek({
+//    val testee = MavenFacade()
     val singleProjectIdAndVersions = IdAndVersions(MavenProjectId("com.example", "example"), "1.0-SNAPSHOT", "1.0", "1.1-SNAPSHOT")
 
+    fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, analyser: Analyser): ReleasePlan {
+        val jenkinsReleasePlanCreator = JenkinsReleasePlanCreator(VersionDeterminer())
+        return jenkinsReleasePlanCreator.create(projectToRelease as MavenProjectId, analyser)
+    }
+
+    fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, testDirectory: File): ReleasePlan{
+        val analyser = Analyser(testDirectory, Analyser.Options())
+        return analyseAndCreateReleasePlan(projectToRelease, analyser)
+    }
+
+    fun analyseAndCreateReleasePlanWithMockedPomResolver(projectToRelease: ProjectId, testDirectory: String): ReleasePlan {
+        val oldPomsDir = getTestDirectory("oldPoms")
+        val pomFileLoader = mock<PomFileLoader> {
+            on {
+                it.loadPomFileForGav(eq(Gav(exampleA.id.groupId, exampleA.id.artifactId, "1.0.0")), eq(null), any())
+            }.thenReturn(File(oldPomsDir, "a-1.0.0.pom"))
+            on {
+                it.loadPomFileForGav(eq(Gav(exampleA.id.groupId, exampleA.id.artifactId, "0.9.0")), eq(null), any())
+            }.thenReturn(File(oldPomsDir, "a-0.9.0.pom"))
+            on {
+                it.loadPomFileForGav(eq(Gav(exampleB.id.groupId, exampleB.id.artifactId, "1.0.0")), eq(null), any())
+            }.thenReturn(File(oldPomsDir, "b-1.0.0.pom"))
+            on {
+                it.loadPomFileForGav(eq(Gav(exampleDeps.id.groupId, exampleDeps.id.artifactId, "8")), eq(null), any())
+            }.thenReturn(File(oldPomsDir, "deps-8.pom"))
+        }
+        val analyser = Analyser(getTestDirectory(testDirectory), Session(), pomFileLoader)
+        return analyseAndCreateReleasePlan(projectToRelease, analyser)
+    }
+
+
     fun ActionBody.testReleaseSingleProject(idAndVersions: IdAndVersions, directory: String) {
-        val releasePlan = testee.analyseAndCreateReleasePlan(idAndVersions.id, getTestDirectory(directory))
+        val releasePlan = analyseAndCreateReleasePlan(idAndVersions.id, getTestDirectory(directory))
 
         assertSingleProject(releasePlan, idAndVersions)
     }
 
     fun SpecBody.testReleaseAWithDependentBWithDependentC(directory: String, projectB: IdAndVersions = exampleB) {
-        describe(testee::analyseAndCreateReleasePlan.name) {
-            action("the root project is the one we want to release") {
-                val releasePlan = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
-                assertReleaseAWithDependentBWithDependentC(releasePlan, projectB)
-            }
+        action("context Analyser which tries to resolve poms") {
+            val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
+            assertReleaseAWithDependentBWithDependentC(releasePlan, projectB)
         }
     }
 
     fun SpecBody.testReleaseAWithDependentB(directory: String) {
-        describe(testee::analyseAndCreateReleasePlan.name) {
+        context("Analyser which does not resolve poms") {
             action("the root project is the one we want to release") {
-                val releasePlan = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
                 assertProjectAWithDependentB(releasePlan)
             }
         }
@@ -50,9 +79,9 @@ object MavenFacadeSpec : Spek({
     }
 
     fun SpecBody.testReleaseAWithDependentBAndX(directory: String, projectX: IdAndVersions, furtherAssertions: ActionBody.(ReleasePlan) -> Unit) {
-        describe(testee::analyseAndCreateReleasePlan.name) {
+        context("Analyser which does not resolve poms") {
             action("the root project is the one we want to release") {
-                val releasePlan = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
                 assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
 
                 it("has two dependent projects") {
@@ -130,7 +159,7 @@ object MavenFacadeSpec : Spek({
         it("throws an IllegalStateException, containing versions of all projects inclusive path") {
             val testDirectory = getTestDirectory(directory)
             expect {
-                testee.analyseAndCreateReleasePlan(exampleA.id, testDirectory)
+                analyseAndCreateReleasePlan(exampleA.id, testDirectory)
             }.toThrow<IllegalStateException> {
                 message {
                     contains(
@@ -144,45 +173,13 @@ object MavenFacadeSpec : Spek({
         }
     }
 
-    fun analyseAndCreateReleasePlanWithResolvingAnalyser(testDirectory: String): ReleasePlan {
-        val oldPomsDir = getTestDirectory("oldPoms")
-        val pomFileLoader = mock<PomFileLoader> {
-            on {
-                it.loadPomFileForGav(eq(Gav(exampleA.id.groupId, exampleA.id.artifactId, "1.0.0")), eq(null), any())
-            }.thenReturn(File(oldPomsDir, "a-1.0.0.pom"))
-            on {
-                it.loadPomFileForGav(eq(Gav(exampleA.id.groupId, exampleA.id.artifactId, "0.9.0")), eq(null), any())
-            }.thenReturn(File(oldPomsDir, "a-0.9.0.pom"))
-            on {
-                it.loadPomFileForGav(eq(Gav(exampleB.id.groupId, exampleB.id.artifactId, "1.0.0")), eq(null), any())
-            }.thenReturn(File(oldPomsDir, "b-1.0.0.pom"))
-            on {
-                it.loadPomFileForGav(eq(Gav(exampleDeps.id.groupId, exampleDeps.id.artifactId, "8")), eq(null), any())
-            }.thenReturn(File(oldPomsDir, "deps-8.pom"))
-        }
-        val analyser = Analyser(getTestDirectory(testDirectory), Session(), pomFileLoader)
-        val jenkinsReleasePlanCreator = JenkinsReleasePlanCreator(VersionDeterminer())
-        return jenkinsReleasePlanCreator.create(exampleA.id, analyser)
-    }
-
     describe("validation errors") {
-        given("not a ${MavenProjectId::class.simpleName}") {
-            val errMsg = "Can only create a release plan for a maven project"
-            it("throws an IllegalArgumentException, mentioning `$errMsg`") {
-                expect {
-                    val projectToRelease: ProjectId = object : ProjectId {
-                        override val identifier = "bla"
-                    }
-                    testee.analyseAndCreateReleasePlan(projectToRelease, File("nonExistingProject/"))
-                }.toThrow<IllegalArgumentException> { message { contains(errMsg) } }
-            }
-        }
 
         given("non existing directory") {
             val errMsg = "directory does not exists"
             it("throws an IllegalArgumentException, mentioning `$errMsg`") {
                 expect {
-                    testee.analyseAndCreateReleasePlan(singleProjectIdAndVersions.id, File("nonExistingProject/"))
+                    analyseAndCreateReleasePlan(singleProjectIdAndVersions.id, File("nonExistingProject/"))
                 }.toThrow<IllegalArgumentException> { message { contains(errMsg) } }
             }
         }
@@ -191,7 +188,7 @@ object MavenFacadeSpec : Spek({
             it("throws an IllegalArgumentException, mentioning `$errMsg`") {
                 val wrongProject = MavenProjectId("com.other", "notThatOne")
                 expect {
-                    testee.analyseAndCreateReleasePlan(wrongProject, getTestDirectory("singleProject"))
+                    analyseAndCreateReleasePlan(wrongProject, getTestDirectory("singleProject"))
                 }.toThrow<IllegalArgumentException> {
                     message {
                         contains(errMsg, wrongProject.toString(), singleProjectIdAndVersions.id.toString())
@@ -230,7 +227,7 @@ object MavenFacadeSpec : Spek({
                 val testDirectory = getTestDirectory("parentNotInAnalysis")
                 val b = File(testDirectory, "b.pom")
                 expect {
-                    testee.analyseAndCreateReleasePlan(exampleB.id, testDirectory)
+                    analyseAndCreateReleasePlan(exampleB.id, testDirectory)
                 }.toThrow<IllegalStateException> {
                     message {
                         contains(
@@ -244,7 +241,7 @@ object MavenFacadeSpec : Spek({
     }
 
     given("single project with third party dependencies") {
-        describe(testee::analyseAndCreateReleasePlan.name) {
+        context("Analyser which does not resolve poms") {
             action("the root project is the one we want to release") {
                 testReleaseSingleProject(singleProjectIdAndVersions, "singleProject")
             }
@@ -262,8 +259,8 @@ object MavenFacadeSpec : Spek({
     }
 
     given("project with dependency and version in bom") {
-        action("context use an Analyser with a mocked PomFileResolver") {
-            val releasePlan = analyseAndCreateReleasePlanWithResolvingAnalyser("oneDependencyViaBom")
+        action("context Analyser with a mocked PomFileResolver") {
+            val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "oneDependencyViaBom")
             assertProjectAWithDependentB(releasePlan)
         }
     }
@@ -279,7 +276,7 @@ object MavenFacadeSpec : Spek({
 
     given("project with parent which itself has a parent, old parents are resolved") {
         action("context use an Analyser with a mocked PomFileResolver") {
-            val releasePlan = analyseAndCreateReleasePlanWithResolvingAnalyser("parentWithParent")
+            val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "parentWithParent")
             assertReleaseAWithDependentBWithDependentC(releasePlan)
         }
     }
@@ -290,14 +287,14 @@ object MavenFacadeSpec : Spek({
 
     given("project with multi-module parent (parent has SNAPSHOT dependency to parent), old parents are resolved") {
         action("context use an Analyser with a mocked PomFileResolver") {
-            val releasePlan = analyseAndCreateReleasePlanWithResolvingAnalyser("multiModuleParent")
+            val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "multiModuleParent")
 
             assertReleaseAWithDependentBWithDependentC(releasePlan, IdAndVersions(exampleB.id, exampleA))
         }
     }
 
     given("two projects unrelated but one has other in dependency management") {
-        describe(testee::analyseAndCreateReleasePlan.name) {
+        context("Analyser which does not resolve poms") {
             action("we release project A (is in B in dependency management)") {
                 testReleaseSingleProject(exampleA, "unrelatedProjects")
             }
@@ -339,7 +336,7 @@ object MavenFacadeSpec : Spek({
     given("project with explicit transitive dependent and diamond dependency") {
 
         action("the root project is the one we want to release") {
-            val releasePlan = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("transitiveExplicitTwoDependencies"))
+            val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("transitiveExplicitTwoDependencies"))
             assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
 
             it("has three dependent projects") {
@@ -373,9 +370,9 @@ object MavenFacadeSpec : Spek({
 
     given("project with explicit transitive dependent via parent (parent with dependency)") {
         describe("parent is first dependent") {
-            describe(testee::analyseAndCreateReleasePlan.name) {
+            context("Analyser which does not resolve poms") {
                 action("the root project is the one we want to release") {
-                    val releasePlan = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("transitiveExplicitViaParentAsFirstDependent"))
+                    val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("transitiveExplicitViaParentAsFirstDependent"))
                     assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
 
                     it("has two dependent projects") {
