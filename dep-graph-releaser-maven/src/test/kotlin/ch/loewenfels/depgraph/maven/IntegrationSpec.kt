@@ -116,18 +116,18 @@ object IntegrationSpec : Spek({
     }
 
     given("project with dependency incl. version") {
-        testReleaseAWithDependentB("oneDependency")
-        testReleaseBWithNoDependent("oneDependency")
+        testReleaseAWithDependentB("oneDependent")
+        testReleaseBWithNoDependent("oneDependent")
     }
 
     given("project with dependency and version in dependency management") {
-        testReleaseAWithDependentB("oneDependencyViaManagement")
-        testReleaseBWithNoDependent("oneDependencyViaManagement")
+        testReleaseAWithDependentB("oneDependentVersionViaManagement")
+        testReleaseBWithNoDependent("oneDependentVersionViaManagement")
     }
 
     given("project with dependency and version in bom") {
         action("context Analyser with a mocked PomFileResolver") {
-            val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "oneDependencyViaBom")
+            val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "oneDependentVersionViaBom")
             assertProjectAWithDependentB(releasePlan)
         }
     }
