@@ -205,7 +205,8 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     private fun turnCyclicDependenciesIntoWarnings(paramObject: ParamObject, warnings: MutableList<String>) {
         paramObject.cyclicDependents.mapTo(warnings, { (projectId, dependentEntry) ->
             val sb = StringBuilder()
-            sb.append("Project ").append(projectId.identifier).append(" has one or more cyclic dependencies:\n")
+            sb.append("Project ").append(projectId.identifier).append(" has one or more cyclic dependencies.")
+                .append("The corresponding relation (first ->) was ignored, you need to address this circumstance manually:\n")
             appendCyclicDependents(sb, projectId, dependentEntry.values)
             sb.toString()
         })
