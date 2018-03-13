@@ -178,18 +178,10 @@ object IntegrationSpec : Spek({
 
             assertOneDirectDependent(releasePlan, "the direct dependent", exampleB, exampleC)
 
-            test("the indirect dependent project has two updateVersion and one Release command") {
-                assertTwoUpdateAndOneReleaseCommand(releasePlan, exampleC, exampleB, exampleA)
-            }
+            testTwoUpdateAndOneReleaseCommand(releasePlan, "the indirect dependent", exampleC, exampleB, exampleA)
+            testHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
 
-            assertHasNotDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
-
-            test("release plan has three projects and three dependents") {
-                assert(releasePlan) {
-                    property(subject::projects).hasSize(3)
-                    property(subject::dependents).hasSize(3)
-                }
-            }
+            testReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
         }
     }
 
@@ -210,31 +202,15 @@ object IntegrationSpec : Spek({
                 assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleD)
             }
 
-            test("the parent project has two commands, updateVersion and Release") {
-                assertTwoUpdateAndOneReleaseCommand(releasePlan, exampleB, exampleD, exampleA)
-            }
-
-            test("the parent project has one dependent") {
-                assert(releasePlan).hasDependentsForProject(exampleB, exampleC)
-            }
-            test("the parent project is on level 2") {
-                assert(releasePlan.getProject(exampleB.id).level).toBe(2)
-            }
+            testTwoUpdateAndOneReleaseCommand(releasePlan, "the parent", exampleB, exampleD, exampleA)
+            testHasOneDependentAndIsOnLevel(releasePlan, "the parent", exampleB, exampleC, 2)
 
             assertOneDirectDependent(releasePlan, "the direct dependent", exampleD, exampleB)
 
-            test("the indirect dependent project has one updateVersion and one Release command") {
-                assertOneUpdateAndOneReleaseCommand(releasePlan, exampleC, exampleB)
-            }
+            testOneUpdateAndOneReleaseCommand(releasePlan, "the indirect dependent", exampleC, exampleB)
+            testHasNoDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 3)
 
-            assertHasNotDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 3)
-
-            test("release plan has four projects and four dependents") {
-                assert(releasePlan) {
-                    property(subject::projects).hasSize(4)
-                    property(subject::dependents).hasSize(4)
-                }
-            }
+            testReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
         }
     }
 
@@ -263,14 +239,9 @@ object IntegrationSpec : Spek({
                     )
                 }
             }
-            assertHasNotDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
+            testHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
 
-            test("release plan has four projects and four dependents") {
-                assert(releasePlan) {
-                    property(subject::projects).hasSize(4)
-                    property(subject::dependents).hasSize(4)
-                }
-            }
+            testReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
         }
     }
 
@@ -286,17 +257,10 @@ object IntegrationSpec : Spek({
                 assertOneDirectDependent(releasePlan, "the parent", exampleB, exampleC)
                 assertOneDirectDependent(releasePlan, "the direct dependent", exampleD, exampleC)
 
-                test("the indirect dependent project has two updateVersion and one Release command") {
-                    assertTwoUpdateAndOneReleaseCommand(releasePlan, exampleC, exampleB, exampleD)
-                }
-                assertHasNotDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 2)
+                testTwoUpdateAndOneReleaseCommand(releasePlan, "the indirect dependent", exampleC, exampleB, exampleD)
+                testHasNoDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 2)
 
-                test("release plan has four projects and four dependents") {
-                    assert(releasePlan) {
-                        property(subject::projects).hasSize(4)
-                        property(subject::dependents).hasSize(4)
-                    }
-                }
+                testReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
             }
         }
 
@@ -309,7 +273,7 @@ object IntegrationSpec : Spek({
         testReleaseAWithDependentBDAndCViaD("transitiveExplicitViaPom")
     }
 
-    given("project with cyclic dependency") {
+    given("project with direct cyclic dependency") {
         action("context Analyser which does not resolve poms") {
             val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("directCyclicDependency"))
             assertProjectAWithDependentB(releasePlan)
@@ -355,33 +319,39 @@ private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, analyser: A
     return jenkinsReleasePlanCreator.create(projectToRelease as MavenProjectId, analyser)
 }
 
-private fun assertOneUpdateAndOneReleaseCommand(
+private fun ActionBody.testOneUpdateAndOneReleaseCommand(
     releasePlan: ReleasePlan,
+    name: String,
     project: IdAndVersions,
     dependency: IdAndVersions
 ) {
-    assert(releasePlan.projects[project.id]).isNotNull {
-        idAndVersions(project)
-        property(subject::commands).containsStrictly(
-            { isJenkinsUpdateDependencyWaiting(dependency) },
-            { isJenkinsMavenReleaseWaiting(project.nextDevVersion, dependency) }
-        )
+    test("$name project has two commands, updateVersion and Release") {
+        assert(releasePlan.projects[project.id]).isNotNull {
+            idAndVersions(project)
+            property(subject::commands).containsStrictly(
+                { isJenkinsUpdateDependencyWaiting(dependency) },
+                { isJenkinsMavenReleaseWaiting(project.nextDevVersion, dependency) }
+            )
+        }
     }
 }
 
-private fun assertTwoUpdateAndOneReleaseCommand(
+private fun ActionBody.testTwoUpdateAndOneReleaseCommand(
     releasePlan: ReleasePlan,
+    name: String,
     project: IdAndVersions,
     dependency1: IdAndVersions,
     dependency2: IdAndVersions
 ) {
-    assert(releasePlan.projects[project.id]).isNotNull {
-        idAndVersions(project)
-        property(subject::commands).containsStrictly(
-            { isJenkinsUpdateDependencyWaiting(dependency1) },
-            { isJenkinsUpdateDependencyWaiting(dependency2) },
-            { isJenkinsMavenReleaseWaiting(project.nextDevVersion, dependency2, dependency1) }
-        )
+    test("$name project has two UpdateVersion and one Release command") {
+        assert(releasePlan.projects[project.id]).isNotNull {
+            idAndVersions(project)
+            property(subject::commands).containsStrictly(
+                { isJenkinsUpdateDependencyWaiting(dependency1) },
+                { isJenkinsUpdateDependencyWaiting(dependency2) },
+                { isJenkinsMavenReleaseWaiting(project.nextDevVersion, dependency2, dependency1) }
+            )
+        }
     }
 }
 
@@ -434,19 +404,26 @@ private fun ActionBody.assertOneDirectDependent(
     project: IdAndVersions,
     dependent: IdAndVersions
 ) {
-    test("$name project has two commands, updateVersion and Release") {
-        assertOneUpdateAndOneReleaseCommand(releasePlan, project, exampleA)
-    }
+    testOneUpdateAndOneReleaseCommand(releasePlan, name, project, exampleA)
+    testHasOneDependentAndIsOnLevel(releasePlan, name, project, dependent, 1)
+}
 
+private fun ActionBody.testHasOneDependentAndIsOnLevel(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    dependent: IdAndVersions,
+    level: Int
+) {
     test("$name project has one dependent") {
         assert(releasePlan).hasDependentsForProject(project, dependent)
     }
-    test("$name project is on level 1") {
-        assert(releasePlan.getProject(project.id).level).toBe(1)
+    test("$name project is on level $level") {
+        assert(releasePlan.getProject(project.id).level).toBe(level)
     }
 }
 
-private fun ActionBody.assertHasNotDependentsAndIsOnLevel(
+private fun ActionBody.testHasNoDependentsAndIsOnLevel(
     releasePlan: ReleasePlan,
     name: String,
     dependent: IdAndVersions,
@@ -465,17 +442,10 @@ private fun SpecBody.testReleaseAWithDependentBDAndCViaD(directory: String) {
         assertOneDirectDependent(releasePlan, "the direct dependent", exampleB, exampleC)
         assertOneDirectDependent(releasePlan, "the parent", exampleD, exampleC)
 
-        test("the indirect dependent project has two updateVersion and one Release command") {
-            assertTwoUpdateAndOneReleaseCommand(releasePlan, exampleC, exampleB, exampleD)
-        }
-        assertHasNotDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 2)
+        testTwoUpdateAndOneReleaseCommand(releasePlan, "the indirect dependent", exampleC, exampleB, exampleD)
+        testHasNoDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 2)
 
-        test("release plan has four projects and four dependents") {
-            assert(releasePlan) {
-                property(subject::projects).hasSize(4)
-                property(subject::dependents).hasSize(4)
-            }
-        }
+        testReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
     }
 }
 
@@ -493,6 +463,15 @@ private fun SpecBody.testDuplicateProject(directory: String, vararg poms: Pair<S
                     }.toTypedArray()
                 )
             }
+        }
+    }
+}
+
+private fun ActionBody.testReleasePlanHasNumOfProjectsAndDependents(releasePlan: ReleasePlan, num: Int) {
+    test("release plan has $num projects and $num dependents") {
+        assert(releasePlan) {
+            property(subject::projects).hasSize(num)
+            property(subject::dependents).hasSize(num)
         }
     }
 }
