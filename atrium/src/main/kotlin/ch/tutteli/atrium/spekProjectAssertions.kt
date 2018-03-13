@@ -13,6 +13,7 @@ val exampleC = IdAndVersions(MavenProjectId("com.example", "c"), "3.0.0-SNAPSHOT
 val exampleD = IdAndVersions(MavenProjectId("com.example", "d"), "4.1-SNAPSHOT", "4.1", "4.2-SNAPSHOT")
 val exampleDeps = IdAndVersions(MavenProjectId("com.example", "deps"), "9-SNAPSHOT", "9", "10-SNAPSHOT")
 
+
 fun ActionBody.assertSingleProject(releasePlan: ReleasePlan, idAndVersions: IdAndVersions) {
     assertRootProjectOnlyReleaseAndReady(releasePlan, idAndVersions)
 
@@ -22,6 +23,30 @@ fun ActionBody.assertSingleProject(releasePlan: ReleasePlan, idAndVersions: IdAn
             returnValueOf(subject::get, idAndVersions.id).isNotNull { isEmpty() }
         }
     }
+}
+
+fun ActionBody.assertReleaseAWithDependentBWithDependentC(
+    releasePlan: ReleasePlan,
+    projectB: IdAndVersions = exampleB
+) {
+    assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+
+    test("root project has one dependent") {
+        assert(releasePlan).hasDependentsForProject(exampleA, projectB)
+    }
+
+    assertOneDirectDependent(releasePlan, "direct dependent", projectB, exampleC)
+    assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
+
+    assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
+}
+
+fun ActionBody.assertProjectAWithDependentB(releasePlan: ReleasePlan) {
+    assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+
+    assertHasNoDependentsAndIsOnLevel(releasePlan, "direct dependent", exampleB, 1)
+
+    assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 2)
 }
 
 fun ActionBody.assertRootProjectOnlyReleaseAndReady(releasePlan: ReleasePlan, idAndVersions: IdAndVersions) {
@@ -51,47 +76,93 @@ fun ActionBody.assertRootProjectOnlyReleaseAndReady(releasePlan: ReleasePlan, id
     }
 }
 
-fun ActionBody.assertReleaseAWithDependentBWithDependentC(releasePlan: ReleasePlan, projectB: IdAndVersions = exampleB) {
-    assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+fun ActionBody.assertOneDirectDependent(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    dependent: IdAndVersions
+) {
+    assertOneUpdateAndOneReleaseCommand(releasePlan, name, project, exampleA)
+    assertHasOneDependentAndIsOnLevel(releasePlan, name, project, dependent, 1)
+}
 
-    assertWithDependent("root project", releasePlan, exampleA, projectB, 1)
-    assertWithDependent("dependent project", releasePlan, projectB, exampleC, 2)
+fun ActionBody.assertHasOneDependentAndIsOnLevel(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    dependent: IdAndVersions,
+    level: Int
+) {
+    test("$name project has one dependent") {
+        assert(releasePlan).hasDependentsForProject(project, dependent)
+    }
+    assertProjectIsOnLevel(releasePlan, name, project, level)
+}
 
-    test("release plan has three projects and three dependents") {
-        assert(releasePlan) {
-            property(subject::projects).hasSize(3)
-            property(subject::dependents).hasSize(3)
-        }
+fun ActionBody.assertHasNoDependentsAndIsOnLevel(
+    releasePlan: ReleasePlan,
+    name: String,
+    dependent: IdAndVersions,
+    level: Int
+) {
+    test("$name project does not have dependents") {
+        assert(releasePlan).hasNotDependentsForProject(dependent)
+    }
+    assertProjectIsOnLevel(releasePlan, name, dependent, level)
+}
+
+private fun ActionBody.assertProjectIsOnLevel(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    level: Int
+) {
+    test("$name project is on level $level") {
+        assert(releasePlan.getProject(project.id).level).toBe(level)
     }
 }
 
-fun ActionBody.assertProjectAWithDependentB(releasePlan: ReleasePlan) {
-    assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
-
-    assertWithDependent("root project", releasePlan, exampleA, exampleB, 1)
-
-    test("release plan has only two projects and two dependents") {
-        assert(releasePlan) {
-            property(subject::projects).hasSize(2)
-            property(subject::dependents).hasSize(2)
-        }
-    }
-}
-
-fun ActionBody.assertWithDependent(projectName: String, releasePlan: ReleasePlan, dependency: IdAndVersions, dependent: IdAndVersions, level: Int) {
-    test("$projectName has one dependent") {
-        assert(releasePlan).hasDependentsForProject(dependency, dependent)
-    }
-    test("$projectName's dependent project has two commands, updateVersion and Release") {
-        assert(releasePlan.projects[dependent.id]).isNotNull {
-            idAndVersions(dependent)
+fun ActionBody.assertOneUpdateAndOneReleaseCommand(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    dependency: IdAndVersions
+) {
+    test("$name project has two commands, updateVersion and Release") {
+        assert(releasePlan.projects[project.id]).isNotNull {
+            idAndVersions(project)
             property(subject::commands).containsStrictly(
                 { isJenkinsUpdateDependencyWaiting(dependency) },
-                { isJenkinsMavenReleaseWaiting(dependent.nextDevVersion, dependency) }
+                { isJenkinsMavenReleaseWaiting(project.nextDevVersion, dependency) }
             )
         }
     }
-    test("$projectName's dependent project is on level $level") {
-        assert(releasePlan.getProject(dependent.id).level).toBe(level)
+}
+
+fun ActionBody.assertTwoUpdateAndOneReleaseCommand(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    dependency1: IdAndVersions,
+    dependency2: IdAndVersions
+) {
+    test("$name project has two UpdateVersion and one Release command") {
+        assert(releasePlan.projects[project.id]).isNotNull {
+            idAndVersions(project)
+            property(subject::commands).containsStrictly(
+                { isJenkinsUpdateDependencyWaiting(dependency1) },
+                { isJenkinsUpdateDependencyWaiting(dependency2) },
+                { isJenkinsMavenReleaseWaiting(project.nextDevVersion, dependency2, dependency1) }
+            )
+        }
+    }
+}
+
+fun ActionBody.assertReleasePlanHasNumOfProjectsAndDependents(releasePlan: ReleasePlan, num: Int) {
+    test("release plan has $num projects and $num dependents") {
+        assert(releasePlan) {
+            property(subject::projects).hasSize(num)
+            property(subject::dependents).hasSize(num)
+        }
     }
 }
