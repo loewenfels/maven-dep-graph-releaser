@@ -24,12 +24,13 @@ class Analyser internal constructor(
     private val logger = Logger.getLogger(Analyser::class.qualifiedName)
     private val dependents: Map<String, Set<ProjectIdWithCurrentVersion<MavenProjectId>>>
     private val projectIds: Map<MavenProjectId, String>
+    private val pomAnalysis: PomAnalysis
 
     init {
         require(directoryWithProjects.exists()) {
             "Cannot analyse because the given directory does not exists: ${directoryWithProjects.absolutePath}"
         }
-        val pomAnalysis = analyseDirectory(directoryWithProjects, pomFileLoader)
+        pomAnalysis = analyseDirectory(directoryWithProjects, pomFileLoader)
         val analysedProjects = getAnalysedProjects()
 
         val duplicates = collectDuplicates(pomAnalysis)
@@ -173,6 +174,10 @@ class Analyser internal constructor(
      * Returns the number of analysed projects.
      */
     fun getNumberOfProjects(): Int = projectIds.size
+
+    fun getErroneousPomFiles() : List<String> = pomAnalysis.erroneousPomFiles.map {
+        "Error reading pom file.\nFile: ${it.pomFile.canonicalPath}\nMessage: ${ it.cause!!.message}"
+    }
 
     /**
      * Options for the [Analyser].

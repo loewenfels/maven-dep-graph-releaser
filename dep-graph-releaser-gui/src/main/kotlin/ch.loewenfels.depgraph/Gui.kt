@@ -13,9 +13,15 @@ class Gui(private val releasePlan: ReleasePlan) {
 
     fun load() {
         document.title = "Release " + releasePlan.rootProjectId.identifier
+        setUpProjects()
+        releasePlan.warnings.forEach {
+            showWarning(it)
+        }
+    }
 
+    private fun setUpProjects() {
+        val set = hashSetOf<ProjectId>()
         elementById("gui").append {
-            val set = hashSetOf<ProjectId>()
             val itr = releasePlan.iterator().toPeekingIterator()
             var level: Int
             while (itr.hasNext()) {
@@ -33,13 +39,13 @@ class Gui(private val releasePlan: ReleasePlan) {
                     }
                 }
             }
-            val involvedProjects = set.size
-            showMessage("Projects involved: $involvedProjects")
-            if (involvedProjects != releasePlan.projects.size) {
-                showError("Not all dependent projects are involved in the process, please report a bug. The following where left out\n" +
+        }
+        val involvedProjects = set.size
+        showMessage("Projects involved: $involvedProjects")
+        if (involvedProjects != releasePlan.projects.size) {
+            showError("Not all dependent projects are involved in the process, please report a bug. The following where left out\n" +
                     (releasePlan.projects.keys - set).joinToString("\n") { it.identifier }
-                )
-            }
+            )
         }
     }
 

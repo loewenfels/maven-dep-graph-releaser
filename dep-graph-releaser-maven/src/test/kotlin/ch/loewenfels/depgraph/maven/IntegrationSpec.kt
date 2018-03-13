@@ -19,180 +19,6 @@ object IntegrationSpec : Spek({
     val singleProjectIdAndVersions =
         IdAndVersions(MavenProjectId("com.example", "example"), "1.0-SNAPSHOT", "1.0", "1.1-SNAPSHOT")
 
-    fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, analyser: Analyser): ReleasePlan {
-        val jenkinsReleasePlanCreator = JenkinsReleasePlanCreator(VersionDeterminer())
-        return jenkinsReleasePlanCreator.create(projectToRelease as MavenProjectId, analyser)
-    }
-
-    fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, testDirectory: File): ReleasePlan {
-        val analyser = Analyser(testDirectory, Analyser.Options())
-        return analyseAndCreateReleasePlan(projectToRelease, analyser)
-    }
-
-    fun analyseAndCreateReleasePlanWithMockedPomResolver(
-        projectToRelease: ProjectId,
-        testDirectory: String
-    ): ReleasePlan {
-        val oldPomsDir = getTestDirectory("oldPoms")
-        val pomFileLoader = mock<PomFileLoader> {
-            on {
-                it.loadPomFileForGav(eq(Gav(exampleA.id.groupId, exampleA.id.artifactId, "1.0.0")), eq(null), any())
-            }.thenReturn(File(oldPomsDir, "a-1.0.0.pom"))
-            on {
-                it.loadPomFileForGav(eq(Gav(exampleA.id.groupId, exampleA.id.artifactId, "0.9.0")), eq(null), any())
-            }.thenReturn(File(oldPomsDir, "a-0.9.0.pom"))
-            on {
-                it.loadPomFileForGav(eq(Gav(exampleB.id.groupId, exampleB.id.artifactId, "1.0.0")), eq(null), any())
-            }.thenReturn(File(oldPomsDir, "b-1.0.0.pom"))
-            on {
-                it.loadPomFileForGav(eq(Gav(exampleDeps.id.groupId, exampleDeps.id.artifactId, "8")), eq(null), any())
-            }.thenReturn(File(oldPomsDir, "deps-8.pom"))
-        }
-        val analyser = Analyser(getTestDirectory(testDirectory), Session(), pomFileLoader)
-        return analyseAndCreateReleasePlan(projectToRelease, analyser)
-    }
-
-    fun assertOneUpdateAndOneReleaseCommand(releasePlan: ReleasePlan, project: IdAndVersions, dependency: IdAndVersions) {
-        assert(releasePlan.projects[project.id]).isNotNull {
-            idAndVersions(project)
-            property(subject::commands).containsStrictly(
-                { isJenkinsUpdateDependencyWaiting(dependency) },
-                { isJenkinsMavenReleaseWaiting(project.nextDevVersion, dependency) }
-            )
-        }
-    }
-
-    fun assertTwoUpdateAndOneReleaseCommand(
-        releasePlan: ReleasePlan,
-        project: IdAndVersions,
-        dependency1: IdAndVersions,
-        dependency2: IdAndVersions
-    ) {
-        assert(releasePlan.projects[project.id]).isNotNull {
-            idAndVersions(project)
-            property(subject::commands).containsStrictly(
-                { isJenkinsUpdateDependencyWaiting(dependency1) },
-                { isJenkinsUpdateDependencyWaiting(dependency2) },
-                { isJenkinsMavenReleaseWaiting(project.nextDevVersion, dependency2, dependency1) }
-            )
-        }
-    }
-
-
-    fun ActionBody.testReleaseSingleProject(idAndVersions: IdAndVersions, directory: String) {
-        val releasePlan = analyseAndCreateReleasePlan(idAndVersions.id, getTestDirectory(directory))
-
-        assertSingleProject(releasePlan, idAndVersions)
-    }
-
-    fun SpecBody.testReleaseAWithDependentBWithDependentC(directory: String, projectB: IdAndVersions = exampleB) {
-        action("context Analyser which tries to resolve poms") {
-            val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
-            assertReleaseAWithDependentBWithDependentC(releasePlan, projectB)
-        }
-    }
-
-    fun SpecBody.testReleaseAWithDependentB(directory: String) {
-        action("context Analyser which does not resolve poms") {
-            val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
-            assertProjectAWithDependentB(releasePlan)
-        }
-    }
-
-    fun SpecBody.testReleaseBWithNoDependent(directory: String) {
-        action("we release project B (no dependent at all)") {
-            testReleaseSingleProject(exampleB, directory)
-        }
-    }
-
-    fun SpecBody.testReleaseAWithDependentBAndX(
-        directory: String,
-        projectX: IdAndVersions,
-        furtherAssertions: ActionBody.(ReleasePlan) -> Unit
-    ) {
-        action("context Analyser which does not resolve poms") {
-            val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
-            assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
-
-            it("root has two dependent projects") {
-                assert(releasePlan).hasDependentsForProject(exampleA, exampleB, projectX)
-            }
-            test("the direct dependent project has two commands, updateVersion and Release") {
-                assertOneUpdateAndOneReleaseCommand(releasePlan, exampleB, exampleA)
-            }
-            furtherAssertions(releasePlan)
-        }
-    }
-
-    fun ActionBody.assertOneDirectDependent(
-        releasePlan: ReleasePlan,
-        name: String,
-        project: IdAndVersions,
-        dependent: IdAndVersions
-    ) {
-        test("$name project has two commands, updateVersion and Release") {
-            assertOneUpdateAndOneReleaseCommand(releasePlan, project, exampleA)
-        }
-
-        test("$name project has one dependent") {
-            assert(releasePlan).hasDependentsForProject(project, dependent)
-        }
-        test("$name project is on level 1") {
-            assert(releasePlan.getProject(project.id).level).toBe(1)
-        }
-    }
-
-    fun ActionBody.assertHasNotDependentsAndIsOnLevel(
-        releasePlan: ReleasePlan,
-        name: String,
-        dependent: IdAndVersions,
-        level: Int
-    ) {
-        test("$name project does not have dependents") {
-            assert(releasePlan).hasNotDependentsForProject(dependent)
-        }
-        test("$name project is on level $level") {
-            assert(releasePlan.getProject(dependent.id).level).toBe(level)
-        }
-    }
-
-    fun SpecBody.testReleaseAWithDependentBDAndCViaD(directory: String) {
-        testReleaseAWithDependentBAndX(directory, exampleD) { releasePlan ->
-            assertOneDirectDependent(releasePlan, "the direct dependent", exampleB, exampleC)
-            assertOneDirectDependent(releasePlan, "the parent", exampleD, exampleC)
-
-            test("the indirect dependent project has two updateVersion and one Release command") {
-                assertTwoUpdateAndOneReleaseCommand(releasePlan, exampleC, exampleB, exampleD)
-            }
-            assertHasNotDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 2)
-
-            test("release plan has four projects and four dependents") {
-                assert(releasePlan) {
-                    property(subject::projects).hasSize(4)
-                    property(subject::dependents).hasSize(4)
-                }
-            }
-        }
-    }
-
-    fun SpecBody.testDuplicateProject(directory: String, vararg poms: Pair<String, String>) {
-        it("throws an IllegalStateException, containing versions of all projects inclusive path") {
-            val testDirectory = getTestDirectory(directory)
-            expect {
-                analyseAndCreateReleasePlan(exampleA.id, testDirectory)
-            }.toThrow<IllegalStateException> {
-                message {
-                    contains(
-                        "directory: ${testDirectory.canonicalPath}",
-                        *poms.map {
-                            "${exampleA.id.identifier}:${it.second} (${File(testDirectory, it.first).canonicalPath})"
-                        }.toTypedArray()
-                    )
-                }
-            }
-        }
-    }
-
     describe("validation errors") {
 
         given("non existing directory") {
@@ -256,6 +82,29 @@ object IntegrationSpec : Spek({
                         )
                     }
                 }
+            }
+        }
+    }
+
+    describe("warnings") {
+        given("a project without group id") {
+            test("release plan contains warning which includes file path") {
+                val testDir = getTestDirectory("projectWithoutGroupId")
+                val pom = File(testDir, "b.pom")
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, testDir)
+                assert(releasePlan.warnings).containsStrictly({
+                    contains(pom.canonicalPath)
+                })
+            }
+        }
+        given("a project without version") {
+            test("release plan contains warning which includes file path") {
+                val testDir = getTestDirectory("projectWithoutVersion")
+                val pom = File(testDir, "b.pom")
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, testDir)
+                assert(releasePlan.warnings).containsStrictly({
+                    contains(pom.canonicalPath)
+                })
             }
         }
     }
@@ -460,3 +309,182 @@ object IntegrationSpec : Spek({
         testReleaseAWithDependentBDAndCViaD("transitiveExplicitViaPom")
     }
 })
+
+private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, testDirectory: File): ReleasePlan {
+    val pomFileLoader = mock<PomFileLoader>()
+    val analyser = Analyser(testDirectory, Session(), pomFileLoader)
+    return analyseAndCreateReleasePlan(projectToRelease, analyser)
+}
+
+private fun analyseAndCreateReleasePlanWithMockedPomResolver(
+    projectToRelease: ProjectId,
+    testDirectory: String
+): ReleasePlan {
+    val oldPomsDir = getTestDirectory("oldPoms")
+    val pomFileLoader = mock<PomFileLoader> {
+        on {
+            it.loadPomFileForGav(eq(Gav(exampleA.id.groupId, exampleA.id.artifactId, "1.0.0")), eq(null), any())
+        }.thenReturn(File(oldPomsDir, "a-1.0.0.pom"))
+        on {
+            it.loadPomFileForGav(eq(Gav(exampleA.id.groupId, exampleA.id.artifactId, "0.9.0")), eq(null), any())
+        }.thenReturn(File(oldPomsDir, "a-0.9.0.pom"))
+        on {
+            it.loadPomFileForGav(eq(Gav(exampleB.id.groupId, exampleB.id.artifactId, "1.0.0")), eq(null), any())
+        }.thenReturn(File(oldPomsDir, "b-1.0.0.pom"))
+        on {
+            it.loadPomFileForGav(eq(Gav(exampleDeps.id.groupId, exampleDeps.id.artifactId, "8")), eq(null), any())
+        }.thenReturn(File(oldPomsDir, "deps-8.pom"))
+    }
+    val analyser = Analyser(getTestDirectory(testDirectory), Session(), pomFileLoader)
+    return analyseAndCreateReleasePlan(projectToRelease, analyser)
+}
+
+private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, analyser: Analyser): ReleasePlan {
+    val jenkinsReleasePlanCreator = JenkinsReleasePlanCreator(VersionDeterminer())
+    return jenkinsReleasePlanCreator.create(projectToRelease as MavenProjectId, analyser)
+}
+
+private fun assertOneUpdateAndOneReleaseCommand(
+    releasePlan: ReleasePlan,
+    project: IdAndVersions,
+    dependency: IdAndVersions
+) {
+    assert(releasePlan.projects[project.id]).isNotNull {
+        idAndVersions(project)
+        property(subject::commands).containsStrictly(
+            { isJenkinsUpdateDependencyWaiting(dependency) },
+            { isJenkinsMavenReleaseWaiting(project.nextDevVersion, dependency) }
+        )
+    }
+}
+
+private fun assertTwoUpdateAndOneReleaseCommand(
+    releasePlan: ReleasePlan,
+    project: IdAndVersions,
+    dependency1: IdAndVersions,
+    dependency2: IdAndVersions
+) {
+    assert(releasePlan.projects[project.id]).isNotNull {
+        idAndVersions(project)
+        property(subject::commands).containsStrictly(
+            { isJenkinsUpdateDependencyWaiting(dependency1) },
+            { isJenkinsUpdateDependencyWaiting(dependency2) },
+            { isJenkinsMavenReleaseWaiting(project.nextDevVersion, dependency2, dependency1) }
+        )
+    }
+}
+
+
+private fun ActionBody.testReleaseSingleProject(idAndVersions: IdAndVersions, directory: String) {
+    val releasePlan = analyseAndCreateReleasePlan(idAndVersions.id, getTestDirectory(directory))
+
+    assertSingleProject(releasePlan, idAndVersions)
+}
+
+private fun SpecBody.testReleaseAWithDependentBWithDependentC(directory: String, projectB: IdAndVersions = exampleB) {
+    action("context Analyser which tries to resolve poms") {
+        val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
+        assertReleaseAWithDependentBWithDependentC(releasePlan, projectB)
+    }
+}
+
+private fun SpecBody.testReleaseAWithDependentB(directory: String) {
+    action("context Analyser which does not resolve poms") {
+        val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
+        assertProjectAWithDependentB(releasePlan)
+    }
+}
+
+private fun SpecBody.testReleaseBWithNoDependent(directory: String) {
+    action("we release project B (no dependent at all)") {
+        testReleaseSingleProject(exampleB, directory)
+    }
+}
+
+private fun SpecBody.testReleaseAWithDependentBAndX(
+    directory: String,
+    projectX: IdAndVersions,
+    furtherAssertions: ActionBody.(ReleasePlan) -> Unit
+) {
+    action("context Analyser which does not resolve poms") {
+        val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
+        assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+
+        it("root has two dependent projects") {
+            assert(releasePlan).hasDependentsForProject(exampleA, exampleB, projectX)
+        }
+        test("the direct dependent project has two commands, updateVersion and Release") {
+            assertOneUpdateAndOneReleaseCommand(releasePlan, exampleB, exampleA)
+        }
+        furtherAssertions(releasePlan)
+    }
+}
+
+private fun ActionBody.assertOneDirectDependent(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    dependent: IdAndVersions
+) {
+    test("$name project has two commands, updateVersion and Release") {
+        assertOneUpdateAndOneReleaseCommand(releasePlan, project, exampleA)
+    }
+
+    test("$name project has one dependent") {
+        assert(releasePlan).hasDependentsForProject(project, dependent)
+    }
+    test("$name project is on level 1") {
+        assert(releasePlan.getProject(project.id).level).toBe(1)
+    }
+}
+
+private fun ActionBody.assertHasNotDependentsAndIsOnLevel(
+    releasePlan: ReleasePlan,
+    name: String,
+    dependent: IdAndVersions,
+    level: Int
+) {
+    test("$name project does not have dependents") {
+        assert(releasePlan).hasNotDependentsForProject(dependent)
+    }
+    test("$name project is on level $level") {
+        assert(releasePlan.getProject(dependent.id).level).toBe(level)
+    }
+}
+
+private fun SpecBody.testReleaseAWithDependentBDAndCViaD(directory: String) {
+    testReleaseAWithDependentBAndX(directory, exampleD) { releasePlan ->
+        assertOneDirectDependent(releasePlan, "the direct dependent", exampleB, exampleC)
+        assertOneDirectDependent(releasePlan, "the parent", exampleD, exampleC)
+
+        test("the indirect dependent project has two updateVersion and one Release command") {
+            assertTwoUpdateAndOneReleaseCommand(releasePlan, exampleC, exampleB, exampleD)
+        }
+        assertHasNotDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 2)
+
+        test("release plan has four projects and four dependents") {
+            assert(releasePlan) {
+                property(subject::projects).hasSize(4)
+                property(subject::dependents).hasSize(4)
+            }
+        }
+    }
+}
+
+private fun SpecBody.testDuplicateProject(directory: String, vararg poms: Pair<String, String>) {
+    it("throws an IllegalStateException, containing versions of all projects inclusive path") {
+        val testDirectory = getTestDirectory(directory)
+        expect {
+            analyseAndCreateReleasePlan(exampleA.id, testDirectory)
+        }.toThrow<IllegalStateException> {
+            message {
+                contains(
+                    "directory: ${testDirectory.canonicalPath}",
+                    *poms.map {
+                        "${exampleA.id.identifier}:${it.second} (${File(testDirectory, it.first).canonicalPath})"
+                    }.toTypedArray()
+                )
+            }
+        }
+    }
+}

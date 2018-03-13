@@ -15,6 +15,10 @@ fun showMessage(message: String) {
     showMessageOfType("msg", message, withClose = false)
 }
 
+fun showWarning(message: String) {
+    showMessageOfType("warning", message, withClose = true)
+}
+
 fun showError(message: String) {
     showMessageOfType("error", message, withClose = true)
 }

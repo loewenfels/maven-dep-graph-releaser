@@ -21,6 +21,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
                 writeNameAndValue(ID, value.rootProjectId, getProjectIdAdapter())
                 writeNameAndValue(PROJECTS, value.projects.values, getProjectsAdapter())
                 writeNameAndValue(DEPENDENTS, value.dependents, getDependentsAdapter())
+                writeNameAndValue(WARNINGS, value.warnings, getWarningsAdapter())
             }
         }
 
@@ -29,7 +30,8 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
                 val projectId = checkNextNameAndGetValue(ID, getProjectIdAdapter())
                 val projects = checkNextNameAndGetValue(PROJECTS, getProjectsAdapter())
                 val dependents = checkNextNameAndGetValue(DEPENDENTS, getDependentsAdapter())
-                ReleasePlan(projectId, projects.associateBy { it.id }, dependents)
+                val warnings = checkNextNameAndGetValue(WARNINGS, getWarningsAdapter())
+                ReleasePlan(projectId, projects.associateBy { it.id }, dependents, warnings)
             }
         }
 
@@ -45,6 +47,11 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
             return moshi.adapter<Map<ProjectId, Set<ProjectId>>>(type)
         }
 
+        private fun getWarningsAdapter(): JsonAdapter<List<String>> {
+            val type = Types.newParameterizedType(List::class.java, String::class.java)
+            return moshi.adapter<List<String>>(type)
+        }
+
         private fun <T> JsonReader.checkNextNameAndGetValue(expectedName: String, adapter: JsonAdapter<T>)
             = checkNextNameAndGetValue(ReleasePlan::class.java.simpleName, expectedName, adapter)
     }
@@ -52,5 +59,5 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
     const val ID = "id"
     const val PROJECTS = "projects"
     const val DEPENDENTS = "dependents"
-
+    const val WARNINGS = "warnings"
 }

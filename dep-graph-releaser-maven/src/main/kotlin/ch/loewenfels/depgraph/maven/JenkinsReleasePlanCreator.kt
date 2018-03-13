@@ -19,11 +19,15 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         val rootProject = createInitialProject(projectToRelease, currentVersion!!, 0, CommandState.Ready)
         val projects = hashMapOf<ProjectId, Project>()
         val dependents = hashMapOf<ProjectId, Set<ProjectId>>()
+        val warnings = mutableListOf<String>()
         projects[rootProject.id] = rootProject
         dependents[rootProject.id] = hashSetOf()
 
         createDependents(rootProject, analyser, projects, dependents)
-        return ReleasePlan(rootProject.id, projects, dependents)
+
+        analyser.getErroneousPomFiles().toCollection(warnings)
+
+        return ReleasePlan(rootProject.id, projects, dependents, warnings)
     }
 
     private fun createInitialProject(

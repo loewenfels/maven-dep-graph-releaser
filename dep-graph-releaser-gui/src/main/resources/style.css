@@ -12,14 +12,25 @@ body {
     right: 15px;
     bottom: 10px;
 }
-#messages > .error {
-    border: 2px solid #a01c1c;
+#messages > .error, #messages > .warning {
+    border: 2px solid;
     border-radius: 6px;
     padding: 10px;
+    margin-top: 20px;
+}
+
+#messages > .error {
+    border-color: #a01c1c;
     background-color: #f7dede;
     color: #a01c1c;
-    font-size: 1.5em;
-    margin-top: 20px;
+    font-size: 1.2em;
+}
+
+#messages > .warning {
+    border-color: #d6c500;
+    background-color: #fdfcd1;
+    color: #272525;
+    font-size: 1.1em;
 }
 
 .close {

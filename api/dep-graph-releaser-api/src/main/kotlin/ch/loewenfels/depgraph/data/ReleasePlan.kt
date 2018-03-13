@@ -10,10 +10,14 @@ package ch.loewenfels.depgraph.data
 data class ReleasePlan(
     val rootProjectId: ProjectId,
     val projects: Map<ProjectId, Project>,
-    val dependents: Map<ProjectId, Set<ProjectId>>
+    val dependents: Map<ProjectId, Set<ProjectId>>,
+    val warnings: List<String>
 ) {
+    /**
+     * Copy constructor to replace [projects].
+     */
     constructor(releasePlan: ReleasePlan, projects: Map<ProjectId, Project>) :
-        this(releasePlan.rootProjectId, projects, releasePlan.dependents)
+        this(releasePlan.rootProjectId, projects, releasePlan.dependents, releasePlan.warnings)
 
     fun getProject(projectId: ProjectId): Project {
         return projects[projectId] ?: throw IllegalArgumentException("Could not find the project with id $projectId")
