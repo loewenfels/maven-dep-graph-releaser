@@ -278,9 +278,10 @@ object IntegrationSpec : Spek({
             val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("directCyclicDependency"))
             assertProjectAWithDependentB(releasePlan)
 
-            assert(releasePlan.warnings).containsStrictly({
-                contains("-> ${exampleB.id.identifier} -> ${exampleA.id.identifier}")
-            })
+            assertReleasePlanHasWarningWithDependencyGraph(
+                releasePlan,
+                "-> ${exampleB.id.identifier} -> ${exampleA.id.identifier}"
+            )
         }
     }
 
@@ -295,6 +296,24 @@ object IntegrationSpec : Spek({
             assertHasNoDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 3)
 
             assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+
+            assertReleasePlanHasWarningWithDependencyGraph(
+                releasePlan,
+                "-> ${exampleB.id.identifier} -> ${exampleD.id.identifier}"
+            )
+
+        }
+    }
+
+    given("project with indirect cyclic dependency") {
+        action("context Analyser which does not resolve poms") {
+            val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("indirectCyclicDependency"))
+            assertReleaseAWithDependentBWithDependentC(releasePlan)
+
+            assertReleasePlanHasWarningWithDependencyGraph(
+                releasePlan,
+                "-> ${exampleC.id.identifier} -> ${exampleB.id.identifier} -> ${exampleA.id.identifier}"
+            )
         }
     }
 })

@@ -157,12 +157,27 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     private fun checkIsNotCyclicOrTakeMeasures(
         paramObject: ParamObject,
         existingDependent: Project,
-        dependencyId: MavenProjectId
+        dependencyId: ProjectId
     ): Boolean {
-        if (paramObject.dependents[existingDependent.id]!!.contains(dependencyId)) {
-            val set = paramObject.cyclicDependents.getOrPut(existingDependent.id, { mutableListOf() })
-            set.add(mutableListOf(dependencyId))
-            return false
+
+        val visitedProjects = hashSetOf<ProjectId>()
+        val projectsToVisit = linkedMapOf(existingDependent.id to mutableListOf(dependencyId))
+        while (projectsToVisit.isNotEmpty()) {
+            val (dependentId, dependentBranch) = projectsToVisit.iterator().next()
+            projectsToVisit.remove(dependentId)
+            visitedProjects.add(dependentId)
+            paramObject.dependents[dependentId]!!.forEach {
+                if (it == dependencyId) {
+                    val set = paramObject.cyclicDependents.getOrPut(existingDependent.id, { mutableListOf() })
+                    set.add(dependentBranch)
+                    return false
+                } else if (!visitedProjects.contains(it)) {
+                    projectsToVisit[it] = ArrayList<ProjectId>(dependentBranch.size + 1).apply {
+                        addAll(dependentBranch)
+                        add(paramObject.projects[it]!!.id)
+                    }
+                }
+            }
         }
         return true
     }
@@ -196,7 +211,11 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         })
     }
 
-    private fun appendCyclicDependents(sb: StringBuilder, dependency: ProjectId, dependencies: MutableList<MutableList<ProjectId>>) {
+    private fun appendCyclicDependents(
+        sb: StringBuilder,
+        dependency: ProjectId,
+        dependencies: MutableList<MutableList<ProjectId>>
+    ) {
         sb.append("-> ")
         dependencies.appendToStringBuilder(sb, "\n -> ") { list, sb1 ->
             list.appendToStringBuilder(sb1, " -> ") { it, sb2 ->

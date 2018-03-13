@@ -166,3 +166,14 @@ fun ActionBody.assertReleasePlanHasNumOfProjectsAndDependents(releasePlan: Relea
         }
     }
 }
+
+fun ActionBody.assertReleasePlanHasWarningWithDependencyGraph(
+    releasePlan: ReleasePlan,
+    dependencyBranch: String
+) {
+    test("warning contains the cyclic dependency branch") {
+        assert(releasePlan.warnings).containsStrictly({
+            contains(dependencyBranch)
+        })
+    }
+}
