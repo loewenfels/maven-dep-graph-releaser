@@ -372,7 +372,44 @@ object MavenFacadeSpec : Spek({
     }
 
     given("project with explicit transitive dependent via parent (parent with dependency)") {
-        testReleaseAWithDependentBDAndCViaD("transitiveExplicitViaParent")
+        describe("parent is first dependent") {
+            describe(testee::analyseAndCreateReleasePlan.name) {
+                action("the root project is the one we want to release") {
+                    val releasePlan = testee.analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("transitiveExplicitViaParentAsFirstDependent"))
+                    assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+
+                    it("has two dependent projects") {
+                        assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleD)
+                    }
+
+                    assertOneDirectDependent(releasePlan, "the parent", exampleB)
+                    assertOneDirectDependent(releasePlan, "the direct dependent", exampleD)
+
+                    test("the indirect dependent project has two updateVersion and one Release command") {
+                        assert(releasePlan.projects[exampleC.id]).isNotNull {
+                            idAndVersions(exampleC)
+                            property(subject::commands).containsStrictly(
+                                { isJenkinsUpdateDependencyWaiting(exampleB) },
+                                { isJenkinsUpdateDependencyWaiting(exampleD) },
+                                { isJenkinsMavenReleaseWaiting(exampleC.nextDevVersion, exampleB, exampleD) }
+                            )
+                        }
+                    }
+                    assertHasNotDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 2)
+
+                    test("release plan has four projects and four dependents") {
+                        assert(releasePlan) {
+                            property(subject::projects).hasSize(4)
+                            property(subject::dependents).hasSize(4)
+                        }
+                    }
+                }
+            }
+        }
+
+        describe("parent is second dependent") {
+            testReleaseAWithDependentBDAndCViaD("transitiveExplicitViaParentAsSecondDependent")
+        }
     }
 
     given("project with explicit transitive dependent via pom (pom has dependency)") {
