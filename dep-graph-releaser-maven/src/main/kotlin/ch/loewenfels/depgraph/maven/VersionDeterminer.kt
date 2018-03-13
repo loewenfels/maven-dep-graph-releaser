@@ -14,7 +14,7 @@ class VersionDeterminer {
         return if (matcher.find()) {
             matcher.group(1) + incrementNumber(matcher, 2)
         } else {
-            version + ".2"
+            "$version.2"
         }
     }
 

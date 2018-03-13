@@ -24,16 +24,17 @@ data class ReleasePlan(
             ?: throw IllegalArgumentException("Could not find dependents for project with id $projectId")
     }
 
-    fun iterator(): Iterator<Project> = ReleasePlanIterator(this)
+    fun iterator(): Iterator<Project> = ReleasePlanIterator(this, rootProjectId)
+    fun iterator(entryPoint: ProjectId): Iterator<Project> = ReleasePlanIterator(this, entryPoint)
 
-    private class ReleasePlanIterator(private val releasePlan: ReleasePlan) : Iterator<Project> {
-        private val projectsToVisit = linkedMapOf(releasePlan.rootProjectId to releasePlan.getProject(releasePlan.rootProjectId))
+    private class ReleasePlanIterator(private val releasePlan: ReleasePlan, private val entryPoint: ProjectId) : Iterator<Project> {
+        private val projectsToVisit = linkedMapOf(entryPoint to releasePlan.getProject(entryPoint))
         private val visitedProjects = hashSetOf<ProjectId>()
 
         override fun hasNext() = projectsToVisit.isNotEmpty()
         override fun next(): Project {
             if (projectsToVisit.isEmpty()) {
-                throw NoSuchElementException("No project left; rootProjectId was ${releasePlan.rootProjectId}")
+                throw NoSuchElementException("No project left; entry point was $entryPoint")
             }
             val project = projectsToVisit.remove(projectsToVisit.iterator().next().key)
             releasePlan.getDependents(project!!.id)

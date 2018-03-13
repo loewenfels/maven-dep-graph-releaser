@@ -22,27 +22,23 @@ class Manipulator(private val releasePlan: ReleasePlan) {
     }
 
     private fun collectProjectsToDeactivate(projectId: ProjectId): Set<ProjectId> {
-        val set = hashSetOf<ProjectId>()
-        collectProjectsToDeactivate(mutableListOf(projectId), set)
-        return set
+        return releasePlan.iterator(projectId)
+            .asSequence()
+            .map { it.id }
+            .toSet()
     }
 
-    private tailrec fun collectProjectsToDeactivate(projectsToVisit: MutableList<ProjectId>, set: HashSet<ProjectId>) {
-        if (projectsToVisit.isNotEmpty()) {
-            val projectId = projectsToVisit.removeAt(0)
-            set.add(projectId)
-            projectsToVisit.addAll(releasePlan.getDependents(projectId))
-            return collectProjectsToDeactivate(projectsToVisit, set)
-        }
-    }
-
-    private fun deactivateProjects(projectsToDeactivate: Set<ProjectId>): Map<ProjectId, Project> = deactivateProjects(projectsToDeactivate, null)
+    private fun deactivateProjects(projectsToDeactivate: Set<ProjectId>): Map<ProjectId, Project> =
+        deactivateProjects(projectsToDeactivate, null)
 
     /**
      * Deactivates all commands of all projects which are defined in [projectsToDeactivate] and returns a new [Map],
      * unless [newProject] is set and the project to deactivate is the same, in this case the [newProject] is used.
      */
-    private fun deactivateProjects(projectsToDeactivate: Set<ProjectId>, newProject: Project?): Map<ProjectId, Project> {
+    private fun deactivateProjects(
+        projectsToDeactivate: Set<ProjectId>,
+        newProject: Project?
+    ): Map<ProjectId, Project> {
         return releasePlan.projects.entries.associate { (k, v) ->
             k to when {
                 newProject != null && newProject.id == v.id -> newProject
