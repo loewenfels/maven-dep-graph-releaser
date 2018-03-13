@@ -46,10 +46,10 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         dependents: HashMap<ProjectId, Set<ProjectId>>
     ) {
         var level = 1
-        val dependentsToVisit = mutableListOf(mutableListOf(rootProject))
+        val dependentsToVisit = mutableListOf(linkedMapOf(rootProject.id to rootProject))
         while (dependentsToVisit.isNotEmpty()) {
             val dependentsOnSameLevel = dependentsToVisit[0]
-            val dependent = dependentsOnSameLevel.removeAt(0)
+            val dependent = dependentsOnSameLevel.remove(dependentsOnSameLevel.iterator().next().key)!!
             createCommandsForDependents(analyser, dependent, projects, dependents, level, dependentsToVisit)
             if (dependentsOnSameLevel.isEmpty()) {
                 dependentsToVisit.removeAt(0)
@@ -64,21 +64,24 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         projects: HashMap<ProjectId, Project>,
         dependents: HashMap<ProjectId, Set<ProjectId>>,
         level: Int,
-        dependentsToVisit: MutableList<MutableList<Project>>
+        dependentsToVisit: MutableList<LinkedHashMap<ProjectId, Project>>
     ) {
         val dependencyId = dependency.id as MavenProjectId
         analyser.getDependentsOf(dependencyId).forEach { dependentIdWithVersion ->
-            val dependent: Project = if (isNewProject(projects, dependentIdWithVersion)) {
+            val existingDependent = projects[dependentIdWithVersion.id]
+            val dependent: Project = if (existingDependent == null) {
                 val newDependent = createInitialWaitingProject(dependentIdWithVersion, level, dependencyId)
                 dependents[newDependent.id] = hashSetOf()
                 addToNextLevelOfDependentsToVisit(dependentsToVisit, newDependent)
                 projects[newDependent.id] = newDependent
                 newDependent
             } else {
-                val existingDependent = projects[dependentIdWithVersion.id]!!
                 if (existingDependent.level < level) {
                     val updatedProject = Project(existingDependent, level)
                     projects[existingDependent.id] = updatedProject
+                    //TODO cope with circular dependencies
+                    //we need to re-visit so that we can update the levels of the dependents as well
+                    removeIfVisitOnSameLevelAndReAddOnNext(updatedProject, dependentsToVisit)
                     updatedProject
                 } else {
                     existingDependent
@@ -88,11 +91,6 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
             addDependentToDependentsOfDependency(dependent.id, dependents, dependencyId)
         }
     }
-
-    private fun isNewProject(
-        projects: HashMap<ProjectId, Project>,
-        dependentIdWithVersion: ProjectIdWithCurrentVersion<MavenProjectId>
-    ) = !projects.containsKey(dependentIdWithVersion.id)
 
     private fun createInitialWaitingProject(
         dependentIdWithVersion: ProjectIdWithCurrentVersion<MavenProjectId>,
@@ -130,14 +128,24 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         ((last.state as CommandState.Waiting).dependencies as MutableSet).add(dependencyId)
     }
 
+
+    private fun removeIfVisitOnSameLevelAndReAddOnNext(
+        updatedProject: Project,
+        dependentsToVisit: MutableList<LinkedHashMap<ProjectId, Project>>
+    ) {
+        val dependentsOnSameLevel = dependentsToVisit[0]
+        dependentsOnSameLevel.remove(updatedProject.id)
+        addToNextLevelOfDependentsToVisit(dependentsToVisit, updatedProject)
+    }
+
     private fun addToNextLevelOfDependentsToVisit(
-        dependentsToVisit: MutableList<MutableList<Project>>,
+        dependentsToVisit: MutableList<LinkedHashMap<ProjectId, Project>>,
         dependent: Project
     ) {
-        if (dependentsToVisit.size < 2) {
-            dependentsToVisit.add(mutableListOf())
+        if (dependentsToVisit.size <= 1) {
+            dependentsToVisit.add(linkedMapOf())
         }
         val nextLevelProjects = dependentsToVisit.last()
-        nextLevelProjects.add(dependent)
+        nextLevelProjects[dependent.id] = dependent
     }
 }
