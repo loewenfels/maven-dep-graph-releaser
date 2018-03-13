@@ -98,7 +98,9 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         existingDependent: Project,
         dependencyId: MavenProjectId
     ): Project {
-        return if (checkIsNotCyclicOrTakeMeasures(paramObject, existingDependent, dependencyId)) {
+        analyseCycles(paramObject, existingDependent, dependencyId)
+        val cycles = paramObject.cyclicDependents[existingDependent.id]
+        return if (cycles == null || !cycles.containsKey(dependencyId)) {
             val updatedDependent = Project(existingDependent, paramObject.level)
             paramObject.projects[existingDependent.id] = updatedDependent
             //we need to re-visit so that we can update the levels of the dependents as well
@@ -154,12 +156,11 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         CommandState.Waiting(mutableSetOf(dependencyId))
     )
 
-    private fun checkIsNotCyclicOrTakeMeasures(
+    private fun analyseCycles(
         paramObject: ParamObject,
         existingDependent: Project,
         dependencyId: ProjectId
-    ): Boolean {
-
+    ) {
         val visitedProjects = hashSetOf<ProjectId>()
         val projectsToVisit = linkedMapOf(existingDependent.id to mutableListOf(dependencyId))
         while (projectsToVisit.isNotEmpty()) {
@@ -168,9 +169,9 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
             visitedProjects.add(dependentId)
             paramObject.dependents[dependentId]!!.forEach {
                 if (it == dependencyId) {
-                    val set = paramObject.cyclicDependents.getOrPut(existingDependent.id, { mutableListOf() })
-                    set.add(dependentBranch)
-                    return false
+                    val map = paramObject.cyclicDependents.getOrPut(existingDependent.id, { linkedMapOf() })
+                    map[dependencyId] = dependentBranch
+                    return
                 } else if (!visitedProjects.contains(it)) {
                     projectsToVisit[it] = ArrayList<ProjectId>(dependentBranch.size + 1).apply {
                         addAll(dependentBranch)
@@ -179,7 +180,6 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
                 }
             }
         }
-        return true
     }
 
     private fun removeIfVisitOnSameLevelAndReAddOnNext(
@@ -203,10 +203,10 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     }
 
     private fun turnCyclicDependenciesIntoWarnings(paramObject: ParamObject, warnings: MutableList<String>) {
-        paramObject.cyclicDependents.mapTo(warnings, { (projectId, dependent) ->
+        paramObject.cyclicDependents.mapTo(warnings, { (projectId, dependentEntry) ->
             val sb = StringBuilder()
             sb.append("Project ").append(projectId.identifier).append(" has one or more cyclic dependencies:\n")
-            appendCyclicDependents(sb, projectId, dependent)
+            appendCyclicDependents(sb, projectId, dependentEntry.values)
             sb.toString()
         })
     }
@@ -214,22 +214,22 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     private fun appendCyclicDependents(
         sb: StringBuilder,
         dependency: ProjectId,
-        dependencies: MutableList<MutableList<ProjectId>>
+        dependencies: Collection<List<ProjectId>>
     ) {
         sb.append("-> ")
-        dependencies.appendToStringBuilder(sb, "\n -> ") { list, sb1 ->
+        dependencies.appendToStringBuilder(sb, "\n-> ") { list, sb1 ->
             list.appendToStringBuilder(sb1, " -> ") { it, sb2 ->
                 sb2.append(it.identifier)
             }
+            sb1.append(" -> ").append(dependency.identifier)
         }
-        sb.append(" -> ").append(dependency.identifier)
     }
 
     private class ParamObject(
         val analyser: Analyser,
         val projects: HashMap<ProjectId, Project>,
         val dependents: HashMap<ProjectId, HashSet<ProjectId>>,
-        val cyclicDependents: HashMap<ProjectId, MutableList<MutableList<ProjectId>>>,
+        val cyclicDependents: HashMap<ProjectId, LinkedHashMap<ProjectId, MutableList<ProjectId>>>,
         var level: Int,
         val dependentsToVisit: MutableList<LinkedHashMap<ProjectId, Project>>
     )

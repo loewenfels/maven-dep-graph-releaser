@@ -285,6 +285,40 @@ object IntegrationSpec : Spek({
         }
     }
 
+    given("project with indirect cyclic dependency") {
+        action("context Analyser which does not resolve poms") {
+            val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("indirectCyclicDependency"))
+            assertReleaseAWithDependentBWithDependentC(releasePlan)
+
+            assertReleasePlanHasWarningWithDependencyGraph(
+                releasePlan,
+                "-> ${exampleC.id.identifier} -> ${exampleB.id.identifier} -> ${exampleA.id.identifier}"
+            )
+        }
+    }
+
+    given("project with direct and indirect cyclic dependency") {
+        action("context Analyser which does not resolve poms") {
+            val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("directAndIndirectCyclicDependencyWhereIndirectIsAlsoDirect"))
+            assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+
+            test("root project has two dependents") {
+                assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleC)
+            }
+
+            assertOneDirectDependent(releasePlan, "direct cyclic dependent", exampleB, exampleC)
+            assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect cyclic dependent", exampleC, 2)
+
+            assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
+
+            assertReleasePlanHasWarningWithDependencyGraph(
+                releasePlan,
+                "-> ${exampleC.id.identifier} -> ${exampleA.id.identifier}",
+                "-> ${exampleB.id.identifier} -> ${exampleA.id.identifier}"
+            )
+        }
+    }
+
     given("project with dependent which itself has a direct cyclic dependent") {
         testReleaseAWithDependentBAndX("dependentWithDirectCyclicDependency", exampleD) { releasePlan ->
             assertOneDirectDependent(releasePlan, "the direct dependent", exampleD, exampleB)
@@ -302,18 +336,6 @@ object IntegrationSpec : Spek({
                 "-> ${exampleB.id.identifier} -> ${exampleD.id.identifier}"
             )
 
-        }
-    }
-
-    given("project with indirect cyclic dependency") {
-        action("context Analyser which does not resolve poms") {
-            val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("indirectCyclicDependency"))
-            assertReleaseAWithDependentBWithDependentC(releasePlan)
-
-            assertReleasePlanHasWarningWithDependencyGraph(
-                releasePlan,
-                "-> ${exampleC.id.identifier} -> ${exampleB.id.identifier} -> ${exampleA.id.identifier}"
-            )
         }
     }
 })
