@@ -13,6 +13,17 @@ val exampleC = IdAndVersions(MavenProjectId("com.example", "c"), "3.0.0-SNAPSHOT
 val exampleD = IdAndVersions(MavenProjectId("com.example", "d"), "4.1-SNAPSHOT", "4.1", "4.2-SNAPSHOT")
 val exampleDeps = IdAndVersions(MavenProjectId("com.example", "deps"), "9-SNAPSHOT", "9", "10-SNAPSHOT")
 
+fun ActionBody.assertSingleProject(releasePlan: ReleasePlan, idAndVersions: IdAndVersions) {
+    assertRootProjectOnlyReleaseAndReady(releasePlan, idAndVersions)
+
+    test("it does not have any dependent project") {
+        assert(releasePlan.dependents) {
+            property(subject::size).toBe(1)
+            returnValueOf(subject::get, idAndVersions.id).isNotNull { isEmpty() }
+        }
+    }
+}
+
 fun ActionBody.assertRootProjectOnlyReleaseAndReady(releasePlan: ReleasePlan, idAndVersions: IdAndVersions) {
     test("${ReleasePlan::rootProjectId.name} is expected rootProject") {
         assert(releasePlan.rootProjectId).toBe(idAndVersions.id)

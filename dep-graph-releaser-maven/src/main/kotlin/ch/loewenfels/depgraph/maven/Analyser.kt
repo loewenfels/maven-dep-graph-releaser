@@ -7,15 +7,21 @@ import fr.lteconsulting.pomexplorer.*
 import fr.lteconsulting.pomexplorer.graph.relation.Relation
 import fr.lteconsulting.pomexplorer.model.Gav
 import java.io.File
+import java.util.logging.Logger
 
 class Analyser internal constructor(
     directoryWithProjects: File,
     private val session: Session,
-    pomFileLoader: PomFileLoader
+    pomFileLoader: PomFileLoader,
+    options: Options = Options()
 ) {
-    constructor(directoryWithProjects: File) : this(directoryWithProjects, Session())
-    private constructor(directoryWithProjects: File, session: Session) : this(directoryWithProjects, session, DefaultPomFileLoader(session, true))
+    constructor(directoryWithProjects: File, options: Options)
+        : this(directoryWithProjects, Session(), options)
 
+    private constructor(directoryWithProjects: File, session: Session, options: Options)
+        : this(directoryWithProjects, session, DefaultPomFileLoader(session, true), options)
+
+    private val logger = Logger.getLogger(Analyser::class.qualifiedName)
     private val dependents: Map<String, Set<ProjectIdWithCurrentVersion<MavenProjectId>>>
     private val projectIds: Map<MavenProjectId, String>
 
@@ -27,7 +33,7 @@ class Analyser internal constructor(
         val analysedProjects = getAnalysedProjects()
 
         val duplicates = collectDuplicates(pomAnalysis)
-        val parentsNotInAnalysis = collectParentsNotInAnalysis(analysedProjects)
+        val parentsNotInAnalysis = collectParentsNotInAnalysis(options, analysedProjects)
         reportDuplicatesAndMissingParentsIfNecessary(directoryWithProjects, duplicates, parentsNotInAnalysis)
 
         dependents = analyseDependents(analysedProjects)
@@ -56,13 +62,17 @@ class Analyser internal constructor(
     }
 
 
-    private fun collectParentsNotInAnalysis(analysedProjects: Set<String>): Map<Project, Gav> {
-        return getInternalAnalysedProjects()
-            .filter { it ->
-                val parentGav = it.parentGav
-                parentGav != null && !analysedProjects.contains(parentGav.toMapKey())
-            }
-            .associateBy({ it }, { it.parentGav })
+    private fun collectParentsNotInAnalysis(options: Options, analysedProjects: Set<String>): Map<Project, Gav> {
+        if (options.missingParentAnalysis) {
+            return getInternalAnalysedProjects()
+                .filter { it ->
+                    val parentGav = it.parentGav
+                    parentGav != null && !analysedProjects.contains(parentGav.toMapKey())
+                }
+                .associateBy({ it }, { it.parentGav })
+        }
+        logger.info("skipping missing parent analysis")
+        return mapOf()
     }
 
     private fun analyseDependents(analysedProjects: Set<String>): Map<String, Set<ProjectIdWithCurrentVersion<MavenProjectId>>> {
@@ -163,5 +173,12 @@ class Analyser internal constructor(
      * Returns the number of analysed projects.
      */
     fun getNumberOfProjects(): Int = projectIds.size
+
+    /**
+     * Options for the [Analyser].
+     */
+    data class Options(
+        val missingParentAnalysis: Boolean = true
+    )
 }
 

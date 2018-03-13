@@ -15,9 +15,14 @@ object Orchestrator {
     private val releasePlaner = JenkinsReleasePlanCreator(VersionDeterminer())
     private val serializer = Serializer()
 
-    fun analyseAndCreateJson(directoryToAnalyse: File, outputFile: File, projectToRelease: MavenProjectId) {
+    fun analyseAndCreateJson(
+        directoryToAnalyse: File,
+        outputFile: File,
+        projectToRelease: MavenProjectId,
+        options: Analyser.Options
+    ) {
         logger.info({ "Going to analyse: ${directoryToAnalyse.canonicalPath}" })
-        val analyser = Analyser(directoryToAnalyse)
+        val analyser = Analyser(directoryToAnalyse, options)
         logger.info({ "Analysed ${analyser.getNumberOfProjects()} projects." })
 
         logger.info("Going to create the release plan with $projectToRelease as root.")
@@ -70,6 +75,6 @@ object Orchestrator {
                 copier(inputStream, fileOut)
             }
         }
-        logger.info("Created ${outputFile.canonicalPath}")
+        logger.fine("Created ${outputFile.canonicalPath}")
     }
 }

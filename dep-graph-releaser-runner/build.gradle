@@ -51,6 +51,7 @@ def jsonFile = file("$htmlDir/$jsonFileName")
 task json {
     inputs.property('g', findProperty('g'))
     inputs.property('a', findProperty('a'))
+    inputs.property('mpoff', findProperty('mpoff'))
     inputs.files dist
     outputs.file jsonFile
     doLast {
@@ -65,7 +66,9 @@ task json {
         javaexec {
             classpath = fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.MainKt'
-            args = ['json', groupId, artifactId, "${rootProject.projectDir}/repos", jsonFile.absolutePath]
+
+            def mpOff = findProperty('mpoff') != null ? ['-mpoff'] : []
+            args = ['json', groupId, artifactId, "${rootProject.projectDir}/repos", jsonFile.absolutePath] + mpOff
         }
     }
 }

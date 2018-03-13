@@ -1,6 +1,7 @@
 package ch.loewenfels.depgraph.runner
 
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
+import ch.loewenfels.depgraph.maven.Analyser
 import java.io.File
 
 fun main(vararg args: String) {
@@ -23,9 +24,11 @@ private const val JSON_GROUP_ID = 1
 private const val JSON_ARTIFACT_ID = 2
 private const val JSON_DIR = 3
 private const val JSON_JSON = 4
+private const val JSON_MISSING_PARENT_ANALYSIS = 5
+const val MPOFF = "-mpoff"
 
 private fun json(args: Array<out String>) {
-    if (args.size != 5) {
+    if (args.size < 5 || args.size > 6) {
         error("""
             |Not enough or too many arguments supplied for command: json
             |
@@ -35,6 +38,20 @@ private fun json(args: Array<out String>) {
             |
             |Following an example:
             |./produce json com.example example-project ./repo ./release.json
+        """.trimMargin())
+    }
+
+    val turnMissingPartnerAnalysisOff = args.size == 6
+    if (turnMissingPartnerAnalysisOff && args[JSON_MISSING_PARENT_ANALYSIS].toLowerCase() != MPOFF){
+        error("""
+            |Last argument supplied can only be $MPOFF for command: json
+            |
+            |$jsonArguments
+            |
+            |${getGivenArgs(args)}
+            |
+            |Following an example:
+            |./produce json com.example example-project ./repo ./release.json -mpoff
         """.trimMargin())
     }
 
@@ -56,7 +73,8 @@ private fun json(args: Array<out String>) {
         """.trimMargin())
     }
     val mavenProjectId = MavenProjectId(args[JSON_GROUP_ID], args[JSON_ARTIFACT_ID])
-    Orchestrator.analyseAndCreateJson(directoryToAnalyse, json, mavenProjectId)
+    val options = Analyser.Options(!turnMissingPartnerAnalysisOff)
+    Orchestrator.analyseAndCreateJson(directoryToAnalyse, json, mavenProjectId, options)
 }
 
 private const val HTML_JSON_URL = 1
@@ -88,7 +106,7 @@ fun html(args: Array<out String>) {
     Orchestrator.createHtmlFromJson(jsonUrl, outputDir)
 }
 
-private fun getGivenArgs(args: Array<out String>) = "Given: ${args.joinToString()}"
+private fun getGivenArgs(args: Array<out String>) = "Given: ${args.joinToString(" ")}"
 
 
 private val jsonArguments = """
@@ -98,6 +116,7 @@ private val jsonArguments = """
 |artifactId // maven artifactId of the project which shall be released
 |dir        // path to the directory where all projects are
 |json       // path + file name for the resulting json file
+|($MPOFF)   // optionally: turns missing parent analysis off
 """.trimIndent()
 
 private val htmlArguments = """

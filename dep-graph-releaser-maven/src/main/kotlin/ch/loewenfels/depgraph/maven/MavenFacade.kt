@@ -10,7 +10,7 @@ class MavenFacade  {
         require(projectToRelease is MavenProjectId) {
             "Can only create a release plan for a maven project, $projectToRelease given."
         }
-        val analyser = Analyser(directoryWithProjects)
+        val analyser = Analyser(directoryWithProjects, Analyser.Options())
         val jenkinsReleasePlanCreator = JenkinsReleasePlanCreator(VersionDeterminer())
         return jenkinsReleasePlanCreator.create(projectToRelease as MavenProjectId, analyser)
     }

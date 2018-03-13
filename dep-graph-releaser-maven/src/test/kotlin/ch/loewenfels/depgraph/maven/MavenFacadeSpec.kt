@@ -22,14 +22,7 @@ object MavenFacadeSpec : Spek({
     fun ActionBody.testReleaseSingleProject(idAndVersions: IdAndVersions, directory: String) {
         val releasePlan = testee.analyseAndCreateReleasePlan(idAndVersions.id, getTestDirectory(directory))
 
-        assertRootProjectOnlyReleaseAndReady(releasePlan, idAndVersions)
-
-        test("it does not have any dependent project") {
-            assert(releasePlan.dependents) {
-                property(subject::size).toBe(1)
-                returnValueOf(subject::get, idAndVersions.id).isNotNull { isEmpty() }
-            }
-        }
+        assertSingleProject(releasePlan, idAndVersions)
     }
 
     fun SpecBody.testReleaseAWithDependentBWithDependentC(directory: String, projectB: IdAndVersions = exampleB) {
