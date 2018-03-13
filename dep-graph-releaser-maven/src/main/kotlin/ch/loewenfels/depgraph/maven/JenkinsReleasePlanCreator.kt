@@ -4,6 +4,7 @@ import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
+import ch.tutteli.kbox.appendToStringBuilder
 
 class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer) {
 
@@ -17,17 +18,13 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         }
 
         val rootProject = createInitialProject(projectToRelease, currentVersion!!, 0, CommandState.Ready)
-        val projects = hashMapOf<ProjectId, Project>()
-        val dependents = hashMapOf<ProjectId, Set<ProjectId>>()
+        val paramObject = createDependents(analyser, rootProject)
+
         val warnings = mutableListOf<String>()
-        projects[rootProject.id] = rootProject
-        dependents[rootProject.id] = hashSetOf()
+        turnCyclicDependenciesIntoWarnings(paramObject, warnings)
+        warnings.addAll(analyser.getErroneousPomFiles())
 
-        createDependents(rootProject, analyser, projects, dependents)
-
-        analyser.getErroneousPomFiles().toCollection(warnings)
-
-        return ReleasePlan(rootProject.id, projects, dependents, warnings)
+        return ReleasePlan(rootProject.id, paramObject.projects, paramObject.dependents, warnings)
     }
 
     private fun createInitialProject(
@@ -43,57 +40,108 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         mutableListOf(JenkinsMavenReleasePlugin(state, versionDeterminer.nextDevVersion(currentVersion)))
     )
 
-    private fun createDependents(
-        rootProject: Project,
-        analyser: Analyser,
-        projects: HashMap<ProjectId, Project>,
-        dependents: HashMap<ProjectId, Set<ProjectId>>
-    ) {
-        var level = 1
-        val dependentsToVisit = mutableListOf(linkedMapOf(rootProject.id to rootProject))
+    private fun createDependents(analyser: Analyser, rootProject: Project): ParamObject {
+        val paramObject = ParamObject(
+            analyser,
+            projects = hashMapOf(rootProject.id to rootProject),
+            dependents = hashMapOf(rootProject.id to hashSetOf()),
+            cyclicDependents = hashMapOf(),
+            level = 1,
+            dependentsToVisit = mutableListOf(linkedMapOf(rootProject.id to rootProject))
+        )
+        val dependentsToVisit = paramObject.dependentsToVisit
         while (dependentsToVisit.isNotEmpty()) {
             val dependentsOnSameLevel = dependentsToVisit[0]
             val dependent = dependentsOnSameLevel.remove(dependentsOnSameLevel.iterator().next().key)!!
-            createCommandsForDependents(analyser, dependent, projects, dependents, level, dependentsToVisit)
+            createCommandsForDependents(paramObject, dependent)
             if (dependentsOnSameLevel.isEmpty()) {
                 dependentsToVisit.removeAt(0)
-                ++level
+                ++paramObject.level
+            }
+        }
+        return paramObject
+    }
+
+    private fun createCommandsForDependents(paramObject: ParamObject, dependency: Project) {
+        val dependencyId = dependency.id as MavenProjectId
+
+        paramObject.analyser.getDependentsOf(dependencyId).forEach { dependentIdWithVersion ->
+
+            val existingDependent = paramObject.projects[dependentIdWithVersion.id]
+            when {
+                existingDependent == null ->
+                    initDependent(paramObject, dependentIdWithVersion, dependencyId)
+
+                existingDependent.level < paramObject.level ->
+                    checkForCyclicAndUpdateIfOk(paramObject, existingDependent, dependencyId)
+
+                else ->
+                    updateCommandsAddDependentAndAddToProjects(paramObject, existingDependent, dependencyId)
             }
         }
     }
 
-    private fun createCommandsForDependents(
-        analyser: Analyser,
-        dependency: Project,
-        projects: HashMap<ProjectId, Project>,
-        dependents: HashMap<ProjectId, Set<ProjectId>>,
-        level: Int,
-        dependentsToVisit: MutableList<LinkedHashMap<ProjectId, Project>>
-    ) {
-        val dependencyId = dependency.id as MavenProjectId
-        analyser.getDependentsOf(dependencyId).forEach { dependentIdWithVersion ->
-            val existingDependent = projects[dependentIdWithVersion.id]
-            val dependent: Project = if (existingDependent == null) {
-                val newDependent = createInitialWaitingProject(dependentIdWithVersion, level, dependencyId)
-                dependents[newDependent.id] = hashSetOf()
-                addToNextLevelOfDependentsToVisit(dependentsToVisit, newDependent)
-                projects[newDependent.id] = newDependent
-                newDependent
-            } else {
-                if (existingDependent.level < level) {
-                    val updatedProject = Project(existingDependent, level)
-                    projects[existingDependent.id] = updatedProject
-                    //TODO cope with circular dependencies
-                    //we need to re-visit so that we can update the levels of the dependents as well
-                    removeIfVisitOnSameLevelAndReAddOnNext(updatedProject, dependentsToVisit)
-                    updatedProject
-                } else {
-                    existingDependent
-                }
-            }
-            addAndUpdateCommandsOfDependent(dependent, dependencyId)
-            addDependentToDependentsOfDependency(dependent.id, dependents, dependencyId)
+    private fun initDependent(
+        paramObject: ParamObject,
+        dependentIdWithVersion: ProjectIdWithCurrentVersion<MavenProjectId>,
+        dependencyId: MavenProjectId
+    ): Project {
+        val newDependent = createInitialWaitingProject(dependentIdWithVersion, paramObject.level, dependencyId)
+        paramObject.dependents[newDependent.id] = hashSetOf()
+        addToNextLevelOfDependentsToVisit(paramObject.dependentsToVisit, newDependent)
+        updateCommandsAddDependentAndAddToProjects(paramObject, newDependent, dependencyId)
+        return newDependent
+    }
+
+    private fun checkForCyclicAndUpdateIfOk(
+        paramObject: ParamObject,
+        existingDependent: Project,
+        dependencyId: MavenProjectId
+    ): Project {
+        return if (checkIsNotCyclicOrTakeMeasures(paramObject, existingDependent, dependencyId)) {
+            val updatedDependent = Project(existingDependent, paramObject.level)
+            paramObject.projects[existingDependent.id] = updatedDependent
+            //we need to re-visit so that we can update the levels of the dependents as well
+            removeIfVisitOnSameLevelAndReAddOnNext(updatedDependent, paramObject.dependentsToVisit)
+            updateCommandsAddDependentAndAddToProjects(paramObject, updatedDependent, dependencyId)
+            updatedDependent
+        } else {
+            removeDependentFromDependency(paramObject, existingDependent, dependencyId)
+            existingDependent
         }
+    }
+
+    /**
+     * It actually adds the given [dependent] to [ParamObject.projects] or updates the entry if already exists.
+     */
+    private fun updateCommandsAddDependentAndAddToProjects(
+        paramObject: ParamObject,
+        dependent: Project,
+        dependencyId: MavenProjectId
+    ) {
+        addAndUpdateCommandsOfDependent(dependent, dependencyId)
+        addDependentToDependentsOfDependency(dependent.id, paramObject.dependents, dependencyId)
+        paramObject.projects[dependent.id] = dependent
+    }
+
+    private fun addAndUpdateCommandsOfDependent(dependent: Project, dependencyId: MavenProjectId) {
+        val list = dependent.commands as MutableList
+        addDependencyToReleaseCommands(list, dependencyId)
+        list.add(0, JenkinsUpdateDependency(CommandState.Waiting(setOf(dependencyId)), dependencyId))
+    }
+
+    private fun addDependencyToReleaseCommands(list: List<Command>, dependencyId: MavenProjectId) {
+        list.filter { it is ReleaseCommand }.forEach { command ->
+            ((command.state as CommandState.Waiting).dependencies as MutableSet).add(dependencyId)
+        }
+    }
+
+    private fun addDependentToDependentsOfDependency(
+        dependentId: ProjectId,
+        dependents: HashMap<ProjectId, HashSet<ProjectId>>,
+        dependencyId: MavenProjectId
+    ) {
+        dependents[dependencyId]!!.add(dependentId)
     }
 
     private fun createInitialWaitingProject(
@@ -107,31 +155,31 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         CommandState.Waiting(mutableSetOf(dependencyId))
     )
 
-    private fun addDependentToDependentsOfDependency(
-        dependentId: ProjectId,
-        dependents: HashMap<ProjectId, Set<ProjectId>>,
+    private fun checkIsNotCyclicOrTakeMeasures(
+        paramObject: ParamObject,
+        existingDependent: Project,
         dependencyId: MavenProjectId
-    ) {
-        (dependents[dependencyId] as MutableSet).add(dependentId)
-    }
-
-    private fun addAndUpdateCommandsOfDependent(
-        dependent: Project,
-        dependencyId: MavenProjectId
-    ) {
-        val list = dependent.commands as MutableList
-        addDependencyToJenkinsReleaseCommand(list, dependencyId)
-        list.add(0, JenkinsUpdateDependency(CommandState.Waiting(setOf(dependencyId)), dependencyId))
-    }
-
-    private fun addDependencyToJenkinsReleaseCommand(list: MutableList<Command>, dependencyId: MavenProjectId) {
-        val last = list.last()
-        check(last is JenkinsMavenReleasePlugin) {
-            "The last command has to be a ${JenkinsMavenReleasePlugin::class.simpleName}"
+    ): Boolean {
+        if (paramObject.dependents[existingDependent.id]!!.contains(dependencyId)) {
+            val set = paramObject.cyclicDependents.getOrPut(existingDependent.id, { mutableListOf() })
+            set.add(mutableListOf(dependencyId))
+            return false
         }
-        ((last.state as CommandState.Waiting).dependencies as MutableSet).add(dependencyId)
+        return true
     }
 
+    private fun removeDependentFromDependency(
+        paramObject: ParamObject,
+        existingDependent: Project,
+        dependencyId: MavenProjectId
+    ) {
+        val project = paramObject.projects[existingDependent.id]!!
+        project.commands
+            .filter { it.state is CommandState.Waiting }
+            .forEach {
+                ((it.state as CommandState.Waiting).dependencies as MutableSet).remove(dependencyId)
+            }
+    }
 
     private fun removeIfVisitOnSameLevelAndReAddOnNext(
         updatedProject: Project,
@@ -152,4 +200,32 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         val nextLevelProjects = dependentsToVisit.last()
         nextLevelProjects[dependent.id] = dependent
     }
+
+    private fun turnCyclicDependenciesIntoWarnings(paramObject: ParamObject, warnings: MutableList<String>) {
+        paramObject.cyclicDependents.mapTo(warnings, { (projectId, dependent) ->
+            val sb = StringBuilder()
+            sb.append("Project ").append(projectId.identifier).append(" has one or more cyclic dependencies:\n")
+            appendCyclicDependents(sb, projectId, dependent)
+            sb.toString()
+        })
+    }
+
+    private fun appendCyclicDependents(sb: StringBuilder, dependency: ProjectId, dependencies: MutableList<MutableList<ProjectId>>) {
+        sb.append("-> ")
+        dependencies.appendToStringBuilder(sb, "\n -> ") { list, sb1 ->
+            list.appendToStringBuilder(sb1, " -> ") { it, sb2 ->
+                sb2.append(it.identifier)
+            }
+        }
+        sb.append(" -> ").append(dependency.identifier)
+    }
+
+    private class ParamObject(
+        val analyser: Analyser,
+        val projects: HashMap<ProjectId, Project>,
+        val dependents: HashMap<ProjectId, HashSet<ProjectId>>,
+        val cyclicDependents: HashMap<ProjectId, MutableList<MutableList<ProjectId>>>,
+        var level: Int,
+        val dependentsToVisit: MutableList<LinkedHashMap<ProjectId, Project>>
+    )
 }

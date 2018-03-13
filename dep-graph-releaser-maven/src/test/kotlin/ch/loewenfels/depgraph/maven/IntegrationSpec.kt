@@ -308,6 +308,17 @@ object IntegrationSpec : Spek({
     given("project with explicit transitive dependent via pom (pom has dependency)") {
         testReleaseAWithDependentBDAndCViaD("transitiveExplicitViaPom")
     }
+
+    given("project with cyclic dependency") {
+        action("context Analyser which does not resolve poms") {
+            val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("directCyclicDependency"))
+            assertProjectAWithDependentB(releasePlan)
+
+            assert(releasePlan.warnings).containsStrictly({
+                contains("-> ${exampleB.id.identifier} -> ${exampleA.id.identifier}")
+            })
+        }
+    }
 })
 
 private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, testDirectory: File): ReleasePlan {
@@ -412,9 +423,6 @@ private fun SpecBody.testReleaseAWithDependentBAndX(
 
         it("root has two dependent projects") {
             assert(releasePlan).hasDependentsForProject(exampleA, exampleB, projectX)
-        }
-        test("the direct dependent project has two commands, updateVersion and Release") {
-            assertOneUpdateAndOneReleaseCommand(releasePlan, exampleB, exampleA)
         }
         furtherAssertions(releasePlan)
     }
