@@ -283,6 +283,20 @@ object IntegrationSpec : Spek({
             })
         }
     }
+
+    given("project with dependent which itself has a direct cyclic dependent") {
+        testReleaseAWithDependentBAndX("dependentWithDirectCyclicDependency", exampleD) { releasePlan ->
+            assertOneDirectDependent(releasePlan, "the direct dependent", exampleD, exampleB)
+
+            testTwoUpdateAndOneReleaseCommand(releasePlan, "the cyclic partner", exampleB, exampleD, exampleA)
+            testHasOneDependentAndIsOnLevel(releasePlan, "the cyclic partner", exampleB, exampleC, 2)
+
+            testOneUpdateAndOneReleaseCommand(releasePlan, "the indirect dependent", exampleC, exampleB)
+            testHasNoDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 3)
+
+            testReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+        }
+    }
 })
 
 private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, testDirectory: File): ReleasePlan {

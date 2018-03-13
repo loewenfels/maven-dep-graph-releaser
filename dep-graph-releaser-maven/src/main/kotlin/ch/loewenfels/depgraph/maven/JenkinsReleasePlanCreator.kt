@@ -106,7 +106,6 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
             updateCommandsAddDependentAndAddToProjects(paramObject, updatedDependent, dependencyId)
             updatedDependent
         } else {
-            removeDependentFromDependency(paramObject, existingDependent, dependencyId)
             existingDependent
         }
     }
@@ -166,19 +165,6 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
             return false
         }
         return true
-    }
-
-    private fun removeDependentFromDependency(
-        paramObject: ParamObject,
-        existingDependent: Project,
-        dependencyId: MavenProjectId
-    ) {
-        val project = paramObject.projects[existingDependent.id]!!
-        project.commands
-            .filter { it.state is CommandState.Waiting }
-            .forEach {
-                ((it.state as CommandState.Waiting).dependencies as MutableSet).remove(dependencyId)
-            }
     }
 
     private fun removeIfVisitOnSameLevelAndReAddOnNext(
