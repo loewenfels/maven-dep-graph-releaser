@@ -31,7 +31,7 @@ object MainSpec : Spek({
             val jsonFile = File(tempFolder.tmpDir, "test.json")
             main(
                 "json", "com.example", "a",
-                getTestDirectory("oneDependent").absolutePath,
+                getTestDirectory("oneDependentVersionInDependency").absolutePath,
                 jsonFile.absolutePath
             )
             it("creates a corresponding json file") {

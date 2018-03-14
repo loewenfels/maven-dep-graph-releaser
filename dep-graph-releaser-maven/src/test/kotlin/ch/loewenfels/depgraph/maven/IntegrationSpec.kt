@@ -116,8 +116,8 @@ object IntegrationSpec : Spek({
     }
 
     given("project with dependency incl. version") {
-        testReleaseAWithDependentB("oneDependent")
-        testReleaseBWithNoDependent("oneDependent")
+        testReleaseAWithDependentB("oneDependentVersionInDependency")
+        testReleaseBWithNoDependent("oneDependentVersionInDependency")
     }
 
     given("project with dependency and version in dependency management") {
