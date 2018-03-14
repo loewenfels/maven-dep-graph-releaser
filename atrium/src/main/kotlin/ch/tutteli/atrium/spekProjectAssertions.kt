@@ -124,13 +124,29 @@ private fun ActionBody.assertProjectIsOnLevel(
     }
 }
 
+fun ActionBody.assertOnlyWaitingReleaseCommand(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    dependency: IdAndVersions
+) {
+    test("$name project has only one waiting Release command") {
+        assert(releasePlan.projects[project.id]).isNotNull {
+            idAndVersions(project)
+            property(subject::commands).containsStrictly(
+                { isJenkinsMavenReleaseWaiting(project.nextDevVersion, dependency) }
+            )
+        }
+    }
+}
+
 fun ActionBody.assertOneUpdateAndOneReleaseCommand(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
     dependency: IdAndVersions
 ) {
-    test("$name project has two commands, updateVersion and Release") {
+    test("$name project has one waiting UpdateVersion and one waiting Release command") {
         assert(releasePlan.projects[project.id]).isNotNull {
             idAndVersions(project)
             property(subject::commands).containsStrictly(
@@ -148,7 +164,7 @@ fun ActionBody.assertTwoUpdateAndOneReleaseCommand(
     dependency1: IdAndVersions,
     dependency2: IdAndVersions
 ) {
-    test("$name project has two UpdateVersion and one Release command") {
+    test("$name project has two waiting UpdateVersion and one waiting Release command") {
         assert(releasePlan.projects[project.id]).isNotNull {
             idAndVersions(project)
             property(subject::commands).containsStrictly(

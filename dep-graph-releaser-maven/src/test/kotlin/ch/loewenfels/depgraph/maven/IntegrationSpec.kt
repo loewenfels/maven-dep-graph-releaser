@@ -128,7 +128,12 @@ object IntegrationSpec : Spek({
     given("project with dependency and version in bom") {
         action("context Analyser with a mocked PomFileResolver") {
             val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "oneDependentVersionViaBom")
-            assertProjectAWithDependentB(releasePlan)
+            assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+
+            assertOnlyWaitingReleaseCommand(releasePlan, "indirect dependent", exampleB, exampleA)
+            assertHasNoDependentsAndIsOnLevel(releasePlan, "direct dependent", exampleB, 1)
+
+            assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 2)
         }
     }
 

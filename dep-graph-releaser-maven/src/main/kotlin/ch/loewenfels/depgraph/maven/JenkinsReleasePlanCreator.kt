@@ -63,49 +63,42 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     }
 
     private fun createCommandsForDependents(paramObject: ParamObject, dependency: Project) {
-        val dependencyId = dependency.id as MavenProjectId
+        paramObject.dependencyId = dependency.id as MavenProjectId
 
-        paramObject.analyser.getDependentsOf(dependencyId).forEach { dependentIdWithVersion ->
-
+        paramObject.analyser.getDependentsOf(paramObject.dependencyId).forEach { dependentIdWithVersion ->
+            paramObject.relation = dependentIdWithVersion
             val existingDependent = paramObject.projects[dependentIdWithVersion.id]
             when {
                 existingDependent == null ->
-                    initDependent(paramObject, dependentIdWithVersion, dependencyId)
+                    initDependent(paramObject)
 
                 existingDependent.level < paramObject.level ->
-                    checkForCyclicAndUpdateIfOk(paramObject, existingDependent, dependencyId)
+                    checkForCyclicAndUpdateIfOk(paramObject, existingDependent)
 
                 else ->
-                    updateCommandsAddDependentAndAddToProjects(paramObject, existingDependent, dependencyId)
+                    updateCommandsAddDependentAndAddToProjects(paramObject, existingDependent)
             }
         }
     }
 
-    private fun initDependent(
-        paramObject: ParamObject,
-        dependentIdWithVersion: ProjectIdWithCurrentVersion<MavenProjectId>,
-        dependencyId: MavenProjectId
-    ): Project {
-        val newDependent = createInitialWaitingProject(dependentIdWithVersion, paramObject.level, dependencyId)
+    private fun initDependent(paramObject: ParamObject): Project {
+        val newDependent =
+            createInitialWaitingProject(paramObject.relation, paramObject.level, paramObject.dependencyId)
         paramObject.dependents[newDependent.id] = hashSetOf()
         addToNextLevelOfDependentsToVisit(paramObject.dependentsToVisit, newDependent)
-        updateCommandsAddDependentAndAddToProjects(paramObject, newDependent, dependencyId)
+        updateCommandsAddDependentAndAddToProjects(paramObject, newDependent)
         return newDependent
     }
 
-    private fun checkForCyclicAndUpdateIfOk(
-        paramObject: ParamObject,
-        existingDependent: Project,
-        dependencyId: MavenProjectId
-    ): Project {
-        analyseCycles(paramObject, existingDependent, dependencyId)
+    private fun checkForCyclicAndUpdateIfOk(paramObject: ParamObject, existingDependent: Project): Project {
+        analyseCycles(paramObject, existingDependent)
         val cycles = paramObject.cyclicDependents[existingDependent.id]
-        return if (cycles == null || !cycles.containsKey(dependencyId)) {
+        return if (cycles == null || !cycles.containsKey(paramObject.dependencyId)) {
             val updatedDependent = Project(existingDependent, paramObject.level)
             paramObject.projects[existingDependent.id] = updatedDependent
             //we need to re-visit so that we can update the levels of the dependents as well
             removeIfVisitOnSameLevelAndReAddOnNext(updatedDependent, paramObject.dependentsToVisit)
-            updateCommandsAddDependentAndAddToProjects(paramObject, updatedDependent, dependencyId)
+            updateCommandsAddDependentAndAddToProjects(paramObject, updatedDependent)
             updatedDependent
         } else {
             existingDependent
@@ -115,20 +108,21 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     /**
      * It actually adds the given [dependent] to [ParamObject.projects] or updates the entry if already exists.
      */
-    private fun updateCommandsAddDependentAndAddToProjects(
-        paramObject: ParamObject,
-        dependent: Project,
-        dependencyId: MavenProjectId
-    ) {
-        addAndUpdateCommandsOfDependent(dependent, dependencyId)
-        addDependentToDependentsOfDependency(dependent.id, paramObject.dependents, dependencyId)
+    private fun updateCommandsAddDependentAndAddToProjects(paramObject: ParamObject, dependent: Project) {
+        addAndUpdateCommandsOfDependent(paramObject, dependent)
+        addDependentToDependentsOfDependency(paramObject, dependent)
         paramObject.projects[dependent.id] = dependent
     }
 
-    private fun addAndUpdateCommandsOfDependent(dependent: Project, dependencyId: MavenProjectId) {
+    private fun addAndUpdateCommandsOfDependent(paramObject: ParamObject, dependent: Project) {
+        val dependencyId = paramObject.dependencyId
         val list = dependent.commands as MutableList
+
         addDependencyToReleaseCommands(list, dependencyId)
-        list.add(0, JenkinsUpdateDependency(CommandState.Waiting(setOf(dependencyId)), dependencyId))
+        if (paramObject.relation.dependencyVersion != null) {
+            val state = CommandState.Waiting(setOf(dependencyId))
+            list.add(0, JenkinsUpdateDependency(state, dependencyId))
+        }
     }
 
     private fun addDependencyToReleaseCommands(list: List<Command>, dependencyId: MavenProjectId) {
@@ -137,32 +131,25 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         }
     }
 
-    private fun addDependentToDependentsOfDependency(
-        dependentId: ProjectId,
-        dependents: HashMap<ProjectId, HashSet<ProjectId>>,
-        dependencyId: MavenProjectId
-    ) {
-        dependents[dependencyId]!!.add(dependentId)
+    private fun addDependentToDependentsOfDependency(paramObject: ParamObject, dependent: Project) {
+        paramObject.dependents[paramObject.dependencyId]!!.add(dependent.id)
     }
 
     private fun createInitialWaitingProject(
-        dependentIdWithVersion: ProjectIdWithCurrentVersion<MavenProjectId>,
+        relation: Relation<MavenProjectId>,
         level: Int,
         dependencyId: MavenProjectId
     ): Project = createInitialProject(
-        dependentIdWithVersion.id,
-        dependentIdWithVersion.currentVersion,
+        relation.id,
+        relation.currentVersion,
         level,
         CommandState.Waiting(mutableSetOf(dependencyId))
     )
 
-    private fun analyseCycles(
-        paramObject: ParamObject,
-        existingDependent: Project,
-        dependencyId: ProjectId
-    ) {
+    private fun analyseCycles(paramObject: ParamObject, existingDependent: Project) {
+        val dependencyId = paramObject.dependencyId
         val visitedProjects = hashSetOf<ProjectId>()
-        val projectsToVisit = linkedMapOf(existingDependent.id to mutableListOf(dependencyId))
+        val projectsToVisit = linkedMapOf(existingDependent.id to mutableListOf<ProjectId>(dependencyId))
         while (projectsToVisit.isNotEmpty()) {
             val (dependentId, dependentBranch) = projectsToVisit.iterator().next()
             projectsToVisit.remove(dependentId)
@@ -233,5 +220,8 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         val cyclicDependents: HashMap<ProjectId, LinkedHashMap<ProjectId, MutableList<ProjectId>>>,
         var level: Int,
         val dependentsToVisit: MutableList<LinkedHashMap<ProjectId, Project>>
-    )
+    ) {
+        lateinit var dependencyId: MavenProjectId
+        lateinit var relation: Relation<MavenProjectId>
+    }
 }

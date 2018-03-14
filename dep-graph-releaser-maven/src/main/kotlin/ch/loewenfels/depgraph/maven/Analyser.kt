@@ -1,10 +1,9 @@
 package ch.loewenfels.depgraph.maven
 
-import ch.loewenfels.depgraph.data.ProjectIdWithCurrentVersion
+import ch.loewenfels.depgraph.data.Relation
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.tutteli.kbox.appendToStringBuilder
 import fr.lteconsulting.pomexplorer.*
-import fr.lteconsulting.pomexplorer.graph.relation.Relation
 import fr.lteconsulting.pomexplorer.model.Gav
 import java.io.File
 import java.util.logging.Logger
@@ -22,7 +21,7 @@ class Analyser internal constructor(
         : this(directoryWithProjects, session, DefaultPomFileLoader(session, true), options)
 
     private val logger = Logger.getLogger(Analyser::class.qualifiedName)
-    private val dependents: Map<String, Set<ProjectIdWithCurrentVersion<MavenProjectId>>>
+    private val dependents: Map<String, Set<Relation<MavenProjectId>>>
     private val projectIds: Map<MavenProjectId, String>
     private val pomAnalysis: PomAnalysis
 
@@ -45,7 +44,14 @@ class Analyser internal constructor(
 
     private fun analyseDirectory(directoryWithProjects: File, pomFileLoader: PomFileLoader): PomAnalysis {
         val nullLogger = Log { }
-        return PomAnalysis.runFullRecursiveAnalysis(directoryWithProjects.absolutePath, session, pomFileLoader, null, false, nullLogger)
+        return PomAnalysis.runFullRecursiveAnalysis(
+            directoryWithProjects.absolutePath,
+            session,
+            pomFileLoader,
+            null,
+            false,
+            nullLogger
+        )
     }
 
     private fun getAnalysedProjects(): Set<String> {
@@ -76,15 +82,15 @@ class Analyser internal constructor(
         return mapOf()
     }
 
-    private fun analyseDependents(analysedProjects: Set<String>): Map<String, Set<ProjectIdWithCurrentVersion<MavenProjectId>>> {
-        val dependents = hashMapOf<String, MutableSet<ProjectIdWithCurrentVersion<MavenProjectId>>>()
+    private fun analyseDependents(analysedProjects: Set<String>): Map<String, Set<Relation<MavenProjectId>>> {
+        val dependents = hashMapOf<String, MutableSet<Relation<MavenProjectId>>>()
         getInternalAnalysedGavs().forEach { gav ->
             session.graph().read().relations(gav)
                 .asSequence()
                 .filter { analysedProjects.contains(it.targetToMapKey()) }
                 .forEach { relation ->
                     val set = dependents.getOrPut(relation.targetToMapKey(), { mutableSetOf() })
-                    set.add(gav.toProjectIdWithCurrentVersion())
+                    set.add(gav.toRelation(relation.target.version))
                 }
         }
         return dependents
@@ -104,8 +110,10 @@ class Analyser internal constructor(
     private fun Gav.toProject() = session.projects().forGav(this)
     private val Project.isNotExternal get() = !isExternal
 
-    private fun Gav.toProjectIdWithCurrentVersion() = ProjectIdWithCurrentVersion(toMavenProjectId(), version)
-    private fun Relation.targetToMapKey() = target.toMapKey()
+    private fun Gav.toRelation(dependencyVersion: String?): Relation<MavenProjectId>
+        = Relation(toMavenProjectId(), version, dependencyVersion)
+
+    private fun fr.lteconsulting.pomexplorer.graph.relation.Relation.targetToMapKey() = target.toMapKey()
     private fun Gav.toMapKey() = toMavenProjectId().identifier
     private fun Gav.toMavenProjectId() = MavenProjectId(groupId, artifactId)
 
@@ -133,7 +141,8 @@ class Analyser internal constructor(
             sb.append("Found projects with parents where the parents are not part of this analysis.\n\n")
             parentsNotInAnalysis.entries.appendToStringBuilder(sb, "\n\n") { (project, parent), _ ->
                 sb.append("project: ").append(projectToString(project)).append("\n")
-                sb.append("parent: ").append(parent.groupId).append(":").append(parent.artifactId).append(":").append(parent.version)
+                sb.append("parent: ").append(parent.groupId).append(":").append(parent.artifactId).append(":")
+                    .append(parent.version)
             }
         }
 
@@ -166,7 +175,7 @@ class Analyser internal constructor(
      * Meaning, if a project ch.loewenfels:A has a dependency on Project ch.loewenfels:B:1.0 and
      * the analysed project B is in version 2.0-SNAPSHOT then project A is still dependent of project B.
      */
-    fun getDependentsOf(projectId: MavenProjectId): Set<ProjectIdWithCurrentVersion<MavenProjectId>> {
+    fun getDependentsOf(projectId: MavenProjectId): Set<Relation<MavenProjectId>> {
         return dependents[projectId.identifier] ?: emptySet()
     }
 
@@ -175,8 +184,8 @@ class Analyser internal constructor(
      */
     fun getNumberOfProjects(): Int = projectIds.size
 
-    fun getErroneousPomFiles() : List<String> = pomAnalysis.erroneousPomFiles.map {
-        "Error reading pom file.\nFile: ${it.pomFile.canonicalPath}\nMessage: ${ it.cause!!.message}"
+    fun getErroneousPomFiles(): List<String> = pomAnalysis.erroneousPomFiles.map {
+        "Error reading pom file.\nFile: ${it.pomFile.canonicalPath}\nMessage: ${it.cause!!.message}"
     }
 
     /**
