@@ -51,7 +51,7 @@ def jsonFile = file("$htmlDir/$jsonFileName")
 task json {
     inputs.property('g', findProperty('g'))
     inputs.property('a', findProperty('a'))
-    inputs.property('mpoff', findProperty('mpoff'))
+    inputs.property('mpoff', findProperty('mpoff') ?: 'on')
     inputs.files dist
     outputs.file jsonFile
     doLast {
