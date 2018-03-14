@@ -36,6 +36,7 @@ fun ActionBody.assertReleaseAWithDependentBWithDependentC(
     }
 
     assertOneDirectDependent(releasePlan, "direct dependent", projectB, exampleC)
+    assertOneUpdateAndOneReleaseCommand(releasePlan, "indirect dependent", exampleC, exampleB)
     assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
 
     assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
@@ -44,6 +45,7 @@ fun ActionBody.assertReleaseAWithDependentBWithDependentC(
 fun ActionBody.assertProjectAWithDependentB(releasePlan: ReleasePlan) {
     assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
 
+    assertOneUpdateAndOneReleaseCommand(releasePlan, "indirect dependent", exampleB, exampleA)
     assertHasNoDependentsAndIsOnLevel(releasePlan, "direct dependent", exampleB, 1)
 
     assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 2)
