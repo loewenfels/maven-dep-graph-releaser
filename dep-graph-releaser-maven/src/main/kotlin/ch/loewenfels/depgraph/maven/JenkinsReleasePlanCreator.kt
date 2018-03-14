@@ -119,7 +119,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         val list = dependent.commands as MutableList
 
         addDependencyToReleaseCommands(list, dependencyId)
-        if (paramObject.relation.dependencyVersion != null) {
+        if (paramObject.relation.isDependencyVersionSelfManaged) {
             val state = CommandState.Waiting(setOf(dependencyId))
             list.add(0, JenkinsUpdateDependency(state, dependencyId))
         }

@@ -4,6 +4,8 @@ import ch.loewenfels.depgraph.data.Relation
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.tutteli.kbox.appendToStringBuilder
 import fr.lteconsulting.pomexplorer.*
+import fr.lteconsulting.pomexplorer.graph.relation.DependencyRelation
+import fr.lteconsulting.pomexplorer.graph.relation.ParentRelation
 import fr.lteconsulting.pomexplorer.model.Gav
 import java.io.File
 import java.util.logging.Logger
@@ -90,7 +92,12 @@ class Analyser internal constructor(
                 .filter { analysedProjects.contains(it.targetToMapKey()) }
                 .forEach { relation ->
                     val set = dependents.getOrPut(relation.targetToMapKey(), { mutableSetOf() })
-                    set.add(gav.toRelation(relation.target.version))
+                    if (relation is DependencyRelation) {
+                        set.add(gav.toRelation(relation.dependency.isVersionSelfManaged.orElse(false)))
+                    } else if(relation is ParentRelation) {
+                        set.add(gav.toRelation(true))
+                    }
+                    //we ignore other relations at the moment (such as BuildDependencyRelation)
                 }
         }
         return dependents
@@ -110,8 +117,8 @@ class Analyser internal constructor(
     private fun Gav.toProject() = session.projects().forGav(this)
     private val Project.isNotExternal get() = !isExternal
 
-    private fun Gav.toRelation(dependencyVersion: String?): Relation<MavenProjectId>
-        = Relation(toMavenProjectId(), version, dependencyVersion)
+    private fun Gav.toRelation(isVersionSelfManaged: Boolean): Relation<MavenProjectId> =
+        Relation(toMavenProjectId(), version, isVersionSelfManaged)
 
     private fun fr.lteconsulting.pomexplorer.graph.relation.Relation.targetToMapKey() = target.toMapKey()
     private fun Gav.toMapKey() = toMavenProjectId().identifier

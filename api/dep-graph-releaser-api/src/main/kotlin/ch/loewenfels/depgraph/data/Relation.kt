@@ -10,8 +10,8 @@ data class Relation<out T : ProjectId>(
      */
     val currentVersion: String,
     /**
-     * The dependency version defined by the dependent project, might be null in case the version is managed
-     * by a parent, a bom file or in another way
+     * Indicates whether the dependency version was defined by the dependent project or by another artifact (such as
+     * the parent pom, an import bom file etc.)
      */
-    val dependencyVersion: String?
+    val isDependencyVersionSelfManaged: Boolean
 )

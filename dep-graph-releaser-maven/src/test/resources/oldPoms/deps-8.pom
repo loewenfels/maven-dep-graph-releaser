@@ -7,11 +7,13 @@
     <version>8</version>
     <packaging>pom</packaging>
 
-    <dependencies>
-        <dependency>
-            <groupId>com.example</groupId>
-            <artifactId>a</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-    </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.example</groupId>
+                <artifactId>a</artifactId>
+                <version>1.0.0</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>
