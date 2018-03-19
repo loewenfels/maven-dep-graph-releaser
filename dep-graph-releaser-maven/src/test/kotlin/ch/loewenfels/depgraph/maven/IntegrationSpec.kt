@@ -146,7 +146,7 @@ object IntegrationSpec : Spek({
         given("project with dependent and version in bom") {
             action("context Analyser with a mocked PomFileResolver") {
                 val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "managingVersions/viaBom")
-                assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
 
                 assertOnlyWaitingReleaseCommand(releasePlan, "indirect dependent", exampleB, exampleA)
                 assertHasNoDependentsAndIsOnLevel(releasePlan, "direct dependent", exampleB, 1)
@@ -159,7 +159,7 @@ object IntegrationSpec : Spek({
         given("project with dependent and version in parent dependency management") {
             action("context Analyser with a mocked PomFileResolver") {
                 val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "managingVersions/viaParent")
-                assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC)
 
                 assertOneDirectDependent(releasePlan, "parent", exampleC, exampleB)
 
@@ -216,11 +216,11 @@ object IntegrationSpec : Spek({
     describe("transitive dependencies") {
 
         given("project with implicit transitive dependent") {
-            testReleaseAWithDependentBWithDependentC("transitive/transitiveImplicit")
+            testReleaseAWithDependentBWithDependentC("transitive/implicit")
         }
 
         given("project with explicit transitive dependent") {
-            testReleaseAWithDependentBAndX("transitive/transitiveExplicit", exampleC) { releasePlan ->
+            testReleaseAWithDependentBAndX("transitive/explicit", exampleC) { releasePlan ->
 
                 assertOneDirectDependent(releasePlan, "the direct dependent", exampleB, exampleC)
 
@@ -235,16 +235,8 @@ object IntegrationSpec : Spek({
         given("project with explicit transitive dependent which itself has dependent") {
 
             action("context Analyser which does not resolve poms") {
-                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "transitive/transitiveExplicitWithDependent")
-                assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
-
-                it("root has two dependent projects") {
-                    assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleD)
-                }
-
-                test("root has two dependent projects") {
-                    assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleD)
-                }
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "transitive/explicitWithDependent")
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleD)
 
                 assertTwoUpdateAndOneReleaseCommand(releasePlan, "the parent", exampleB, exampleD, exampleA)
                 assertHasOneDependentAndIsOnLevel(releasePlan, "the parent", exampleB, exampleC, 2)
@@ -263,12 +255,8 @@ object IntegrationSpec : Spek({
 
             action("context Analyser which tries to resolve poms") {
                 val releasePlan =
-                    analyseAndCreateReleasePlan(exampleA.id, "transitive/transitiveExplicitTwoDependencies")
-                assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
-
-                test("root has three dependent projects") {
-                    assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleC, exampleD)
-                }
+                    analyseAndCreateReleasePlan(exampleA.id, "transitive/explicitTwoDependencies")
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC, exampleD)
 
                 assertOneDirectDependent(releasePlan, "first direct dependent", exampleB, exampleC)
                 assertOneDirectDependent(releasePlan, "second direct dependent", exampleD, exampleC)
@@ -295,9 +283,9 @@ object IntegrationSpec : Spek({
             describe("parent is first dependent") {
                 action("context Analyser which does not resolve poms") {
                     val releasePlan = analyseAndCreateReleasePlan(
-                        exampleA.id, "transitive/transitiveExplicitViaParentAsFirstDependent"
+                        exampleA.id, "transitive/explicitViaParentAsFirstDependent"
                     )
-                    assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+                    assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleD)
 
                     assertOneDirectDependent(releasePlan, "the parent", exampleB, exampleC)
                     assertOneDirectDependent(releasePlan, "the direct dependent", exampleD, exampleC)
@@ -316,12 +304,12 @@ object IntegrationSpec : Spek({
             }
 
             describe("parent is second dependent") {
-                testReleaseAWithDependentBDAndCViaD("transitive/transitiveExplicitViaParentAsSecondDependent")
+                testReleaseAWithDependentBDAndCViaD("transitive/explicitViaParentAsSecondDependent")
             }
         }
 
         given("project with explicit transitive dependent via pom (pom has dependency)") {
-            testReleaseAWithDependentBDAndCViaD("transitive/transitiveExplicitViaPom")
+            testReleaseAWithDependentBDAndCViaD("transitive/explicitViaPom")
         }
     }
 
@@ -354,11 +342,7 @@ object IntegrationSpec : Spek({
         given("project with direct and indirect cyclic dependency") {
             action("context Analyser which does not resolve poms") {
                 val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "cyclic/directAndIndirectCyclicDependency")
-                assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
-
-                test("root project has two dependents") {
-                    assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleD)
-                }
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleD)
 
                 assertOneUpdateAndOneReleaseCommand(releasePlan, "direct cyclic dependent", exampleB, exampleA)
                 assertHasNoDependentsAndIsOnLevel(releasePlan, "direct cyclic dependent", exampleB, 1)
@@ -386,11 +370,7 @@ object IntegrationSpec : Spek({
                         exampleA.id,
                         "cyclic/directAndIndirectCyclicDependencyWhereIndirectIsAlsoDirect"
                     )
-                assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
-
-                test("root project has two dependents") {
-                    assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleC)
-                }
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC)
 
                 assertOneDirectDependent(releasePlan, "direct cyclic dependent", exampleB, exampleC)
                 assertTwoUpdateAndOneReleaseCommand(
@@ -508,11 +488,8 @@ private fun SpecBody.testReleaseAWithDependentBAndX(
 ) {
     action("context Analyser which does not resolve poms") {
         val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
-        assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+        assertRootProjectWithDependents(releasePlan, exampleA, exampleB, projectX)
 
-        it("root has two dependent projects") {
-            assert(releasePlan).hasDependentsForProject(exampleA, exampleB, projectX)
-        }
         furtherAssertions(releasePlan)
     }
 }

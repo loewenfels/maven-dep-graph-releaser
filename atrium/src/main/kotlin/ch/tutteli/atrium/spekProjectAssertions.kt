@@ -15,7 +15,7 @@ val exampleDeps = IdAndVersions(MavenProjectId("com.example", "deps"), "9-SNAPSH
 
 
 fun ActionBody.assertSingleProject(releasePlan: ReleasePlan, idAndVersions: IdAndVersions) {
-    assertRootProjectOnlyReleaseAndReady(releasePlan, idAndVersions)
+    assertRootProjectOnlyReleaseCommand(releasePlan, idAndVersions)
 
     test("it does not have any dependent project") {
         assert(releasePlan.dependents) {
@@ -31,11 +31,7 @@ fun ActionBody.assertReleaseAWithDependentBWithDependentC(
     releasePlan: ReleasePlan,
     projectB: IdAndVersions = exampleB
 ) {
-    assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
-
-    test("root project has one dependent") {
-        assert(releasePlan).hasDependentsForProject(exampleA, projectB)
-    }
+    assertRootProjectWithDependents(releasePlan, exampleA, projectB)
 
     assertOneDirectDependent(releasePlan, "direct dependent", projectB, exampleC)
     assertOneUpdateAndOneReleaseCommand(releasePlan, "indirect dependent", exampleC, exampleB)
@@ -45,22 +41,36 @@ fun ActionBody.assertReleaseAWithDependentBWithDependentC(
 }
 
 fun ActionBody.assertProjectAWithDependentB(releasePlan: ReleasePlan) {
-    assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+    assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
 
-    assertOneUpdateAndOneReleaseCommand(releasePlan, "indirect dependent", exampleB, exampleA)
+    assertOneUpdateAndOneReleaseCommand(releasePlan, "direct dependent", exampleB, exampleA)
     assertHasNoDependentsAndIsOnLevel(releasePlan, "direct dependent", exampleB, 1)
 
     assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 2)
 }
 
-fun ActionBody.assertRootProjectOnlyReleaseAndReady(releasePlan: ReleasePlan, idAndVersions: IdAndVersions) {
-    test("${ReleasePlan::rootProjectId.name} is expected rootProject") {
-        assert(releasePlan.rootProjectId).toBe(idAndVersions.id)
+fun ActionBody.assertRootProjectWithDependents(
+    releasePlan: ReleasePlan,
+    rootProjectIdAndVersions: IdAndVersions,
+    dependentIdAndVersions: IdAndVersions,
+    vararg otherDependentIdAndVersions: IdAndVersions
+) {
+    assertRootProjectOnlyReleaseCommand(releasePlan, rootProjectIdAndVersions)
+
+    test("root project has ${otherDependentIdAndVersions.size + 1} dependent(s)") {
+        assert(releasePlan).hasDependentsForProject(exampleA, dependentIdAndVersions, *otherDependentIdAndVersions)
     }
-    val rootProject = releasePlan.projects[idAndVersions.id]!!
-    test("root project's ${Project::id.name} and versions are $idAndVersions") {
+}
+
+
+fun ActionBody.assertRootProjectOnlyReleaseCommand(releasePlan: ReleasePlan, rootProjectIdAndVersions: IdAndVersions){
+    test("${ReleasePlan::rootProjectId.name} is expected rootProject") {
+        assert(releasePlan.rootProjectId).toBe(rootProjectIdAndVersions.id)
+    }
+    val rootProject = releasePlan.projects[rootProjectIdAndVersions.id]!!
+    test("root project's ${Project::id.name} and versions are $rootProjectIdAndVersions") {
         assert(rootProject) {
-            idAndVersions(idAndVersions)
+            idAndVersions(rootProjectIdAndVersions)
         }
     }
     test("root project's level is 0") {
@@ -68,12 +78,12 @@ fun ActionBody.assertRootProjectOnlyReleaseAndReady(releasePlan: ReleasePlan, id
             property(subject::level).toBe(0)
         }
     }
-    test("root project contains just the ${JenkinsMavenReleasePlugin::class.simpleName} command, which is Ready with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = ${idAndVersions.nextDevVersion}") {
+    test("root project contains just the ${JenkinsMavenReleasePlugin::class.simpleName} command, which is Ready with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = ${rootProjectIdAndVersions.nextDevVersion}") {
         assert(rootProject) {
             property(subject::commands).containsStrictly({
                 isA<JenkinsMavenReleasePlugin> {
                     isStateReady()
-                    property(subject::nextDevVersion).toBe(idAndVersions.nextDevVersion)
+                    property(subject::nextDevVersion).toBe(rootProjectIdAndVersions.nextDevVersion)
                 }
             })
         }
@@ -187,7 +197,7 @@ fun ActionBody.assertReleasePlanHasNumOfProjectsAndDependents(releasePlan: Relea
     }
 }
 
-fun ActionBody.assertReleasePlanHasNoWarnings(releasePlan: ReleasePlan){
+fun ActionBody.assertReleasePlanHasNoWarnings(releasePlan: ReleasePlan) {
     test("it does not have warnings") {
         assert(releasePlan.warnings).isEmpty()
     }
