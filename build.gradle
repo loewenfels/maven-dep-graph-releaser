@@ -4,7 +4,7 @@ buildscript {
     ext {
         ghPages_version = version
         kotlin_version = '1.2.30'
-        pom_explorer_version = '1.3.7'
+        pom_explorer_version = '1.3.8'
         moshi_version = '1.5.0'
         kotlin_html_version = '0.6.8'
         kbox_version = '0.3.0'

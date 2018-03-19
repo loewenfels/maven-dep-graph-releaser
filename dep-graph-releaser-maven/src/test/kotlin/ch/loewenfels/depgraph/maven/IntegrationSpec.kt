@@ -89,7 +89,7 @@ object IntegrationSpec : Spek({
     describe("warnings") {
         given("a project without group id") {
             test("release plan contains warning which includes file path") {
-                val testDir = getTestDirectory("errorCases/projectWithoutGroupId")
+                val testDir = getTestDirectory("warnings/projectWithoutGroupId")
                 val pom = File(testDir, "b.pom")
                 val releasePlan = analyseAndCreateReleasePlan(exampleA.id, testDir)
                 assert(releasePlan.warnings).containsStrictly({
@@ -99,7 +99,7 @@ object IntegrationSpec : Spek({
         }
         given("a project without version") {
             test("release plan contains warning which includes file path") {
-                val testDir = getTestDirectory("errorCases/projectWithoutVersion")
+                val testDir = getTestDirectory("warnings/projectWithoutVersion")
                 val pom = File(testDir, "b.pom")
                 val releasePlan = analyseAndCreateReleasePlan(exampleA.id, testDir)
                 assert(releasePlan.warnings).containsStrictly({
