@@ -39,6 +39,13 @@ class Gui(private val releasePlan: ReleasePlan) {
                     }
                 }
             }
+
+            releasePlan.iterator().asSequence().forEach { project ->
+                val div = elementById(project.id.identifier).asDynamic()
+                div.project = project
+                div.dependents = releasePlan.getDependents(project.id)
+            }
+
         }
         val involvedProjects = set.size
         showMessage("Projects involved: $involvedProjects")
@@ -54,9 +61,10 @@ class Gui(private val releasePlan: ReleasePlan) {
         level: Int
     ) = itr.hasNext() && level == itr.peek().level
 
+
     private fun DIV.project(project: Project) {
-        val id = project.id
         div("project") {
+            val id = project.id
             this.id = id.identifier
             div("title") {
                 toggle("${id.identifier}:disableAll", project.commands.any { it.state !is CommandState.Deactivated })
@@ -125,7 +133,7 @@ class Gui(private val releasePlan: ReleasePlan) {
                 htmlFor = id
                 +label
             }
-            input(InputType.text) {
+            textInput {
                 this.id = id
                 value = text
                 inputAct()
@@ -157,7 +165,7 @@ class Gui(private val releasePlan: ReleasePlan) {
 
     private fun DIV.toggle(id: String, checked: Boolean, checkboxCssClass: String = "") {
         label("toggle") {
-            input(InputType.checkBox, classes = checkboxCssClass) {
+            checkBoxInput(classes = checkboxCssClass) {
                 this.id = id
                 this.checked = checked
                 onClick = "toggle('$id')"

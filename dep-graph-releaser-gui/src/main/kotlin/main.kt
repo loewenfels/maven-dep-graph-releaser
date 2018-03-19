@@ -1,10 +1,10 @@
-import ch.loewenfels.depgraph.Gui
-import ch.loewenfels.depgraph.deserialize
-import ch.loewenfels.depgraph.display
-import ch.loewenfels.depgraph.showError
+import ch.loewenfels.depgraph.*
 import org.w3c.fetch.Request
 import kotlin.browser.window
 import kotlin.js.Promise
+
+@JsName("toggler")
+lateinit var toggler: Toggler
 
 @JsName("main")
 fun main(jsonUrl: String) {
@@ -15,6 +15,7 @@ fun main(jsonUrl: String) {
         .then { body: String ->
             val releasePlan = deserialize(body)
             Gui(releasePlan).load()
+            toggler = Toggler()
             switchLoaderAndGui()
         }
         .catch {

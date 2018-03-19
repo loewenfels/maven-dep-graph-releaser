@@ -1,9 +1,10 @@
 package ch.loewenfels.depgraph
 
+import ch.loewenfels.depgraph.data.ProjectId
 import org.w3c.dom.HTMLInputElement
 import kotlin.browser.document
 
-class Toggler(private val releasePlan: dynamic) {
+class Toggler {
 
     @JsName("toggle")
     fun toggle(id: String) {
@@ -52,12 +53,9 @@ class Toggler(private val releasePlan: dynamic) {
     }
 
     private fun deactivateDependents(prefix: String) {
-        val dependents = releasePlan[prefix]
-        require(dependents != null) {
-            "there are no dependents for $prefix"
-        }
-        (dependents as Array<String>).forEach {
-            val disableAll = "$it:disableAll"
+        val dependents : Set<ProjectId> = elementById(prefix).asDynamic().dependents as Set<ProjectId>
+        dependents.forEach {
+            val disableAll = "${it.identifier}:disableAll"
             getCheckbox(disableAll).checked = false
             toggle(disableAll)
         }
