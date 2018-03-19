@@ -81,27 +81,25 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         }
     }
 
-    private fun initDependent(paramObject: ParamObject): Project {
+    private fun initDependent(paramObject: ParamObject) {
         val newDependent =
             createInitialWaitingProject(paramObject.relation, paramObject.level, paramObject.dependencyId)
         paramObject.dependents[newDependent.id] = hashSetOf()
         addToNextLevelOfDependentsToVisit(paramObject.dependentsToVisit, newDependent)
         updateCommandsAddDependentAndAddToProjects(paramObject, newDependent)
-        return newDependent
     }
 
-    private fun checkForCyclicAndUpdateIfOk(paramObject: ParamObject, existingDependent: Project): Project {
+    private fun checkForCyclicAndUpdateIfOk(paramObject: ParamObject, existingDependent: Project) {
         analyseCycles(paramObject, existingDependent)
         val cycles = paramObject.cyclicDependents[existingDependent.id]
-        return if (cycles == null || !cycles.containsKey(paramObject.dependencyId)) {
+        if (cycles == null || !cycles.containsKey(paramObject.dependencyId)) {
             val updatedDependent = Project(existingDependent, paramObject.level)
             paramObject.projects[existingDependent.id] = updatedDependent
             //we need to re-visit so that we can update the levels of the dependents as well
             removeIfVisitOnSameLevelAndReAddOnNext(updatedDependent, paramObject.dependentsToVisit)
             updateCommandsAddDependentAndAddToProjects(paramObject, updatedDependent)
-            updatedDependent
         } else {
-            existingDependent
+            //we ignore the relation because it would introduce a cyclic dependency which we currently do not support.
         }
     }
 

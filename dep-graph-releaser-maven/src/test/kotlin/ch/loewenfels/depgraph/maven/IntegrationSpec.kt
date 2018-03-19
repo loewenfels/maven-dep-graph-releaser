@@ -115,17 +115,22 @@ object IntegrationSpec : Spek({
         }
     }
 
-    given("project with dependency incl. version") {
+    given("project with dependent which manages version itself") {
         testReleaseAWithDependentB("oneDependentVersionInDependency")
         testReleaseBWithNoDependent("oneDependentVersionInDependency")
     }
 
-    given("project with dependency and version in dependency management") {
+    given("project with dependent only via dependency management") {
+        testReleaseAWithDependentB("oneDependentOnlyViaManagement")
+        testReleaseBWithNoDependent("oneDependentOnlyViaManagement")
+    }
+
+    given("project with dependent and version in dependency management") {
         testReleaseAWithDependentB("oneDependentVersionViaManagement")
         testReleaseBWithNoDependent("oneDependentVersionViaManagement")
     }
 
-    given("project with dependency and version in bom") {
+    given("project with dependent and version in bom") {
         action("context Analyser with a mocked PomFileResolver") {
             val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "oneDependentVersionViaBom")
             assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
@@ -134,6 +139,28 @@ object IntegrationSpec : Spek({
             assertHasNoDependentsAndIsOnLevel(releasePlan, "direct dependent", exampleB, 1)
 
             assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 2)
+        }
+    }
+
+    given("project with dependent and version in parent dependency management") {
+        action("context Analyser with a mocked PomFileResolver") {
+            val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "oneDependentVersionViaParent")
+            assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+
+            assertOneDirectDependent(releasePlan, "parent", exampleC, exampleB)
+
+            test("direct dependent project has one waiting UpdateVersion and one waiting Release command") {
+                assert(releasePlan.projects[exampleB.id]).isNotNull {
+                    idAndVersions(exampleB)
+                    property(subject::commands).containsStrictly(
+                        { isJenkinsUpdateDependencyWaiting(exampleC) },
+                        { isJenkinsMavenReleaseWaiting(exampleB.nextDevVersion, exampleA, exampleC) }
+                    )
+                }
+            }
+            assertHasNoDependentsAndIsOnLevel(releasePlan, "direct dependent", exampleB, 2)
+
+            assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
         }
     }
 
@@ -165,9 +192,9 @@ object IntegrationSpec : Spek({
         }
     }
 
-    given("two projects unrelated but one has other in dependency management") {
+    given("two projects unrelated") {
         context("Analyser which does not resolve poms") {
-            action("we release project A (is in B in dependency management)") {
+            action("we release project A") {
                 testReleaseSingleProject(exampleA, "unrelatedProjects")
             }
             testReleaseBWithNoDependent("unrelatedProjects")
@@ -401,6 +428,9 @@ private fun analyseAndCreateReleasePlanWithMockedPomResolver(
         on {
             it.loadPomFileForGav(eq(Gav(exampleB.id.groupId, exampleB.id.artifactId, "1.0.0")), eq(null), any())
         }.thenReturn(File(oldPomsDir, "b-1.0.0.pom"))
+        on {
+            it.loadPomFileForGav(eq(Gav(exampleC.id.groupId, exampleC.id.artifactId, "2.0.0")), eq(null), any())
+        }.thenReturn(File(oldPomsDir, "c-2.0.0.pom"))
         on {
             it.loadPomFileForGav(eq(Gav(exampleDeps.id.groupId, exampleDeps.id.artifactId, "8")), eq(null), any())
         }.thenReturn(File(oldPomsDir, "deps-8.pom"))

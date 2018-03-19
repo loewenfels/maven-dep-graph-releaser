@@ -4,7 +4,7 @@ import ch.loewenfels.depgraph.data.Relation
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.tutteli.kbox.appendToStringBuilder
 import fr.lteconsulting.pomexplorer.*
-import fr.lteconsulting.pomexplorer.graph.relation.DependencyRelation
+import fr.lteconsulting.pomexplorer.graph.relation.DependencyLikeRelation
 import fr.lteconsulting.pomexplorer.graph.relation.ParentRelation
 import fr.lteconsulting.pomexplorer.model.Gav
 import java.io.File
@@ -41,7 +41,6 @@ class Analyser internal constructor(
         dependents = analyseDependents(analysedProjects)
         projectIds = getInternalAnalysedGavs()
             .associateBy({ it.toMavenProjectId() }, { it.version })
-
     }
 
     private fun analyseDirectory(directoryWithProjects: File, pomFileLoader: PomFileLoader): PomAnalysis {
@@ -92,12 +91,15 @@ class Analyser internal constructor(
                 .filter { analysedProjects.contains(it.targetToMapKey()) }
                 .forEach { relation ->
                     val set = dependents.getOrPut(relation.targetToMapKey(), { mutableSetOf() })
-                    if (relation is DependencyRelation) {
-                        set.add(gav.toRelation(relation.dependency.isVersionSelfManaged.orElse(false)))
-                    } else if(relation is ParentRelation) {
-                        set.add(gav.toRelation(true))
+                    when(relation) {
+                        is DependencyLikeRelation ->
+                            set.add(gav.toRelation(relation.dependency.isVersionSelfManaged.orElse(false)))
+
+                        is ParentRelation ->
+                            set.add(gav.toRelation(true))
+
+                        //we ignore other relations at the moment (such as BuildDependencyRelation)
                     }
-                    //we ignore other relations at the moment (such as BuildDependencyRelation)
                 }
         }
         return dependents
