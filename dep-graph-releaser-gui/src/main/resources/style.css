@@ -8,10 +8,15 @@ body {
 
 #messages {
     position: fixed;
-    left: 15px;
-    right: 15px;
+    left: 0;
+    right: 0;
     bottom: 10px;
+    max-height: 25%;
+    overflow-y: auto;
+    padding-left: 15px;
+    padding-right: 15px;
 }
+
 #messages > .error, #messages > .warning {
     border: 2px solid;
     border-radius: 6px;
@@ -35,7 +40,7 @@ body {
 
 .close {
    position: absolute;
-   right: 12px;
+   right: 27px;
    margin-top: -3px;
    opacity: 0.3;
    cursor: pointer;
