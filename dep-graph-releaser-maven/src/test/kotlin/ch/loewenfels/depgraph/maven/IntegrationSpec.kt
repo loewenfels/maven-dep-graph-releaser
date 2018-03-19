@@ -115,81 +115,9 @@ object IntegrationSpec : Spek({
         }
     }
 
-    given("project with dependent which manages version itself") {
-        testReleaseAWithDependentB("oneDependentVersionInDependency")
-        testReleaseBWithNoDependent("oneDependentVersionInDependency")
-    }
-
     given("project with dependent only via dependency management") {
         testReleaseAWithDependentB("oneDependentOnlyViaManagement")
         testReleaseBWithNoDependent("oneDependentOnlyViaManagement")
-    }
-
-    given("project with dependent and version in dependency management") {
-        testReleaseAWithDependentB("oneDependentVersionViaManagement")
-        testReleaseBWithNoDependent("oneDependentVersionViaManagement")
-    }
-
-    given("project with dependent and version in bom") {
-        action("context Analyser with a mocked PomFileResolver") {
-            val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "oneDependentVersionViaBom")
-            assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
-
-            assertOnlyWaitingReleaseCommand(releasePlan, "indirect dependent", exampleB, exampleA)
-            assertHasNoDependentsAndIsOnLevel(releasePlan, "direct dependent", exampleB, 1)
-
-            assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 2)
-        }
-    }
-
-    given("project with dependent and version in parent dependency management") {
-        action("context Analyser with a mocked PomFileResolver") {
-            val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "oneDependentVersionViaParent")
-            assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
-
-            assertOneDirectDependent(releasePlan, "parent", exampleC, exampleB)
-
-            test("direct dependent project has one waiting UpdateVersion and one waiting Release command") {
-                assert(releasePlan.projects[exampleB.id]).isNotNull {
-                    idAndVersions(exampleB)
-                    property(subject::commands).containsStrictly(
-                        { isJenkinsUpdateDependencyWaiting(exampleC) },
-                        { isJenkinsMavenReleaseWaiting(exampleB.nextDevVersion, exampleA, exampleC) }
-                    )
-                }
-            }
-            assertHasNoDependentsAndIsOnLevel(releasePlan, "direct dependent", exampleB, 2)
-
-            assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
-        }
-    }
-
-    given("project with parent dependency") {
-        testReleaseAWithDependentB("parent")
-        testReleaseBWithNoDependent("parent")
-    }
-
-    given("project with parent which itself has a parent, old parents are not resolved") {
-        testReleaseAWithDependentBWithDependentC("parentWithParent")
-    }
-
-    given("project with parent which itself has a parent, old parents are resolved") {
-        action("context use an Analyser with a mocked PomFileResolver") {
-            val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "parentWithParent")
-            assertReleaseAWithDependentBWithDependentC(releasePlan)
-        }
-    }
-
-    given("project with multi-module parent (parent has SNAPSHOT dependency to parent), old parents are not resolved") {
-        testReleaseAWithDependentBWithDependentC("multiModuleParent", IdAndVersions(exampleB.id, exampleA))
-    }
-
-    given("project with multi-module parent (parent has SNAPSHOT dependency to parent), old parents are resolved") {
-        action("context use an Analyser with a mocked PomFileResolver") {
-            val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "multiModuleParent")
-
-            assertReleaseAWithDependentBWithDependentC(releasePlan, IdAndVersions(exampleB.id, exampleA))
-        }
     }
 
     given("two projects unrelated") {
@@ -201,205 +129,306 @@ object IntegrationSpec : Spek({
         }
     }
 
-    given("project with implicit transitive dependent") {
-        testReleaseAWithDependentBWithDependentC("transitiveImplicit")
-    }
-
-    given("project with explicit transitive dependent") {
-        testReleaseAWithDependentBAndX("transitiveExplicit", exampleC) { releasePlan ->
-
-            assertOneDirectDependent(releasePlan, "the direct dependent", exampleB, exampleC)
-
-            assertTwoUpdateAndOneReleaseCommand(releasePlan, "the indirect dependent", exampleC, exampleB, exampleA)
-            assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
-
-            assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
+    describe("different ways of managing versions") {
+        given("project with dependent and version in dependency itself") {
+            testReleaseAWithDependentB("oneDependentVersionInDependency")
+            testReleaseBWithNoDependent("oneDependentVersionInDependency")
         }
-    }
 
-    given("project with explicit transitive dependent which itself has dependent") {
+        //TODO project with dependent and version in property
+        //TODO project with dependent and version is $project.version
 
-        action("context Analyser which does not resolve poms") {
-            val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "transitiveExplicitWithDependent")
-            assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
-
-            it("root has two dependent projects") {
-                assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleD)
-            }
-
-            test("root has two dependent projects") {
-                assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleD)
-            }
-
-            assertTwoUpdateAndOneReleaseCommand(releasePlan, "the parent", exampleB, exampleD, exampleA)
-            assertHasOneDependentAndIsOnLevel(releasePlan, "the parent", exampleB, exampleC, 2)
-
-            assertOneDirectDependent(releasePlan, "the direct dependent", exampleD, exampleB)
-
-            assertOneUpdateAndOneReleaseCommand(releasePlan, "the indirect dependent", exampleC, exampleB)
-            assertHasNoDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 3)
-
-            assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+        given("project with dependent and version in dependency management") {
+            testReleaseAWithDependentB("oneDependentVersionViaManagement")
+            testReleaseBWithNoDependent("oneDependentVersionViaManagement")
         }
-    }
 
-    given("project with explicit transitive dependent and diamond dependency") {
-
-        action("context Analyser which tries to resolve poms") {
-            val releasePlan =
-                analyseAndCreateReleasePlan(exampleA.id, "transitiveExplicitTwoDependencies")
-            assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
-
-            test("root has three dependent projects") {
-                assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleC, exampleD)
-            }
-
-            assertOneDirectDependent(releasePlan, "first direct dependent", exampleB, exampleC)
-            assertOneDirectDependent(releasePlan, "second direct dependent", exampleD, exampleC)
-
-            test("the indirect dependent project has three updateVersion and one Release command") {
-                assert(releasePlan.projects[exampleC.id]).isNotNull {
-                    idAndVersions(exampleC)
-                    property(subject::commands).containsStrictly(
-                        { isJenkinsUpdateDependencyWaiting(exampleB) },
-                        { isJenkinsUpdateDependencyWaiting(exampleD) },
-                        { isJenkinsUpdateDependencyWaiting(exampleA) },
-                        { isJenkinsMavenReleaseWaiting(exampleC.nextDevVersion, exampleD, exampleB, exampleA) }
-                    )
-                }
-            }
-            assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
-
-            assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
-        }
-    }
-
-    given("project with explicit transitive dependent via parent (parent with dependency)") {
-        describe("parent is first dependent") {
-            action("context Analyser which does not resolve poms") {
-                val releasePlan = analyseAndCreateReleasePlan(
-                    exampleA.id, "transitiveExplicitViaParentAsFirstDependent"
-                )
+        given("project with dependent and version in bom") {
+            action("context Analyser with a mocked PomFileResolver") {
+                val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "oneDependentVersionViaBom")
                 assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
 
-                assertOneDirectDependent(releasePlan, "the parent", exampleB, exampleC)
-                assertOneDirectDependent(releasePlan, "the direct dependent", exampleD, exampleC)
+                assertOnlyWaitingReleaseCommand(releasePlan, "indirect dependent", exampleB, exampleA)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "direct dependent", exampleB, 1)
 
-                assertTwoUpdateAndOneReleaseCommand(releasePlan, "the indirect dependent", exampleC, exampleB, exampleD)
-                assertHasNoDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 2)
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 2)
+                assertReleasePlanHasNoWarnings(releasePlan)
+            }
+        }
+
+        given("project with dependent and version in parent dependency management") {
+            action("context Analyser with a mocked PomFileResolver") {
+                val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "oneDependentVersionViaParent")
+                assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+
+                assertOneDirectDependent(releasePlan, "parent", exampleC, exampleB)
+
+                test("direct dependent project has one waiting UpdateVersion and one waiting Release command") {
+                    assert(releasePlan.projects[exampleB.id]).isNotNull {
+                        idAndVersions(exampleB)
+                        property(subject::commands).containsStrictly(
+                            { isJenkinsUpdateDependencyWaiting(exampleC) },
+                            { isJenkinsMavenReleaseWaiting(exampleB.nextDevVersion, exampleA, exampleC) }
+                        )
+                    }
+                }
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "direct dependent", exampleB, 2)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
+                assertReleasePlanHasNoWarnings(releasePlan)
+            }
+        }
+    }
+
+    describe("parent relations") {
+
+        given("project with parent dependency") {
+            testReleaseAWithDependentB("parent")
+            testReleaseBWithNoDependent("parent")
+        }
+
+        given("project with parent which itself has a parent, old parents are not resolved") {
+            testReleaseAWithDependentBWithDependentC("parentWithParent")
+        }
+
+        given("project with parent which itself has a parent, old parents are resolved") {
+            action("context use an Analyser with a mocked PomFileResolver") {
+                val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "parentWithParent")
+                assertReleaseAWithDependentBWithDependentC(releasePlan)
+                assertReleasePlanHasNoWarnings(releasePlan)
+            }
+        }
+
+        given("project with multi-module parent (parent has SNAPSHOT dependency to parent), old parents are not resolved") {
+            testReleaseAWithDependentBWithDependentC("multiModuleParent", IdAndVersions(exampleB.id, exampleA))
+        }
+
+        given("project with multi-module parent (parent has SNAPSHOT dependency to parent), old parents are resolved") {
+            action("context use an Analyser with a mocked PomFileResolver") {
+                val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "multiModuleParent")
+
+                assertReleaseAWithDependentBWithDependentC(releasePlan, IdAndVersions(exampleB.id, exampleA))
+                assertReleasePlanHasNoWarnings(releasePlan)
+            }
+        }
+    }
+
+    describe("transitive dependencies") {
+
+        given("project with implicit transitive dependent") {
+            testReleaseAWithDependentBWithDependentC("transitiveImplicit")
+        }
+
+        given("project with explicit transitive dependent") {
+            testReleaseAWithDependentBAndX("transitiveExplicit", exampleC) { releasePlan ->
+
+                assertOneDirectDependent(releasePlan, "the direct dependent", exampleB, exampleC)
+
+                assertTwoUpdateAndOneReleaseCommand(releasePlan, "the indirect dependent", exampleC, exampleB, exampleA)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
+                assertReleasePlanHasNoWarnings(releasePlan)
+            }
+        }
+
+        given("project with explicit transitive dependent which itself has dependent") {
+
+            action("context Analyser which does not resolve poms") {
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "transitiveExplicitWithDependent")
+                assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+
+                it("root has two dependent projects") {
+                    assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleD)
+                }
+
+                test("root has two dependent projects") {
+                    assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleD)
+                }
+
+                assertTwoUpdateAndOneReleaseCommand(releasePlan, "the parent", exampleB, exampleD, exampleA)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "the parent", exampleB, exampleC, 2)
+
+                assertOneDirectDependent(releasePlan, "the direct dependent", exampleD, exampleB)
+
+                assertOneUpdateAndOneReleaseCommand(releasePlan, "the indirect dependent", exampleC, exampleB)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 3)
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+                assertReleasePlanHasNoWarnings(releasePlan)
             }
         }
 
-        describe("parent is second dependent") {
-            testReleaseAWithDependentBDAndCViaD("transitiveExplicitViaParentAsSecondDependent")
+        given("project with explicit transitive dependent and diamond dependency") {
+
+            action("context Analyser which tries to resolve poms") {
+                val releasePlan =
+                    analyseAndCreateReleasePlan(exampleA.id, "transitiveExplicitTwoDependencies")
+                assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+
+                test("root has three dependent projects") {
+                    assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleC, exampleD)
+                }
+
+                assertOneDirectDependent(releasePlan, "first direct dependent", exampleB, exampleC)
+                assertOneDirectDependent(releasePlan, "second direct dependent", exampleD, exampleC)
+
+                test("the indirect dependent project has three updateVersion and one Release command") {
+                    assert(releasePlan.projects[exampleC.id]).isNotNull {
+                        idAndVersions(exampleC)
+                        property(subject::commands).containsStrictly(
+                            { isJenkinsUpdateDependencyWaiting(exampleB) },
+                            { isJenkinsUpdateDependencyWaiting(exampleD) },
+                            { isJenkinsUpdateDependencyWaiting(exampleA) },
+                            { isJenkinsMavenReleaseWaiting(exampleC.nextDevVersion, exampleD, exampleB, exampleA) }
+                        )
+                    }
+                }
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+                assertReleasePlanHasNoWarnings(releasePlan)
+            }
         }
-    }
 
-    given("project with explicit transitive dependent via pom (pom has dependency)") {
-        testReleaseAWithDependentBDAndCViaD("transitiveExplicitViaPom")
-    }
+        given("project with explicit transitive dependent via parent (parent with dependency)") {
+            describe("parent is first dependent") {
+                action("context Analyser which does not resolve poms") {
+                    val releasePlan = analyseAndCreateReleasePlan(
+                        exampleA.id, "transitiveExplicitViaParentAsFirstDependent"
+                    )
+                    assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
 
-    given("project with direct cyclic dependency") {
-        action("context Analyser which does not resolve poms") {
-            val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "directCyclicDependency")
-            assertProjectAWithDependentB(releasePlan)
+                    assertOneDirectDependent(releasePlan, "the parent", exampleB, exampleC)
+                    assertOneDirectDependent(releasePlan, "the direct dependent", exampleD, exampleC)
 
-            assertReleasePlanHasWarningWithDependencyGraph(
-                releasePlan,
-                "-> ${exampleB.id.identifier} -> ${exampleA.id.identifier}"
-            )
-        }
-    }
+                    assertTwoUpdateAndOneReleaseCommand(
+                        releasePlan,
+                        "the indirect dependent",
+                        exampleC,
+                        exampleB,
+                        exampleD
+                    )
+                    assertHasNoDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 2)
 
-    given("project with indirect cyclic dependency") {
-        action("context Analyser which does not resolve poms") {
-            val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "indirectCyclicDependency")
-            assertReleaseAWithDependentBWithDependentC(releasePlan)
-
-            assertReleasePlanHasWarningWithDependencyGraph(
-                releasePlan,
-                "-> ${exampleC.id.identifier} -> ${exampleB.id.identifier} -> ${exampleA.id.identifier}"
-            )
-        }
-    }
-
-    given("project with direct and indirect cyclic dependency") {
-        action("context Analyser which does not resolve poms") {
-            val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "directAndIndirectCyclicDependency")
-            assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
-
-            test("root project has two dependents") {
-                assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleD)
+                    assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+                }
             }
 
-            assertOneUpdateAndOneReleaseCommand(releasePlan, "direct cyclic dependent", exampleB, exampleA)
-            assertHasNoDependentsAndIsOnLevel(releasePlan, "direct cyclic dependent", exampleB, 1)
-
-            assertOneUpdateAndOneReleaseCommand(releasePlan, "indirect dependent", exampleD, exampleA)
-            assertHasOneDependentAndIsOnLevel(releasePlan, "indirect dependent", exampleD, exampleC, 1)
-
-            assertOneUpdateAndOneReleaseCommand(releasePlan, "indirect cyclic dependent", exampleC, exampleD)
-            assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect cyclic dependent", exampleC, 2)
-
-            assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
-
-            assertReleasePlanHasWarningWithDependencyGraph(
-                releasePlan,
-                "-> ${exampleB.id.identifier} -> ${exampleA.id.identifier}",
-                "-> ${exampleC.id.identifier} -> ${exampleD.id.identifier} -> ${exampleA.id.identifier}"
-            )
-        }
-    }
-
-    given("project with direct and indirect cyclic dependency where the indirect dependency is also a direct one") {
-        action("context Analyser which does not resolve poms") {
-            val releasePlan =
-                analyseAndCreateReleasePlan(exampleA.id, "directAndIndirectCyclicDependencyWhereIndirectIsAlsoDirect")
-            assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
-
-            test("root project has two dependents") {
-                assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleC)
+            describe("parent is second dependent") {
+                testReleaseAWithDependentBDAndCViaD("transitiveExplicitViaParentAsSecondDependent")
             }
+        }
 
-            assertOneDirectDependent(releasePlan, "direct cyclic dependent", exampleB, exampleC)
-            assertTwoUpdateAndOneReleaseCommand(
-                releasePlan,
-                "(in)direct cyclic dependent",
-                exampleC,
-                exampleB,
-                exampleA
-            )
-            assertHasNoDependentsAndIsOnLevel(releasePlan, "(in)direct cyclic dependent", exampleC, 2)
-
-            assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
-
-            assertReleasePlanHasWarningWithDependencyGraph(
-                releasePlan,
-                "-> ${exampleB.id.identifier} -> ${exampleA.id.identifier}",
-                "-> ${exampleC.id.identifier} -> ${exampleA.id.identifier}"
-            )
+        given("project with explicit transitive dependent via pom (pom has dependency)") {
+            testReleaseAWithDependentBDAndCViaD("transitiveExplicitViaPom")
         }
     }
 
-    given("project with dependent which itself has a direct cyclic dependent") {
-        testReleaseAWithDependentBAndX("dependentWithDirectCyclicDependency", exampleD) { releasePlan ->
-            assertOneDirectDependent(releasePlan, "the direct dependent", exampleD, exampleB)
+    describe("cyclic dependencies") {
 
-            assertTwoUpdateAndOneReleaseCommand(releasePlan, "the cyclic partner", exampleB, exampleD, exampleA)
-            assertHasOneDependentAndIsOnLevel(releasePlan, "the cyclic partner", exampleB, exampleC, 2)
+        given("project with direct cyclic dependency") {
+            action("context Analyser which does not resolve poms") {
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "directCyclicDependency")
+                assertProjectAWithDependentB(releasePlan)
 
-            assertOneUpdateAndOneReleaseCommand(releasePlan, "the indirect dependent", exampleC, exampleB)
-            assertHasNoDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 3)
+                assertReleasePlanHasWarningWithDependencyGraph(
+                    releasePlan,
+                    "-> ${exampleB.id.identifier} -> ${exampleA.id.identifier}"
+                )
+            }
+        }
 
-            assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+        given("project with indirect cyclic dependency") {
+            action("context Analyser which does not resolve poms") {
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "indirectCyclicDependency")
+                assertReleaseAWithDependentBWithDependentC(releasePlan)
 
-            assertReleasePlanHasWarningWithDependencyGraph(
-                releasePlan,
-                "-> ${exampleB.id.identifier} -> ${exampleD.id.identifier}"
-            )
+                assertReleasePlanHasWarningWithDependencyGraph(
+                    releasePlan,
+                    "-> ${exampleC.id.identifier} -> ${exampleB.id.identifier} -> ${exampleA.id.identifier}"
+                )
+            }
+        }
 
+        given("project with direct and indirect cyclic dependency") {
+            action("context Analyser which does not resolve poms") {
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "directAndIndirectCyclicDependency")
+                assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+
+                test("root project has two dependents") {
+                    assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleD)
+                }
+
+                assertOneUpdateAndOneReleaseCommand(releasePlan, "direct cyclic dependent", exampleB, exampleA)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "direct cyclic dependent", exampleB, 1)
+
+                assertOneUpdateAndOneReleaseCommand(releasePlan, "indirect dependent", exampleD, exampleA)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "indirect dependent", exampleD, exampleC, 1)
+
+                assertOneUpdateAndOneReleaseCommand(releasePlan, "indirect cyclic dependent", exampleC, exampleD)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect cyclic dependent", exampleC, 2)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+
+                assertReleasePlanHasWarningWithDependencyGraph(
+                    releasePlan,
+                    "-> ${exampleB.id.identifier} -> ${exampleA.id.identifier}",
+                    "-> ${exampleC.id.identifier} -> ${exampleD.id.identifier} -> ${exampleA.id.identifier}"
+                )
+            }
+        }
+
+        given("project with direct and indirect cyclic dependency where the indirect dependency is also a direct one") {
+            action("context Analyser which does not resolve poms") {
+                val releasePlan =
+                    analyseAndCreateReleasePlan(
+                        exampleA.id,
+                        "directAndIndirectCyclicDependencyWhereIndirectIsAlsoDirect"
+                    )
+                assertRootProjectOnlyReleaseAndReady(releasePlan, exampleA)
+
+                test("root project has two dependents") {
+                    assert(releasePlan).hasDependentsForProject(exampleA, exampleB, exampleC)
+                }
+
+                assertOneDirectDependent(releasePlan, "direct cyclic dependent", exampleB, exampleC)
+                assertTwoUpdateAndOneReleaseCommand(
+                    releasePlan,
+                    "(in)direct cyclic dependent",
+                    exampleC,
+                    exampleB,
+                    exampleA
+                )
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "(in)direct cyclic dependent", exampleC, 2)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
+
+                assertReleasePlanHasWarningWithDependencyGraph(
+                    releasePlan,
+                    "-> ${exampleB.id.identifier} -> ${exampleA.id.identifier}",
+                    "-> ${exampleC.id.identifier} -> ${exampleA.id.identifier}"
+                )
+            }
+        }
+
+        given("project with dependent which itself has a direct cyclic dependent") {
+            testReleaseAWithDependentBAndX("dependentWithDirectCyclicDependency", exampleD) { releasePlan ->
+                assertOneDirectDependent(releasePlan, "the direct dependent", exampleD, exampleB)
+
+                assertTwoUpdateAndOneReleaseCommand(releasePlan, "the cyclic partner", exampleB, exampleD, exampleA)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "the cyclic partner", exampleB, exampleC, 2)
+
+                assertOneUpdateAndOneReleaseCommand(releasePlan, "the indirect dependent", exampleC, exampleB)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 3)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+
+                assertReleasePlanHasWarningWithDependencyGraph(
+                    releasePlan,
+                    "-> ${exampleB.id.identifier} -> ${exampleD.id.identifier}"
+                )
+            }
         }
     }
 })
@@ -454,6 +483,7 @@ private fun SpecBody.testReleaseAWithDependentBWithDependentC(directory: String,
     action("context Analyser which does not resolve poms") {
         val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
         assertReleaseAWithDependentBWithDependentC(releasePlan, projectB)
+        assertReleasePlanHasNoWarnings(releasePlan)
     }
 }
 
@@ -461,6 +491,7 @@ private fun SpecBody.testReleaseAWithDependentB(directory: String) {
     action("context Analyser which does not resolve poms") {
         val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
         assertProjectAWithDependentB(releasePlan)
+        assertReleasePlanHasNoWarnings(releasePlan)
     }
 }
 
@@ -496,6 +527,7 @@ private fun SpecBody.testReleaseAWithDependentBDAndCViaD(directory: String) {
         assertHasNoDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 2)
 
         assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+        assertReleasePlanHasNoWarnings(releasePlan)
     }
 }
 

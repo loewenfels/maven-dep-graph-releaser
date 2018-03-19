@@ -2,12 +2,9 @@ package ch.loewenfels.depgraph.runner
 
 import ch.loewenfels.depgraph.maven.getTestDirectory
 import ch.loewenfels.depgraph.serialization.Serializer
+import ch.tutteli.atrium.*
 import ch.tutteli.atrium.api.cc.en_UK.isTrue
 import ch.tutteli.atrium.api.cc.en_UK.returnValueOf
-import ch.tutteli.atrium.assert
-import ch.tutteli.atrium.assertProjectAWithDependentB
-import ch.tutteli.atrium.assertSingleProject
-import ch.tutteli.atrium.exampleB
 import ch.tutteli.spek.extensions.TempFolder
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
@@ -42,6 +39,7 @@ object MainSpec : Spek({
                 val json = Scanner(jsonFile, Charsets.UTF_8.name()).useDelimiter("\\Z").use { it.next() }
                 val releasePlan = Serializer().deserialize(json)
                 assertProjectAWithDependentB(releasePlan)
+                assertReleasePlanHasNoWarnings(releasePlan)
             }
         }
     }

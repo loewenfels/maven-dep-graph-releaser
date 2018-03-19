@@ -23,6 +23,8 @@ fun ActionBody.assertSingleProject(releasePlan: ReleasePlan, idAndVersions: IdAn
             returnValueOf(subject::get, idAndVersions.id).isNotNull { isEmpty() }
         }
     }
+
+    assertReleasePlanHasNoWarnings(releasePlan)
 }
 
 fun ActionBody.assertReleaseAWithDependentBWithDependentC(
@@ -185,6 +187,12 @@ fun ActionBody.assertReleasePlanHasNumOfProjectsAndDependents(releasePlan: Relea
     }
 }
 
+fun ActionBody.assertReleasePlanHasNoWarnings(releasePlan: ReleasePlan){
+    test("it does not have warnings") {
+        assert(releasePlan.warnings).isEmpty()
+    }
+}
+
 fun ActionBody.assertReleasePlanHasWarningWithDependencyGraph(
     releasePlan: ReleasePlan,
     dependencyBranch: String,
@@ -192,7 +200,7 @@ fun ActionBody.assertReleasePlanHasWarningWithDependencyGraph(
 ) {
     test("warning contains the cyclic dependency branch") {
         assert(releasePlan.warnings).containsStrictly({
-            contains(dependencyBranch, *otherDependencyBranches)
+            contains("cyclic dependencies", dependencyBranch, *otherDependencyBranches)
         })
     }
 }
