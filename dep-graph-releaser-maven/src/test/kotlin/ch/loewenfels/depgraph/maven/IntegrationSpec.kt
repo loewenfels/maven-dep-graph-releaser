@@ -195,6 +195,31 @@ object IntegrationSpec : Spek({
                 assertReleasePlanHasNoWarnings(releasePlan)
             }
         }
+
+        given("project with dependent and version in bom which is imported in parent") {
+            action("context Analyser with a mocked PomFileResolver") {
+                val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "managingVersions/viaParentViaBom")
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC)
+
+                assertOneDirectDependent(releasePlan, "parent", exampleC, exampleB)
+
+                test("direct dependent project has one waiting UpdateVersion and one waiting Release command") {
+                    assert(releasePlan.getProject(exampleB.id)) {
+                        idAndVersions(exampleB)
+                        property(subject::commands).containsStrictly(
+                            { isJenkinsUpdateDependencyWaiting(exampleC) },
+                            { isJenkinsMavenReleaseWaiting(exampleB.nextDevVersion, exampleA, exampleC) }
+                        )
+                    }
+                }
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "direct dependent", exampleB, 2)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
+                assertReleasePlanHasNoWarnings(releasePlan)
+            }
+        }
+
+
     }
 
     describe("parent relations") {
@@ -538,6 +563,9 @@ private fun analyseAndCreateReleasePlanWithMockedPomResolver(
         on {
             it.loadPomFileForGav(eq(Gav(exampleC.id.groupId, exampleC.id.artifactId, "2.0.0")), eq(null), any())
         }.thenReturn(File(oldPomsDir, "c-2.0.0.pom"))
+        on {
+            it.loadPomFileForGav(eq(Gav(exampleC.id.groupId, exampleC.id.artifactId, "1.0.0")), eq(null), any())
+        }.thenReturn(File(oldPomsDir, "c-1.0.0.pom"))
         on {
             it.loadPomFileForGav(eq(Gav(exampleDeps.id.groupId, exampleDeps.id.artifactId, "8")), eq(null), any())
         }.thenReturn(File(oldPomsDir, "deps-8.pom"))
