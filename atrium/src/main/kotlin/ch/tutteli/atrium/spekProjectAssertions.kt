@@ -18,16 +18,16 @@ fun ActionBody.assertSingleProject(releasePlan: ReleasePlan, idAndVersions: IdAn
     assertRootProjectOnlyReleaseCommand(releasePlan, idAndVersions)
 
     test("it does not have any dependent project") {
-        assert(releasePlan.dependents) {
-            property(subject::size).toBe(1)
-            returnValueOf(subject::get, idAndVersions.id).isNotNull { isEmpty() }
+        assert(releasePlan) {
+            returnValueOf(subject::getNumberOfDependents).toBe(1)
+            returnValueOf(subject::getDependents, idAndVersions.id).isEmpty()
         }
     }
 
     assertReleasePlanHasNoWarnings(releasePlan)
 }
 
-fun ActionBody.assertReleaseAWithDependentBWithDependentC(
+fun ActionBody.assertProjectAWithDependentBWithDependentC(
     releasePlan: ReleasePlan,
     projectB: IdAndVersions = exampleB
 ) {
@@ -57,27 +57,21 @@ fun ActionBody.assertRootProjectWithDependents(
 ) {
     assertRootProjectOnlyReleaseCommand(releasePlan, rootProjectIdAndVersions)
 
+    assertRootProjectHasDependents(releasePlan, dependentIdAndVersions, otherDependentIdAndVersions)
+}
+
+private fun ActionBody.assertRootProjectHasDependents(
+    releasePlan: ReleasePlan,
+    dependentIdAndVersions: IdAndVersions,
+    otherDependentIdAndVersions: Array<out IdAndVersions>
+) {
     test("root project has ${otherDependentIdAndVersions.size + 1} dependent(s)") {
         assert(releasePlan).hasDependentsForProject(exampleA, dependentIdAndVersions, *otherDependentIdAndVersions)
     }
 }
 
-
-fun ActionBody.assertRootProjectOnlyReleaseCommand(releasePlan: ReleasePlan, rootProjectIdAndVersions: IdAndVersions){
-    test("${ReleasePlan::rootProjectId.name} is expected rootProject") {
-        assert(releasePlan.rootProjectId).toBe(rootProjectIdAndVersions.id)
-    }
-    val rootProject = releasePlan.projects[rootProjectIdAndVersions.id]!!
-    test("root project's ${Project::id.name} and versions are $rootProjectIdAndVersions") {
-        assert(rootProject) {
-            idAndVersions(rootProjectIdAndVersions)
-        }
-    }
-    test("root project's level is 0") {
-        assert(rootProject) {
-            property(subject::level).toBe(0)
-        }
-    }
+fun ActionBody.assertRootProjectOnlyReleaseCommand(releasePlan: ReleasePlan, rootProjectIdAndVersions: IdAndVersions) {
+    val rootProject = assertRootProject(releasePlan, rootProjectIdAndVersions)
     test("root project contains just the ${JenkinsMavenReleasePlugin::class.simpleName} command, which is Ready with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = ${rootProjectIdAndVersions.nextDevVersion}") {
         assert(rootProject) {
             property(subject::commands).containsStrictly({
@@ -88,6 +82,25 @@ fun ActionBody.assertRootProjectOnlyReleaseCommand(releasePlan: ReleasePlan, roo
             })
         }
     }
+}
+
+
+fun ActionBody.assertRootProject(releasePlan: ReleasePlan, rootProjectIdAndVersions: IdAndVersions): Project {
+    test("${ReleasePlan::rootProjectId.name} is expected rootProject") {
+        assert(releasePlan.rootProjectId).toBe(rootProjectIdAndVersions.id)
+    }
+    val rootProject = releasePlan.getProject(rootProjectIdAndVersions.id)
+    test("root project's ${Project::id.name} and versions are $rootProjectIdAndVersions") {
+        assert(rootProject) {
+            idAndVersions(rootProjectIdAndVersions)
+        }
+    }
+    test("root project's level is 0") {
+        assert(rootProject) {
+            property(subject::level).toBe(0)
+        }
+    }
+    return rootProject
 }
 
 fun ActionBody.assertOneDirectDependent(
@@ -143,7 +156,7 @@ fun ActionBody.assertOnlyWaitingReleaseCommand(
     dependency: IdAndVersions
 ) {
     test("$name project has only one waiting Release command") {
-        assert(releasePlan.projects[project.id]).isNotNull {
+        assert(releasePlan.getProject(project.id)) {
             idAndVersions(project)
             property(subject::commands).containsStrictly(
                 { isJenkinsMavenReleaseWaiting(project.nextDevVersion, dependency) }
@@ -159,7 +172,7 @@ fun ActionBody.assertOneUpdateAndOneReleaseCommand(
     dependency: IdAndVersions
 ) {
     test("$name project has one waiting UpdateVersion and one waiting Release command") {
-        assert(releasePlan.projects[project.id]).isNotNull {
+        assert(releasePlan.getProject(project.id)) {
             idAndVersions(project)
             property(subject::commands).containsStrictly(
                 { isJenkinsUpdateDependencyWaiting(dependency) },
@@ -177,7 +190,7 @@ fun ActionBody.assertTwoUpdateAndOneReleaseCommand(
     dependency2: IdAndVersions
 ) {
     test("$name project has two waiting UpdateVersion and one waiting Release command") {
-        assert(releasePlan.projects[project.id]).isNotNull {
+        assert(releasePlan.getProject(project.id)) {
             idAndVersions(project)
             property(subject::commands).containsStrictly(
                 { isJenkinsUpdateDependencyWaiting(dependency1) },
@@ -191,8 +204,8 @@ fun ActionBody.assertTwoUpdateAndOneReleaseCommand(
 fun ActionBody.assertReleasePlanHasNumOfProjectsAndDependents(releasePlan: ReleasePlan, num: Int) {
     test("release plan has $num projects and $num dependents") {
         assert(releasePlan) {
-            property(subject::projects).hasSize(num)
-            property(subject::dependents).hasSize(num)
+            returnValueOf(subject::getNumberOfProjects).toBe(num)
+            returnValueOf(subject::getNumberOfDependents).toBe(num)
         }
     }
 }

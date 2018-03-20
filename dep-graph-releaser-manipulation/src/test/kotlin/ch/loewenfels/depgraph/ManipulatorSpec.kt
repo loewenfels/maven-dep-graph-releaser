@@ -59,10 +59,15 @@ object ManipulatorSpec : Spek({
             assert(newReleasePlan.getProject(rootProjectId)).isSame(rootProject)
         }
         test("there are still 3 projects") {
-            assert(newReleasePlan.projects).hasSize(3)
+            assert(newReleasePlan.getNumberOfProjects()).toBe(3)
         }
         test("the dependents are unchanged, is still the same instance") {
-            assert(newReleasePlan.dependents).isSame(dependents)
+            assert(newReleasePlan){
+                returnValueOf(subject::getNumberOfDependents).toBe(dependents.size)
+                dependents.forEach {
+                    returnValueOf(subject::getDependents, it.key).isSame(it.value)
+                }
+            }
         }
 
         test("the project with dependent still has the same versions") {

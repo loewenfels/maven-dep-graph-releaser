@@ -9,8 +9,8 @@ package ch.loewenfels.depgraph.data
  */
 data class ReleasePlan(
     val rootProjectId: ProjectId,
-    val projects: Map<ProjectId, Project>,
-    val dependents: Map<ProjectId, Set<ProjectId>>,
+    private val projects: Map<ProjectId, Project>,
+    private val dependents: Map<ProjectId, Set<ProjectId>>,
     val warnings: List<String>
 ) {
     /**
@@ -30,6 +30,14 @@ data class ReleasePlan(
 
     fun iterator(): Iterator<Project> = ReleasePlanIterator(this, rootProjectId)
     fun iterator(entryPoint: ProjectId): Iterator<Project> = ReleasePlanIterator(this, entryPoint)
+
+    fun getProjectIds(): Set<ProjectId> = projects.keys
+    fun getProjects(): Collection<Project>  = projects.values
+    fun getNumberOfProjects() = projects.size
+    fun getAllProjects(): Map<ProjectId, Project> = projects
+
+    fun getNumberOfDependents() = dependents.size
+    fun getAllDependents(): Map<ProjectId, Set<ProjectId>> = dependents
 
     private class ReleasePlanIterator(private val releasePlan: ReleasePlan, private val entryPoint: ProjectId) : Iterator<Project> {
         private val projectsToVisit = linkedMapOf(entryPoint to releasePlan.getProject(entryPoint))

@@ -16,9 +16,9 @@ class Manipulator(private val releasePlan: ReleasePlan) {
         require(projectId != releasePlan.rootProjectId) {
             "Deactivating the rootProject (id: ${releasePlan.rootProjectId} does not make sense"
         }
-        require(releasePlan.projects.containsKey(projectId)) {
-            "Cannot deactivate the project with id $projectId because it is not part of the analysis"
-        }
+
+        //will throw if not existing
+        releasePlan.getProject(projectId)
     }
 
     private fun collectProjectsToDeactivate(projectId: ProjectId): Set<ProjectId> {
@@ -39,7 +39,7 @@ class Manipulator(private val releasePlan: ReleasePlan) {
         projectsToDeactivate: Set<ProjectId>,
         newProject: Project?
     ): Map<ProjectId, Project> {
-        return releasePlan.projects.entries.associate { (k, v) ->
+        return releasePlan.getAllProjects().entries.associate { (k, v) ->
             k to when {
                 newProject != null && newProject.id == v.id -> newProject
                 projectsToDeactivate.contains(k) -> deactivateProject(v)

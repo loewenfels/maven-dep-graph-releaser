@@ -7,9 +7,7 @@ import ch.tutteli.atrium.creating.Assert
 fun Assert<ReleasePlan>.hasNotDependentsForProject(
     idAndVersions: IdAndVersions
 ) {
-    property(subject::dependents) {
-        returnValueOf(subject::get, idAndVersions.id).isNotNull { isEmpty() }
-    }
+    returnValueOf(subject::getDependents, idAndVersions.id).isEmpty()
 }
 
 fun Assert<ReleasePlan>.hasDependentsForProject(
@@ -17,9 +15,6 @@ fun Assert<ReleasePlan>.hasDependentsForProject(
     dependentIdAndVersion: IdAndVersions,
     vararg otherDependentIdAndVersion: IdAndVersions
 ) {
-    property(subject::dependents) {
-        returnValueOf(subject::get, idAndVersions.id).isNotNull {
-            contains.inAnyOrder.only.values(dependentIdAndVersion.id, *otherDependentIdAndVersion.map { it.id }.toTypedArray())
-        }
-    }
+    returnValueOf(subject::getDependents, idAndVersions.id)
+        .contains.inAnyOrder.only.values(dependentIdAndVersion.id, *otherDependentIdAndVersion.map { it.id }.toTypedArray())
 }

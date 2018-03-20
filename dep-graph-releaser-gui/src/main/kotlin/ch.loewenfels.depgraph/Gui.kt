@@ -49,9 +49,9 @@ class Gui(private val releasePlan: ReleasePlan) {
         }
         val involvedProjects = set.size
         showMessage("Projects involved: $involvedProjects")
-        if (involvedProjects != releasePlan.projects.size) {
+        if (involvedProjects != releasePlan.getNumberOfProjects()) {
             showError("Not all dependent projects are involved in the process, please report a bug. The following where left out\n" +
-                    (releasePlan.projects.keys - set).joinToString("\n") { it.identifier }
+                    (releasePlan.getProjectIds() - set).joinToString("\n") { it.identifier }
             )
         }
     }

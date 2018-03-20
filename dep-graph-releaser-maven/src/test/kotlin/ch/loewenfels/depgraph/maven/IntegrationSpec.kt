@@ -164,7 +164,7 @@ object IntegrationSpec : Spek({
                 assertOneDirectDependent(releasePlan, "parent", exampleC, exampleB)
 
                 test("direct dependent project has one waiting UpdateVersion and one waiting Release command") {
-                    assert(releasePlan.projects[exampleB.id]).isNotNull {
+                    assert(releasePlan.getProject(exampleB.id)) {
                         idAndVersions(exampleB)
                         property(subject::commands).containsStrictly(
                             { isJenkinsUpdateDependencyWaiting(exampleC) },
@@ -194,7 +194,7 @@ object IntegrationSpec : Spek({
         given("project with parent which itself has a parent, old parents are resolved") {
             action("context use an Analyser with a mocked PomFileResolver") {
                 val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "parentRelations/parentWithParent")
-                assertReleaseAWithDependentBWithDependentC(releasePlan)
+                assertProjectAWithDependentBWithDependentC(releasePlan)
                 assertReleasePlanHasNoWarnings(releasePlan)
             }
         }
@@ -207,7 +207,7 @@ object IntegrationSpec : Spek({
             action("context use an Analyser with a mocked PomFileResolver") {
                 val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "parentRelations/multiModuleParent")
 
-                assertReleaseAWithDependentBWithDependentC(releasePlan, IdAndVersions(exampleB.id, exampleA))
+                assertProjectAWithDependentBWithDependentC(releasePlan, IdAndVersions(exampleB.id, exampleA))
                 assertReleasePlanHasNoWarnings(releasePlan)
             }
         }
@@ -262,7 +262,7 @@ object IntegrationSpec : Spek({
                 assertOneDirectDependent(releasePlan, "second direct dependent", exampleD, exampleC)
 
                 test("the indirect dependent project has three updateVersion and one Release command") {
-                    assert(releasePlan.projects[exampleC.id]).isNotNull {
+                    assert(releasePlan.getProject(exampleC.id)) {
                         idAndVersions(exampleC)
                         property(subject::commands).containsStrictly(
                             { isJenkinsUpdateDependencyWaiting(exampleB) },
@@ -330,7 +330,7 @@ object IntegrationSpec : Spek({
         given("project with indirect cyclic dependency") {
             action("context Analyser which does not resolve poms") {
                 val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "cyclic/indirectCyclicDependency")
-                assertReleaseAWithDependentBWithDependentC(releasePlan)
+                assertProjectAWithDependentBWithDependentC(releasePlan)
 
                 assertReleasePlanHasWarningWithDependencyGraph(
                     releasePlan,
@@ -462,7 +462,7 @@ private fun ActionBody.testReleaseSingleProject(idAndVersions: IdAndVersions, di
 private fun SpecBody.testReleaseAWithDependentBWithDependentC(directory: String, projectB: IdAndVersions = exampleB) {
     action("context Analyser which does not resolve poms") {
         val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
-        assertReleaseAWithDependentBWithDependentC(releasePlan, projectB)
+        assertProjectAWithDependentBWithDependentC(releasePlan, projectB)
         assertReleasePlanHasNoWarnings(releasePlan)
     }
 }

@@ -12,44 +12,39 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
         if (ReleasePlan::class.java != type) {
             return null
         }
-        return ReleasePlanAdapter(moshi)
+        val projectIdAdapter = moshi.adapter(ProjectId::class.java)
+        val collectionType = Types.newParameterizedType(Collection::class.java, Project::class.java)
+        val projectsAdapter =  moshi.adapter<Collection<Project>>(collectionType)
+        val mapType = Types.newParameterizedType(Map::class.java, ProjectId::class.java, Types.newParameterizedType(Set::class.java, ProjectId::class.java))
+        val dependentsAdapter =  moshi.adapter<Map<ProjectId, Set<ProjectId>>>(mapType)
+        val listAdapter = Types.newParameterizedType(List::class.java, String::class.java)
+        val warningsAdapter = moshi.adapter<List<String>>(listAdapter)
+        return ReleasePlanAdapter(projectIdAdapter, projectsAdapter, dependentsAdapter, warningsAdapter)
     }
 
-    private class ReleasePlanAdapter(private val moshi: Moshi) : NonNullJsonAdapter<ReleasePlan>() {
+    private class ReleasePlanAdapter(
+        private val projectIdAdapter: JsonAdapter<ProjectId>,
+        private val projectsAdapter: JsonAdapter<Collection<Project>>,
+        private val dependentsAdapter: JsonAdapter<Map<ProjectId, Set<ProjectId>>>,
+        private val warningsAdapter: JsonAdapter<List<String>>
+    ) : NonNullJsonAdapter<ReleasePlan>() {
         override fun toJsonNonNull(writer: JsonWriter, value: ReleasePlan) {
             writer.writeObject {
-                writeNameAndValue(ID, value.rootProjectId, getProjectIdAdapter())
-                writeNameAndValue(PROJECTS, value.projects.values, getProjectsAdapter())
-                writeNameAndValue(DEPENDENTS, value.dependents, getDependentsAdapter())
-                writeNameAndValue(WARNINGS, value.warnings, getWarningsAdapter())
+                writeNameAndValue(ID, value.rootProjectId, projectIdAdapter)
+                writeNameAndValue(PROJECTS, value.getProjects(), projectsAdapter)
+                writeNameAndValue(DEPENDENTS, value.getAllDependents(), dependentsAdapter)
+                writeNameAndValue(WARNINGS, value.warnings, warningsAdapter)
             }
         }
 
         override fun fromJson(reader: JsonReader): ReleasePlan? {
             return reader.readObject {
-                val projectId = checkNextNameAndGetValue(ID, getProjectIdAdapter())
-                val projects = checkNextNameAndGetValue(PROJECTS, getProjectsAdapter())
-                val dependents = checkNextNameAndGetValue(DEPENDENTS, getDependentsAdapter())
-                val warnings = checkNextNameAndGetValue(WARNINGS, getWarningsAdapter())
+                val projectId = checkNextNameAndGetValue(ID, projectIdAdapter)
+                val projects = checkNextNameAndGetValue(PROJECTS, projectsAdapter)
+                val dependents = checkNextNameAndGetValue(DEPENDENTS, dependentsAdapter)
+                val warnings = checkNextNameAndGetValue(WARNINGS, warningsAdapter)
                 ReleasePlan(projectId, projects.associateBy { it.id }, dependents, warnings)
             }
-        }
-
-        private fun getProjectIdAdapter() = moshi.adapter(ProjectId::class.java)
-
-        private fun getProjectsAdapter(): JsonAdapter<Collection<Project>> {
-            val type = Types.newParameterizedType(Collection::class.java, Project::class.java)
-            return moshi.adapter<Collection<Project>>(type)
-        }
-
-        private fun getDependentsAdapter(): JsonAdapter<Map<ProjectId, Set<ProjectId>>> {
-            val type = Types.newParameterizedType(Map::class.java, ProjectId::class.java, Types.newParameterizedType(Set::class.java, ProjectId::class.java))
-            return moshi.adapter<Map<ProjectId, Set<ProjectId>>>(type)
-        }
-
-        private fun getWarningsAdapter(): JsonAdapter<List<String>> {
-            val type = Types.newParameterizedType(List::class.java, String::class.java)
-            return moshi.adapter<List<String>>(type)
         }
 
         private fun <T> JsonReader.checkNextNameAndGetValue(expectedName: String, adapter: JsonAdapter<T>)
