@@ -119,7 +119,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     }
 
     private fun checkForCyclicAndUpdateIfOk(paramObject: ParamObject, existingDependent: Project) {
-        if (paramObject.isRelationNotInSameMultiModuleCircleAsDependency()) {
+        if (paramObject.isDependencyNotSubmoduleOfRelation()) {
             analyseCycles(paramObject, existingDependent)
             val cycles = paramObject.cyclicDependents[existingDependent.id]
             if (cycles == null || !cycles.containsKey(paramObject.dependencyId)) {
@@ -132,7 +132,6 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
                 //we ignore the relation because it would introduce a cyclic dependency which we currently do not support.
             }
         }
-        //TODO add inter module dependencies? are not relevant for release plan but could be a useful additional information
     }
 
     /**
@@ -278,16 +277,16 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
          * Or in other words returns `true` if they are not in the same multi module circle; otherwise false.
          */
         fun isRelationNotInSameMultiModuleCircleAsDependency(): Boolean {
-            return relationIsNotSubmoduleOfDependency() &&
-                dependencyIsNotSubmoduleOfRelation() &&
+            return isRelationNotSubmoduleOfDependency() &&
+                isDependencyNotSubmoduleOfRelation() &&
                 relationAndDependencyHaveNotCommonMultiModule()
         }
 
 
-        private fun relationIsNotSubmoduleOfDependency() =
+        private fun isRelationNotSubmoduleOfDependency() =
             !analyser.getSubmodulesInclNested(dependencyId).contains(relation.id)
 
-        private fun dependencyIsNotSubmoduleOfRelation() =
+        fun isDependencyNotSubmoduleOfRelation() =
             !analyser.getSubmodulesInclNested(relation.id).contains(dependencyId)
 
 

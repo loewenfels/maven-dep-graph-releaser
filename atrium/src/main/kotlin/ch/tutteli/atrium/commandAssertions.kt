@@ -4,6 +4,7 @@ import ch.loewenfels.depgraph.data.Command
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
+import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.tutteli.atrium.api.cc.en_UK.*
 import ch.tutteli.atrium.creating.Assert
@@ -28,6 +29,20 @@ fun Assert<Command>.isJenkinsMavenReleaseWaiting(nextDevVersion: String, depende
     isA<JenkinsMavenReleasePlugin> {
         stateWaitingWithDependencies(dependency.id, *(otherDependencies.map { it.id }.toTypedArray()))
         property(subject::nextDevVersion).toBe(nextDevVersion)
+    }
+}
+
+fun Assert<Command>.isJenkinsMultiMavenReleaseWaiting(
+    nextDevVersion: String,
+    dependency: IdAndVersions,
+    otherDependencies: Array<out IdAndVersions>,
+    submodule: IdAndVersions,
+    vararg otherSubmodules: IdAndVersions
+) {
+    isA<JenkinsMultiMavenReleasePlugin> {
+        stateWaitingWithDependencies(dependency.id, *(otherDependencies.map { it.id }.toTypedArray()))
+        property(subject::nextDevVersion).toBe(nextDevVersion)
+        property(subject::projects).contains.inAnyOrder.only.objects(submodule.id, *otherSubmodules.map { it.id }.toTypedArray())
     }
 }
 

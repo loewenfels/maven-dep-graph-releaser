@@ -317,6 +317,8 @@ object IntegrationSpec : Spek({
 
     describe("cyclic dependencies") {
 
+        //TODO cyclic dependency with itself
+
         given("project with direct cyclic dependency") {
             action("context Analyser which does not resolve poms") {
                 val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "cyclic/directCyclicDependency")
@@ -415,7 +417,7 @@ object IntegrationSpec : Spek({
     }
 
     describe("multi module projects") {
-        given("inter dependency between modules and version in multi module parent") {
+        given("inter dependency between modules and version in multi module root project") {
             action("context Analyser which does not resolve poms") {
 
                 val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("multimodule/interDependencyVersionViaRoot"))
@@ -423,12 +425,35 @@ object IntegrationSpec : Spek({
                 assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleC)
 
                 assertHasNoCommands(releasePlan, "direct dependent", exampleC)
-                assertHasNoDependentsAndIsOnLevel(releasePlan, "direct dependent", exampleB, 1)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "direct dependent", exampleB, exampleC, 1)
 
                 assertHasNoCommands(releasePlan, "indirect dependent", exampleC)
-                assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 1)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
+                assertReleasePlanHasNoWarnings(releasePlan)
+            }
+        }
+
+        given("inter dependency between modules and version in multi module parent (which is not the root project)") {
+            action("context Analyser which does not resolve poms") {
+
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("multimodule/interDependencyVersionViaParent"))
+
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC)
+
+                assertOneUpdateAndOneMultiReleaseCommandAndCorrespondingDependents(
+                    releasePlan, "multi module", exampleB, exampleA, exampleC, exampleD
+                )
+                assertProjectIsOnLevel(releasePlan, "multi module", exampleB, 1)
+
+                assertOneUpdateCommand(releasePlan, "submodule-with-root-dependency", exampleC, exampleA)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "submodule-with-root-dependency", exampleC, exampleD, 2)
+
+                assertHasNoCommands(releasePlan, "submodule-with-inter-dependency", exampleD)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "submodule-with-inter-dependency", exampleD, 3)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
                 assertReleasePlanHasNoWarnings(releasePlan)
             }
         }

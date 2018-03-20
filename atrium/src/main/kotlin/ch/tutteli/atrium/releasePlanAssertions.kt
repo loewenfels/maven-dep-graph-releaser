@@ -4,7 +4,7 @@ import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.tutteli.atrium.api.cc.en_UK.*
 import ch.tutteli.atrium.creating.Assert
 
-fun Assert<ReleasePlan>.hasNotDependentsForProject(
+fun Assert<ReleasePlan>.hasNoDependentsForProject(
     idAndVersions: IdAndVersions
 ) {
     returnValueOf(subject::getDependents, idAndVersions.id).isEmpty()

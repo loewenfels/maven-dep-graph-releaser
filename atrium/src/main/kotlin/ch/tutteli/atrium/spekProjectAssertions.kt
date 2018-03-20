@@ -82,9 +82,7 @@ private fun ActionBody.assertRootProjectHasDependents(
     dependentIdAndVersions: IdAndVersions,
     otherDependentIdAndVersions: Array<out IdAndVersions>
 ) {
-    test("root project has ${otherDependentIdAndVersions.size + 1} dependent(s)") {
-        assert(releasePlan).hasDependentsForProject(exampleA, dependentIdAndVersions, *otherDependentIdAndVersions)
-    }
+    assertHasDependents(releasePlan, "root", exampleA, dependentIdAndVersions, *otherDependentIdAndVersions)
 }
 
 fun ActionBody.assertRootProjectMultiReleaseCommand(
@@ -170,11 +168,22 @@ fun ActionBody.assertHasOneDependentAndIsOnLevel(
     dependent: IdAndVersions,
     level: Int
 ) {
-    test("$name project has one dependent") {
-        assert(releasePlan).hasDependentsForProject(project, dependent)
-    }
+    assertHasDependents(releasePlan, name, project, dependent)
     assertProjectIsOnLevel(releasePlan, name, project, level)
 }
+
+private fun ActionBody.assertHasDependents(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    dependentIdAndVersions: IdAndVersions,
+    vararg otherDependentIdAndVersions: IdAndVersions
+) {
+    test("$name project has ${otherDependentIdAndVersions.size + 1} dependent(s)") {
+        assert(releasePlan).hasDependentsForProject(project, dependentIdAndVersions, *otherDependentIdAndVersions)
+    }
+}
+
 
 fun ActionBody.assertHasNoDependentsAndIsOnLevel(
     releasePlan: ReleasePlan,
@@ -183,12 +192,12 @@ fun ActionBody.assertHasNoDependentsAndIsOnLevel(
     level: Int
 ) {
     test("$name project does not have dependents") {
-        assert(releasePlan).hasNotDependentsForProject(dependent)
+        assert(releasePlan).hasNoDependentsForProject(dependent)
     }
     assertProjectIsOnLevel(releasePlan, name, dependent, level)
 }
 
-private fun ActionBody.assertProjectIsOnLevel(
+fun ActionBody.assertProjectIsOnLevel(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
@@ -224,6 +233,22 @@ fun ActionBody.assertHasNoCommands(releasePlan: ReleasePlan, name: String, idAnd
     }
 }
 
+fun ActionBody.assertOneUpdateCommand(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    dependency: IdAndVersions
+) {
+    test("$name project has one waiting UpdateVersion and one waiting Release command") {
+        assert(releasePlan.getProject(project.id)) {
+            idAndVersions(project)
+            property(subject::commands).containsStrictly(
+                { isJenkinsUpdateDependencyWaiting(dependency) }
+            )
+        }
+    }
+}
+
 fun ActionBody.assertOneUpdateAndOneReleaseCommand(
     releasePlan: ReleasePlan,
     name: String,
@@ -239,6 +264,28 @@ fun ActionBody.assertOneUpdateAndOneReleaseCommand(
             )
         }
     }
+}
+
+
+fun ActionBody.assertOneUpdateAndOneMultiReleaseCommandAndCorrespondingDependents(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    dependency: IdAndVersions,
+    submodule: IdAndVersions,
+    vararg otherSubmodules: IdAndVersions
+) {
+    test("$name project has one waiting UpdateVersion and one waiting Release command") {
+        assert(releasePlan.getProject(project.id)) {
+            idAndVersions(project)
+            property(subject::commands).containsStrictly(
+                { isJenkinsUpdateDependencyWaiting(dependency) },
+                { isJenkinsMultiMavenReleaseWaiting(project.nextDevVersion, dependency, arrayOf(), submodule, *otherSubmodules) }
+            )
+        }
+    }
+
+    assertHasDependents(releasePlan, name, project, submodule, *otherSubmodules)
 }
 
 fun ActionBody.assertTwoUpdateAndOneReleaseCommand(
