@@ -106,16 +106,18 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
 
         paramObject.analyser.getDependentsOf(paramObject.dependencyId).forEach { relation ->
             paramObject.relation = relation
-            val existingDependent = paramObject.projects[relation.id]
-            when {
-                existingDependent == null ->
-                    initDependent(paramObject)
+            if (paramObject.isDependencyNotSubmoduleOfRelation()) {
+                val existingDependent = paramObject.projects[relation.id]
+                when {
+                    existingDependent == null ->
+                        initDependent(paramObject)
 
-                existingDependent.level < paramObject.level ->
-                    checkForCyclicAndUpdateIfOk(paramObject, existingDependent)
+                    existingDependent.level < paramObject.level ->
+                        checkForCyclicAndUpdateIfOk(paramObject, existingDependent)
 
-                else ->
-                    updateCommandsAddDependentAndAddToProjects(paramObject, existingDependent)
+                    else ->
+                        updateCommandsAddDependentAndAddToProjects(paramObject, existingDependent)
+                }
             }
         }
     }
@@ -128,18 +130,16 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     }
 
     private fun checkForCyclicAndUpdateIfOk(paramObject: ParamObject, existingDependent: Project) {
-        if (paramObject.isDependencyNotSubmoduleOfRelation()) {
-            analyseCycles(paramObject, existingDependent)
-            val cycles = paramObject.cyclicDependents[existingDependent.id]
-            if (cycles == null || !cycles.containsKey(paramObject.dependencyId)) {
-                val updatedDependent = Project(existingDependent, paramObject.level)
-                paramObject.projects[existingDependent.id] = updatedDependent
-                //we need to re-visit so that we can update the levels of the dependents as well
-                removeIfVisitOnSameLevelAndReAddOnNext(updatedDependent, paramObject.dependentsToVisit)
-                updateCommandsAddDependentAndAddToProjects(paramObject, updatedDependent)
-            } else {
-                //we ignore the relation because it would introduce a cyclic dependency which we currently do not support.
-            }
+        analyseCycles(paramObject, existingDependent)
+        val cycles = paramObject.cyclicDependents[existingDependent.id]
+        if (cycles == null || !cycles.containsKey(paramObject.dependencyId)) {
+            val updatedDependent = Project(existingDependent, paramObject.level)
+            paramObject.projects[existingDependent.id] = updatedDependent
+            //we need to re-visit so that we can update the levels of the dependents as well
+            removeIfVisitOnSameLevelAndReAddOnNext(updatedDependent, paramObject.dependentsToVisit)
+            updateCommandsAddDependentAndAddToProjects(paramObject, updatedDependent)
+        } else {
+            //we ignore the relation because it would introduce a cyclic dependency which we currently do not support.
         }
     }
 
@@ -293,12 +293,8 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         }
 
 
-        private fun isRelationNotSubmoduleOfDependency() =
-            !analyser.getSubmodulesInclNested(dependencyId).contains(relation.id)
-
-        fun isDependencyNotSubmoduleOfRelation() =
-            !analyser.getSubmodulesInclNested(relation.id).contains(dependencyId)
-
+        private fun isRelationNotSubmoduleOfDependency() = !analyser.isSubmoduleOf(relation.id, dependencyId)
+        fun isDependencyNotSubmoduleOfRelation() = !analyser.isSubmoduleOf(dependencyId, relation.id)
 
         private fun relationAndDependencyHaveNotCommonMultiModule(): Boolean {
             val multiModulesOfDependency = analyser.getMultiModules(dependencyId)

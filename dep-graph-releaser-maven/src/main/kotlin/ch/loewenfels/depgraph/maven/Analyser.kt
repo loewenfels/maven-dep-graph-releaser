@@ -254,6 +254,9 @@ class Analyser internal constructor(
     fun isSubmodule(projectId: MavenProjectId): Boolean
         = getMultiModules(projectId).isNotEmpty()
 
+    fun isSubmoduleOf(submoduleId: MavenProjectId, multiModuleId: MavenProjectId)
+        = getSubmodulesInclNested(multiModuleId).contains(submoduleId)
+
     private fun <T> emptySetOrThrow(projectId: MavenProjectId): Set<T> {
         return if (projectIds.containsKey(projectId)) {
             emptySet()

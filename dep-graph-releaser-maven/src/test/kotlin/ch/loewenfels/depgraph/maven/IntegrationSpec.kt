@@ -255,6 +255,30 @@ object IntegrationSpec : Spek({
                 assertMultiModuleAWithSubmoduleBWithDependentC(releasePlan, IdAndVersions(exampleB.id, exampleA))
             }
         }
+
+        given("project with multi-module parent which itself has a multi-module parent which is not root") {
+            action("context Analyser which does not resolve poms") {
+
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("parentRelations/multiModuleParentWithMultiModuleParent"))
+
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleD)
+
+                assertOneUpdateAndOneMultiReleaseCommandAndCorrespondingDependents(
+                    releasePlan, "direct multi module", exampleB, exampleA, exampleC
+                )
+                assertProjectIsOnLevel(releasePlan, "direct multi module", exampleB, 1)
+
+                assertHasNoCommands(releasePlan, "indirect multi module", exampleC)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "indirect multi module", exampleC, exampleD, 2)
+
+                assertOneUpdateCommand(releasePlan, "submodule", exampleD, exampleA)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "submodule", exampleD, 3)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+                assertReleasePlanHasNoWarnings(releasePlan)
+            }
+        }
+
     }
 
     describe("transitive dependencies") {
