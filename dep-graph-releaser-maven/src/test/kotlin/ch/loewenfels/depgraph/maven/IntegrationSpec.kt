@@ -200,15 +200,17 @@ object IntegrationSpec : Spek({
         }
 
         given("project with multi-module parent (parent has SNAPSHOT dependency to parent), old parents are not resolved") {
-            testReleaseAWithDependentBWithDependentC("parentRelations/multiModuleParent", IdAndVersions(exampleB.id, exampleA))
+            action("context Analyser which does not resolve poms") {
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("parentRelations/multiModuleParent"))
+                assertMultiModuleAWithSubmoduleBWithDependentC(releasePlan, IdAndVersions(exampleB.id, exampleA))
+            }
         }
 
         given("project with multi-module parent (parent has SNAPSHOT dependency to parent), old parents are resolved") {
             action("context use an Analyser with a mocked PomFileResolver") {
                 val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "parentRelations/multiModuleParent")
 
-                assertProjectAWithDependentBWithDependentC(releasePlan, IdAndVersions(exampleB.id, exampleA))
-                assertReleasePlanHasNoWarnings(releasePlan)
+                assertMultiModuleAWithSubmoduleBWithDependentC(releasePlan, IdAndVersions(exampleB.id, exampleA))
             }
         }
     }
@@ -408,6 +410,26 @@ object IntegrationSpec : Spek({
                     releasePlan,
                     "-> ${exampleB.id.identifier} -> ${exampleD.id.identifier}"
                 )
+            }
+        }
+    }
+
+    describe("multi module projects") {
+        given("inter dependency between modules and version in multi module parent") {
+            action("context Analyser which does not resolve poms") {
+
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("multimodule/interDependencyVersionViaRoot"))
+
+                assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleC)
+
+                assertHasNoCommands(releasePlan, "direct dependent", exampleC)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "direct dependent", exampleB, 1)
+
+                assertHasNoCommands(releasePlan, "indirect dependent", exampleC)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 1)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
+                assertReleasePlanHasNoWarnings(releasePlan)
             }
         }
     }

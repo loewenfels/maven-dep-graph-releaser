@@ -4,6 +4,7 @@ import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
+import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.tutteli.atrium.api.cc.en_UK.*
 import org.jetbrains.spek.api.dsl.ActionBody
 
@@ -40,6 +41,22 @@ fun ActionBody.assertProjectAWithDependentBWithDependentC(
     assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
 }
 
+fun ActionBody.assertMultiModuleAWithSubmoduleBWithDependentC(
+    releasePlan: ReleasePlan,
+    projectB: IdAndVersions
+) {
+    assertRootProjectMultiReleaseCommand(releasePlan, exampleA, projectB)
+
+    assertHasNoCommands(releasePlan, "direct dependent", projectB)
+    assertHasOneDependentAndIsOnLevel(releasePlan, "direct dependent", projectB, exampleC, 1)
+
+    assertOneUpdateAndOneReleaseCommand(releasePlan, "indirect dependent", exampleC, projectB)
+    assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
+
+    assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
+    assertReleasePlanHasNoWarnings(releasePlan)
+}
+
 fun ActionBody.assertProjectAWithDependentB(releasePlan: ReleasePlan) {
     assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
 
@@ -68,6 +85,39 @@ private fun ActionBody.assertRootProjectHasDependents(
     test("root project has ${otherDependentIdAndVersions.size + 1} dependent(s)") {
         assert(releasePlan).hasDependentsForProject(exampleA, dependentIdAndVersions, *otherDependentIdAndVersions)
     }
+}
+
+fun ActionBody.assertRootProjectMultiReleaseCommand(
+    releasePlan: ReleasePlan,
+    rootProjectIdAndVersions: IdAndVersions,
+    submodule: IdAndVersions,
+    vararg otherSubmodules: IdAndVersions
+) {
+    val rootProject = assertRootProject(releasePlan, rootProjectIdAndVersions)
+    test("root project contains just the ${JenkinsMultiMavenReleasePlugin::class.simpleName} command") {
+        assert(rootProject) {
+            property(subject::commands).containsStrictly({
+                isA<JenkinsMultiMavenReleasePlugin> {}
+            })
+        }
+    }
+    test("the command is in state Ready with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = ${rootProjectIdAndVersions.nextDevVersion}\"") {
+        assert(rootProject.commands[0]).isA<JenkinsMultiMavenReleasePlugin> {
+            isStateReady()
+            property(subject::nextDevVersion).toBe(rootProjectIdAndVersions.nextDevVersion)
+        }
+    }
+
+    test("the command has ${otherSubmodules.size + 1} projects") {
+        assert(rootProject.commands[0]).isA<JenkinsMultiMavenReleasePlugin> {
+            property(subject::projects).contains.inAnyOrder.only.objects(
+                submodule.id,
+                *otherSubmodules.map { it.id }.toTypedArray()
+            )
+        }
+    }
+
+    assertRootProjectHasDependents(releasePlan, submodule, otherSubmodules)
 }
 
 fun ActionBody.assertRootProjectOnlyReleaseCommand(releasePlan: ReleasePlan, rootProjectIdAndVersions: IdAndVersions) {
@@ -161,6 +211,15 @@ fun ActionBody.assertOnlyWaitingReleaseCommand(
             property(subject::commands).containsStrictly(
                 { isJenkinsMavenReleaseWaiting(project.nextDevVersion, dependency) }
             )
+        }
+    }
+}
+
+fun ActionBody.assertHasNoCommands(releasePlan: ReleasePlan, name: String, idAndVersions: IdAndVersions) {
+    test("$name project has no commands") {
+        assert(releasePlan.getProject(idAndVersions.id)) {
+            idAndVersions(idAndVersions)
+            property(subject::commands).isEmpty()
         }
     }
 }

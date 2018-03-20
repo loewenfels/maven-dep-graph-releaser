@@ -25,6 +25,8 @@ class Analyser internal constructor(
     private val logger = Logger.getLogger(Analyser::class.qualifiedName)
     private val dependents: Map<String, Set<Relation<MavenProjectId>>>
     private val projectIds: Map<MavenProjectId, String>
+    private val submodulesOfProjectId: Map<MavenProjectId, Set<MavenProjectId>>
+    private val multiModulesOfSubmodule: Map<MavenProjectId, Set<MavenProjectId>>
     private val pomAnalysis: PomAnalysis
 
     init {
@@ -34,8 +36,15 @@ class Analyser internal constructor(
         pomAnalysis = analyseDirectory(directoryWithProjects, pomFileLoader)
         val analysedProjects = getAnalysedProjects()
 
+        val pair = analyseSubmodules()
+        submodulesOfProjectId = pair.first
+        multiModulesOfSubmodule = pair.second
+
         val duplicates = collectDuplicates(pomAnalysis)
+        //TODO maybe we should still emit a warning if missing parent analysis is turned off? => introduce warn or off maybe?
         val parentsNotInAnalysis = collectParentsNotInAnalysis(options, analysedProjects)
+        //TODO error if a submodule is not part of the analysis
+        //val submodulesNotInAnalysis = collectSubmodulesNotInAnalysis(options, analysedProjects)
         reportDuplicatesAndMissingParentsIfNecessary(directoryWithProjects, duplicates, parentsNotInAnalysis)
 
         dependents = analyseDependents(analysedProjects)
@@ -91,14 +100,14 @@ class Analyser internal constructor(
                 .filter { analysedProjects.contains(it.targetToMapKey()) }
                 .forEach { relation ->
                     val set = dependents.getOrPut(relation.targetToMapKey(), { mutableSetOf() })
-                    when(relation) {
+                    when (relation) {
                         is DependencyLikeRelation ->
                             set.add(gav.toRelation(relation.dependency.isVersionSelfManaged.orElse(false)))
 
                         is ParentRelation ->
                             set.add(gav.toRelation(true))
 
-                        //we ignore other relations at the moment (such as BuildDependencyRelation)
+                    //we ignore other relations at the moment (such as BuildDependencyRelation)
                     }
                 }
         }
@@ -158,8 +167,33 @@ class Analyser internal constructor(
         check(sb.isEmpty()) { sb.toString() }
     }
 
-
     private fun projectToString(project: Project): String = "${project.gav} (${project.pomFile.canonicalPath})"
+
+    private fun analyseSubmodules(): kotlin.Pair<Map<MavenProjectId, Set<MavenProjectId>>, Map<MavenProjectId, Set<MavenProjectId>>> {
+        val submodulesOfProjectId = hashMapOf<MavenProjectId, HashSet<MavenProjectId>>()
+        val multiModulesOfSubmodule = hashMapOf<MavenProjectId, HashSet<MavenProjectId>>()
+        getInternalAnalysedGavs().forEach { gav ->
+            val gavsToVisit = linkedSetOf(gav)
+            while (gavsToVisit.isNotEmpty()) {
+                val multiModuleGav = gavsToVisit.iterator().next()
+                gavsToVisit.remove(multiModuleGav)
+                val multiModuleProjectId = multiModuleGav.toMavenProjectId()
+                val submodules = submodulesOfProjectId.getOrPut(multiModuleProjectId, { hashSetOf() })
+
+                session.projects().getSubmodulesAsStream(multiModuleGav).forEach { submoduleGav ->
+                    val submoduleProjectId = submoduleGav.toMavenProjectId()
+                    val multiModules = multiModulesOfSubmodule.getOrPut(submoduleProjectId, { hashSetOf() })
+                    multiModules.add(multiModuleProjectId)
+                    val notAlreadyContained = submodules.add(submoduleProjectId)
+                    //just to prevent from maniac projects which have cyclic modules defined :)
+                    if (notAlreadyContained && !gavsToVisit.contains(submoduleGav)) {
+                        gavsToVisit.add(submoduleGav)
+                    }
+                }
+            }
+        }
+        return submodulesOfProjectId to multiModulesOfSubmodule
+    }
 
     /**
      * Returns the current version for the given [projectId] if it was involved in the analysis; `null` otherwise.
@@ -185,7 +219,7 @@ class Analyser internal constructor(
      * the analysed project B is in version 2.0-SNAPSHOT then project A is still dependent of project B.
      */
     fun getDependentsOf(projectId: MavenProjectId): Set<Relation<MavenProjectId>> {
-        return dependents[projectId.identifier] ?: emptySet()
+        return dependents[projectId.identifier] ?: emptySetOrThrow(projectId)
     }
 
     /**
@@ -198,10 +232,37 @@ class Analyser internal constructor(
     }
 
     /**
+     * Returns all modules of the given multi module project including nested submodules (submodules of submodules)
+     * or an empty set if the project is not a multi module (has not any modules).
+     */
+    fun getSubmodulesInclNested(projectId: MavenProjectId): Set<MavenProjectId> {
+        return submodulesOfProjectId[projectId] ?: emptySetOrThrow(projectId)
+    }
+
+    /**
+     * Returns all multi modules of the given submodule project including super multi modules (multi module of multi module)
+     * or an empty set if the project is not a submodule.
+     */
+    fun getMultiModules(projectId: MavenProjectId): Set<MavenProjectId> {
+        return multiModulesOfSubmodule[projectId] ?: emptySetOrThrow(projectId)
+    }
+
+    private fun <T> emptySetOrThrow(projectId: MavenProjectId): Set<T> {
+        return if (projectIds.containsKey(projectId)) {
+            emptySet()
+        } else {
+            throwProjectNotPartOfAnalysis(projectId)
+        }
+    }
+
+    private fun throwProjectNotPartOfAnalysis(projectId: MavenProjectId): Nothing {
+        throw IllegalArgumentException("project is not part of the analysis: $projectId")
+    }
+
+    /**
      * Options for the [Analyser].
      */
     data class Options(
         val missingParentAnalysis: Boolean = true
     )
 }
-

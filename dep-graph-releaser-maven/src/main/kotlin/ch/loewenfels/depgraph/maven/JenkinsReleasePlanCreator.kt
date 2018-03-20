@@ -3,6 +3,7 @@ package ch.loewenfels.depgraph.maven
 import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
+import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.tutteli.kbox.appendToStringBuilder
 
@@ -17,7 +18,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
             """.trimMargin()
         }
 
-        val rootProject = createInitialProject(projectToRelease, currentVersion!!, 0, CommandState.Ready)
+        val rootProject = createRootProject(analyser, projectToRelease, currentVersion)
         val paramObject = createDependents(analyser, rootProject)
 
         val warnings = mutableListOf<String>()
@@ -27,18 +28,47 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         return ReleasePlan(rootProject.id, paramObject.projects, paramObject.dependents, warnings)
     }
 
+    private fun createRootProject(
+        analyser: Analyser,
+        projectToRelease: MavenProjectId,
+        currentVersion: String?
+    ): Project {
+        val commands = mutableListOf(
+            createJenkinsReleasePlugin(
+                analyser, projectToRelease, currentVersion!!, CommandState.Ready
+            )
+        )
+        return createInitialProject(projectToRelease, currentVersion, 0, commands)
+    }
+
     private fun createInitialProject(
         projectId: MavenProjectId,
         currentVersion: String,
         level: Int,
-        state: CommandState
+        commands: List<Command>
     ) = Project(
         projectId,
         currentVersion,
         versionDeterminer.releaseVersion(currentVersion),
         level,
-        mutableListOf(JenkinsMavenReleasePlugin(state, versionDeterminer.nextDevVersion(currentVersion)))
+        commands
     )
+
+    private fun createJenkinsReleasePlugin(
+        analyser: Analyser,
+        projectId: MavenProjectId,
+        currentVersion: String,
+        state: CommandState
+    ): Command {
+        val nextDevVersion = versionDeterminer.nextDevVersion(currentVersion)
+        val submodules = analyser.getSubmodulesInclNested(projectId)
+        val isNotMultiModule = submodules.isEmpty()
+        return if (isNotMultiModule) {
+            JenkinsMavenReleasePlugin(state, nextDevVersion)
+        } else {
+            JenkinsMultiMavenReleasePlugin(state, nextDevVersion, submodules)
+        }
+    }
 
     private fun createDependents(analyser: Analyser, rootProject: Project): ParamObject {
         val paramObject = ParamObject(
@@ -65,9 +95,9 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     private fun createCommandsForDependents(paramObject: ParamObject, dependency: Project) {
         paramObject.dependencyId = dependency.id as MavenProjectId
 
-        paramObject.analyser.getDependentsOf(paramObject.dependencyId).forEach { dependentIdWithVersion ->
-            paramObject.relation = dependentIdWithVersion
-            val existingDependent = paramObject.projects[dependentIdWithVersion.id]
+        paramObject.analyser.getDependentsOf(paramObject.dependencyId).forEach { relation ->
+            paramObject.relation = relation
+            val existingDependent = paramObject.projects[relation.id]
             when {
                 existingDependent == null ->
                     initDependent(paramObject)
@@ -82,25 +112,27 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     }
 
     private fun initDependent(paramObject: ParamObject) {
-        val newDependent =
-            createInitialWaitingProject(paramObject.relation, paramObject.level, paramObject.dependencyId)
+        val newDependent = createInitialWaitingProject(paramObject)
         paramObject.dependents[newDependent.id] = hashSetOf()
         addToNextLevelOfDependentsToVisit(paramObject.dependentsToVisit, newDependent)
         updateCommandsAddDependentAndAddToProjects(paramObject, newDependent)
     }
 
     private fun checkForCyclicAndUpdateIfOk(paramObject: ParamObject, existingDependent: Project) {
-        analyseCycles(paramObject, existingDependent)
-        val cycles = paramObject.cyclicDependents[existingDependent.id]
-        if (cycles == null || !cycles.containsKey(paramObject.dependencyId)) {
-            val updatedDependent = Project(existingDependent, paramObject.level)
-            paramObject.projects[existingDependent.id] = updatedDependent
-            //we need to re-visit so that we can update the levels of the dependents as well
-            removeIfVisitOnSameLevelAndReAddOnNext(updatedDependent, paramObject.dependentsToVisit)
-            updateCommandsAddDependentAndAddToProjects(paramObject, updatedDependent)
-        } else {
-            //we ignore the relation because it would introduce a cyclic dependency which we currently do not support.
+        if (paramObject.isRelationNotInSameMultiModuleCircleAsDependency()) {
+            analyseCycles(paramObject, existingDependent)
+            val cycles = paramObject.cyclicDependents[existingDependent.id]
+            if (cycles == null || !cycles.containsKey(paramObject.dependencyId)) {
+                val updatedDependent = Project(existingDependent, paramObject.level)
+                paramObject.projects[existingDependent.id] = updatedDependent
+                //we need to re-visit so that we can update the levels of the dependents as well
+                removeIfVisitOnSameLevelAndReAddOnNext(updatedDependent, paramObject.dependentsToVisit)
+                updateCommandsAddDependentAndAddToProjects(paramObject, updatedDependent)
+            } else {
+                //we ignore the relation because it would introduce a cyclic dependency which we currently do not support.
+            }
         }
+        //TODO add inter module dependencies? are not relevant for release plan but could be a useful additional information
     }
 
     /**
@@ -113,13 +145,22 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     }
 
     private fun addAndUpdateCommandsOfDependent(paramObject: ParamObject, dependent: Project) {
-        val dependencyId = paramObject.dependencyId
-        val list = dependent.commands as MutableList
-
-        addDependencyToReleaseCommands(list, dependencyId)
+        // if the version is not self managed then it suffices that we have a dependency to the project
+        // which manages this version for us, we do not need to do anything here.
         if (paramObject.relation.isDependencyVersionSelfManaged) {
-            val state = CommandState.Waiting(setOf(dependencyId))
-            list.add(0, JenkinsUpdateDependency(state, dependencyId))
+            val dependencyId = paramObject.dependencyId
+            val list = dependent.commands as MutableList
+            if (paramObject.isRelationNotSubmodule()) {
+                addDependencyToReleaseCommands(list, dependencyId)
+            }
+
+            // submodule -> multi module relation is updated by M2 Release Plugin
+            // if relation is a submodule and dependency as well and they share a common multi module, then we do not
+            // need a to update anything because the submodules will have the same version after releasing
+            if (paramObject.isRelationNotInSameMultiModuleCircleAsDependency()) {
+                val state = CommandState.Waiting(setOf(dependencyId))
+                list.add(0, JenkinsUpdateDependency(state, dependencyId))
+            }
         }
     }
 
@@ -133,16 +174,22 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         paramObject.dependents[paramObject.dependencyId]!!.add(dependent.id)
     }
 
-    private fun createInitialWaitingProject(
-        relation: Relation<MavenProjectId>,
-        level: Int,
-        dependencyId: MavenProjectId
-    ): Project = createInitialProject(
-        relation.id,
-        relation.currentVersion,
-        level,
-        CommandState.Waiting(mutableSetOf(dependencyId))
-    )
+    private fun createInitialWaitingProject(paramObject: ParamObject): Project {
+        val relation = paramObject.relation
+        val commands = if (paramObject.isRelationNotSubmodule()) {
+            mutableListOf(
+                createJenkinsReleasePlugin(
+                    paramObject.analyser,
+                    relation.id,
+                    relation.currentVersion,
+                    CommandState.Waiting(mutableSetOf(paramObject.dependencyId))
+                )
+            )
+        } else {
+            mutableListOf()
+        }
+        return createInitialProject(relation.id, relation.currentVersion, paramObject.level, commands)
+    }
 
     private fun analyseCycles(paramObject: ParamObject, existingDependent: Project) {
         val dependencyId = paramObject.dependencyId
@@ -221,5 +268,35 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     ) {
         lateinit var dependencyId: MavenProjectId
         lateinit var relation: Relation<MavenProjectId>
+
+        fun isRelationNotSubmodule() = analyser.getMultiModules(relation.id).isEmpty()
+
+        /**
+         * Returns true if the [relation] is not a (nested) submodule of [dependencyId] and if they are not a submodule
+         * of a same common (super) multi module.
+         *
+         * Or in other words returns `true` if they are not in the same multi module circle; otherwise false.
+         */
+        fun isRelationNotInSameMultiModuleCircleAsDependency(): Boolean {
+            return relationIsNotSubmoduleOfDependency() &&
+                dependencyIsNotSubmoduleOfRelation() &&
+                relationAndDependencyHaveNotCommonMultiModule()
+        }
+
+
+        private fun relationIsNotSubmoduleOfDependency() =
+            !analyser.getSubmodulesInclNested(dependencyId).contains(relation.id)
+
+        private fun dependencyIsNotSubmoduleOfRelation() =
+            !analyser.getSubmodulesInclNested(relation.id).contains(dependencyId)
+
+
+        private fun relationAndDependencyHaveNotCommonMultiModule(): Boolean {
+            val multiModulesOfDependency = analyser.getMultiModules(dependencyId)
+            return multiModulesOfDependency.isEmpty() ||
+                !analyser.getMultiModules(relation.id).asSequence().any {
+                    multiModulesOfDependency.contains(it)
+                }
+        }
     }
 }
