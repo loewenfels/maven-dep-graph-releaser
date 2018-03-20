@@ -451,6 +451,28 @@ object IntegrationSpec : Spek({
                 assertReleasePlanHasNoWarnings(releasePlan)
             }
         }
+
+        given("cyclic inter module dependency") {
+            action("context Analyser which does not resolve poms") {
+
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("multimodule/cyclicInterDependency"))
+                assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleC)
+
+                // Notice that the order below depends on the hash function implemented.
+                // Might fail if we update the JDK version, we can fix it then
+                assertHasNoCommands(releasePlan, "first dependent", exampleB)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "first dependent", exampleB, 2)
+
+                assertHasNoCommands(releasePlan, "second dependent", exampleC)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "second dependent", exampleC, exampleB, 1)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
+                assertReleasePlanHasWarningWithDependencyGraph(
+                    releasePlan,
+                    "-> ${exampleB.id.identifier} -> ${exampleC.id.identifier}"
+                )
+            }
+        }
     }
 })
 
@@ -461,7 +483,7 @@ private fun SpecBody.testMultiModuleAWithSubmoduleBWithDependentSubmoduleC(testD
 
         assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleC)
 
-        assertHasNoCommands(releasePlan, "direct dependent", exampleC)
+        assertHasNoCommands(releasePlan, "direct dependent", exampleB)
         assertHasOneDependentAndIsOnLevel(releasePlan, "direct dependent", exampleB, exampleC, 1)
 
         assertHasNoCommands(releasePlan, "indirect dependent", exampleC)
