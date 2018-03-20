@@ -13,19 +13,19 @@ import org.jetbrains.spek.api.dsl.it
 
 object ReleasePlanSpec : Spek({
     val rootProjectId = MavenProjectId("com.example", "parent-parent")
-    val rootProject = Project(rootProjectId, "1.1.0-SNAPSHOT", "1.2.0", 0, listOf())
+    val rootProject = Project(rootProjectId, false, "1.1.0-SNAPSHOT", "1.2.0", 0, listOf())
 
     val parentId = MavenProjectId("com.example", "parent")
-    val parent = Project(parentId, "1.1.0-SNAPSHOT", "1.2.0", 1, listOf())
+    val parent = Project(parentId, false, "1.1.0-SNAPSHOT", "1.2.0", 1, listOf())
 
     val projectInterfaceId = MavenProjectId("com.example", "interface")
-    val projectInterface = Project(projectInterfaceId, "2.0", "3.0", 2, listOf())
+    val projectInterface = Project(projectInterfaceId, false, "2.0", "3.0", 2, listOf())
 
     val projectAnnotationsId = MavenProjectId("com.example", "annotations")
-    val projectAnnotations = Project(projectAnnotationsId, "4.0", "4.1", 2, listOf())
+    val projectAnnotations = Project(projectAnnotationsId, false, "4.0", "4.1", 2, listOf())
 
     val projectNotifierId = MavenProjectId("com.example", "notifier")
-    val projectNotifier = Project(projectNotifierId, "5.0", "5.1", 3, listOf())
+    val projectNotifier = Project(projectNotifierId, false, "5.0", "5.1", 3, listOf())
 
     val dependents = mapOf<ProjectId, Set<MavenProjectId>>(
         rootProjectId to setOf(parentId),

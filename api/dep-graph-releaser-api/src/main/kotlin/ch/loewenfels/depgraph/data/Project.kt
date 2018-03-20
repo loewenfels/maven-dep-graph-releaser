@@ -8,6 +8,7 @@ package ch.loewenfels.depgraph.data
  */
 data class Project(
     val id: ProjectId,
+    val isSubmodule: Boolean,
     val currentVersion: String,
     val releaseVersion: String,
     /**
@@ -31,11 +32,13 @@ data class Project(
      * Copy constructor for the use case, that only the commands of the project need to change.
      */
     constructor(project: Project, commands: List<Command>) :
-        this(project.id, project.currentVersion, project.releaseVersion, project.level, commands)
+        this(project.id, project.isSubmodule, project.currentVersion, project.releaseVersion, project.level, commands)
+//    this(project.id, project.currentVersion, project.releaseVersion, project.level, commands)
 
     /**
      * Copy constructor for the use case, that only the level of the projects needs to change.
      */
     constructor(project: Project, level: Int) :
-        this(project.id, project.currentVersion, project.releaseVersion, level, project.commands)
+        this(project.id, project.isSubmodule, project.currentVersion, project.releaseVersion, level, project.commands)
+//        this(project.id,  project.currentVersion, project.releaseVersion, level, project.commands)
 }

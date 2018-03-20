@@ -78,7 +78,7 @@ div.level{
 div.project {
     border:1px solid #CCC;
     background: #fff;
-    margin: 20px auto;
+    margin: 0 auto 20px auto;
     display: block;
     width: 300px;
     padding:20px 15px;
@@ -91,6 +91,28 @@ div.project {
     rgba(0, 0, 0, 0.3), 0 0 40px
     rgba(0, 0, 0, 0.1) inset;
 }
+
+div.submodules {
+    margin-top: 15px;
+}
+
+div.submodules div.project {
+    width: 295px;
+}
+div.submodules div.project:last-child {
+    margin-bottom: 0px;
+}
+
+div.project.withoutCommands {
+    padding: 3px 15px;
+    margin: 5px auto;
+}
+div.project div.title {
+    font-size: 1em;
+    font-weight: normal;
+    margin-bottom: 0px;
+}
+
 div.title {
     font-size:1.2em;
     font-weight: bold;
@@ -174,3 +196,4 @@ input:checked + .slider:before {
   -ms-transform: translateX(14px);
   transform: translateX(14px);
 }
+

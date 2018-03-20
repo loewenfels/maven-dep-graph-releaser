@@ -3,12 +3,14 @@ package ch.loewenfels.depgraph
 import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
+import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.data.serialization.CommandStateJson
 import ch.loewenfels.depgraph.data.serialization.fromJson
 
 private const val MAVEN_PROJECT_ID = "ch.loewenfels.depgraph.data.maven.MavenProjectId"
 private const val JENKINS_MAVEN_RELEASE_PLUGIN = "ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin"
+private const val JENKINS_MULTI_MAVEN_RELEASE_PLUGIN = "ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin"
 private const val JENKINS_UPDATE_DEPENDENCY = "ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency"
 
 fun deserialize(body: String): ReleasePlan {
@@ -31,7 +33,7 @@ fun deserializeProjects(releasePlanJson: ReleasePlanJson): Map<ProjectId, Projec
     val map = hashMapOf<ProjectId, Project>()
     releasePlanJson.projects.forEach {
         val projectId = createProjectId(it.id)
-        map[projectId] = Project(projectId, it.currentVersion, it.releaseVersion, it.level, deserializeCommands(it.commands))
+        map[projectId] = Project(projectId, it.isSubmodule, it.currentVersion, it.releaseVersion, it.level, deserializeCommands(it.commands))
     }
     return map
 }
@@ -41,20 +43,26 @@ fun deserializeCommands(commands: Array<GenericType<Command>>): List<Command> {
     return commands.map {
         when (it.t) {
             JENKINS_MAVEN_RELEASE_PLUGIN -> createJenkinsMavenReleasePlugin(it.p)
+            JENKINS_MULTI_MAVEN_RELEASE_PLUGIN -> createJenkinsMultiMavenReleasePlugin(it.p)
             JENKINS_UPDATE_DEPENDENCY -> createJenkinsUpdateDependency(it.p)
             else -> throw UnsupportedOperationException("${it.t} is not supported.")
         }
     }
 }
+fun createJenkinsMavenReleasePlugin(command: Command): JenkinsMavenReleasePlugin {
+    val it = command.unsafeCast<JenkinsMavenReleasePlugin>()
+    return JenkinsMavenReleasePlugin(deserializeState(it), it.nextDevVersion)
+}
+
+fun createJenkinsMultiMavenReleasePlugin(command: Command): Command {
+    val it = command.unsafeCast<JenkinsMultiMavenReleasePlugin>()
+    val projects = (it.projects.asDynamic() as Array<GenericType<ProjectId>>).map { createProjectId(it) }.toSet()
+    return JenkinsMultiMavenReleasePlugin(deserializeState(it), it.nextDevVersion, projects)
+}
 
 fun createJenkinsUpdateDependency(command: Command): JenkinsUpdateDependency {
     val it = command.unsafeCast<JenkinsUpdateDependency>()
     return JenkinsUpdateDependency(deserializeState(it), MavenProjectId(it.projectId.groupId, it.projectId.artifactId))
-}
-
-fun createJenkinsMavenReleasePlugin(command: Command): JenkinsMavenReleasePlugin {
-    val it = command.unsafeCast<JenkinsMavenReleasePlugin>()
-    return JenkinsMavenReleasePlugin(deserializeState(it), it.nextDevVersion)
 }
 
 private fun deserializeState(it: Command): CommandState {
@@ -85,6 +93,7 @@ external interface ReleasePlanJson {
 
 external interface ProjectJson {
     val id: GenericType<ProjectId>
+    val isSubmodule: Boolean
     val currentVersion: String
     val releaseVersion: String
     val level: Int

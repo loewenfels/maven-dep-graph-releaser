@@ -3,6 +3,7 @@ package ch.loewenfels.depgraph
 import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
+import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import kotlinx.html.*
 import kotlinx.html.dom.append
@@ -29,29 +30,33 @@ class Gui(private val releasePlan: ReleasePlan) {
                 level = project.level
 
                 div("level l$level") {
-                    project(project)
-
+                    if (!project.isSubmodule) {
+                        project(project)
+                    }
                     set.add(project.id)
                     while (hasNextOnTheSameLevel(itr, level)) {
                         val nextProject = itr.next()
-                        project(nextProject)
+                        if (!nextProject.isSubmodule) {
+                            project(nextProject)
+                        }
                         set.add(nextProject.id)
                     }
                 }
             }
-
-            releasePlan.iterator().asSequence().forEach { project ->
-                val div = elementById(project.id.identifier).asDynamic()
-                div.project = project
-                div.dependents = releasePlan.getDependents(project.id)
-            }
+            releasePlan.iterator().asSequence()
+                .filter { !it.isSubmodule }
+                .forEach { project ->
+                    val div = elementById(project.id.identifier).asDynamic()
+                    div.project = project
+                    div.dependents = releasePlan.getDependents(project.id)
+                }
 
         }
         val involvedProjects = set.size
         showMessage("Projects involved: $involvedProjects")
         if (involvedProjects != releasePlan.getNumberOfProjects()) {
             showError("Not all dependent projects are involved in the process, please report a bug. The following where left out\n" +
-                    (releasePlan.getProjectIds() - set).joinToString("\n") { it.identifier }
+                (releasePlan.getProjectIds() - set).joinToString("\n") { it.identifier }
             )
         }
     }
@@ -63,18 +68,36 @@ class Gui(private val releasePlan: ReleasePlan) {
 
 
     private fun DIV.project(project: Project) {
-        div("project") {
+        div {
+            val hasCommands = project.commands.isNotEmpty()
+            classes = setOf(
+                "project",
+                if(project.isSubmodule) "submodule" else "",
+                if(!hasCommands) "withoutCommands" else ""
+            )
+
             val id = project.id
             this.id = id.identifier
+
             div("title") {
-                toggle("${id.identifier}:disableAll", project.commands.any { it.state !is CommandState.Deactivated })
+                if(hasCommands) {
+                    toggle(
+                        "${id.identifier}:disableAll",
+                        project.commands.any { it.state !is CommandState.Deactivated })
+                }
                 span {
                     projectId(id)
                 }
             }
-            div("fields") {
-                fieldReadOnlyWithLabel("${id.identifier}:currentVersion", "Current Version", project.currentVersion)
-                fieldWithLabel("${id.identifier}:releaseVersion", "Release Version", project.releaseVersion)
+            if (!project.isSubmodule) {
+                div("fields") {
+                    fieldReadOnlyWithLabel(
+                        "${id.identifier}:currentVersion",
+                        "Current Version",
+                        project.currentVersion
+                    )
+                    fieldWithLabel("${id.identifier}:releaseVersion", "Release Version", project.releaseVersion)
+                }
             }
             commands(project)
         }
@@ -149,18 +172,35 @@ class Gui(private val releasePlan: ReleasePlan) {
         toggle("$idPrefix:disable", command.state !is CommandState.Deactivated, cssClass)
 
         when (command) {
-            is JenkinsMavenReleasePlugin -> {
-                fieldWithLabel("$idPrefix:nextDevVersion", "Next Dev Version", command.nextDevVersion)
-            }
-            is JenkinsUpdateDependency -> {
-                fieldReadOnlyWithLabel(
-                    "$idPrefix:groupId",
-                    "Dependency",
-                    command.projectId.identifier,
-                    { projectId(command.projectId) })
+            is JenkinsMavenReleasePlugin -> appendJenkinsMavenReleasePluginField(idPrefix, command)
+            is JenkinsMultiMavenReleasePlugin -> appendJenkinsMultiMavenReleasePluginFields(idPrefix, command)
+            is JenkinsUpdateDependency -> appendJenkinsUpdateDependencyField(idPrefix, command)
+
+        }
+    }
+
+    private fun DIV.appendJenkinsMavenReleasePluginField(idPrefix: String, command: JenkinsMavenReleasePlugin) {
+        fieldWithLabel("$idPrefix:nextDevVersion", "Next Dev Version", command.nextDevVersion)
+    }
+
+    private fun DIV.appendJenkinsMultiMavenReleasePluginFields(
+        idPrefix: String,
+        command: JenkinsMultiMavenReleasePlugin
+    ) {
+        fieldWithLabel("$idPrefix:nextDevVersion", "Next Dev Version", command.nextDevVersion)
+        div("submodules") {
+            command.projects.forEach {
+                project(releasePlan.getProject(it))
             }
         }
+    }
 
+    private fun DIV.appendJenkinsUpdateDependencyField(idPrefix: String, command: JenkinsUpdateDependency) {
+        fieldReadOnlyWithLabel(
+            "$idPrefix:groupId",
+            "Dependency",
+            command.projectId.identifier,
+            { projectId(command.projectId) })
     }
 
     private fun DIV.toggle(id: String, checked: Boolean, checkboxCssClass: String = "") {

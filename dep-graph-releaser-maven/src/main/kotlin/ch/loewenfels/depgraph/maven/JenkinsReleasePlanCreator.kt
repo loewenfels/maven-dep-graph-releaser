@@ -45,16 +45,18 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
                 analyser, projectToRelease, currentVersion!!, CommandState.Ready
             )
         )
-        return createInitialProject(projectToRelease, currentVersion, 0, commands)
+        return createInitialProject(projectToRelease, false, currentVersion, 0, commands)
     }
 
     private fun createInitialProject(
         projectId: MavenProjectId,
+        isSubmodule: Boolean,
         currentVersion: String,
         level: Int,
         commands: List<Command>
     ) = Project(
         projectId,
+        isSubmodule,
         currentVersion,
         versionDeterminer.releaseVersion(currentVersion),
         level,
@@ -182,7 +184,8 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
 
     private fun createInitialWaitingProject(paramObject: ParamObject): Project {
         val relation = paramObject.relation
-        val commands = if (paramObject.isRelationNotSubmodule()) {
+        val isNotSubmodule = paramObject.isRelationNotSubmodule()
+        val commands = if (isNotSubmodule) {
             mutableListOf(
                 createJenkinsReleasePlugin(
                     paramObject.analyser,
@@ -194,7 +197,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         } else {
             mutableListOf()
         }
-        return createInitialProject(relation.id, relation.currentVersion, paramObject.level, commands)
+        return createInitialProject(relation.id, !isNotSubmodule, relation.currentVersion, paramObject.level, commands)
     }
 
     private fun analyseCycles(paramObject: ParamObject, existingDependent: Project) {
