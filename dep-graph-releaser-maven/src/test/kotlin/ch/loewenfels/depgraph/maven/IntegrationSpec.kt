@@ -418,39 +418,15 @@ object IntegrationSpec : Spek({
 
     describe("multi module projects") {
         given("inter dependency between modules and version in multi module root project") {
-            action("context Analyser which does not resolve poms") {
-
-                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("multimodule/interDependencyVersionViaRoot"))
-
-                assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleC)
-
-                assertHasNoCommands(releasePlan, "direct dependent", exampleC)
-                assertHasOneDependentAndIsOnLevel(releasePlan, "direct dependent", exampleB, exampleC, 1)
-
-                assertHasNoCommands(releasePlan, "indirect dependent", exampleC)
-                assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
-
-                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
-                assertReleasePlanHasNoWarnings(releasePlan)
-            }
+            testMultiModuleAWithSubmoduleBWithDependentSubmoduleC("multimodule/interDependencyVersionViaRoot")
         }
 
         given("inter dependency between modules and version in multi module root project is \$project.version") {
-            action("context Analyser which does not resolve poms") {
+            testMultiModuleAWithSubmoduleBWithDependentSubmoduleC("multimodule/interDependencyVersionIsProjectVersionViaRoot")
+        }
 
-                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("multimodule/interDependencyVersionIsProjectVersionViaRoot"))
-
-                assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleC)
-
-                assertHasNoCommands(releasePlan, "direct dependent", exampleC)
-                assertHasOneDependentAndIsOnLevel(releasePlan, "direct dependent", exampleB, exampleC, 1)
-
-                assertHasNoCommands(releasePlan, "indirect dependent", exampleC)
-                assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
-
-                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
-                assertReleasePlanHasNoWarnings(releasePlan)
-            }
+        given("inter dependency between modules and version self managed and in multi module root project is \$project.version") {
+            testMultiModuleAWithSubmoduleBWithDependentSubmoduleC("multimodule/interDependencyVersionSelfAndViaRoot")
         }
 
         given("inter dependency between modules and version in multi module parent (which is not the root project)") {
@@ -477,6 +453,24 @@ object IntegrationSpec : Spek({
         }
     }
 })
+
+private fun SpecBody.testMultiModuleAWithSubmoduleBWithDependentSubmoduleC(testDirectory: String) {
+    action("context Analyser which does not resolve poms") {
+
+        val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(testDirectory))
+
+        assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleC)
+
+        assertHasNoCommands(releasePlan, "direct dependent", exampleC)
+        assertHasOneDependentAndIsOnLevel(releasePlan, "direct dependent", exampleB, exampleC, 1)
+
+        assertHasNoCommands(releasePlan, "indirect dependent", exampleC)
+        assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
+
+        assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
+        assertReleasePlanHasNoWarnings(releasePlan)
+    }
+}
 
 private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, testDirectory: String) =
     analyseAndCreateReleasePlan(projectToRelease, getTestDirectory(testDirectory))
