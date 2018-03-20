@@ -435,6 +435,24 @@ object IntegrationSpec : Spek({
             }
         }
 
+        given("inter dependency between modules and version in multi module root project is \$project.version") {
+            action("context Analyser which does not resolve poms") {
+
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("multimodule/interDependencyVersionIsProjectVersionViaRoot"))
+
+                assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleC)
+
+                assertHasNoCommands(releasePlan, "direct dependent", exampleC)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "direct dependent", exampleB, exampleC, 1)
+
+                assertHasNoCommands(releasePlan, "indirect dependent", exampleC)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
+                assertReleasePlanHasNoWarnings(releasePlan)
+            }
+        }
+
         given("inter dependency between modules and version in multi module parent (which is not the root project)") {
             action("context Analyser which does not resolve poms") {
 
