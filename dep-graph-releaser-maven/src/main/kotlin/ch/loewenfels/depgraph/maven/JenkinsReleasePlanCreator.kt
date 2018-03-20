@@ -18,6 +18,13 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
             """.trimMargin()
         }
 
+        require(!analyser.isSubmodule(projectToRelease)) {
+            """Cannot release a submodule, the given project is part of a multi module hierarchy
+                |Given: $projectToRelease
+                |Multi modules: ${analyser.getMultiModules(projectToRelease).joinToString(",")}
+            """.trimMargin()
+        }
+
         val rootProject = createRootProject(analyser, projectToRelease, currentVersion)
         val paramObject = createDependents(analyser, rootProject)
 
@@ -268,7 +275,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         lateinit var dependencyId: MavenProjectId
         lateinit var relation: Relation<MavenProjectId>
 
-        fun isRelationNotSubmodule() = analyser.getMultiModules(relation.id).isEmpty()
+        fun isRelationNotSubmodule() = !analyser.isSubmodule(relation.id)
 
         /**
          * Returns true if the [relation] is not a (nested) submodule of [dependencyId] and if they are not a submodule

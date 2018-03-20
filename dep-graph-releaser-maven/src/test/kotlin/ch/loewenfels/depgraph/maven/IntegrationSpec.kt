@@ -43,6 +43,23 @@ object IntegrationSpec : Spek({
             }
         }
 
+        given("project to release is a submodule") {
+            it("throws an IllegalStateException, containing versions of project and multi module project") {
+                val testDirectory = getTestDirectory("errorCases/rootIsSubmodule")
+                expect {
+                    analyseAndCreateReleasePlan(exampleA.id, testDirectory)
+                }.toThrow<IllegalArgumentException> {
+                    message {
+                        contains(
+                            "Cannot release a submodule",
+                            exampleA.id.toString(),
+                            exampleB.id.toString()
+                        )
+                    }
+                }
+            }
+        }
+
         given("duplicate projects, twice the same version") {
             testDuplicateProject(
                 "errorCases/duplicatedProjectTwiceTheSameVersion",

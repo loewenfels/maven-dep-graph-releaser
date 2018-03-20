@@ -41,7 +41,8 @@ class Analyser internal constructor(
         multiModulesOfSubmodule = pair.second
 
         val duplicates = collectDuplicates(pomAnalysis)
-        //TODO maybe we should still emit a warning if missing parent analysis is turned off? => introduce warn or off maybe?
+        //TODO maybe we should still emit a warning if missing parent analysis is turned off?
+        // => introduce warn in addition to off maybe?
         val parentsNotInAnalysis = collectParentsNotInAnalysis(options, analysedProjects)
         //TODO error if a submodule is not part of the analysis
         //val submodulesNotInAnalysis = collectSubmodulesNotInAnalysis(options, analysedProjects)
@@ -246,6 +247,12 @@ class Analyser internal constructor(
     fun getMultiModules(projectId: MavenProjectId): Set<MavenProjectId> {
         return multiModulesOfSubmodule[projectId] ?: emptySetOrThrow(projectId)
     }
+
+    /**
+     * Indicates if the given [projectId] is a submodule of a multi module project or not.
+     */
+    fun isSubmodule(projectId: MavenProjectId): Boolean
+        = getMultiModules(projectId).isNotEmpty()
 
     private fun <T> emptySetOrThrow(projectId: MavenProjectId): Set<T> {
         return if (projectIds.containsKey(projectId)) {
