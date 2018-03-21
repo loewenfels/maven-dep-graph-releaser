@@ -260,37 +260,34 @@ object IntegrationSpec : Spek({
             }
         }
 
-        given("project with multi-module parent (parent has SNAPSHOT dependency to parent), old parents are not resolved") {
+        given("project with multi-module parent, old parents are not resolved") {
             action("context Analyser which does not resolve poms") {
                 val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "parentRelations/multiModuleParent")
                 assertMultiModuleAWithSubmoduleBWithDependentC(releasePlan, IdAndVersions(exampleB.id, exampleA))
             }
         }
 
-        given("project with multi-module parent (parent has SNAPSHOT dependency to parent), old parents are resolved") {
+        given("project with multi-module parent, old parents are resolved") {
             action("context use an Analyser with a mocked PomFileResolver") {
                 val releasePlan = analyseAndCreateReleasePlanWithPomResolverOldVersions(
-                    exampleA.id,
-                    "parentRelations/multiModuleParent"
+                    exampleA.id, "parentRelations/multiModuleParent"
                 )
-
                 assertMultiModuleAWithSubmoduleBWithDependentC(releasePlan, IdAndVersions(exampleB.id, exampleA))
             }
         }
 
         given("project with multi-module parent which itself has a multi-module parent which is not root") {
             action("context Analyser which does not resolve poms") {
-
                 val releasePlan = analyseAndCreateReleasePlan(
                     exampleA.id, "parentRelations/multiModuleParentWithMultiModuleParent"
                 )
 
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleD)
 
-                assertOneUpdateAndOneMultiReleaseCommandAndCorrespondingDependents(
-                    releasePlan, "direct multi module", exampleB, exampleA, exampleC
+                assertOneUpdateAndOneMultiReleaseCommand(
+                    releasePlan, "direct multi module", exampleB, exampleA, exampleC, exampleD
                 )
-                assertProjectIsOnLevel(releasePlan, "direct multi module", exampleB, 1)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "direct multi module", exampleB, exampleC, 1)
 
                 assertHasNoCommands(releasePlan, "indirect multi module", exampleC)
                 assertHasOneDependentAndIsOnLevel(releasePlan, "indirect multi module", exampleC, exampleD, 1)
@@ -661,13 +658,14 @@ object IntegrationSpec : Spek({
             }
         }
 
-        given("cyclic inter module dependency where the are not a submodule of the same multi module (but common ancestor)") {
+        given("cyclic inter module dependency where they are not a submodule of the same multi module (but common ancestor)") {
             action("context Analyser which does not resolve poms") {
 
                 val releasePlan = analyseAndCreateReleasePlan(
                     exampleA.id, "multiModule/cyclicInterDependencyDifferentMultiModules"
                 )
-                assertRootProjectMultiReleaseCommandWithSameDependents(releasePlan, exampleA, exampleB, exampleC)
+                assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleC, exampleD)
+                assertRootProjectHasDependents(releasePlan, exampleA, exampleB, exampleC)
 
                 assertHasNoCommands(releasePlan, "multi module", exampleB)
                 assertHasOneDependentAndIsOnLevel(releasePlan, "parent submodule", exampleB, exampleD, 0)
@@ -785,10 +783,10 @@ object IntegrationSpec : Spek({
                 )
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleE)
 
-                assertOneUpdateAndOneMultiReleaseCommandAndCorrespondingDependents(
-                    releasePlan, "multi module parent", exampleB, exampleA, exampleC
+                assertOneUpdateAndOneMultiReleaseCommand(
+                    releasePlan, "multi module parent", exampleB, exampleA, exampleC, exampleD
                 )
-                assertProjectIsOnLevel(releasePlan, "multi module parent", exampleB, 2)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "multi module parent", exampleB, exampleC, 2)
 
                 assertHasNoCommands(releasePlan, "multi module", exampleC)
                 assertProjectIsOnLevel(releasePlan, "multi module parent", exampleC, 2)
