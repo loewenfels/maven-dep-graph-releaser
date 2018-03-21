@@ -1,5 +1,7 @@
 package ch.loewenfels.depgraph.data
 
+import ch.loewenfels.depgraph.LevelIterator
+
 /**
  * Represents a release plan where the [Project] with the given [rootProjectId] shall be released.
  *
@@ -53,23 +55,26 @@ data class ReleasePlan(
 
     private class ReleasePlanIterator(
         private val releasePlan: ReleasePlan,
-        private val entryPoint: ProjectId
+        entryPoint: ProjectId
     ) : Iterator<Project> {
-        private val projectsToVisit = linkedMapOf(entryPoint to releasePlan.getProject(entryPoint))
+        private val levelIterator = LevelIterator(entryPoint to releasePlan.getProject(entryPoint))
         private val visitedProjects = hashSetOf<ProjectId>()
 
-        override fun hasNext() = projectsToVisit.isNotEmpty()
+        override fun hasNext() = levelIterator.hasNext()
         override fun next(): Project {
-            if (projectsToVisit.isEmpty()) {
-                throw NoSuchElementException("No project left; entry point was $entryPoint")
-            }
-            val project = projectsToVisit.remove(projectsToVisit.iterator().next().key)
-            releasePlan.getDependents(project!!.id)
+            val project = levelIterator.next()
+            releasePlan.getDependents(project.id)
                 .asSequence()
                 .filter { !visitedProjects.contains(it) }
                 .map { releasePlan.getProject(it) }
-                .filter { project.level + 1 == it.level }
-                .associateByTo(projectsToVisit, { it.id }, { it })
+                .filter { it.level == project.level + 1 || (it.isSubmodule && it.level == project.level) }
+                .forEach {
+                    if(it.level == project.level){
+                        levelIterator.addToCurrentLevel(it.id to it)
+                    } else {
+                        levelIterator.addToNextLevel(it.id to it)
+                    }
+                }
             return project
         }
     }

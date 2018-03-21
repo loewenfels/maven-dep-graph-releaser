@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.maven
 
+import ch.loewenfels.depgraph.LevelIterator
 import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
@@ -83,22 +84,10 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     }
 
     private fun createDependents(analyser: Analyser, rootProject: Project): ParamObject {
-        val paramObject = ParamObject(
-            analyser,
-            projects = hashMapOf(rootProject.id to rootProject),
-            dependents = hashMapOf(rootProject.id to hashSetOf()),
-            cyclicDependents = hashMapOf(),
-            interModuleCyclicDependents = hashMapOf(),
-            dependentsToVisit = mutableListOf(linkedMapOf(rootProject.id to rootProject))
-        )
-        val dependentsToVisit = paramObject.dependentsToVisit
-        while (dependentsToVisit.isNotEmpty()) {
-            val dependentsOnSameLevel = dependentsToVisit[0]
-            val dependent = dependentsOnSameLevel.remove(dependentsOnSameLevel.iterator().next().key)!!
+        val paramObject = ParamObject(analyser, rootProject)
+        while(paramObject.levelIterator.hasNext()){
+            val dependent = paramObject.levelIterator.next()
             createCommandsForDependents(paramObject, dependent)
-            if (dependentsOnSameLevel.isEmpty()) {
-                dependentsToVisit.removeAt(0)
-            }
         }
         return paramObject
     }
@@ -128,7 +117,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     private fun initDependent(paramObject: ParamObject) {
         val newDependent = createInitialWaitingProject(paramObject)
         paramObject.dependents[newDependent.id] = hashSetOf()
-        addToNextLevelOfDependentsToVisit(paramObject.dependentsToVisit, newDependent)
+        paramObject.levelIterator.addToNextLevel(newDependent.id to newDependent)
         updateCommandsAddDependentAndAddToProjects(paramObject, newDependent)
     }
 
@@ -139,7 +128,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
                 val updatedDependent = Project(existingDependent, paramObject.getAnticipatedLevel())
                 paramObject.projects[existingDependent.id] = updatedDependent
                 //we need to re-visit so that we can update the levels of the dependents as well
-                removeIfVisitOnSameLevelAndReAddOnNext(updatedDependent, paramObject.dependentsToVisit)
+                paramObject.levelIterator.removeIfOnSameLevelAndReAddOnNext(updatedDependent.id to updatedDependent)
                 updatedDependent
             } else {
                 existingDependent
@@ -249,26 +238,6 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         }
     }
 
-    private fun removeIfVisitOnSameLevelAndReAddOnNext(
-        updatedProject: Project,
-        dependentsToVisit: MutableList<LinkedHashMap<ProjectId, Project>>
-    ) {
-        val dependentsOnSameLevel = dependentsToVisit[0]
-        dependentsOnSameLevel.remove(updatedProject.id)
-        addToNextLevelOfDependentsToVisit(dependentsToVisit, updatedProject)
-    }
-
-    private fun addToNextLevelOfDependentsToVisit(
-        dependentsToVisit: MutableList<LinkedHashMap<ProjectId, Project>>,
-        dependent: Project
-    ) {
-        if (dependentsToVisit.size <= 1) {
-            dependentsToVisit.add(linkedMapOf())
-        }
-        val nextLevelProjects = dependentsToVisit.last()
-        nextLevelProjects[dependent.id] = dependent
-    }
-
     private fun reportCyclicDependencies(cyclicDependents: Map<ProjectId, Map<ProjectId, List<ProjectId>>>, warnings: MutableList<String>) {
         cyclicDependents.mapTo(warnings, { (projectId, dependentEntry) ->
             val sb = StringBuilder()
@@ -295,12 +264,14 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
 
     private class ParamObject(
         val analyser: Analyser,
-        val projects: HashMap<ProjectId, Project>,
-        val dependents: HashMap<ProjectId, HashSet<ProjectId>>,
-        val cyclicDependents: HashMap<ProjectId, LinkedHashMap<ProjectId, MutableList<ProjectId>>>,
-        val interModuleCyclicDependents: HashMap<ProjectId, LinkedHashMap<ProjectId, MutableList<ProjectId>>>,
-        val dependentsToVisit: MutableList<LinkedHashMap<ProjectId, Project>>
-    ) {
+        rootProject: Project
+    ){
+        val projects =  hashMapOf(rootProject.id to rootProject)
+        val dependents = hashMapOf(rootProject.id to hashSetOf<ProjectId>())
+        val cyclicDependents = hashMapOf<ProjectId, LinkedHashMap<ProjectId, MutableList<ProjectId>>>()
+        val interModuleCyclicDependents = hashMapOf<ProjectId, LinkedHashMap<ProjectId, MutableList<ProjectId>>>()
+        val levelIterator = LevelIterator(rootProject.id to rootProject)
+
         private lateinit var _dependency: Project
         var dependency: Project
             get() = _dependency
