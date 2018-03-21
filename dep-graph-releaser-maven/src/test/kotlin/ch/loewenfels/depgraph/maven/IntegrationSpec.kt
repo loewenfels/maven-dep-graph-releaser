@@ -659,6 +659,35 @@ object IntegrationSpec : Spek({
             }
         }
 
+        given("cyclic inter module dependency where the are not a submodule of the same multi module (but common ancestor)") {
+            action("context Analyser which resolves snapshot poms") {
+
+                val releasePlan = analyseAndCreateReleasePlan(
+                    exampleA.id, "multiModule/cyclicInterDependencyDifferentMultiModules"
+                )
+                assertRootProjectMultiReleaseCommandWithSameDependents(releasePlan, exampleA, exampleB, exampleC)
+
+                assertHasNoCommands(releasePlan, "multi module", exampleB)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "parent submodule", exampleB, exampleD, 0)
+
+                // Notice that the order below depends on the hash function implemented.
+                // Might fail if we update the JDK version, we can fix it then
+                assertHasNoCommands(releasePlan, "submodule", exampleC)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "submodule", exampleC, exampleD, 0)
+
+                assertHasNoCommands(releasePlan, "nested submodule", exampleD)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "nested submodule", exampleD, 0)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+                assertReleasePlanHasNoWarnings(releasePlan)
+                assertReleasePlanHasInfoWithDependencyGraph(
+                    releasePlan,
+                    "-> ${exampleD.id.identifier} -> ${exampleC.id.identifier}"
+                )
+                assertReleasePlanIteratorReturnsRootAnd(releasePlan, listOf(exampleB, exampleC, exampleD))
+            }
+        }
+
         //TODO cyclic inter module dependency and a regular dependency -> regular has to be a warning, inter an info
 
         given("submodule with dependent") {
