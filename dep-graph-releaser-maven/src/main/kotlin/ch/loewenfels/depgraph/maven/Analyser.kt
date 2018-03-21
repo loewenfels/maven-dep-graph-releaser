@@ -186,13 +186,14 @@ class Analyser internal constructor(
 
                 session.projects().getSubmodulesAsStream(multiModuleGav).forEach { submoduleGav ->
                     val submoduleProjectId = submoduleGav.toMavenProjectId()
-                    val multiModules = multiModulesOfSubmodule.getOrPut(submoduleProjectId, { linkedSetOf() })
-                    multiModules.add(multiModuleProjectId)
                     val notAlreadyContained = submodules.add(submoduleProjectId)
                     //just to prevent from maniac projects which have cyclic modules defined :)
                     if (notAlreadyContained && !gavsToVisit.contains(submoduleGav)) {
                         gavsToVisit.add(submoduleGav)
                     }
+                    val multiModules = multiModulesOfSubmodule.getOrPut(submoduleProjectId, { linkedSetOf() })
+                    multiModules.add(multiModuleProjectId)
+                    multiModulesOfSubmodule[multiModuleProjectId]?.let {  multiModules.addAll(it) }
                 }
             }
         }

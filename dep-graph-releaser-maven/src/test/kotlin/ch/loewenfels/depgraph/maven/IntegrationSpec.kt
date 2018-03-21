@@ -685,6 +685,36 @@ object IntegrationSpec : Spek({
                 assertReleasePlanIteratorReturnsRootAnd(releasePlan, listOf(exampleD), listOf(exampleB, exampleC))
             }
         }
+
+        given("submodule of submodule with dependent") {
+            action("context Analyser which resolves snapshot poms") {
+
+                val releasePlan = analyseAndCreateReleasePlan(
+                    exampleA.id, "multiModule/submoduleOfSubmoduleWithDependent"
+                )
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleE)
+
+                assertOneUpdateAndOneMultiReleaseCommandAndCorrespondingDependents(
+                    releasePlan, "multi module parent", exampleB, exampleA, exampleC
+                )
+                assertProjectIsOnLevel(releasePlan, "multi module parent", exampleB, 2)
+
+                assertHasNoCommands(releasePlan, "multi module", exampleC)
+                assertProjectIsOnLevel(releasePlan, "multi module parent", exampleC, 2)
+
+                assertOneUpdateCommand(releasePlan, "submodule", exampleD, exampleE)
+                assertProjectIsOnLevel(releasePlan, "submodule", exampleD, 2)
+
+                assertOneUpdateAndOneReleaseCommand(releasePlan, "dependent", exampleE, exampleA)
+                assertHasTwoDependentsAndIsOnLevel(releasePlan, "dependent", exampleE, exampleD, exampleB, 1)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 5)
+                assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
+                assertReleasePlanIteratorReturnsRootAnd(releasePlan,
+                    listOf(exampleE),
+                    listOf(exampleB, exampleC, exampleD))
+            }
+        }
     }
 })
 

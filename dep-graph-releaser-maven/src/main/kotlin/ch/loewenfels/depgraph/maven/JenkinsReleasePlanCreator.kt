@@ -124,23 +124,25 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     private fun checkForCyclicAndUpdateIfOk(paramObject: ParamObject, existingDependent: Project) {
         analyseCycles(paramObject, existingDependent)
         if (paramObject.hasRelationNoCycleToDependency()) {
-            val dependent = if (paramObject.isRelationNotInSameMultiModuleCircleAsDependency()) {
-                updateLevelAndRevisit(paramObject, existingDependent)
-            } else {
-                existingDependent
-            }
+            //TODO if we have submodule with a dependent and we need to update the level of the multi module
+            //then we need to update the level even in case of a cycle -> write spec
+            val dependent = updateLevelIfNecessaryAndRevisitInCase(paramObject, existingDependent)
             updateCommandsAddDependentAddToProjectsAndUpdateMultiModuleIfNecessary(paramObject, dependent)
         } else {
             //we ignore the relation because it would introduce a cyclic dependency which we currently do not support.
         }
     }
 
-    private fun updateLevelAndRevisit(paramObject: ParamObject, existingDependent: Project): Project {
-        val updatedDependent = Project(existingDependent, paramObject.getAnticipatedLevel())
-        paramObject.projects[existingDependent.id] = updatedDependent
-        //we need to re-visit at least this project so that we can update the levels of the dependents as well
-        paramObject.levelIterator.removeIfOnSameLevelAndReAddOnNext(updatedDependent.id to updatedDependent)
-        return updatedDependent
+    private fun updateLevelIfNecessaryAndRevisitInCase(paramObject: ParamObject, existingDependent: Project): Project {
+        val level = determineLevel(paramObject)
+        if (existingDependent.level != level) {
+            val updatedDependent = Project(existingDependent, level)
+            paramObject.projects[existingDependent.id] = updatedDependent
+            //we need to re-visit at least this project so that we can update the levels of the dependents as well
+            paramObject.levelIterator.removeIfOnSameLevelAndReAddOnNext(updatedDependent.id to updatedDependent)
+            return updatedDependent
+        }
+        return existingDependent
     }
 
     /**
@@ -164,6 +166,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
                 val topMultiModuleId = multiModules.last()
                 val topMultiModule = paramObject.projects[topMultiModuleId]
                 if (topMultiModule != null && topMultiModule.level < dependent.level) {
+                    paramObject.relation = Relation(topMultiModuleId, topMultiModule.currentVersion, false)
                     checkForCyclicAndUpdateIfOk(paramObject, topMultiModule)
                 }
             }
@@ -353,7 +356,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
             }
         }
 
-        fun getProject(projectId: ProjectId): Project
+        fun getProject(projectId: ProjectId)
             = projects[projectId] ?: throw IllegalStateException("$projectId was not found in projects")
 
         fun getDependent(projectId: ProjectId)
