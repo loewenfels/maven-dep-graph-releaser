@@ -130,6 +130,8 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     }
 
     private fun checkForCyclicAndUpdateIfOk(paramObject: ParamObject, existingDependent: Project) {
+        // TODO we should not analyse cycles if the two projects are in the same multi-module hierarchy
+        // However, maybe the user wants to know that an inter module cyclic dependency exists -> introduce info?
         analyseCycles(paramObject, existingDependent)
         val cycles = paramObject.cyclicDependents[existingDependent.id]
         if (cycles == null || !cycles.containsKey(paramObject.dependencyId)) {
@@ -155,20 +157,24 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     private fun addAndUpdateCommandsOfDependent(paramObject: ParamObject, dependent: Project) {
         // if the version is not self managed then it suffices that we have a dependency to the project
         // which manages this version for us, we do not need to do anything here.
-        if (paramObject.relation.isDependencyVersionSelfManaged) {
-            val dependencyId = paramObject.dependencyId
-            val list = dependent.commands as MutableList
-            if (paramObject.isRelationNotSubmodule()) {
-                addDependencyToReleaseCommands(list, dependencyId)
-            }
+        if (paramObject.isRelationDependencyVersionNotSelfManaged()) return
 
-            // submodule -> multi module relation is updated by M2 Release Plugin
-            // if relation is a submodule and dependency as well and they share a common multi module, then we do not
-            // need a to update anything because the submodules will have the same version after releasing
-            if (paramObject.isRelationNotInSameMultiModuleCircleAsDependency()) {
-                val state = CommandState.Waiting(setOf(dependencyId))
-                list.add(0, JenkinsUpdateDependency(state, dependencyId))
-            }
+        // we do not have to update the commands if only the level changed
+        if(paramObject.isRelationAlreadyDependentOfDependency()) return
+
+        val dependencyId = paramObject.dependencyId
+        val list = dependent.commands as MutableList
+        if (paramObject.isRelationNotSubmodule()) {
+            addDependencyToReleaseCommands(list, dependencyId)
+        }
+
+        // submodule -> multi module relation is updated by M2 Release Plugin
+        // if relation is a submodule and dependency as well and they share a common multi module, then we do not
+        // need a to update anything because the submodules will have the same version after releasing
+        //TODO not entirely true, we still need to update the version to the new one
+        if (paramObject.isRelationNotInSameMultiModuleCircleAsDependency()) {
+            val state = CommandState.Waiting(setOf(dependencyId))
+            list.add(0, JenkinsUpdateDependency(state, dependencyId))
         }
     }
 
@@ -303,5 +309,8 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
                     multiModulesOfDependency.contains(it)
                 }
         }
+
+        fun isRelationDependencyVersionNotSelfManaged() = !relation.isDependencyVersionSelfManaged
+        fun isRelationAlreadyDependentOfDependency() = dependents[dependencyId]!!.contains(relation.id)
     }
 }

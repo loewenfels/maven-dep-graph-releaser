@@ -312,23 +312,41 @@ object IntegrationSpec : Spek({
         }
 
         given("project with explicit transitive dependent which itself has dependent") {
-
             action("context Analyser which does not resolve poms") {
                 val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "transitive/explicitWithDependent")
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleD)
 
-                assertTwoUpdateAndOneReleaseCommand(releasePlan, "the parent", exampleB, exampleD, exampleA)
-                assertHasOneDependentAndIsOnLevel(releasePlan, "the parent", exampleB, exampleC, 2)
+                assertOneDirectDependent(releasePlan, "direct dependent", exampleD, exampleB)
 
-                assertOneDirectDependent(releasePlan, "the direct dependent", exampleD, exampleB)
+                assertTwoUpdateAndOneReleaseCommand(releasePlan, "indirect dependent", exampleB, exampleD, exampleA)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "indirect dependent", exampleB, exampleC, 2)
 
-                assertOneUpdateAndOneReleaseCommand(releasePlan, "the indirect dependent", exampleC, exampleB)
-                assertHasNoDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 3)
+                assertOneUpdateAndOneReleaseCommand(releasePlan, "implicit indirect dependent", exampleC, exampleB)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "implicit indirect dependent", exampleC, 3)
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
                 assertReleasePlanHasNoWarnings(releasePlan)
             }
         }
+
+        given("project with explicit transitive dependent over two levels") {
+            action("context Analyser which does not resolve poms") {
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "transitive/explicitOverTwoLevels")
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC, exampleD)
+
+                assertOneDirectDependent(releasePlan, "direct dependent", exampleB, exampleD)
+
+                assertTwoUpdateAndOneReleaseCommand(releasePlan, "indirect dependent", exampleD, exampleB, exampleA)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "indirect dependent", exampleD, exampleC, 2)
+
+                assertTwoUpdateAndOneReleaseCommand(releasePlan, "dependent of indirect dependent", exampleC, exampleD, exampleA)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "dependent of indirect dependent", exampleC, 3)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+                assertReleasePlanHasNoWarnings(releasePlan)
+            }
+        }
+
 
         given("project with explicit transitive dependent and diamond dependency") {
 
