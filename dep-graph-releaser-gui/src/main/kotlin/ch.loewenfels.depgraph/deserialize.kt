@@ -19,7 +19,8 @@ fun deserialize(body: String): ReleasePlan {
     val projects = deserializeProjects(releasePlanJson)
     val dependents = deserializeDependents(releasePlanJson)
     val warnings = releasePlanJson.warnings.toList()
-    return ReleasePlan(rootProjectId, projects, dependents, warnings)
+    val infos = releasePlanJson.infos.toList()
+    return ReleasePlan(rootProjectId, projects, dependents, warnings, infos)
 }
 
 fun createProjectId(id: GenericType<ProjectId>): ProjectId {
@@ -89,6 +90,7 @@ external interface ReleasePlanJson {
     val projects: Array<ProjectJson>
     val dependents: Array<GenericMapEntry<ProjectId, Array<GenericType<ProjectId>>>>
     val warnings: Array<String>
+    val infos: Array<String>
 }
 
 external interface ProjectJson {

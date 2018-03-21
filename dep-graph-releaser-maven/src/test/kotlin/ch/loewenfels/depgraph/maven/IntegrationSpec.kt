@@ -562,7 +562,7 @@ object IntegrationSpec : Spek({
                 assertHasOneDependentAndIsOnLevel(releasePlan, "second submodule", exampleC, exampleB, 1)
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
-                assertReleasePlanHasWarningWithDependencyGraph(
+                assertReleasePlanHasInfoWithDependencyGraph(
                     releasePlan,
                     "-> ${exampleB.id.identifier} -> ${exampleC.id.identifier}"
                 )
@@ -587,12 +587,14 @@ object IntegrationSpec : Spek({
                 assertHasNoDependentsAndIsOnLevel(releasePlan, "dependent", exampleD, 2)
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
-                assertReleasePlanHasWarningWithDependencyGraph(
+                assertReleasePlanHasInfoWithDependencyGraph(
                     releasePlan,
                     "-> ${exampleB.id.identifier} -> ${exampleC.id.identifier}"
                 )
             }
         }
+
+        //TODO cyclic inter module dependency and a regular dependency -> regular has to be a warning, inter an info
     }
 })
 

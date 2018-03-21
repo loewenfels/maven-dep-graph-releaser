@@ -43,8 +43,7 @@ object ReleasePlanSpec : Spek({
             projectAnnotationsId to projectAnnotations,
             projectNotifierId to projectNotifier
         ),
-        dependents,
-        listOf()
+        dependents
     )
 
     describe("iterator") {

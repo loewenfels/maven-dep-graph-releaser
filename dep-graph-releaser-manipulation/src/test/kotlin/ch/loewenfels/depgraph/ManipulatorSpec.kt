@@ -47,8 +47,7 @@ object ManipulatorSpec : Spek({
             projectWithDependentId to projectWithDependent,
             projectWithoutDependentId to projectWithoutDependent
         ),
-        dependents,
-        listOf()
+        dependents
     ))
 
     fun ActionBody.assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan: ReleasePlan) {

@@ -336,8 +336,19 @@ fun ActionBody.assertReleasePlanHasWarningWithDependencyGraph(
     dependencyBranch: String,
     vararg otherDependencyBranches: String
 ) {
-    test("warning contains the cyclic dependency branch") {
+    test("warnings contains the cyclic dependency branch") {
         assert(releasePlan.warnings).containsStrictly({
+            contains("cyclic dependencies", dependencyBranch, *otherDependencyBranches)
+        })
+    }
+}
+fun ActionBody.assertReleasePlanHasInfoWithDependencyGraph(
+    releasePlan: ReleasePlan,
+    dependencyBranch: String,
+    vararg otherDependencyBranches: String
+) {
+    test("infos contains the cyclic dependency branch") {
+        assert(releasePlan.infos).containsStrictly({
             contains("cyclic dependencies", dependencyBranch, *otherDependencyBranches)
         })
     }

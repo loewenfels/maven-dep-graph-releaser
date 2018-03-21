@@ -29,10 +29,13 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         val paramObject = createDependents(analyser, rootProject)
 
         val warnings = mutableListOf<String>()
-        turnCyclicDependenciesIntoWarnings(paramObject, warnings)
+        reportCyclicDependencies(paramObject.cyclicDependents, warnings)
         warnings.addAll(analyser.getErroneousPomFiles())
 
-        return ReleasePlan(rootProject.id, paramObject.projects, paramObject.dependents, warnings)
+        val infos = mutableListOf<String>()
+        reportCyclicDependencies(paramObject.interModuleCyclicDependents, infos)
+
+        return ReleasePlan(rootProject.id, paramObject.projects, paramObject.dependents, warnings, infos)
     }
 
     private fun createRootProject(
@@ -85,6 +88,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
             projects = hashMapOf(rootProject.id to rootProject),
             dependents = hashMapOf(rootProject.id to hashSetOf()),
             cyclicDependents = hashMapOf(),
+            interModuleCyclicDependents = hashMapOf(),
             level = 1,
             dependentsToVisit = mutableListOf(linkedMapOf(rootProject.id to rootProject))
         )
@@ -130,11 +134,8 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     }
 
     private fun checkForCyclicAndUpdateIfOk(paramObject: ParamObject, existingDependent: Project) {
-        // TODO we should not analyse cycles if the two projects are in the same multi-module hierarchy
-        // However, maybe the user wants to know that an inter module cyclic dependency exists -> introduce info?
         analyseCycles(paramObject, existingDependent)
-        val cycles = paramObject.cyclicDependents[existingDependent.id]
-        if (cycles == null || !cycles.containsKey(paramObject.dependencyId)) {
+        if (paramObject.hasRelationNoCycleToDependency()) {
             val updatedDependent = Project(existingDependent, paramObject.level)
             paramObject.projects[existingDependent.id] = updatedDependent
             //we need to re-visit so that we can update the levels of the dependents as well
@@ -160,7 +161,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         if (paramObject.isRelationDependencyVersionNotSelfManaged()) return
 
         // we do not have to update the commands if only the level changed
-        if(paramObject.isRelationAlreadyDependentOfDependency()) return
+        if (paramObject.isRelationAlreadyDependentOfDependency()) return
 
         val dependencyId = paramObject.dependencyId
         val list = dependent.commands as MutableList
@@ -216,9 +217,15 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
             visitedProjects.add(dependentId)
             paramObject.dependents[dependentId]!!.forEach {
                 if (it == dependencyId) {
-                    val map = paramObject.cyclicDependents.getOrPut(existingDependent.id, { linkedMapOf() })
-                    map[dependencyId] = dependentBranch
-                    return
+                    if (paramObject.isRelationNotInSameMultiModuleCircleAsDependency()) {
+                        val map = paramObject.cyclicDependents.getOrPut(existingDependent.id, { linkedMapOf() })
+                        map[dependencyId] = dependentBranch
+                        return
+                    } else {
+                        val map = paramObject.interModuleCyclicDependents.getOrPut(existingDependent.id, { linkedMapOf() })
+                        map[dependencyId] = dependentBranch
+                        //we cannot stop here because cyclic inter module dependencies can be dealt with others not (yet)
+                    }
                 } else if (!visitedProjects.contains(it)) {
                     projectsToVisit[it] = ArrayList<ProjectId>(dependentBranch.size + 1).apply {
                         addAll(dependentBranch)
@@ -249,8 +256,8 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         nextLevelProjects[dependent.id] = dependent
     }
 
-    private fun turnCyclicDependenciesIntoWarnings(paramObject: ParamObject, warnings: MutableList<String>) {
-        paramObject.cyclicDependents.mapTo(warnings, { (projectId, dependentEntry) ->
+    private fun reportCyclicDependencies(cyclicDependents: Map<ProjectId, Map<ProjectId, List<ProjectId>>>, warnings: MutableList<String>) {
+        cyclicDependents.mapTo(warnings, { (projectId, dependentEntry) ->
             val sb = StringBuilder()
             sb.append("Project ").append(projectId.identifier).append(" has one or more cyclic dependencies.")
                 .append("The corresponding relation (first ->) was ignored, you need to address this circumstance manually:\n")
@@ -278,6 +285,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         val projects: HashMap<ProjectId, Project>,
         val dependents: HashMap<ProjectId, HashSet<ProjectId>>,
         val cyclicDependents: HashMap<ProjectId, LinkedHashMap<ProjectId, MutableList<ProjectId>>>,
+        val interModuleCyclicDependents: HashMap<ProjectId, LinkedHashMap<ProjectId, MutableList<ProjectId>>>,
         var level: Int,
         val dependentsToVisit: MutableList<LinkedHashMap<ProjectId, Project>>
     ) {
@@ -312,5 +320,12 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
 
         fun isRelationDependencyVersionNotSelfManaged() = !relation.isDependencyVersionSelfManaged
         fun isRelationAlreadyDependentOfDependency() = dependents[dependencyId]!!.contains(relation.id)
+        fun hasRelationNoCycleToDependency(): Boolean {
+            return when {
+                cyclicDependents[relation.id]?.containsKey(dependencyId) == true -> false
+                interModuleCyclicDependents[relation.id]?.containsKey(dependencyId) == true -> false
+                else -> true
+            }
+        }
     }
 }

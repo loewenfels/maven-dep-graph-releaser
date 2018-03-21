@@ -11,13 +11,25 @@ data class ReleasePlan(
     val rootProjectId: ProjectId,
     private val projects: Map<ProjectId, Project>,
     private val dependents: Map<ProjectId, Set<ProjectId>>,
-    val warnings: List<String>
+    val warnings: List<String>,
+    val infos: List<String>
 ) {
+
     /**
      * Copy constructor to replace [projects].
      */
     constructor(releasePlan: ReleasePlan, projects: Map<ProjectId, Project>) :
-        this(releasePlan.rootProjectId, projects, releasePlan.dependents, releasePlan.warnings)
+        this(releasePlan.rootProjectId, projects, releasePlan.dependents, releasePlan.warnings, releasePlan.infos)
+
+    /**
+     * Creates a [ReleasePlan] with an empty list of [warnings] and [infos]
+     */
+    constructor(
+        rootProjectId: ProjectId,
+        projects: Map<ProjectId, Project>,
+        dependents: Map<ProjectId, Set<ProjectId>>
+    ) :
+        this(rootProjectId, projects, dependents, listOf(), listOf())
 
     fun getProject(projectId: ProjectId): Project {
         return projects[projectId] ?: throw IllegalArgumentException("Could not find the project with id $projectId")
@@ -32,14 +44,17 @@ data class ReleasePlan(
     fun iterator(entryPoint: ProjectId): Iterator<Project> = ReleasePlanIterator(this, entryPoint)
 
     fun getProjectIds(): Set<ProjectId> = projects.keys
-    fun getProjects(): Collection<Project>  = projects.values
+    fun getProjects(): Collection<Project> = projects.values
     fun getNumberOfProjects() = projects.size
     fun getAllProjects(): Map<ProjectId, Project> = projects
 
     fun getNumberOfDependents() = dependents.size
     fun getAllDependents(): Map<ProjectId, Set<ProjectId>> = dependents
 
-    private class ReleasePlanIterator(private val releasePlan: ReleasePlan, private val entryPoint: ProjectId) : Iterator<Project> {
+    private class ReleasePlanIterator(
+        private val releasePlan: ReleasePlan,
+        private val entryPoint: ProjectId
+    ) : Iterator<Project> {
         private val projectsToVisit = linkedMapOf(entryPoint to releasePlan.getProject(entryPoint))
         private val visitedProjects = hashSetOf<ProjectId>()
 

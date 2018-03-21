@@ -26,14 +26,15 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
         private val projectIdAdapter: JsonAdapter<ProjectId>,
         private val projectsAdapter: JsonAdapter<Collection<Project>>,
         private val dependentsAdapter: JsonAdapter<Map<ProjectId, Set<ProjectId>>>,
-        private val warningsAdapter: JsonAdapter<List<String>>
+        private val listStringAdapter: JsonAdapter<List<String>>
     ) : NonNullJsonAdapter<ReleasePlan>() {
         override fun toJsonNonNull(writer: JsonWriter, value: ReleasePlan) {
             writer.writeObject {
                 writeNameAndValue(ID, value.rootProjectId, projectIdAdapter)
                 writeNameAndValue(PROJECTS, value.getProjects(), projectsAdapter)
                 writeNameAndValue(DEPENDENTS, value.getAllDependents(), dependentsAdapter)
-                writeNameAndValue(WARNINGS, value.warnings, warningsAdapter)
+                writeNameAndValue(WARNINGS, value.warnings, listStringAdapter)
+                writeNameAndValue(INFOS, value.warnings, listStringAdapter)
             }
         }
 
@@ -42,8 +43,9 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
                 val projectId = checkNextNameAndGetValue(ID, projectIdAdapter)
                 val projects = checkNextNameAndGetValue(PROJECTS, projectsAdapter)
                 val dependents = checkNextNameAndGetValue(DEPENDENTS, dependentsAdapter)
-                val warnings = checkNextNameAndGetValue(WARNINGS, warningsAdapter)
-                ReleasePlan(projectId, projects.associateBy { it.id }, dependents, warnings)
+                val warnings = checkNextNameAndGetValue(WARNINGS, listStringAdapter)
+                val infos = checkNextNameAndGetValue(INFOS, listStringAdapter)
+                ReleasePlan(projectId, projects.associateBy { it.id }, dependents, warnings, infos)
             }
         }
 
@@ -55,4 +57,5 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
     const val PROJECTS = "projects"
     const val DEPENDENTS = "dependents"
     const val WARNINGS = "warnings"
+    const val INFOS = "infos"
 }
