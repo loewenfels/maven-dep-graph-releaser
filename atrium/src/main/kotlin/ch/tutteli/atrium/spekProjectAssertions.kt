@@ -303,8 +303,19 @@ fun ActionBody.assertOneUpdateAndOneReleaseCommand(
     }
 }
 
-
 fun ActionBody.assertOneUpdateAndOneMultiReleaseCommandAndCorrespondingDependents(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    dependency: IdAndVersions,
+    submodule: IdAndVersions,
+    vararg otherSubmodules: IdAndVersions
+) {
+    assertOneUpdateAndOneMultiReleaseCommand(releasePlan, name, project, dependency, submodule, *otherSubmodules)
+    assertHasDependents(releasePlan, name, project, submodule, *otherSubmodules)
+}
+
+fun ActionBody.assertOneUpdateAndOneMultiReleaseCommand(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
@@ -329,8 +340,6 @@ fun ActionBody.assertOneUpdateAndOneMultiReleaseCommandAndCorrespondingDependent
             )
         }
     }
-
-    assertHasDependents(releasePlan, name, project, submodule, *otherSubmodules)
 }
 
 fun ActionBody.assertTwoUpdateAndOneReleaseCommand(

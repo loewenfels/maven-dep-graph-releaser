@@ -121,15 +121,17 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         updateCommandsAddDependentAddToProjectsAndUpdateMultiModuleIfNecessary(paramObject, newDependent)
     }
 
-    private fun checkForCyclicAndUpdateIfOk(paramObject: ParamObject, existingDependent: Project) {
+    private fun checkForCyclicAndUpdateIfOk(paramObject: ParamObject, existingDependent: Project) : Boolean {
         analyseCycles(paramObject, existingDependent)
-        if (paramObject.hasRelationNoCycleToDependency()) {
+        return if (paramObject.hasRelationNoCycleToDependency()) {
             //TODO if we have submodule with a dependent and we need to update the level of the multi module
             //then we need to update the level even in case of a cycle -> write spec
             val dependent = updateLevelIfNecessaryAndRevisitInCase(paramObject, existingDependent)
             updateCommandsAddDependentAddToProjectsAndUpdateMultiModuleIfNecessary(paramObject, dependent)
+            true
         } else {
             //we ignore the relation because it would introduce a cyclic dependency which we currently do not support.
+            false
         }
     }
 
@@ -166,8 +168,15 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
                 val topMultiModuleId = multiModules.last()
                 val topMultiModule = paramObject.projects[topMultiModuleId]
                 if (topMultiModule != null && topMultiModule.level < dependent.level) {
+                    val tmpRelation = paramObject.relation
                     paramObject.relation = Relation(topMultiModuleId, topMultiModule.currentVersion, false)
-                    checkForCyclicAndUpdateIfOk(paramObject, topMultiModule)
+                    val wouldHaveCycles = !checkForCyclicAndUpdateIfOk(paramObject, topMultiModule)
+                    if (wouldHaveCycles) {
+                        paramObject.initDependency(topMultiModule)
+                        paramObject.relation = tmpRelation
+                        //updating the multi module would introduce a cycle, thus we need to adjust the submodule instead
+                        updateLevelIfNecessaryAndRevisitInCase(paramObject, dependent)
+                    }
                 }
             }
         }

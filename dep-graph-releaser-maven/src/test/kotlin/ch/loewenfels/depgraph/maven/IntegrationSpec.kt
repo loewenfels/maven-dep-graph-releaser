@@ -635,7 +635,7 @@ object IntegrationSpec : Spek({
         }
 
         given("cyclic inter module dependency where one is the parent of the other and parent has other dependent") {
-            action("context Analyser which resolves snapshot poms") {
+            action("context Analyser which does not resolve poms") {
 
                 val releasePlan =
                     analyseAndCreateReleasePlan(exampleA.id, "multiModule/cyclicInterParentDependencyWithDependent")
@@ -662,7 +662,7 @@ object IntegrationSpec : Spek({
         }
 
         given("cyclic inter module dependency where the are not a submodule of the same multi module (but common ancestor)") {
-            action("context Analyser which resolves snapshot poms") {
+            action("context Analyser which does not resolve poms") {
 
                 val releasePlan = analyseAndCreateReleasePlan(
                     exampleA.id, "multiModule/cyclicInterDependencyDifferentMultiModules"
@@ -693,7 +693,7 @@ object IntegrationSpec : Spek({
         //TODO cyclic inter module dependency and a regular dependency -> regular has to be a warning, inter an info
 
         given("submodule with dependency") {
-            action("context Analyser which resolves snapshot poms") {
+            action("context Analyser which does not resolve poms") {
 
                 val releasePlan = analyseAndCreateReleasePlan(
                     exampleA.id, "multiModule/submoduleWithDependency"
@@ -717,8 +717,68 @@ object IntegrationSpec : Spek({
             }
         }
 
+        given("submodule with dependency which in turn has dependency on multi module => release cycle") {
+            describe("cycle detected from multi module to dependent") {
+                action("context Analyser which does not resolve poms") {
+                    val releasePlan = analyseAndCreateReleasePlan(
+                        exampleA.id, "multiModule/submoduleWithDependencyWithDepOnMultiModule"
+                    )
+                    assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
+
+                    assertOneUpdateAndOneMultiReleaseCommand(
+                        releasePlan, "multi module", exampleB, exampleA, exampleC
+                    )
+                    assertHasTwoDependentsAndIsOnLevel(releasePlan, "multi module", exampleB, exampleC, exampleD, 1)
+
+                    assertOneUpdateCommand(releasePlan, "submodule", exampleC, exampleD)
+                    assertProjectIsOnLevel(releasePlan, "submodule", exampleC, 1)
+
+                    assertOneUpdateAndOneReleaseCommand(releasePlan, "dependent", exampleD, exampleB)
+                    assertHasOneDependentAndIsOnLevel(releasePlan, "dependent", exampleD, exampleC, 2)
+
+                    assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+                    assertReleasePlanHasWarningWithDependencyGraph(
+                        releasePlan,
+                        "${exampleD.id.identifier} -> ${exampleB.id.identifier}"
+                    )
+                    assertReleasePlanIteratorReturnsRootAnd(releasePlan, listOf(exampleB, exampleC), listOf(exampleD))
+                }
+            }
+
+            describe("cycle detected from dependent to multi module") {
+                action("context Analyser which does not resolve poms") {
+                    val releasePlan = analyseAndCreateReleasePlan(
+                        exampleA.id, "multiModule/submoduleWithDependencyAndMultiModuleDepOnDependency"
+                    )
+                    assertRootProjectWithDependents(releasePlan, exampleA, exampleD, exampleB)
+
+                    assertOneUpdateAndOneMultiReleaseCommandAndCorrespondingDependents(
+                        releasePlan, "multi module", exampleB, exampleA, exampleC
+                    )
+                    assertProjectIsOnLevel(releasePlan, "multi module", exampleB, 2)
+
+                    assertOneUpdateCommand(releasePlan, "submodule", exampleC, exampleD)
+                    assertProjectIsOnLevel(releasePlan, "submodule", exampleC, 2)
+
+                    assertOneUpdateAndOneReleaseCommand(releasePlan, "dependent", exampleD, exampleA)
+                    assertHasTwoDependentsAndIsOnLevel(releasePlan, "dependent", exampleD, exampleC, exampleB, 1)
+
+                    assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+                    assertReleasePlanHasWarningWithDependencyGraph(
+                        releasePlan,
+                        "${exampleB.id.identifier} -> ${exampleD.id.identifier}"
+                    )
+                    assertReleasePlanIteratorReturnsRootAnd(releasePlan, listOf(exampleD), listOf(exampleB, exampleC))
+                }
+            }
+        }
+
+        //TODO spec where we have a multi module parent:
+        // once the dependent has a dependency on the top multi module
+        // once the dependent has a dependency on multi module which is itself a multi module
+
         given("submodule of submodule with dependency") {
-            action("context Analyser which resolves snapshot poms") {
+            action("context Analyser which does not resolve poms") {
 
                 val releasePlan = analyseAndCreateReleasePlan(
                     exampleA.id, "multiModule/submoduleOfSubmoduleWithDependency"
