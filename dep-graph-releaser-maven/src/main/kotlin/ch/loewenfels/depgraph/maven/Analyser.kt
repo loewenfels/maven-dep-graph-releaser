@@ -26,7 +26,7 @@ class Analyser internal constructor(
     private val dependents: Map<String, Set<Relation<MavenProjectId>>>
     private val projectIds: Map<MavenProjectId, String>
     private val submodulesOfProjectId: Map<MavenProjectId, Set<MavenProjectId>>
-    private val multiModulesOfSubmodule: Map<MavenProjectId, Set<MavenProjectId>>
+    private val multiModulesOfSubmodule: Map<MavenProjectId, LinkedHashSet<MavenProjectId>>
     private val pomAnalysis: PomAnalysis
 
     init {
@@ -173,9 +173,9 @@ class Analyser internal constructor(
 
     private fun projectToString(project: Project): String = "${project.gav} (${project.pomFile.canonicalPath})"
 
-    private fun analyseSubmodules(): kotlin.Pair<Map<MavenProjectId, Set<MavenProjectId>>, Map<MavenProjectId, Set<MavenProjectId>>> {
+    private fun analyseSubmodules(): kotlin.Pair<Map<MavenProjectId, Set<MavenProjectId>>, Map<MavenProjectId, LinkedHashSet<MavenProjectId>>> {
         val submodulesOfProjectId = hashMapOf<MavenProjectId, HashSet<MavenProjectId>>()
-        val multiModulesOfSubmodule = hashMapOf<MavenProjectId, HashSet<MavenProjectId>>()
+        val multiModulesOfSubmodule = hashMapOf<MavenProjectId, LinkedHashSet<MavenProjectId>>()
         getInternalAnalysedGavs().forEach { gav ->
             val gavsToVisit = linkedSetOf(gav)
             while (gavsToVisit.isNotEmpty()) {
@@ -186,7 +186,7 @@ class Analyser internal constructor(
 
                 session.projects().getSubmodulesAsStream(multiModuleGav).forEach { submoduleGav ->
                     val submoduleProjectId = submoduleGav.toMavenProjectId()
-                    val multiModules = multiModulesOfSubmodule.getOrPut(submoduleProjectId, { hashSetOf() })
+                    val multiModules = multiModulesOfSubmodule.getOrPut(submoduleProjectId, { linkedSetOf() })
                     multiModules.add(multiModuleProjectId)
                     val notAlreadyContained = submodules.add(submoduleProjectId)
                     //just to prevent from maniac projects which have cyclic modules defined :)
@@ -247,8 +247,8 @@ class Analyser internal constructor(
      * Returns all multi modules of the given submodule project including super multi modules (multi module of multi module)
      * or an empty set if the project is not a submodule.
      */
-    fun getMultiModules(projectId: MavenProjectId): Set<MavenProjectId> {
-        return multiModulesOfSubmodule[projectId] ?: emptySetOrThrow(projectId)
+    fun getMultiModules(projectId: MavenProjectId): LinkedHashSet<MavenProjectId> {
+        return multiModulesOfSubmodule[projectId] ?: emptySetOrThrow(projectId, { linkedSetOf<MavenProjectId>()})
     }
 
     /**
@@ -260,9 +260,12 @@ class Analyser internal constructor(
     fun isSubmoduleOf(submoduleId: MavenProjectId, multiModuleId: MavenProjectId)
         = getSubmodulesInclNested(multiModuleId).contains(submoduleId)
 
-    private fun <T> emptySetOrThrow(projectId: MavenProjectId): Set<T> {
+    private fun <T> emptySetOrThrow(projectId: MavenProjectId): Set<T>
+        = emptySetOrThrow(projectId, { emptySet()})
+
+    private inline fun <T, S: Set<T>> emptySetOrThrow(projectId: MavenProjectId, emptySetCreator: () -> S): S {
         return if (projectIds.containsKey(projectId)) {
-            emptySet()
+            emptySetCreator()
         } else {
             throwProjectNotPartOfAnalysis(projectId)
         }

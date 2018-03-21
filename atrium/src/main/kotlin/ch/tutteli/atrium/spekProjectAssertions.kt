@@ -196,7 +196,19 @@ fun ActionBody.assertHasOneDependentAndIsOnLevel(
     assertProjectIsOnLevel(releasePlan, name, project, level)
 }
 
-fun ActionBody.assertHasDependents(
+fun ActionBody.assertHasTwoDependentsAndIsOnLevel(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    dependent1: IdAndVersions,
+    dependent2: IdAndVersions,
+    level: Int
+) {
+    assertHasDependents(releasePlan, name, project, dependent1, dependent2)
+    assertProjectIsOnLevel(releasePlan, name, project, level)
+}
+
+private fun ActionBody.assertHasDependents(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,

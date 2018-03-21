@@ -108,7 +108,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
 
                     else ->
                         //TODO rethink this branch, couldn't we miss a cyclic dependency?
-                        updateCommandsAddDependentAndAddToProjects(paramObject, existingDependent)
+                        updateCommandsAddDependentAddToProjectsAndUpdateMultiModuleIfNecessary(paramObject, existingDependent)
                 }
             }
         }
@@ -118,34 +118,56 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         val newDependent = createInitialWaitingProject(paramObject)
         paramObject.dependents[newDependent.id] = hashSetOf()
         paramObject.levelIterator.addToNextLevel(newDependent.id to newDependent)
-        updateCommandsAddDependentAndAddToProjects(paramObject, newDependent)
+        updateCommandsAddDependentAddToProjectsAndUpdateMultiModuleIfNecessary(paramObject, newDependent)
     }
 
     private fun checkForCyclicAndUpdateIfOk(paramObject: ParamObject, existingDependent: Project) {
         analyseCycles(paramObject, existingDependent)
         if (paramObject.hasRelationNoCycleToDependency()) {
             val dependent = if (paramObject.isRelationNotInSameMultiModuleCircleAsDependency()) {
-                val updatedDependent = Project(existingDependent, paramObject.getAnticipatedLevel())
-                paramObject.projects[existingDependent.id] = updatedDependent
-                //we need to re-visit so that we can update the levels of the dependents as well
-                paramObject.levelIterator.removeIfOnSameLevelAndReAddOnNext(updatedDependent.id to updatedDependent)
-                updatedDependent
+                updateLevelAndRevisit(paramObject, existingDependent)
             } else {
                 existingDependent
             }
-            updateCommandsAddDependentAndAddToProjects(paramObject, dependent)
+            updateCommandsAddDependentAddToProjectsAndUpdateMultiModuleIfNecessary(paramObject, dependent)
         } else {
             //we ignore the relation because it would introduce a cyclic dependency which we currently do not support.
         }
     }
 
+    private fun updateLevelAndRevisit(paramObject: ParamObject, existingDependent: Project): Project {
+        val updatedDependent = Project(existingDependent, paramObject.getAnticipatedLevel())
+        paramObject.projects[existingDependent.id] = updatedDependent
+        //we need to re-visit at least this project so that we can update the levels of the dependents as well
+        paramObject.levelIterator.removeIfOnSameLevelAndReAddOnNext(updatedDependent.id to updatedDependent)
+        return updatedDependent
+    }
+
     /**
-     * It actually adds the given [dependent] to [ParamObject.projects] or updates the entry if already exists.
+     * It actually adds the given [dependent] to [ParamObject.projects] or *updates* the entry if already exists
+     * => not only Add as indicated in the method name
      */
-    private fun updateCommandsAddDependentAndAddToProjects(paramObject: ParamObject, dependent: Project) {
+    private fun updateCommandsAddDependentAddToProjectsAndUpdateMultiModuleIfNecessary(
+        paramObject: ParamObject,
+        dependent: Project
+    ) {
         addAndUpdateCommandsOfDependent(paramObject, dependent)
         addDependentToDependentsOfDependency(paramObject, dependent)
         paramObject.projects[dependent.id] = dependent
+        updateMultiModuleIfNecessary(dependent, paramObject)
+    }
+
+    private fun updateMultiModuleIfNecessary(dependent: Project, paramObject: ParamObject) {
+        if (dependent.isSubmodule) {
+            val multiModules = paramObject.analyser.getMultiModules(paramObject.relation.id)
+            if (multiModules.isNotEmpty()) {
+                val topMultiModuleId = multiModules.last()
+                val topMultiModule = paramObject.projects[topMultiModuleId]
+                if (topMultiModule != null && topMultiModule.level < dependent.level) {
+                    checkForCyclicAndUpdateIfOk(paramObject, topMultiModule)
+                }
+            }
+        }
     }
 
     private fun addAndUpdateCommandsOfDependent(paramObject: ParamObject, dependent: Project) {
@@ -179,7 +201,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     }
 
     private fun addDependentToDependentsOfDependency(paramObject: ParamObject, dependent: Project) {
-        paramObject.dependents[paramObject.dependencyId]!!.add(dependent.id)
+        paramObject.getDependentsOfDependency().add(dependent.id)
     }
 
     private fun createInitialWaitingProject(paramObject: ParamObject): Project {
@@ -217,7 +239,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
             val (dependentId, dependentBranch) = projectsToVisit.iterator().next()
             projectsToVisit.remove(dependentId)
             visitedProjects.add(dependentId)
-            paramObject.dependents[dependentId]!!.forEach {
+            paramObject.getDependent(dependentId).forEach {
                 if (it == dependencyId) {
                     if (paramObject.isRelationNotInSameMultiModuleCircleAsDependency()) {
                         val map = paramObject.cyclicDependents.getOrPut(existingDependent.id, { linkedMapOf() })
@@ -231,7 +253,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
                 } else if (!visitedProjects.contains(it)) {
                     projectsToVisit[it] = ArrayList<ProjectId>(dependentBranch.size + 1).apply {
                         addAll(dependentBranch)
-                        add(paramObject.projects[it]!!.id)
+                        add(paramObject.getProject(it).id)
                     }
                 }
             }
@@ -322,7 +344,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         }
 
         fun isRelationDependencyVersionNotSelfManaged() = !relation.isDependencyVersionSelfManaged
-        fun isRelationAlreadyDependentOfDependency() = dependents[dependencyId]!!.contains(relation.id)
+        fun isRelationAlreadyDependentOfDependency() = getDependentsOfDependency().contains(relation.id)
         fun hasRelationNoCycleToDependency(): Boolean {
             return when {
                 cyclicDependents[relation.id]?.containsKey(dependencyId) == true -> false
@@ -330,5 +352,13 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
                 else -> true
             }
         }
+
+        fun getProject(projectId: ProjectId): Project
+            = projects[projectId] ?: throw IllegalStateException("$projectId was not found in projects")
+
+        fun getDependent(projectId: ProjectId)
+            = dependents[projectId] ?: throw IllegalStateException("$projectId was not found in dependents")
+
+        fun getDependentsOfDependency() = getDependent(dependencyId)
     }
 }

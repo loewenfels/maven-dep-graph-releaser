@@ -641,8 +641,7 @@ object IntegrationSpec : Spek({
                 assertRootProjectHasDependents(releasePlan, exampleA, exampleC)
 
                 assertHasNoCommands(releasePlan, "parent submodule", exampleC)
-                assertHasDependents(releasePlan, "parent submodule", exampleC, exampleB, exampleD)
-                assertProjectIsOnLevel(releasePlan, "parent submodule", exampleC, 0)
+                assertHasTwoDependentsAndIsOnLevel(releasePlan, "parent submodule", exampleC, exampleB, exampleD, 0)
 
                 assertHasNoCommands(releasePlan, "child submodule", exampleB)
                 assertHasNoDependentsAndIsOnLevel(releasePlan, "child submodule", exampleB, 0)
@@ -661,6 +660,31 @@ object IntegrationSpec : Spek({
         }
 
         //TODO cyclic inter module dependency and a regular dependency -> regular has to be a warning, inter an info
+
+        given("submodule with dependent") {
+            action("context Analyser which resolves snapshot poms") {
+
+                val releasePlan = analyseAndCreateReleasePlan(
+                    exampleA.id, "multiModule/submoduleWithDependent"
+                )
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleD)
+
+                assertOneUpdateAndOneMultiReleaseCommandAndCorrespondingDependents(
+                    releasePlan, "multi module", exampleB, exampleA, exampleC
+                )
+                assertProjectIsOnLevel(releasePlan, "multi module", exampleB, 2)
+
+                assertOneUpdateCommand(releasePlan, "submodule", exampleC, exampleD)
+                assertProjectIsOnLevel(releasePlan, "submodule", exampleC, 2)
+
+                assertOneUpdateAndOneReleaseCommand(releasePlan, "dependent", exampleD, exampleA)
+                assertHasTwoDependentsAndIsOnLevel(releasePlan, "dependent", exampleD, exampleC, exampleB, 1)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+                assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
+                assertReleasePlanIteratorReturnsRootAnd(releasePlan, listOf(exampleD), listOf(exampleB, exampleC))
+            }
+        }
     }
 })
 
