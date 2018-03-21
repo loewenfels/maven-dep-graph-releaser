@@ -35,6 +35,9 @@ class Analyser internal constructor(
         }
         pomAnalysis = analyseDirectory(directoryWithProjects, pomFileLoader)
         val analysedProjects = getAnalysedProjects()
+        require(analysedProjects.isNotEmpty()){
+            "No pom files found in the given directory (which exists): ${directoryWithProjects.absolutePath}"
+        }
 
         val pair = analyseSubmodules()
         submodulesOfProjectId = pair.first

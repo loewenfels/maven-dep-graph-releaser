@@ -24,11 +24,23 @@ object IntegrationSpec : Spek({
         given("non existing directory") {
             val errMsg = "directory does not exists"
             it("throws an IllegalArgumentException, mentioning `$errMsg`") {
+                val testDirectory = File("nonExistingProject/")
                 expect {
-                    analyseAndCreateReleasePlan(singleProjectIdAndVersions.id, File("nonExistingProject/"))
-                }.toThrow<IllegalArgumentException> { message { contains(errMsg) } }
+                    analyseAndCreateReleasePlan(singleProjectIdAndVersions.id, testDirectory)
+                }.toThrow<IllegalArgumentException> { message { contains(errMsg, testDirectory.absolutePath) } }
             }
         }
+
+        given("empty directory") {
+            val errMsg = "No pom files found"
+            it("throws an IllegalArgumentException, mentioning `$errMsg`") {
+                val testDirectory = getTestDirectory("errorCases/emptyDirectory")
+                expect {
+                    analyseAndCreateReleasePlan(singleProjectIdAndVersions.id, testDirectory)
+                }.toThrow<IllegalArgumentException> { message { contains(errMsg, testDirectory.absolutePath) } }
+            }
+        }
+
         given("project to release not in directory") {
             val errMsg = "Can only release a project which is part of the analysis"
             it("throws an IllegalArgumentException, mentioning `$errMsg`") {
@@ -45,9 +57,8 @@ object IntegrationSpec : Spek({
 
         given("project to release is a submodule") {
             it("throws an IllegalStateException, containing versions of project and multi module project") {
-                val testDirectory = getTestDirectory("errorCases/rootIsSubmodule")
                 expect {
-                    analyseAndCreateReleasePlan(exampleA.id, testDirectory)
+                    analyseAndCreateReleasePlan(exampleA.id, "errorCases/rootIsSubmodule")
                 }.toThrow<IllegalArgumentException> {
                     message {
                         contains(
@@ -162,7 +173,7 @@ object IntegrationSpec : Spek({
 
         given("project with dependent and version in bom") {
             action("context Analyser with a mocked PomFileResolver") {
-                val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "managingVersions/viaBom")
+                val releasePlan = analyseAndCreateReleasePlanWithPomResolverOldVersions(exampleA.id, "managingVersions/viaBom")
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
 
                 assertOnlyWaitingReleaseCommand(releasePlan, "indirect dependent", exampleB, exampleA)
@@ -175,7 +186,7 @@ object IntegrationSpec : Spek({
 
         given("project with dependent and version in parent dependency management") {
             action("context Analyser with a mocked PomFileResolver") {
-                val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "managingVersions/viaParent")
+                val releasePlan = analyseAndCreateReleasePlanWithPomResolverOldVersions(exampleA.id, "managingVersions/viaParent")
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC)
 
                 assertOneDirectDependent(releasePlan, "parent", exampleC, exampleB)
@@ -198,7 +209,7 @@ object IntegrationSpec : Spek({
 
         given("project with dependent and version in bom which is imported in parent") {
             action("context Analyser with a mocked PomFileResolver") {
-                val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "managingVersions/viaParentViaBom")
+                val releasePlan = analyseAndCreateReleasePlanWithPomResolverOldVersions(exampleA.id, "managingVersions/viaParentViaBom")
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC)
 
                 assertOneDirectDependent(releasePlan, "parent", exampleC, exampleB)
@@ -235,7 +246,7 @@ object IntegrationSpec : Spek({
 
         given("project with parent which itself has a parent, old parents are resolved") {
             action("context use an Analyser with a mocked PomFileResolver") {
-                val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "parentRelations/parentWithParent")
+                val releasePlan = analyseAndCreateReleasePlanWithPomResolverOldVersions(exampleA.id, "parentRelations/parentWithParent")
                 assertProjectAWithDependentBWithDependentC(releasePlan)
                 assertReleasePlanHasNoWarnings(releasePlan)
             }
@@ -243,14 +254,14 @@ object IntegrationSpec : Spek({
 
         given("project with multi-module parent (parent has SNAPSHOT dependency to parent), old parents are not resolved") {
             action("context Analyser which does not resolve poms") {
-                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("parentRelations/multiModuleParent"))
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "parentRelations/multiModuleParent")
                 assertMultiModuleAWithSubmoduleBWithDependentC(releasePlan, IdAndVersions(exampleB.id, exampleA))
             }
         }
 
         given("project with multi-module parent (parent has SNAPSHOT dependency to parent), old parents are resolved") {
             action("context use an Analyser with a mocked PomFileResolver") {
-                val releasePlan = analyseAndCreateReleasePlanWithMockedPomResolver(exampleA.id, "parentRelations/multiModuleParent")
+                val releasePlan = analyseAndCreateReleasePlanWithPomResolverOldVersions(exampleA.id, "parentRelations/multiModuleParent")
 
                 assertMultiModuleAWithSubmoduleBWithDependentC(releasePlan, IdAndVersions(exampleB.id, exampleA))
             }
@@ -259,7 +270,7 @@ object IntegrationSpec : Spek({
         given("project with multi-module parent which itself has a multi-module parent which is not root") {
             action("context Analyser which does not resolve poms") {
 
-                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("parentRelations/multiModuleParentWithMultiModuleParent"))
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "parentRelations/multiModuleParentWithMultiModuleParent")
 
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleD)
 
@@ -498,7 +509,7 @@ object IntegrationSpec : Spek({
         given("inter dependency between modules and version in multi module parent (which is not the root project)") {
             action("context Analyser which does not resolve poms") {
 
-                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("multimodule/interDependencyVersionViaParent"))
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "multimodule/interDependencyVersionViaParent")
 
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC)
 
@@ -521,16 +532,16 @@ object IntegrationSpec : Spek({
         given("cyclic inter module dependency") {
             action("context Analyser which does not resolve poms") {
 
-                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory("multimodule/cyclicInterDependency"))
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "multimodule/cyclicInterDependency")
                 assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleC)
 
                 // Notice that the order below depends on the hash function implemented.
                 // Might fail if we update the JDK version, we can fix it then
-                assertHasNoCommands(releasePlan, "first dependent", exampleB)
-                assertHasNoDependentsAndIsOnLevel(releasePlan, "first dependent", exampleB, 2)
+                assertHasNoCommands(releasePlan, "first submodule", exampleB)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "first submodule", exampleB, 2)
 
-                assertHasNoCommands(releasePlan, "second dependent", exampleC)
-                assertHasOneDependentAndIsOnLevel(releasePlan, "second dependent", exampleC, exampleB, 1)
+                assertHasNoCommands(releasePlan, "second submodule", exampleC)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "second submodule", exampleC, exampleB, 1)
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
                 assertReleasePlanHasWarningWithDependencyGraph(
@@ -569,7 +580,7 @@ private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, testDirecto
     return analyseAndCreateReleasePlan(projectToRelease, analyser)
 }
 
-private fun analyseAndCreateReleasePlanWithMockedPomResolver(
+private fun analyseAndCreateReleasePlanWithPomResolverOldVersions(
     projectToRelease: ProjectId,
     testDirectory: String
 ): ReleasePlan {
