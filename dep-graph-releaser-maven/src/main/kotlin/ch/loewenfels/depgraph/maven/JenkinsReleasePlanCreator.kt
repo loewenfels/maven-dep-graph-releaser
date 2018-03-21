@@ -89,7 +89,6 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
             dependents = hashMapOf(rootProject.id to hashSetOf()),
             cyclicDependents = hashMapOf(),
             interModuleCyclicDependents = hashMapOf(),
-            level = 1,
             dependentsToVisit = mutableListOf(linkedMapOf(rootProject.id to rootProject))
         )
         val dependentsToVisit = paramObject.dependentsToVisit
@@ -99,14 +98,13 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
             createCommandsForDependents(paramObject, dependent)
             if (dependentsOnSameLevel.isEmpty()) {
                 dependentsToVisit.removeAt(0)
-                ++paramObject.level
             }
         }
         return paramObject
     }
 
     private fun createCommandsForDependents(paramObject: ParamObject, dependency: Project) {
-        paramObject.dependencyId = dependency.id as MavenProjectId
+        paramObject.initDependency(dependency)
 
         paramObject.analyser.getDependentsOf(paramObject.dependencyId).forEach { relation ->
             paramObject.relation = relation
@@ -116,10 +114,11 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
                     existingDependent == null ->
                         initDependent(paramObject)
 
-                    existingDependent.level < paramObject.level ->
+                    existingDependent.level < paramObject.getAnticipatedLevel() ->
                         checkForCyclicAndUpdateIfOk(paramObject, existingDependent)
 
                     else ->
+                        //TODO rethink this branch, couldn't we miss a cyclic dependency?
                         updateCommandsAddDependentAndAddToProjects(paramObject, existingDependent)
                 }
             }
@@ -136,11 +135,16 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
     private fun checkForCyclicAndUpdateIfOk(paramObject: ParamObject, existingDependent: Project) {
         analyseCycles(paramObject, existingDependent)
         if (paramObject.hasRelationNoCycleToDependency()) {
-            val updatedDependent = Project(existingDependent, paramObject.level)
-            paramObject.projects[existingDependent.id] = updatedDependent
-            //we need to re-visit so that we can update the levels of the dependents as well
-            removeIfVisitOnSameLevelAndReAddOnNext(updatedDependent, paramObject.dependentsToVisit)
-            updateCommandsAddDependentAndAddToProjects(paramObject, updatedDependent)
+            val dependent = if (paramObject.isRelationNotInSameMultiModuleCircleAsDependency()) {
+                val updatedDependent = Project(existingDependent, paramObject.getAnticipatedLevel())
+                paramObject.projects[existingDependent.id] = updatedDependent
+                //we need to re-visit so that we can update the levels of the dependents as well
+                removeIfVisitOnSameLevelAndReAddOnNext(updatedDependent, paramObject.dependentsToVisit)
+                updatedDependent
+            } else {
+                existingDependent
+            }
+            updateCommandsAddDependentAndAddToProjects(paramObject, dependent)
         } else {
             //we ignore the relation because it would introduce a cyclic dependency which we currently do not support.
         }
@@ -204,7 +208,16 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         } else {
             mutableListOf()
         }
-        return createInitialProject(relation.id, !isNotSubmodule, relation.currentVersion, paramObject.level, commands)
+        val level = determineLevel(paramObject)
+        return createInitialProject(relation.id, !isNotSubmodule, relation.currentVersion, level, commands)
+    }
+
+    private fun determineLevel(paramObject: ParamObject): Int {
+        return if (paramObject.isRelationNotInSameMultiModuleCircleAsDependency()) {
+            paramObject.getAnticipatedLevel()
+        } else {
+            paramObject.dependency.level
+        }
     }
 
     private fun analyseCycles(paramObject: ParamObject, existingDependent: Project) {
@@ -286,13 +299,32 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         val dependents: HashMap<ProjectId, HashSet<ProjectId>>,
         val cyclicDependents: HashMap<ProjectId, LinkedHashMap<ProjectId, MutableList<ProjectId>>>,
         val interModuleCyclicDependents: HashMap<ProjectId, LinkedHashMap<ProjectId, MutableList<ProjectId>>>,
-        var level: Int,
         val dependentsToVisit: MutableList<LinkedHashMap<ProjectId, Project>>
     ) {
-        lateinit var dependencyId: MavenProjectId
+        private lateinit var _dependency: Project
+        var dependency: Project
+            get() = _dependency
+            private set(value) {
+                _dependency = value
+            }
+        private lateinit var _dependencyId: MavenProjectId
+        var dependencyId: MavenProjectId
+            get() = _dependencyId
+            private set(value) {
+                _dependencyId = value
+            }
         lateinit var relation: Relation<MavenProjectId>
 
-        fun isRelationNotSubmodule() = !analyser.isSubmodule(relation.id)
+        fun initDependency(dependency: Project) {
+            this.dependency = dependency
+            this.dependencyId = dependency.id as MavenProjectId
+        }
+
+        /**
+         * Returns [dependency.level][Project.level] + 1 which is only the anticipated level because it depends on
+         * whether [relation] is a submodule of [dependency] etc.
+         */
+        fun getAnticipatedLevel() = dependency.level + 1
 
         /**
          * Returns true if the [relation] is not a (nested) submodule of [dependencyId] and if they are not a submodule
@@ -306,8 +338,8 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
                 relationAndDependencyHaveNotCommonMultiModule()
         }
 
-
-        private fun isRelationNotSubmoduleOfDependency() = !analyser.isSubmoduleOf(relation.id, dependencyId)
+        fun isRelationNotSubmodule() = !analyser.isSubmodule(relation.id)
+        fun isRelationNotSubmoduleOfDependency() = !analyser.isSubmoduleOf(relation.id, dependencyId)
         fun isDependencyNotSubmoduleOfRelation() = !analyser.isSubmoduleOf(dependencyId, relation.id)
 
         private fun relationAndDependencyHaveNotCommonMultiModule(): Boolean {

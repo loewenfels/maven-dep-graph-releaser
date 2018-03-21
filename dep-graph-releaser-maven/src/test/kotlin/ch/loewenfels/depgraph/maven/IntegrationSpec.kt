@@ -280,10 +280,10 @@ object IntegrationSpec : Spek({
                 assertProjectIsOnLevel(releasePlan, "direct multi module", exampleB, 1)
 
                 assertHasNoCommands(releasePlan, "indirect multi module", exampleC)
-                assertHasOneDependentAndIsOnLevel(releasePlan, "indirect multi module", exampleC, exampleD, 2)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "indirect multi module", exampleC, exampleD, 1)
 
                 assertOneUpdateCommand(releasePlan, "submodule", exampleD, exampleA)
-                assertHasNoDependentsAndIsOnLevel(releasePlan, "submodule", exampleD, 3)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "submodule", exampleD, 1)
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
                 assertReleasePlanHasNoWarnings(releasePlan)
@@ -537,10 +537,10 @@ object IntegrationSpec : Spek({
                 assertProjectIsOnLevel(releasePlan, "multi module", exampleB, 1)
 
                 assertOneUpdateCommand(releasePlan, "submodule-with-root-dependency", exampleC, exampleA)
-                assertHasOneDependentAndIsOnLevel(releasePlan, "submodule-with-root-dependency", exampleC, exampleD, 2)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "submodule-with-root-dependency", exampleC, exampleD, 1)
 
                 assertHasNoCommands(releasePlan, "submodule-with-inter-dependency", exampleD)
-                assertHasNoDependentsAndIsOnLevel(releasePlan, "submodule-with-inter-dependency", exampleD, 3)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "submodule-with-inter-dependency", exampleD, 1)
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
                 assertReleasePlanHasNoWarnings(releasePlan)
@@ -556,10 +556,10 @@ object IntegrationSpec : Spek({
                 // Notice that the order below depends on the hash function implemented.
                 // Might fail if we update the JDK version, we can fix it then
                 assertHasNoCommands(releasePlan, "first submodule", exampleB)
-                assertHasNoDependentsAndIsOnLevel(releasePlan, "first submodule", exampleB, 2)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "first submodule", exampleB, 0)
 
                 assertHasNoCommands(releasePlan, "second submodule", exampleC)
-                assertHasOneDependentAndIsOnLevel(releasePlan, "second submodule", exampleC, exampleB, 1)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "second submodule", exampleC, exampleB, 0)
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
                 assertReleasePlanHasInfoWithDependencyGraph(
@@ -578,13 +578,13 @@ object IntegrationSpec : Spek({
 
                 assertHasNoCommands(releasePlan, "parent submodule", exampleC)
                 assertHasDependents(releasePlan, "parent submodule", exampleC, exampleB, exampleD)
-                assertProjectIsOnLevel(releasePlan, "parent submodule", exampleC, 1)
+                assertProjectIsOnLevel(releasePlan, "parent submodule", exampleC, 0)
 
                 assertHasNoCommands(releasePlan, "child submodule", exampleB)
-                assertHasNoDependentsAndIsOnLevel(releasePlan, "child submodule", exampleB, 2)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "child submodule", exampleB, 0)
 
                 assertOneUpdateAndOneReleaseCommand(releasePlan, "dependent", exampleD, exampleC)
-                assertHasNoDependentsAndIsOnLevel(releasePlan, "dependent", exampleD, 2)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "dependent", exampleD, 1)
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
                 assertReleasePlanHasInfoWithDependencyGraph(
@@ -606,10 +606,10 @@ private fun SpecBody.testMultiModuleAWithSubmoduleBWithDependentSubmoduleC(testD
         assertRootProjectMultiReleaseCommandWithSameDependents(releasePlan, exampleA, exampleB, exampleC)
 
         assertHasNoCommands(releasePlan, "direct dependent", exampleB)
-        assertHasOneDependentAndIsOnLevel(releasePlan, "direct dependent", exampleB, exampleC, 1)
+        assertHasOneDependentAndIsOnLevel(releasePlan, "direct dependent", exampleB, exampleC, 0)
 
         assertHasNoCommands(releasePlan, "indirect dependent", exampleC)
-        assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
+        assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 0)
 
         assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
         assertReleasePlanHasNoWarnings(releasePlan)

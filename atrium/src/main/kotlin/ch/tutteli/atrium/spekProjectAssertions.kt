@@ -47,11 +47,11 @@ fun ActionBody.assertMultiModuleAWithSubmoduleBWithDependentC(
 ) {
     assertRootProjectMultiReleaseCommandWithSameDependents(releasePlan, exampleA, projectB)
 
-    assertHasNoCommands(releasePlan, "direct dependent", projectB)
-    assertHasOneDependentAndIsOnLevel(releasePlan, "direct dependent", projectB, exampleC, 1)
+    assertHasNoCommands(releasePlan, "submodule", projectB)
+    assertHasOneDependentAndIsOnLevel(releasePlan, "submodule", projectB, exampleC, 0)
 
     assertOneUpdateAndOneReleaseCommand(releasePlan, "indirect dependent", exampleC, projectB)
-    assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
+    assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 1)
 
     assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
     assertReleasePlanHasNoWarnings(releasePlan)
