@@ -37,5 +37,5 @@ private fun loadJson(jsonUrl: String): Promise<Any> {
 
 private fun switchLoaderAndGui() {
     display("loader", "none")
-    display("gui", "block")
+    display("gui", "table")
 }

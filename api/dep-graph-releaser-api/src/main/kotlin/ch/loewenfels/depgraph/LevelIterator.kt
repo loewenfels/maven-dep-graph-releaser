@@ -1,8 +1,5 @@
 package ch.loewenfels.depgraph
 
-import ch.loewenfels.depgraph.data.Project
-import ch.loewenfels.depgraph.data.ProjectId
-
 /**
  * Not thread safe
  */
@@ -17,13 +14,12 @@ class LevelIterator<in K, V>(
     }
 
     private fun cleanupCurrentLevel() {
-        if (itemsToVisit[0].isEmpty()) {
+        if (itemsToVisit.isNotEmpty() && itemsToVisit[0].isEmpty()) {
             itemsToVisit.removeAt(0)
         }
     }
 
     override fun next(): V {
-
         if (itemsToVisit.isEmpty()) {
             throw NoSuchElementException("No item left; starting point was $startingPoint")
         }

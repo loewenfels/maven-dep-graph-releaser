@@ -2,12 +2,12 @@ body {
     font-family: "Arimo", sans-serif;
     font-size: 12px;
     margin: 0;
-    display: table;
-    height: 100%;
 }
 
 #gui {
     padding-top:20px;
+    display: none;
+    height: 100%
 }
 
 #messages {
