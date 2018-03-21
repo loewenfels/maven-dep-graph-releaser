@@ -568,21 +568,21 @@ object IntegrationSpec : Spek({
 
     describe("multi module projects") {
         given("inter module dependency and version in multi module root project") {
-            testMultiModuleAWithSubmoduleBWithDependentSubmoduleC("multimodule/interDependencyVersionViaRoot")
+            testMultiModuleAWithSubmoduleBWithDependentSubmoduleC("multiModule/interDependencyVersionViaRoot")
         }
 
         given("inter module dependency and version in multi module root project is \$project.version") {
-            testMultiModuleAWithSubmoduleBWithDependentSubmoduleC("multimodule/interDependencyVersionIsProjectVersionViaRoot")
+            testMultiModuleAWithSubmoduleBWithDependentSubmoduleC("multiModule/interDependencyVersionIsProjectVersionViaRoot")
         }
 
         given("inter module dependency and version self managed and in multi module root project is \$project.version") {
-            testMultiModuleAWithSubmoduleBWithDependentSubmoduleC("multimodule/interDependencyVersionSelfAndViaRoot")
+            testMultiModuleAWithSubmoduleBWithDependentSubmoduleC("multiModule/interDependencyVersionSelfAndViaRoot")
         }
 
         given("inter module dependency and version in multi module parent (which is not the root project)") {
             action("context Analyser which does not resolve poms") {
 
-                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "multimodule/interDependencyVersionViaParent")
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "multiModule/interDependencyVersionViaParent")
 
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC)
 
@@ -606,7 +606,7 @@ object IntegrationSpec : Spek({
         given("cyclic inter module dependency") {
             action("context Analyser which does not resolve poms") {
 
-                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "multimodule/cyclicInterDependency")
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "multiModule/cyclicInterDependency")
                 assertRootProjectMultiReleaseCommandWithSameDependents(releasePlan, exampleA, exampleB, exampleC)
 
                 // Notice that the order below depends on the hash function implemented.
@@ -631,7 +631,7 @@ object IntegrationSpec : Spek({
             action("context Analyser which resolves snapshot poms") {
 
                 val releasePlan =
-                    analyseAndCreateReleasePlan(exampleA.id, "multimodule/cyclicInterParentDependencyWithDependent")
+                    analyseAndCreateReleasePlan(exampleA.id, "multiModule/cyclicInterParentDependencyWithDependent")
                 assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleC)
                 assertRootProjectHasDependents(releasePlan, exampleA, exampleC)
 
