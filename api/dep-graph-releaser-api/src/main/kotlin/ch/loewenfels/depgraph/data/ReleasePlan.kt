@@ -63,6 +63,7 @@ data class ReleasePlan(
         override fun hasNext() = levelIterator.hasNext()
         override fun next(): Project {
             val project = levelIterator.next()
+            visitedProjects.add(project.id)
             releasePlan.getDependents(project.id)
                 .asSequence()
                 .filter { !visitedProjects.contains(it) }

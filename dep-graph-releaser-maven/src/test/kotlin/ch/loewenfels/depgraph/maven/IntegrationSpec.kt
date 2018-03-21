@@ -16,8 +16,7 @@ import org.jetbrains.spek.api.dsl.*
 import java.io.File
 
 object IntegrationSpec : Spek({
-    val singleProjectIdAndVersions =
-        IdAndVersions(MavenProjectId("com.example", "example"), "1.0-SNAPSHOT", "1.0", "1.1-SNAPSHOT")
+    val singleProjectIdAndVersions = IdAndVersions(MavenProjectId("com.example", "example"), "1.0-SNAPSHOT", "1.0", "1.1-SNAPSHOT")
 
     describe("validation errors") {
 
@@ -173,7 +172,8 @@ object IntegrationSpec : Spek({
 
         given("project with dependent and version in bom") {
             action("context Analyser with a mocked PomFileResolver") {
-                val releasePlan = analyseAndCreateReleasePlanWithPomResolverOldVersions(exampleA.id, "managingVersions/viaBom")
+                val releasePlan =
+                    analyseAndCreateReleasePlanWithPomResolverOldVersions(exampleA.id, "managingVersions/viaBom")
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
 
                 assertOnlyWaitingReleaseCommand(releasePlan, "indirect dependent", exampleB, exampleA)
@@ -186,7 +186,8 @@ object IntegrationSpec : Spek({
 
         given("project with dependent and version in parent dependency management") {
             action("context Analyser with a mocked PomFileResolver") {
-                val releasePlan = analyseAndCreateReleasePlanWithPomResolverOldVersions(exampleA.id, "managingVersions/viaParent")
+                val releasePlan =
+                    analyseAndCreateReleasePlanWithPomResolverOldVersions(exampleA.id, "managingVersions/viaParent")
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC)
 
                 assertOneDirectDependent(releasePlan, "parent", exampleC, exampleB)
@@ -209,7 +210,10 @@ object IntegrationSpec : Spek({
 
         given("project with dependent and version in bom which is imported in parent") {
             action("context Analyser with a mocked PomFileResolver") {
-                val releasePlan = analyseAndCreateReleasePlanWithPomResolverOldVersions(exampleA.id, "managingVersions/viaParentViaBom")
+                val releasePlan = analyseAndCreateReleasePlanWithPomResolverOldVersions(
+                    exampleA.id,
+                    "managingVersions/viaParentViaBom"
+                )
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC)
 
                 assertOneDirectDependent(releasePlan, "parent", exampleC, exampleB)
@@ -246,9 +250,13 @@ object IntegrationSpec : Spek({
 
         given("project with parent which itself has a parent, old parents are resolved") {
             action("context use an Analyser with a mocked PomFileResolver") {
-                val releasePlan = analyseAndCreateReleasePlanWithPomResolverOldVersions(exampleA.id, "parentRelations/parentWithParent")
+                val releasePlan = analyseAndCreateReleasePlanWithPomResolverOldVersions(
+                    exampleA.id,
+                    "parentRelations/parentWithParent"
+                )
                 assertProjectAWithDependentBWithDependentC(releasePlan)
                 assertReleasePlanHasNoWarnings(releasePlan)
+                assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleB, exampleC)
             }
         }
 
@@ -261,7 +269,10 @@ object IntegrationSpec : Spek({
 
         given("project with multi-module parent (parent has SNAPSHOT dependency to parent), old parents are resolved") {
             action("context use an Analyser with a mocked PomFileResolver") {
-                val releasePlan = analyseAndCreateReleasePlanWithPomResolverOldVersions(exampleA.id, "parentRelations/multiModuleParent")
+                val releasePlan = analyseAndCreateReleasePlanWithPomResolverOldVersions(
+                    exampleA.id,
+                    "parentRelations/multiModuleParent"
+                )
 
                 assertMultiModuleAWithSubmoduleBWithDependentC(releasePlan, IdAndVersions(exampleB.id, exampleA))
             }
@@ -270,7 +281,9 @@ object IntegrationSpec : Spek({
         given("project with multi-module parent which itself has a multi-module parent which is not root") {
             action("context Analyser which does not resolve poms") {
 
-                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "parentRelations/multiModuleParentWithMultiModuleParent")
+                val releasePlan = analyseAndCreateReleasePlan(
+                    exampleA.id, "parentRelations/multiModuleParentWithMultiModuleParent"
+                )
 
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleD)
 
@@ -287,9 +300,9 @@ object IntegrationSpec : Spek({
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
                 assertReleasePlanHasNoWarnings(releasePlan)
+                assertReleasePlanIteratorReturnsRootAnd(releasePlan, listOf(exampleB, exampleC, exampleD))
             }
         }
-
     }
 
     describe("transitive dependencies") {
@@ -308,6 +321,7 @@ object IntegrationSpec : Spek({
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
                 assertReleasePlanHasNoWarnings(releasePlan)
+                assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleB, exampleC)
             }
         }
 
@@ -326,6 +340,7 @@ object IntegrationSpec : Spek({
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
                 assertReleasePlanHasNoWarnings(releasePlan)
+                assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleD, exampleB, exampleC)
             }
         }
 
@@ -339,14 +354,20 @@ object IntegrationSpec : Spek({
                 assertTwoUpdateAndOneReleaseCommand(releasePlan, "indirect dependent", exampleD, exampleB, exampleA)
                 assertHasOneDependentAndIsOnLevel(releasePlan, "indirect dependent", exampleD, exampleC, 2)
 
-                assertTwoUpdateAndOneReleaseCommand(releasePlan, "dependent of indirect dependent", exampleC, exampleD, exampleA)
+                assertTwoUpdateAndOneReleaseCommand(
+                    releasePlan,
+                    "dependent of indirect dependent",
+                    exampleC,
+                    exampleD,
+                    exampleA
+                )
                 assertHasNoDependentsAndIsOnLevel(releasePlan, "dependent of indirect dependent", exampleC, 3)
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
                 assertReleasePlanHasNoWarnings(releasePlan)
+                assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleB, exampleD, exampleC)
             }
         }
-
 
         given("project with explicit transitive dependent which has a diamond dependency") {
             action("context Analyser which tries to resolve poms") {
@@ -372,6 +393,7 @@ object IntegrationSpec : Spek({
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
                 assertReleasePlanHasNoWarnings(releasePlan)
+                assertReleasePlanIteratorReturnsRootAnd(releasePlan, listOf(exampleB, exampleD), listOf(exampleC))
             }
         }
 
@@ -403,6 +425,7 @@ object IntegrationSpec : Spek({
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
                 assertReleasePlanHasNoWarnings(releasePlan)
+                assertReleasePlanIteratorReturnsRootAnd(releasePlan, listOf(exampleB, exampleD), listOf(exampleC))
             }
         }
 
@@ -418,15 +441,12 @@ object IntegrationSpec : Spek({
                     assertOneDirectDependent(releasePlan, "the direct dependent", exampleD, exampleC)
 
                     assertTwoUpdateAndOneReleaseCommand(
-                        releasePlan,
-                        "the indirect dependent",
-                        exampleC,
-                        exampleB,
-                        exampleD
+                        releasePlan, "the indirect dependent", exampleC, exampleB, exampleD
                     )
                     assertHasNoDependentsAndIsOnLevel(releasePlan, "the indirect dependent", exampleC, 2)
 
                     assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+                    assertReleasePlanIteratorReturnsRootAnd(releasePlan, listOf(exampleB, exampleD), listOf(exampleC))
                 }
             }
 
@@ -453,6 +473,7 @@ object IntegrationSpec : Spek({
                     releasePlan,
                     "-> ${exampleB.id.identifier} -> ${exampleA.id.identifier}"
                 )
+                assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleB)
             }
         }
 
@@ -465,6 +486,7 @@ object IntegrationSpec : Spek({
                     releasePlan,
                     "-> ${exampleC.id.identifier} -> ${exampleB.id.identifier} -> ${exampleA.id.identifier}"
                 )
+                assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleB, exampleC)
             }
         }
 
@@ -489,6 +511,7 @@ object IntegrationSpec : Spek({
                     "-> ${exampleB.id.identifier} -> ${exampleA.id.identifier}",
                     "-> ${exampleC.id.identifier} -> ${exampleD.id.identifier} -> ${exampleA.id.identifier}"
                 )
+                assertReleasePlanIteratorReturnsRootAnd(releasePlan, listOf(exampleB, exampleD), listOf(exampleC))
             }
         }
 
@@ -518,6 +541,7 @@ object IntegrationSpec : Spek({
                     "-> ${exampleB.id.identifier} -> ${exampleA.id.identifier}",
                     "-> ${exampleC.id.identifier} -> ${exampleA.id.identifier}"
                 )
+                assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleB, exampleC)
             }
         }
 
@@ -537,6 +561,7 @@ object IntegrationSpec : Spek({
                     releasePlan,
                     "-> ${exampleB.id.identifier} -> ${exampleD.id.identifier}"
                 )
+                assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleD, exampleB, exampleC)
             }
         }
     }
@@ -574,6 +599,7 @@ object IntegrationSpec : Spek({
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
                 assertReleasePlanHasNoWarnings(releasePlan)
+                assertReleasePlanIteratorReturnsRootAnd(releasePlan, listOf(exampleB, exampleC, exampleD))
             }
         }
 
@@ -592,17 +618,20 @@ object IntegrationSpec : Spek({
                 assertHasOneDependentAndIsOnLevel(releasePlan, "second submodule", exampleC, exampleB, 0)
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
+                assertReleasePlanHasNoWarnings(releasePlan)
                 assertReleasePlanHasInfoWithDependencyGraph(
                     releasePlan,
                     "-> ${exampleB.id.identifier} -> ${exampleC.id.identifier}"
                 )
+                assertReleasePlanIteratorReturnsRootAnd(releasePlan, listOf(exampleB, exampleC))
             }
         }
 
         given("cyclic inter module dependency where one is the parent of the other and parent has other dependent") {
             action("context Analyser which resolves snapshot poms") {
 
-                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "multimodule/cyclicInterParentDependencyWithDependent")
+                val releasePlan =
+                    analyseAndCreateReleasePlan(exampleA.id, "multimodule/cyclicInterParentDependencyWithDependent")
                 assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleC)
                 assertRootProjectHasDependents(releasePlan, exampleA, exampleC)
 
@@ -617,10 +646,12 @@ object IntegrationSpec : Spek({
                 assertHasNoDependentsAndIsOnLevel(releasePlan, "dependent", exampleD, 1)
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+                assertReleasePlanHasNoWarnings(releasePlan)
                 assertReleasePlanHasInfoWithDependencyGraph(
                     releasePlan,
                     "-> ${exampleB.id.identifier} -> ${exampleC.id.identifier}"
                 )
+                assertReleasePlanIteratorReturnsRootAnd(releasePlan, listOf(exampleB, exampleC), listOf(exampleD))
             }
         }
 
@@ -643,6 +674,7 @@ private fun SpecBody.testMultiModuleAWithSubmoduleBWithDependentSubmoduleC(testD
 
         assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
         assertReleasePlanHasNoWarnings(releasePlan)
+        assertReleasePlanIteratorReturnsRootAnd(releasePlan, listOf(exampleB, exampleC))
     }
 }
 
@@ -700,6 +732,7 @@ private fun SpecBody.testReleaseAWithDependentBWithDependentC(directory: String,
         val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
         assertProjectAWithDependentBWithDependentC(releasePlan, projectB)
         assertReleasePlanHasNoWarnings(releasePlan)
+        assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleB, exampleC)
     }
 }
 
@@ -708,6 +741,7 @@ private fun SpecBody.testReleaseAWithDependentB(directory: String) {
         val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(directory))
         assertProjectAWithDependentB(releasePlan)
         assertReleasePlanHasNoWarnings(releasePlan)
+        assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleB)
     }
 }
 
@@ -741,6 +775,7 @@ private fun SpecBody.testReleaseAWithDependentBDAndCViaD(directory: String) {
 
         assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
         assertReleasePlanHasNoWarnings(releasePlan)
+        assertReleasePlanIteratorReturnsRootAnd(releasePlan, listOf(exampleB, exampleD), listOf(exampleC))
     }
 }
 

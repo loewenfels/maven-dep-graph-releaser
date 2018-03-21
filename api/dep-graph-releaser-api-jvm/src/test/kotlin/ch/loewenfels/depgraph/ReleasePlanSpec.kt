@@ -6,6 +6,8 @@ import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.tutteli.atrium.api.cc.en_UK.*
 import ch.tutteli.atrium.assert
+import ch.tutteli.atrium.iteratorReturnsRootAndInOrderGrouped
+import ch.tutteli.atrium.iteratorReturnsRootAndStrictly
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.given
@@ -56,12 +58,11 @@ object ReleasePlanSpec : Spek({
             }
 
             it("returns the projects in the order of their levels") {
-                assert(releasePlan.iterator().asSequence().toList()).containsStrictly(
-                    rootProject,
-                    parent,
-                    projectInterface,
-                    projectAnnotations,
-                    projectNotifier
+                assert(releasePlan).iteratorReturnsRootAndStrictly(
+                    parent.id,
+                    projectInterface.id,
+                    projectAnnotations.id,
+                    projectNotifier.id
                 )
             }
         }
@@ -98,11 +99,7 @@ object ReleasePlanSpec : Spek({
             }
 
             it("returns the submodules in any order (but have to be returned even though they are on the same level as root)") {
-                assert(releasePlan.iterator().asSequence().toList()).contains.inAnyOrder.only.objects(
-                    multiModule,
-                    submodule,
-                    submodule2
-                )
+                assert(releasePlan).iteratorReturnsRootAndInOrderGrouped(listOf(submodule.id, submodule2.id))
             }
         }
 
@@ -132,11 +129,8 @@ object ReleasePlanSpec : Spek({
             }
 
             it("returns the submodules in any order (but have to be returned even though they are on the same level as root)") {
-                assert(releasePlan.iterator().asSequence().toList()).contains.inAnyOrder.only.objects(
-                    multiModule,
-                    submodule,
-                    submodule2,
-                    dependent
+                assert(releasePlan).iteratorReturnsRootAndInOrderGrouped(
+                    listOf(submodule.id, submodule2.id, dependent.id)
                 )
             }
         }

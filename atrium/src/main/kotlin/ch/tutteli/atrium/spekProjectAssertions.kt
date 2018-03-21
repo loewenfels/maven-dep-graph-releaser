@@ -15,17 +15,20 @@ val exampleD = IdAndVersions(MavenProjectId("com.example", "d"), "4.1-SNAPSHOT",
 val exampleDeps = IdAndVersions(MavenProjectId("com.example", "deps"), "9-SNAPSHOT", "9", "10-SNAPSHOT")
 
 
-fun ActionBody.assertSingleProject(releasePlan: ReleasePlan, idAndVersions: IdAndVersions) {
-    assertRootProjectOnlyReleaseCommand(releasePlan, idAndVersions)
+fun ActionBody.assertSingleProject(releasePlan: ReleasePlan, projectToRelease: IdAndVersions) {
+    assertRootProjectOnlyReleaseCommand(releasePlan, projectToRelease)
 
     test("it does not have any dependent project") {
         assert(releasePlan) {
             returnValueOf(subject::getNumberOfDependents).toBe(1)
-            returnValueOf(subject::getDependents, idAndVersions.id).isEmpty()
+            returnValueOf(subject::getDependents, projectToRelease.id).isEmpty()
         }
     }
 
     assertReleasePlanHasNoWarnings(releasePlan)
+    test("ReleasePlan.iterator() returns only the root Project projects in the expected order") {
+        assert(releasePlan).iteratorReturnsRootAndStrictly()
+    }
 }
 
 fun ActionBody.assertProjectAWithDependentBWithDependentC(
@@ -55,6 +58,7 @@ fun ActionBody.assertMultiModuleAWithSubmoduleBWithDependentC(
 
     assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
     assertReleasePlanHasNoWarnings(releasePlan)
+    assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleB, exampleC)
 }
 
 fun ActionBody.assertProjectAWithDependentB(releasePlan: ReleasePlan) {
@@ -74,16 +78,27 @@ fun ActionBody.assertRootProjectWithDependents(
 ) {
     assertRootProjectOnlyReleaseCommand(releasePlan, rootProjectIdAndVersions)
 
-    assertRootProjectHasDependents(releasePlan, rootProjectIdAndVersions, dependentIdAndVersions, *otherDependentIdAndVersions)
+    assertRootProjectHasDependents(
+        releasePlan,
+        rootProjectIdAndVersions,
+        dependentIdAndVersions,
+        *otherDependentIdAndVersions
+    )
 }
 
 fun ActionBody.assertRootProjectHasDependents(
     releasePlan: ReleasePlan,
     rootProjectIdAndVersions: IdAndVersions,
     dependentIdAndVersions: IdAndVersions,
-    vararg otherDependentIdAndVersions:IdAndVersions
+    vararg otherDependentIdAndVersions: IdAndVersions
 ) {
-    assertHasDependents(releasePlan, "root", rootProjectIdAndVersions, dependentIdAndVersions, *otherDependentIdAndVersions)
+    assertHasDependents(
+        releasePlan,
+        "root",
+        rootProjectIdAndVersions,
+        dependentIdAndVersions,
+        *otherDependentIdAndVersions
+    )
 }
 
 fun ActionBody.assertRootProjectMultiReleaseCommandWithSameDependents(
@@ -289,7 +304,15 @@ fun ActionBody.assertOneUpdateAndOneMultiReleaseCommandAndCorrespondingDependent
             idAndVersions(project)
             property(subject::commands).containsStrictly(
                 { isJenkinsUpdateDependencyWaiting(dependency) },
-                { isJenkinsMultiMavenReleaseWaiting(project.nextDevVersion, dependency, arrayOf(), submodule, *otherSubmodules) }
+                {
+                    isJenkinsMultiMavenReleaseWaiting(
+                        project.nextDevVersion,
+                        dependency,
+                        arrayOf(),
+                        submodule,
+                        *otherSubmodules
+                    )
+                }
             )
         }
     }
@@ -342,6 +365,7 @@ fun ActionBody.assertReleasePlanHasWarningWithDependencyGraph(
         })
     }
 }
+
 fun ActionBody.assertReleasePlanHasInfoWithDependencyGraph(
     releasePlan: ReleasePlan,
     dependencyBranch: String,
@@ -351,5 +375,25 @@ fun ActionBody.assertReleasePlanHasInfoWithDependencyGraph(
         assert(releasePlan.infos).containsStrictly({
             contains("cyclic dependencies", dependencyBranch, *otherDependencyBranches)
         })
+    }
+}
+
+fun ActionBody.assertReleasePlanIteratorReturnsRootAndStrictly(
+    releasePlan: ReleasePlan,
+    vararg projects: IdAndVersions
+) {
+    test("ReleasePlan.iterator() returns the projects in the expected order") {
+        val mappedProjects = projects.map { it.id }.toTypedArray()
+        assert(releasePlan).iteratorReturnsRootAndStrictly(*mappedProjects)
+    }
+}
+
+fun ActionBody.assertReleasePlanIteratorReturnsRootAnd(
+    releasePlan: ReleasePlan,
+    vararg groups: List<IdAndVersions>
+) {
+    test("ReleasePlan.iterator() returns the projects in the expected order") {
+        val projectGroups = groups.map { it.map{ it.id }}.toTypedArray()
+        assert(releasePlan).iteratorReturnsRootAndInOrderGrouped(*projectGroups)
     }
 }
