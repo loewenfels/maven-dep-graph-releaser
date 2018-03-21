@@ -45,7 +45,7 @@ fun ActionBody.assertMultiModuleAWithSubmoduleBWithDependentC(
     releasePlan: ReleasePlan,
     projectB: IdAndVersions
 ) {
-    assertRootProjectMultiReleaseCommand(releasePlan, exampleA, projectB)
+    assertRootProjectMultiReleaseCommandWithSameDependents(releasePlan, exampleA, projectB)
 
     assertHasNoCommands(releasePlan, "direct dependent", projectB)
     assertHasOneDependentAndIsOnLevel(releasePlan, "direct dependent", projectB, exampleC, 1)
@@ -74,15 +74,26 @@ fun ActionBody.assertRootProjectWithDependents(
 ) {
     assertRootProjectOnlyReleaseCommand(releasePlan, rootProjectIdAndVersions)
 
-    assertRootProjectHasDependents(releasePlan, dependentIdAndVersions, otherDependentIdAndVersions)
+    assertRootProjectHasDependents(releasePlan, rootProjectIdAndVersions, dependentIdAndVersions, *otherDependentIdAndVersions)
 }
 
-private fun ActionBody.assertRootProjectHasDependents(
+fun ActionBody.assertRootProjectHasDependents(
     releasePlan: ReleasePlan,
+    rootProjectIdAndVersions: IdAndVersions,
     dependentIdAndVersions: IdAndVersions,
-    otherDependentIdAndVersions: Array<out IdAndVersions>
+    vararg otherDependentIdAndVersions:IdAndVersions
 ) {
-    assertHasDependents(releasePlan, "root", exampleA, dependentIdAndVersions, *otherDependentIdAndVersions)
+    assertHasDependents(releasePlan, "root", rootProjectIdAndVersions, dependentIdAndVersions, *otherDependentIdAndVersions)
+}
+
+fun ActionBody.assertRootProjectMultiReleaseCommandWithSameDependents(
+    releasePlan: ReleasePlan,
+    rootProjectIdAndVersions: IdAndVersions,
+    submodule: IdAndVersions,
+    vararg otherSubmodules: IdAndVersions
+) {
+    assertRootProjectMultiReleaseCommand(releasePlan, rootProjectIdAndVersions, submodule, *otherSubmodules)
+    assertRootProjectHasDependents(releasePlan, rootProjectIdAndVersions, submodule, *otherSubmodules)
 }
 
 fun ActionBody.assertRootProjectMultiReleaseCommand(
@@ -114,8 +125,6 @@ fun ActionBody.assertRootProjectMultiReleaseCommand(
             )
         }
     }
-
-    assertRootProjectHasDependents(releasePlan, submodule, otherSubmodules)
 }
 
 fun ActionBody.assertRootProjectOnlyReleaseCommand(releasePlan: ReleasePlan, rootProjectIdAndVersions: IdAndVersions) {
@@ -172,7 +181,7 @@ fun ActionBody.assertHasOneDependentAndIsOnLevel(
     assertProjectIsOnLevel(releasePlan, name, project, level)
 }
 
-private fun ActionBody.assertHasDependents(
+fun ActionBody.assertHasDependents(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,

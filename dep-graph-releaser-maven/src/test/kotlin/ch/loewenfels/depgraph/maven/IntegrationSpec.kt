@@ -494,19 +494,19 @@ object IntegrationSpec : Spek({
     }
 
     describe("multi module projects") {
-        given("inter dependency between modules and version in multi module root project") {
+        given("inter module dependency and version in multi module root project") {
             testMultiModuleAWithSubmoduleBWithDependentSubmoduleC("multimodule/interDependencyVersionViaRoot")
         }
 
-        given("inter dependency between modules and version in multi module root project is \$project.version") {
+        given("inter module dependency and version in multi module root project is \$project.version") {
             testMultiModuleAWithSubmoduleBWithDependentSubmoduleC("multimodule/interDependencyVersionIsProjectVersionViaRoot")
         }
 
-        given("inter dependency between modules and version self managed and in multi module root project is \$project.version") {
+        given("inter module dependency and version self managed and in multi module root project is \$project.version") {
             testMultiModuleAWithSubmoduleBWithDependentSubmoduleC("multimodule/interDependencyVersionSelfAndViaRoot")
         }
 
-        given("inter dependency between modules and version in multi module parent (which is not the root project)") {
+        given("inter module dependency and version in multi module parent (which is not the root project)") {
             action("context Analyser which does not resolve poms") {
 
                 val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "multimodule/interDependencyVersionViaParent")
@@ -533,7 +533,7 @@ object IntegrationSpec : Spek({
             action("context Analyser which does not resolve poms") {
 
                 val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "multimodule/cyclicInterDependency")
-                assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleC)
+                assertRootProjectMultiReleaseCommandWithSameDependents(releasePlan, exampleA, exampleB, exampleC)
 
                 // Notice that the order below depends on the hash function implemented.
                 // Might fail if we update the JDK version, we can fix it then
@@ -550,6 +550,31 @@ object IntegrationSpec : Spek({
                 )
             }
         }
+
+        given("cyclic inter module dependency where one is the parent of the other and parent has other dependent") {
+            action("context Analyser which resolves snapshot poms") {
+
+                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "multimodule/cyclicInterParentDependencyWithDependent")
+                assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleC)
+                assertRootProjectHasDependents(releasePlan, exampleA, exampleC)
+
+                assertHasNoCommands(releasePlan, "parent submodule", exampleC)
+                assertHasDependents(releasePlan, "parent submodule", exampleC, exampleB, exampleD)
+                assertProjectIsOnLevel(releasePlan, "parent submodule", exampleC, 1)
+
+                assertHasNoCommands(releasePlan, "child submodule", exampleB)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "child submodule", exampleB, 2)
+
+                assertOneUpdateAndOneReleaseCommand(releasePlan, "dependent", exampleD, exampleC)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "dependent", exampleD, 2)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+                assertReleasePlanHasWarningWithDependencyGraph(
+                    releasePlan,
+                    "-> ${exampleB.id.identifier} -> ${exampleC.id.identifier}"
+                )
+            }
+        }
     }
 })
 
@@ -558,7 +583,7 @@ private fun SpecBody.testMultiModuleAWithSubmoduleBWithDependentSubmoduleC(testD
 
         val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(testDirectory))
 
-        assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleC)
+        assertRootProjectMultiReleaseCommandWithSameDependents(releasePlan, exampleA, exampleB, exampleC)
 
         assertHasNoCommands(releasePlan, "direct dependent", exampleB)
         assertHasOneDependentAndIsOnLevel(releasePlan, "direct dependent", exampleB, exampleC, 1)
