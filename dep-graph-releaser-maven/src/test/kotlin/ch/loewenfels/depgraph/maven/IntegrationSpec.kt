@@ -348,11 +348,10 @@ object IntegrationSpec : Spek({
         }
 
 
-        given("project with explicit transitive dependent and diamond dependency") {
-
+        given("project with explicit transitive dependent which has a diamond dependency") {
             action("context Analyser which tries to resolve poms") {
                 val releasePlan =
-                    analyseAndCreateReleasePlan(exampleA.id, "transitive/explicitTwoDependencies")
+                    analyseAndCreateReleasePlan(exampleA.id, "transitive/explicitDiamondDependencies")
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC, exampleD)
 
                 assertOneDirectDependent(releasePlan, "first direct dependent", exampleB, exampleC)
@@ -370,6 +369,37 @@ object IntegrationSpec : Spek({
                     }
                 }
                 assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+                assertReleasePlanHasNoWarnings(releasePlan)
+            }
+        }
+
+        given("project with explicit transitive dependent which has a diamond dependency to submodules") {
+            action("context Analyser which tries to resolve poms") {
+                val releasePlan =
+                    analyseAndCreateReleasePlan(exampleA.id, "transitive/explicitDiamondDependenciesToSubmodules")
+                assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleD)
+                assertRootProjectHasDependents(releasePlan, exampleA, exampleB, exampleC, exampleD)
+
+                assertHasNoCommands(releasePlan, "first submodule", exampleB)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "first submodule", exampleB, exampleC, 0)
+
+                assertHasNoCommands(releasePlan, "second submodule", exampleD)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "second submodule", exampleD, exampleC, 0)
+
+                test("the indirect dependent project has three updateVersion and one Release command") {
+                    assert(releasePlan.getProject(exampleC.id)) {
+                        idAndVersions(exampleC)
+                        property(subject::commands).containsStrictly(
+                            { isJenkinsUpdateDependencyWaiting(exampleB) },
+                            { isJenkinsUpdateDependencyWaiting(exampleD) },
+                            { isJenkinsUpdateDependencyWaiting(exampleA) },
+                            { isJenkinsMavenReleaseWaiting(exampleC.nextDevVersion, exampleD, exampleB, exampleA) }
+                        )
+                    }
+                }
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 1)
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
                 assertReleasePlanHasNoWarnings(releasePlan)
