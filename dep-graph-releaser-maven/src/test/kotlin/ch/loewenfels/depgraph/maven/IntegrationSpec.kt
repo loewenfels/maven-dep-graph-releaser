@@ -569,6 +569,8 @@ object IntegrationSpec : Spek({
                 assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleD, exampleB, exampleC)
             }
         }
+
+        //See also cyclic use cases in multi-module
     }
 
     describe("multi module projects") {
@@ -690,11 +692,11 @@ object IntegrationSpec : Spek({
 
         //TODO cyclic inter module dependency and a regular dependency -> regular has to be a warning, inter an info
 
-        given("submodule with dependent") {
+        given("submodule with dependency") {
             action("context Analyser which resolves snapshot poms") {
 
                 val releasePlan = analyseAndCreateReleasePlan(
-                    exampleA.id, "multiModule/submoduleWithDependent"
+                    exampleA.id, "multiModule/submoduleWithDependency"
                 )
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleD)
 
@@ -715,11 +717,11 @@ object IntegrationSpec : Spek({
             }
         }
 
-        given("submodule of submodule with dependent") {
+        given("submodule of submodule with dependency") {
             action("context Analyser which resolves snapshot poms") {
 
                 val releasePlan = analyseAndCreateReleasePlan(
-                    exampleA.id, "multiModule/submoduleOfSubmoduleWithDependent"
+                    exampleA.id, "multiModule/submoduleOfSubmoduleWithDependency"
                 )
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleE)
 
