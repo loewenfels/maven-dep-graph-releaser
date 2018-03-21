@@ -39,7 +39,7 @@ object MainSpec : Spek({
                 val json = Scanner(jsonFile, Charsets.UTF_8.name()).useDelimiter("\\Z").use { it.next() }
                 val releasePlan = Serializer().deserialize(json)
                 assertProjectAWithDependentB(releasePlan)
-                assertReleasePlanHasNoWarnings(releasePlan)
+                assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
             }
         }
     }

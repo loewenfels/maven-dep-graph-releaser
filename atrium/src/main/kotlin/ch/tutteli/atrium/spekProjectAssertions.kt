@@ -25,7 +25,7 @@ fun ActionBody.assertSingleProject(releasePlan: ReleasePlan, projectToRelease: I
         }
     }
 
-    assertReleasePlanHasNoWarnings(releasePlan)
+    assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
     test("ReleasePlan.iterator() returns only the root Project projects in the expected order") {
         assert(releasePlan).iteratorReturnsRootAndStrictly()
     }
@@ -57,7 +57,7 @@ fun ActionBody.assertMultiModuleAWithSubmoduleBWithDependentC(
     assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 1)
 
     assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
-    assertReleasePlanHasNoWarnings(releasePlan)
+    assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
     assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleB, exampleC)
 }
 
@@ -348,9 +348,20 @@ fun ActionBody.assertReleasePlanHasNumOfProjectsAndDependents(releasePlan: Relea
     }
 }
 
+fun ActionBody.assertReleasePlanHasNoWarningsAndNoInfos(releasePlan: ReleasePlan) {
+    assertReleasePlanHasNoWarnings(releasePlan)
+    assertReleasePlanHasNoInfos(releasePlan)
+}
+
 fun ActionBody.assertReleasePlanHasNoWarnings(releasePlan: ReleasePlan) {
     test("it does not have warnings") {
         assert(releasePlan.warnings).isEmpty()
+    }
+}
+
+fun ActionBody.assertReleasePlanHasNoInfos(releasePlan: ReleasePlan) {
+    test("it does not have infos") {
+        assert(releasePlan.infos).isEmpty()
     }
 }
 
