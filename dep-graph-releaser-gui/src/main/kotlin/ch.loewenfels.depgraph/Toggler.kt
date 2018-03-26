@@ -1,10 +1,12 @@
 package ch.loewenfels.depgraph
 
+import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ProjectId
+import ch.loewenfels.depgraph.data.ReleasePlan
 import org.w3c.dom.HTMLInputElement
 import kotlin.browser.document
 
-class Toggler {
+class Toggler(private val releasePlan: ReleasePlan) {
 
     @JsName("toggle")
     fun toggle(id: String) {
@@ -53,14 +55,24 @@ class Toggler {
     }
 
     private fun deactivateDependents(prefix: String) {
-        val dependents : Set<ProjectId> = elementById(prefix).asDynamic().dependents as Set<ProjectId>
-        dependents.forEach {
-            val disableAll = "${it.identifier}:disableAll"
-            getCheckbox(disableAll).checked = false
-            toggle(disableAll)
-        }
+        val project = elementById(prefix).asDynamic().project as Project
+        deactivateDependents(project.id)
     }
 
+    private fun deactivateDependents(projectId: ProjectId){
+        releasePlan.getDependents(projectId).forEach(this::disableProject)
+        releasePlan.getSubmodules(projectId).forEach(this::deactivateDependents)
+    }
+
+    private fun disableProject(it: ProjectId) {
+        val id = "${it.identifier}:disableAll"
+        val checkbox = document.getElementById(id)
+        //could be a sub module without commands
+        if (checkbox is HTMLInputElement) {
+            checkbox.checked = false
+            toggle(id)
+        }
+    }
 
     private fun HTMLInputElement.isReleaseCommand(): Boolean {
         return classList.contains("release")
