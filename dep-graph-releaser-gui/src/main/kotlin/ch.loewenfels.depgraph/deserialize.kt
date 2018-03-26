@@ -17,10 +17,11 @@ fun deserialize(body: String): ReleasePlan {
     val releasePlanJson = JSON.parse<ReleasePlanJson>(body)
     val rootProjectId = createProjectId(releasePlanJson.id)
     val projects = deserializeProjects(releasePlanJson)
-    val dependents = deserializeDependents(releasePlanJson)
+    val submodules = deserializeMapOfProjectIdAndSetProjectId(releasePlanJson.submodules)
+    val dependents = deserializeMapOfProjectIdAndSetProjectId(releasePlanJson.dependents)
     val warnings = releasePlanJson.warnings.toList()
     val infos = releasePlanJson.infos.toList()
-    return ReleasePlan(rootProjectId, projects, dependents, warnings, infos)
+    return ReleasePlan(rootProjectId, projects, submodules, dependents, warnings, infos)
 }
 
 fun createProjectId(id: GenericType<ProjectId>): ProjectId {
@@ -57,8 +58,7 @@ fun createJenkinsMavenReleasePlugin(command: Command): JenkinsMavenReleasePlugin
 
 fun createJenkinsMultiMavenReleasePlugin(command: Command): Command {
     val it = command.unsafeCast<JenkinsMultiMavenReleasePlugin>()
-    val projects = (it.projects.asDynamic() as Array<GenericType<ProjectId>>).map { createProjectId(it) }.toSet()
-    return JenkinsMultiMavenReleasePlugin(deserializeState(it), it.nextDevVersion, projects)
+    return JenkinsMultiMavenReleasePlugin(deserializeState(it), it.nextDevVersion)
 }
 
 fun createJenkinsUpdateDependency(command: Command): JenkinsUpdateDependency {
@@ -73,8 +73,8 @@ private fun deserializeState(it: Command): CommandState {
     return fromJson(json)
 }
 
-fun deserializeDependents(releasePlanJson: ReleasePlanJson): Map<ProjectId, Set<ProjectId>> {
-    return releasePlanJson.dependents.associateBy(
+fun deserializeMapOfProjectIdAndSetProjectId(mapJson: Array<GenericMapEntry<ProjectId, Array<GenericType<ProjectId>>>>): Map<ProjectId, Set<ProjectId>> {
+    return mapJson.associateBy(
         { createProjectId(it.k) },
         { it.v.map { createProjectId(it) }.toSet() }
     )
@@ -88,6 +88,7 @@ private fun createMavenProjectId(genericId: GenericType<ProjectId>): MavenProjec
 external interface ReleasePlanJson {
     val id: GenericType<ProjectId>
     val projects: Array<ProjectJson>
+    val submodules: Array<GenericMapEntry<ProjectId, Array<GenericType<ProjectId>>>>
     val dependents: Array<GenericMapEntry<ProjectId, Array<GenericType<ProjectId>>>>
     val warnings: Array<String>
     val infos: Array<String>

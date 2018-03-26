@@ -73,7 +73,8 @@ class Gui(private val releasePlan: ReleasePlan) {
             classes = setOf(
                 "project",
                 if(project.isSubmodule) "submodule" else "",
-                if(!hasCommands) "withoutCommands" else ""
+                if(!hasCommands) "withoutCommands" else "",
+                if(releasePlan.hasSubmodules(project.id)) "withSubmodules" else ""
             )
 
             val id = project.id
@@ -100,6 +101,11 @@ class Gui(private val releasePlan: ReleasePlan) {
                 }
             }
             commands(project)
+
+            if (project.isSubmodule) {
+                // means we are within a multi-module and might want to show submodules of this submodule
+                submodules(project.id)
+            }
         }
     }
 
@@ -127,7 +133,7 @@ class Gui(private val releasePlan: ReleasePlan) {
                 classes = setOf("command", stateToCssClass(command.state))
                 div("commandTitle") { +command::class.simpleName!! }
                 div("fields") {
-                    fieldsForCommand("${project.id.identifier}:$index", command)
+                    fieldsForCommand("${project.id.identifier}:$index", project.id, command)
                 }
             }
         }
@@ -164,7 +170,11 @@ class Gui(private val releasePlan: ReleasePlan) {
         }
     }
 
-    private fun DIV.fieldsForCommand(idPrefix: String, command: Command) {
+    private fun DIV.fieldsForCommand(
+        idPrefix: String,
+        projectId: ProjectId,
+        command: Command
+    ) {
         val cssClass = when (command) {
             is ReleaseCommand -> "release"
             else -> ""
@@ -173,7 +183,7 @@ class Gui(private val releasePlan: ReleasePlan) {
 
         when (command) {
             is JenkinsMavenReleasePlugin -> appendJenkinsMavenReleasePluginField(idPrefix, command)
-            is JenkinsMultiMavenReleasePlugin -> appendJenkinsMultiMavenReleasePluginFields(idPrefix, command)
+            is JenkinsMultiMavenReleasePlugin -> appendJenkinsMultiMavenReleasePluginFields(idPrefix, projectId, command)
             is JenkinsUpdateDependency -> appendJenkinsUpdateDependencyField(idPrefix, command)
 
         }
@@ -185,11 +195,19 @@ class Gui(private val releasePlan: ReleasePlan) {
 
     private fun DIV.appendJenkinsMultiMavenReleasePluginFields(
         idPrefix: String,
+        projectId: ProjectId,
         command: JenkinsMultiMavenReleasePlugin
     ) {
         fieldWithLabel("$idPrefix:nextDevVersion", "Next Dev Version", command.nextDevVersion)
+        submodules(projectId)
+    }
+
+    private fun DIV.submodules(projectId: ProjectId) {
+        val submodules = releasePlan.getSubmodules(projectId)
+        if (submodules.isEmpty()) return
+
         div("submodules") {
-            command.projects.forEach {
+            submodules.forEach {
                 project(releasePlan.getProject(it))
             }
         }

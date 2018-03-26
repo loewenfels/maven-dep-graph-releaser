@@ -47,6 +47,7 @@ object ManipulatorSpec : Spek({
             projectWithDependentId to projectWithDependent,
             projectWithoutDependentId to projectWithoutDependent
         ),
+        mapOf(),
         dependents
     ))
 

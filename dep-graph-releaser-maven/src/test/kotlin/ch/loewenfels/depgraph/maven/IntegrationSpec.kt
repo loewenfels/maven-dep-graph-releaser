@@ -284,12 +284,13 @@ object IntegrationSpec : Spek({
 
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleD)
 
-                assertOneUpdateAndOneMultiReleaseCommand(
-                    releasePlan, "direct multi module", exampleB, exampleA, exampleC, exampleD
+                assertOneUpdateAndOneMultiReleaseCommandAndSubmodulesAndSameDependents(
+                    releasePlan, "direct multi module", exampleB, exampleA, exampleC
                 )
-                assertHasOneDependentAndIsOnLevel(releasePlan, "direct multi module", exampleB, exampleC, 1)
+                assertProjectIsOnLevel(releasePlan, "direct multi module", exampleB, 1)
 
                 assertHasNoCommands(releasePlan, "indirect multi module", exampleC)
+                assertHasSubmodules(releasePlan, "indirect multi module", exampleC, exampleD)
                 assertHasOneDependentAndIsOnLevel(releasePlan, "indirect multi module", exampleC, exampleD, 1)
 
                 assertOneUpdateCommand(releasePlan, "submodule", exampleD, exampleA)
@@ -398,7 +399,8 @@ object IntegrationSpec : Spek({
             action("context Analyser which tries to resolve poms") {
                 val releasePlan =
                     analyseAndCreateReleasePlan(exampleA.id, "transitive/explicitDiamondDependenciesToSubmodules")
-                assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleD)
+                assertRootProjectMultiReleaseCommand(releasePlan, exampleA)
+                assertRootProjectHasSubmodules(releasePlan, exampleA,  exampleB, exampleD)
                 assertRootProjectHasDependents(releasePlan, exampleA, exampleB, exampleC, exampleD)
 
                 assertHasNoCommands(releasePlan, "first submodule", exampleB)
@@ -590,7 +592,7 @@ object IntegrationSpec : Spek({
 
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC)
 
-                assertOneUpdateAndOneMultiReleaseCommandAndCorrespondingDependents(
+                assertOneUpdateAndOneMultiReleaseCommandAndSubmodulesAndSameDependents(
                     releasePlan, "multi module", exampleB, exampleA, exampleC, exampleD
                 )
                 assertProjectIsOnLevel(releasePlan, "multi module", exampleB, 1)
@@ -611,7 +613,7 @@ object IntegrationSpec : Spek({
             action("context Analyser which does not resolve poms") {
 
                 val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "multiModule/cyclicInterDependency")
-                assertRootProjectMultiReleaseCommandWithSameDependents(releasePlan, exampleA, exampleB, exampleC)
+                assertRootProjectMultiReleaseCommandWithSubmodulesAndSameDependents(releasePlan, exampleA, exampleB, exampleC)
 
                 // Notice that the order below depends on the hash function implemented.
                 // Might fail if we update the JDK version, we can fix it then
@@ -636,7 +638,8 @@ object IntegrationSpec : Spek({
 
                 val releasePlan =
                     analyseAndCreateReleasePlan(exampleA.id, "multiModule/cyclicInterParentDependencyWithDependent")
-                assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleC)
+                assertRootProjectMultiReleaseCommand(releasePlan, exampleA)
+                assertRootProjectHasSubmodules(releasePlan, exampleA, exampleB, exampleC)
                 assertRootProjectHasDependents(releasePlan, exampleA, exampleC)
 
                 assertHasNoCommands(releasePlan, "parent submodule", exampleC)
@@ -664,10 +667,12 @@ object IntegrationSpec : Spek({
                 val releasePlan = analyseAndCreateReleasePlan(
                     exampleA.id, "multiModule/cyclicInterDependencyDifferentMultiModules"
                 )
-                assertRootProjectMultiReleaseCommand(releasePlan, exampleA, exampleB, exampleC, exampleD)
-                assertRootProjectHasDependents(releasePlan, exampleA, exampleB, exampleC)
+                assertRootProjectMultiReleaseCommandWithSubmodulesAndSameDependents(
+                    releasePlan, exampleA, exampleB, exampleC
+                )
 
                 assertHasNoCommands(releasePlan, "multi module", exampleB)
+                assertHasSubmodules(releasePlan, "multi module", exampleB, exampleD)
                 assertHasOneDependentAndIsOnLevel(releasePlan, "parent submodule", exampleB, exampleD, 0)
 
                 // Notice that the order below depends on the hash function implemented.
@@ -698,7 +703,7 @@ object IntegrationSpec : Spek({
                 )
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleD)
 
-                assertOneUpdateAndOneMultiReleaseCommandAndCorrespondingDependents(
+                assertOneUpdateAndOneMultiReleaseCommandAndSubmodulesAndSameDependents(
                     releasePlan, "multi module", exampleB, exampleA, exampleC
                 )
                 assertProjectIsOnLevel(releasePlan, "multi module", exampleB, 2)
@@ -723,9 +728,8 @@ object IntegrationSpec : Spek({
                     )
                     assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
 
-                    assertOneUpdateAndOneMultiReleaseCommand(
-                        releasePlan, "multi module", exampleB, exampleA, exampleC
-                    )
+                    assertOneUpdateAndOneMultiReleaseCommand(releasePlan, "multi module", exampleB, exampleA)
+                    assertHasSubmodules(releasePlan, "multi module",exampleB, exampleC)
                     assertHasTwoDependentsAndIsOnLevel(releasePlan, "multi module", exampleB, exampleC, exampleD, 1)
 
                     assertOneUpdateCommand(releasePlan, "submodule", exampleC, exampleD)
@@ -750,7 +754,7 @@ object IntegrationSpec : Spek({
                     )
                     assertRootProjectWithDependents(releasePlan, exampleA, exampleD, exampleB)
 
-                    assertOneUpdateAndOneMultiReleaseCommandAndCorrespondingDependents(
+                    assertOneUpdateAndOneMultiReleaseCommandAndSubmodulesAndSameDependents(
                         releasePlan, "multi module", exampleB, exampleA, exampleC
                     )
                     assertProjectIsOnLevel(releasePlan, "multi module", exampleB, 2)
@@ -783,12 +787,12 @@ object IntegrationSpec : Spek({
                 )
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleE)
 
-                assertOneUpdateAndOneMultiReleaseCommand(
-                    releasePlan, "multi module parent", exampleB, exampleA, exampleC, exampleD
-                )
+                assertOneUpdateAndOneMultiReleaseCommand(releasePlan, "multi module parent", exampleB, exampleA)
+                assertHasSubmodules(releasePlan, "multi module parent", exampleB, exampleC)
                 assertHasOneDependentAndIsOnLevel(releasePlan, "multi module parent", exampleB, exampleC, 2)
 
                 assertHasNoCommands(releasePlan, "multi module", exampleC)
+                assertHasSubmodules(releasePlan, "multi module", exampleC, exampleD)
                 assertProjectIsOnLevel(releasePlan, "multi module parent", exampleC, 2)
 
                 assertOneUpdateCommand(releasePlan, "submodule", exampleD, exampleE)
@@ -812,7 +816,7 @@ private fun SpecBody.testMultiModuleAWithSubmoduleBWithDependentSubmoduleC(testD
 
         val releasePlan = analyseAndCreateReleasePlan(exampleA.id, getTestDirectory(testDirectory))
 
-        assertRootProjectMultiReleaseCommandWithSameDependents(releasePlan, exampleA, exampleB, exampleC)
+        assertRootProjectMultiReleaseCommandWithSubmodulesAndSameDependents(releasePlan, exampleA, exampleB, exampleC)
 
         assertHasNoCommands(releasePlan, "direct dependent", exampleB)
         assertHasOneDependentAndIsOnLevel(releasePlan, "direct dependent", exampleB, exampleC, 0)

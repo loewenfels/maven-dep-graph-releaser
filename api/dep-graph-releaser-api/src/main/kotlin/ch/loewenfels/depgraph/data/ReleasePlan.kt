@@ -12,6 +12,7 @@ import ch.loewenfels.depgraph.LevelIterator
 data class ReleasePlan(
     val rootProjectId: ProjectId,
     private val projects: Map<ProjectId, Project>,
+    private val submodules: Map<ProjectId, Set<ProjectId>>,
     private val dependents: Map<ProjectId, Set<ProjectId>>,
     val warnings: List<String>,
     val infos: List<String>
@@ -21,7 +22,14 @@ data class ReleasePlan(
      * Copy constructor to replace [projects].
      */
     constructor(releasePlan: ReleasePlan, projects: Map<ProjectId, Project>) :
-        this(releasePlan.rootProjectId, projects, releasePlan.dependents, releasePlan.warnings, releasePlan.infos)
+        this(
+            releasePlan.rootProjectId,
+            projects,
+            releasePlan.submodules,
+            releasePlan.dependents,
+            releasePlan.warnings,
+            releasePlan.infos
+        )
 
     /**
      * Creates a [ReleasePlan] with an empty list of [warnings] and [infos]
@@ -29,12 +37,19 @@ data class ReleasePlan(
     constructor(
         rootProjectId: ProjectId,
         projects: Map<ProjectId, Project>,
+        submodulesOfProject: Map<ProjectId, Set<ProjectId>>,
         dependents: Map<ProjectId, Set<ProjectId>>
     ) :
-        this(rootProjectId, projects, dependents, listOf(), listOf())
+        this(rootProjectId, projects, submodulesOfProject, dependents, listOf(), listOf())
 
     fun getProject(projectId: ProjectId): Project {
         return projects[projectId] ?: throw IllegalArgumentException("Could not find the project with id $projectId")
+    }
+
+    fun hasSubmodules(projectId: ProjectId) = getSubmodules(projectId).isNotEmpty()
+    fun getSubmodules(projectId: ProjectId): Set<ProjectId> {
+        return submodules[projectId]
+            ?: throw IllegalArgumentException("Could not find submodules for project with id $projectId")
     }
 
     fun getDependents(projectId: ProjectId): Set<ProjectId> {
@@ -52,6 +67,8 @@ data class ReleasePlan(
 
     fun getNumberOfDependents() = dependents.size
     fun getAllDependents(): Map<ProjectId, Set<ProjectId>> = dependents
+    fun getAllSubmodules(): Map<ProjectId, Set<ProjectId>> = submodules
+
 
     private class ReleasePlanIterator(
         private val releasePlan: ReleasePlan,

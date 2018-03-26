@@ -6,8 +6,7 @@ import ch.loewenfels.depgraph.data.ReleaseCommand
 
 data class JenkinsMultiMavenReleasePlugin(
     override val state: CommandState,
-    val nextDevVersion: String,
-    val projects: Set<ProjectId>
+    val nextDevVersion: String
 ) : ReleaseCommand {
     override fun asNewState(newState: CommandState) = JenkinsMavenReleasePlugin(newState, nextDevVersion)
 }

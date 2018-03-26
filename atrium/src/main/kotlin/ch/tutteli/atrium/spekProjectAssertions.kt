@@ -49,7 +49,7 @@ fun ActionBody.assertMultiModuleAWithSubmoduleBWithDependentC(
     releasePlan: ReleasePlan,
     projectB: IdAndVersions
 ) {
-    assertRootProjectMultiReleaseCommandWithSameDependents(releasePlan, exampleA, projectB)
+    assertRootProjectMultiReleaseCommandWithSubmodulesAndSameDependents(releasePlan, exampleA, projectB)
 
     assertHasNoCommands(releasePlan, "submodule", projectB)
     assertHasOneDependentAndIsOnLevel(releasePlan, "submodule", projectB, exampleC, 0)
@@ -102,21 +102,27 @@ fun ActionBody.assertRootProjectHasDependents(
     )
 }
 
-fun ActionBody.assertRootProjectMultiReleaseCommandWithSameDependents(
+fun ActionBody.assertRootProjectMultiReleaseCommandWithSubmodulesAndSameDependents(
     releasePlan: ReleasePlan,
     rootProjectIdAndVersions: IdAndVersions,
     submodule: IdAndVersions,
     vararg otherSubmodules: IdAndVersions
 ) {
-    assertRootProjectMultiReleaseCommand(releasePlan, rootProjectIdAndVersions, submodule, *otherSubmodules)
+    assertRootProjectMultiReleaseCommand(releasePlan, rootProjectIdAndVersions)
+    assertRootProjectHasSubmodules(releasePlan, rootProjectIdAndVersions, submodule, *otherSubmodules)
     assertRootProjectHasDependents(releasePlan, rootProjectIdAndVersions, submodule, *otherSubmodules)
 }
 
-fun ActionBody.assertRootProjectMultiReleaseCommand(
+fun ActionBody.assertRootProjectHasSubmodules(
     releasePlan: ReleasePlan,
-    rootProjectIdAndVersions: IdAndVersions,
+    project: IdAndVersions,
     submodule: IdAndVersions,
     vararg otherSubmodules: IdAndVersions
+) = assertHasSubmodules(releasePlan, "root", project, submodule, *otherSubmodules)
+
+fun ActionBody.assertRootProjectMultiReleaseCommand(
+    releasePlan: ReleasePlan,
+    rootProjectIdAndVersions: IdAndVersions
 ) {
     val rootProject = assertRootProject(releasePlan, rootProjectIdAndVersions)
     test("root project contains just the ${JenkinsMultiMavenReleasePlugin::class.simpleName} command") {
@@ -130,15 +136,6 @@ fun ActionBody.assertRootProjectMultiReleaseCommand(
         assert(rootProject.commands[0]).isA<JenkinsMultiMavenReleasePlugin> {
             isStateReady()
             property(subject::nextDevVersion).toBe(rootProjectIdAndVersions.nextDevVersion)
-        }
-    }
-
-    test("the command has ${otherSubmodules.size + 1} projects") {
-        assert(rootProject.commands[0]).isA<JenkinsMultiMavenReleasePlugin> {
-            property(subject::projects).contains.inAnyOrder.only.objects(
-                submodule.id,
-                *otherSubmodules.map { it.id }.toTypedArray()
-            )
         }
     }
 }
@@ -303,7 +300,7 @@ fun ActionBody.assertOneUpdateAndOneReleaseCommand(
     }
 }
 
-fun ActionBody.assertOneUpdateAndOneMultiReleaseCommandAndCorrespondingDependents(
+fun ActionBody.assertOneUpdateAndOneMultiReleaseCommandAndSubmodulesAndSameDependents(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
@@ -311,7 +308,8 @@ fun ActionBody.assertOneUpdateAndOneMultiReleaseCommandAndCorrespondingDependent
     submodule: IdAndVersions,
     vararg otherSubmodules: IdAndVersions
 ) {
-    assertOneUpdateAndOneMultiReleaseCommand(releasePlan, name, project, dependency, submodule, *otherSubmodules)
+    assertOneUpdateAndOneMultiReleaseCommand(releasePlan, name, project, dependency)
+    assertHasSubmodules(releasePlan, name, project, submodule, *otherSubmodules)
     assertHasDependents(releasePlan, name, project, submodule, *otherSubmodules)
 }
 
@@ -319,24 +317,14 @@ fun ActionBody.assertOneUpdateAndOneMultiReleaseCommand(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
-    dependency: IdAndVersions,
-    submodule: IdAndVersions,
-    vararg otherSubmodules: IdAndVersions
+    dependency: IdAndVersions
 ) {
     test("$name project has one waiting UpdateVersion and one waiting Release command") {
         assert(releasePlan.getProject(project.id)) {
             idAndVersions(project)
             property(subject::commands).containsStrictly(
                 { isJenkinsUpdateDependencyWaiting(dependency) },
-                {
-                    isJenkinsMultiMavenReleaseWaiting(
-                        project.nextDevVersion,
-                        dependency,
-                        arrayOf(),
-                        submodule,
-                        *otherSubmodules
-                    )
-                }
+                { isJenkinsMultiMavenReleaseWaiting(project.nextDevVersion, dependency, arrayOf()) }
             )
         }
     }
@@ -416,7 +404,7 @@ fun ActionBody.assertReleasePlanIteratorReturnsRootAndStrictly(
     vararg projects: IdAndVersions
 ) {
     test("ReleasePlan.iterator() returns the projects in the expected order") {
-        val mappedProjects = projects.map { it.id }.toTypedArray()
+        val mappedProjects = mapIdAndVersionToProjectIds(projects)
         assert(releasePlan).iteratorReturnsRootAndStrictly(*mappedProjects)
     }
 }
@@ -430,3 +418,20 @@ fun ActionBody.assertReleasePlanIteratorReturnsRootAnd(
         assert(releasePlan).iteratorReturnsRootAndInOrderGrouped(*projectGroups)
     }
 }
+
+fun ActionBody.assertHasSubmodules(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    submodule: IdAndVersions,
+    vararg otherSubmodules: IdAndVersions
+){
+    test("$name project has ${otherSubmodules.size + 1} submodules") {
+        assert(releasePlan.getSubmodules(project.id)).contains.inAnyOrder.only.objects(
+            submodule.id, *mapIdAndVersionToProjectIds(otherSubmodules)
+        )
+    }
+}
+
+
+private fun mapIdAndVersionToProjectIds(projects: Array<out IdAndVersions>) = projects.map { it.id }.toTypedArray()

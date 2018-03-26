@@ -35,14 +35,11 @@ fun Assert<Command>.isJenkinsMavenReleaseWaiting(nextDevVersion: String, depende
 fun Assert<Command>.isJenkinsMultiMavenReleaseWaiting(
     nextDevVersion: String,
     dependency: IdAndVersions,
-    otherDependencies: Array<out IdAndVersions>,
-    submodule: IdAndVersions,
-    vararg otherSubmodules: IdAndVersions
+    otherDependencies: Array<out IdAndVersions>
 ) {
     isA<JenkinsMultiMavenReleasePlugin> {
         stateWaitingWithDependencies(dependency.id, *(otherDependencies.map { it.id }.toTypedArray()))
         property(subject::nextDevVersion).toBe(nextDevVersion)
-        property(subject::projects).contains.inAnyOrder.only.objects(submodule.id, *otherSubmodules.map { it.id }.toTypedArray())
     }
 }
 

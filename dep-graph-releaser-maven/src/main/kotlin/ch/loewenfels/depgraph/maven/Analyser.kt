@@ -25,7 +25,7 @@ class Analyser internal constructor(
     private val logger = Logger.getLogger(Analyser::class.qualifiedName)
     private val dependents: Map<String, Set<Relation<MavenProjectId>>>
     private val projectIds: Map<MavenProjectId, String>
-    private val allSubmodulesOfProjectId: Map<MavenProjectId, Set<MavenProjectId>>
+    private val submodulesOfProjectId: Map<MavenProjectId, Set<MavenProjectId>>
     private val allMultiModulesOfSubmodule: Map<MavenProjectId, LinkedHashSet<MavenProjectId>>
     private val pomAnalysis: PomAnalysis
 
@@ -40,7 +40,7 @@ class Analyser internal constructor(
         }
 
         val pair = analyseSubmodules()
-        allSubmodulesOfProjectId = complementSubmodules(pair.first)
+        submodulesOfProjectId = pair.first
         allMultiModulesOfSubmodule = complementMultiModules(pair.first, pair.second)
 
         val duplicates = collectDuplicates(pomAnalysis)
@@ -173,7 +173,7 @@ class Analyser internal constructor(
 
     private fun projectToString(project: Project): String = "${project.gav} (${project.pomFile.canonicalPath})"
 
-    private fun analyseSubmodules(): kotlin.Pair<Map<MavenProjectId, HashSet<MavenProjectId>>, Map<MavenProjectId, MavenProjectId>> {
+    private fun analyseSubmodules(): kotlin.Pair<Map<MavenProjectId, Set<MavenProjectId>>, Map<MavenProjectId, MavenProjectId>> {
         val submodulesOfProjectId = hashMapOf<MavenProjectId, HashSet<MavenProjectId>>()
         val multiModuleOfSubmodule = hashMapOf<MavenProjectId, MavenProjectId>()
         getInternalAnalysedGavs().forEach { gav ->
@@ -270,12 +270,14 @@ class Analyser internal constructor(
         "Error reading pom file.\nFile: ${it.pomFile.canonicalPath}\nMessage: ${it.cause!!.message}"
     }
 
+    fun hasSubmodules(projectId: MavenProjectId) = submodulesOfProjectId.containsKey(projectId)
+
     /**
-     * Returns all modules of the given multi module project including nested submodules (submodules of submodules)
+     * Returns all submodules of the multi module project with the given [projectId]
      * or an empty set if the project is not a multi module (has not any modules).
      */
-    fun getSubmodulesInclNested(projectId: MavenProjectId): Set<MavenProjectId> {
-        return allSubmodulesOfProjectId[projectId] ?: emptySetIfPartOfAnalysisOrThrow(projectId)
+    fun getSubmodules(projectId: MavenProjectId): Set<MavenProjectId>{
+        return submodulesOfProjectId[projectId] ?: emptySetIfPartOfAnalysisOrThrow(projectId)
     }
 
     /**
@@ -287,13 +289,36 @@ class Analyser internal constructor(
     }
 
     /**
-     * Indicates if the given [projectId] is a submodule of a multi module project or not.
+     * Indicates whether the given [projectId] is a submodule of a multi module project or not.
      */
     fun isSubmodule(projectId: MavenProjectId): Boolean
         = getMultiModules(projectId).isNotEmpty()
 
-    fun isSubmoduleOf(submoduleId: MavenProjectId, multiModuleId: MavenProjectId)
-        = getSubmodulesInclNested(multiModuleId).contains(submoduleId)
+    /**
+     * Indicates whether the given [submoduleId] is a submodule (can also be a nested submodule) of the multi module
+     * project with the given [multiModuleId] or not.
+     */
+    fun isSubmoduleOf(submoduleId: MavenProjectId, multiModuleId: MavenProjectId): Boolean {
+        val submodules = submodulesOfProjectId[multiModuleId] ?: emptySetIfPartOfAnalysisOrThrow(multiModuleId)
+        if(submodules.contains(submoduleId)) return true
+
+        return isNestedSubmodule(submodules, submoduleId)
+    }
+
+    private tailrec fun isNestedSubmodule(
+        submodules: Set<MavenProjectId>,
+        submoduleId: MavenProjectId
+    ): Boolean {
+        if (submodules.isEmpty()) return false
+
+        val submodulesToVisit = hashSetOf<MavenProjectId>()
+        submodules.forEach {
+            if(it == submoduleId) return true
+            submodulesToVisit.addAll(submodulesOfProjectId[it] ?: emptySet())
+        }
+        return isNestedSubmodule(submodulesToVisit, submoduleId)
+    }
+
 
     private fun <T> emptySetIfPartOfAnalysisOrThrow(projectId: MavenProjectId): Set<T>
         = emptySetIfPartOfAnalysisOrThrow(projectId, { emptySet()})

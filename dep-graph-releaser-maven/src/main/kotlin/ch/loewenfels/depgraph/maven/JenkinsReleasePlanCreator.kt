@@ -36,7 +36,14 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         val infos = mutableListOf<String>()
         reportCyclicDependencies(paramObject.interModuleCyclicDependents, infos)
 
-        return ReleasePlan(rootProject.id, paramObject.projects, paramObject.dependents, warnings, infos)
+        return ReleasePlan(
+            rootProject.id,
+            paramObject.projects,
+            paramObject.submodules,
+            paramObject.dependents,
+            warnings,
+            infos
+        )
     }
 
     private fun createRootProject(
@@ -74,12 +81,10 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         state: CommandState
     ): Command {
         val nextDevVersion = versionDeterminer.nextDevVersion(currentVersion)
-        val submodules = analyser.getSubmodulesInclNested(projectId)
-        val isNotMultiModule = submodules.isEmpty()
-        return if (isNotMultiModule) {
-            JenkinsMavenReleasePlugin(state, nextDevVersion)
+        return if (analyser.hasSubmodules(projectId)) {
+            JenkinsMultiMavenReleasePlugin(state, nextDevVersion)
         } else {
-            JenkinsMultiMavenReleasePlugin(state, nextDevVersion, submodules)
+            JenkinsMavenReleasePlugin(state, nextDevVersion)
         }
     }
 
@@ -87,6 +92,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         val paramObject = ParamObject(analyser, rootProject)
         while(paramObject.levelIterator.hasNext()){
             val dependent = paramObject.levelIterator.next()
+            paramObject.submodules[dependent.id] = analyser.getSubmodules(dependent.id as MavenProjectId)
             createCommandsForDependents(paramObject, dependent)
         }
         return paramObject
@@ -301,6 +307,7 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         rootProject: Project
     ){
         val projects =  hashMapOf(rootProject.id to rootProject)
+        val submodules = hashMapOf<ProjectId, Set<ProjectId>>()
         val dependents = hashMapOf(rootProject.id to hashSetOf<ProjectId>())
         val cyclicDependents = hashMapOf<ProjectId, LinkedHashMap<ProjectId, MutableList<ProjectId>>>()
         val interModuleCyclicDependents = hashMapOf<ProjectId, LinkedHashMap<ProjectId, MutableList<ProjectId>>>()

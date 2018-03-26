@@ -50,6 +50,7 @@ object ReleasePlanSpec : Spek({
                     projectAnnotationsId to projectAnnotations,
                     projectNotifierId to projectNotifier
                 ),
+                mapOf(),
                 dependents
             )
 
@@ -91,6 +92,7 @@ object ReleasePlanSpec : Spek({
                     submodule1Id to submodule,
                     submodule2Id to submodule2
                 ),
+                mapOf(multiModuleId to setOf(submodule1Id, submodule2Id)),
                 dependents
             )
 
@@ -121,6 +123,7 @@ object ReleasePlanSpec : Spek({
                     submodule2Id to submodule2,
                     dependentId to dependent
                 ),
+                mapOf(multiModuleId to setOf(submodule1Id, submodule2Id)),
                 dependents
             )
 
