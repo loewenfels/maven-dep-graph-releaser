@@ -4,7 +4,12 @@ import kotlin.browser.window
 import kotlin.js.Promise
 
 @JsName("main")
-fun main(jsonUrl: String) {
+fun main() {
+    val jsonUrl = if(window.location.hash != "") {
+        window.location.hash.substring(1)
+    } else {
+        "./release.json"
+    }
     loadJson(jsonUrl)
         .catch {
             throw Error("Could not load json.", it)
@@ -18,7 +23,7 @@ fun main(jsonUrl: String) {
             showError(it)
         }
 }
-val onlyUsedToCallMain = main("release.json")
+val onlyUsedToCallMain = main()
 
 private fun loadJson(jsonUrl: String): Promise<Any> {
     return window.fetch(Request(jsonUrl))
