@@ -3,9 +3,6 @@ import org.w3c.fetch.Request
 import kotlin.browser.window
 import kotlin.js.Promise
 
-@JsName("toggler")
-lateinit var toggler: Toggler
-
 @JsName("main")
 fun main(jsonUrl: String) {
     loadJson(jsonUrl)
@@ -15,13 +12,13 @@ fun main(jsonUrl: String) {
         .then { body: String ->
             val releasePlan = deserialize(body)
             Gui(releasePlan).load()
-            toggler = Toggler()
             switchLoaderAndGui()
         }
         .catch {
             showError(it)
         }
 }
+val onlyUsedToCallMain = main("release.json")
 
 private fun loadJson(jsonUrl: String): Promise<Any> {
     return window.fetch(Request(jsonUrl))

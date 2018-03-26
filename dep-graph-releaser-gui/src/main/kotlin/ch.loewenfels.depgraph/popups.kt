@@ -6,7 +6,7 @@ import kotlinx.html.dom.append
 import kotlinx.html.id
 import kotlinx.html.js.div
 import kotlinx.html.js.span
-import kotlinx.html.onClick
+import org.w3c.dom.HTMLElement
 import kotlin.browser.document
 
 private var msgCounter = 0
@@ -30,7 +30,8 @@ private fun showMessageOfType(type: String, message: String, withClose: Boolean)
             id = msgId
             if (withClose) {
                 span("close") {
-                    onClick = "document.getElementById('$msgId').style.display='none'"
+                    val span = this.consumer.asDynamic().downstream.path_0.toArray()[1] as HTMLElement
+                    span.addEventListener("click", { elementById(msgId).style.display = "none" })
                 }
             }
             convertNewLinesToBr(message)

@@ -8,10 +8,11 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import kotlinx.html.*
 import kotlinx.html.dom.append
 import kotlinx.html.js.div
+import org.w3c.dom.HTMLElement
 import kotlin.browser.document
 
 class Gui(private val releasePlan: ReleasePlan) {
-
+    private val toggler = Toggler(releasePlan)
     fun load() {
         document.title = "Release " + releasePlan.rootProjectId.identifier
         setUpProjects()
@@ -48,9 +49,7 @@ class Gui(private val releasePlan: ReleasePlan) {
                 .forEach { project ->
                     val div = elementById(project.id.identifier).asDynamic()
                     div.project = project
-                    div.dependents = releasePlan.getDependents(project.id)
                 }
-
         }
         val involvedProjects = set.size
         showMessage("Projects involved: $involvedProjects")
@@ -226,7 +225,9 @@ class Gui(private val releasePlan: ReleasePlan) {
             checkBoxInput(classes = checkboxCssClass) {
                 this.id = id
                 this.checked = checked
-                onClick = "toggle('$id')"
+                val arr = this.consumer.asDynamic().downstream.path_0.toArray() as Array<HTMLElement>
+                val checkbox = arr[arr.size - 1]
+                checkbox.addEventListener("click", { toggler.toggle(id)})
             }
             span("slider")
         }
