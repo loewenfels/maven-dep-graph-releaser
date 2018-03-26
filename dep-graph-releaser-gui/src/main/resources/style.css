@@ -22,7 +22,7 @@ body {
     padding-bottom: 10px;
 }
 
-#messages > .error, #messages > .warning {
+#messages > .error, #messages > .warning, #messages > .info {
     border: 2px solid;
     border-radius: 6px;
     padding: 10px;
@@ -41,6 +41,13 @@ body {
     background-color: #fdfcd1;
     color: #272525;
     font-size: 1.1em;
+}
+
+#messages > .info {
+    border-color: #a3a3ff;
+    background-color: #dae0ff;
+    color: #272525;
+    font-size: 1em;
 }
 
 .close {

@@ -8,7 +8,6 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import kotlinx.html.*
 import kotlinx.html.dom.append
 import kotlinx.html.js.div
-import org.w3c.dom.HTMLElement
 import kotlin.browser.document
 
 class Gui(private val releasePlan: ReleasePlan) {
@@ -16,9 +15,8 @@ class Gui(private val releasePlan: ReleasePlan) {
     fun load() {
         document.title = "Release " + releasePlan.rootProjectId.identifier
         setUpProjects()
-        releasePlan.warnings.forEach {
-            showWarning(it)
-        }
+        releasePlan.warnings.forEach(::showWarning)
+        releasePlan.infos.forEach(::showInfo)
     }
 
     private fun setUpProjects() {
@@ -44,12 +42,6 @@ class Gui(private val releasePlan: ReleasePlan) {
                     }
                 }
             }
-            releasePlan.iterator().asSequence()
-                .filter { !it.isSubmodule }
-                .forEach { project ->
-                    val div = elementById(project.id.identifier).asDynamic()
-                    div.project = project
-                }
         }
         val involvedProjects = set.size
         showMessage("Projects involved: $involvedProjects")
@@ -68,6 +60,9 @@ class Gui(private val releasePlan: ReleasePlan) {
 
     private fun DIV.project(project: Project) {
         div {
+            val div = getUnderlyingHtmlElement()
+            div.asDynamic().project = project
+
             val hasCommands = project.commands.isNotEmpty()
             classes = setOf(
                 "project",
@@ -225,8 +220,7 @@ class Gui(private val releasePlan: ReleasePlan) {
             checkBoxInput(classes = checkboxCssClass) {
                 this.id = id
                 this.checked = checked
-                val arr = this.consumer.asDynamic().downstream.path_0.toArray() as Array<HTMLElement>
-                val checkbox = arr[arr.size - 1]
+                val checkbox = getUnderlyingHtmlElement()
                 checkbox.addEventListener("click", { toggler.toggle(id)})
             }
             span("slider")

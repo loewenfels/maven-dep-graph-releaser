@@ -30,11 +30,11 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         val paramObject = createDependents(analyser, rootProject)
 
         val warnings = mutableListOf<String>()
-        reportCyclicDependencies(paramObject.cyclicDependents, warnings)
+        reportCyclicDependencies(paramObject, warnings)
         warnings.addAll(analyser.getErroneousPomFiles())
 
         val infos = mutableListOf<String>()
-        reportCyclicDependencies(paramObject.interModuleCyclicDependents, infos)
+        reportInterModuleCyclicDependencies(paramObject, infos)
 
         return ReleasePlan(
             rootProject.id,
@@ -278,11 +278,21 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         }
     }
 
-    private fun reportCyclicDependencies(cyclicDependents: Map<ProjectId, Map<ProjectId, List<ProjectId>>>, warnings: MutableList<String>) {
-        cyclicDependents.mapTo(warnings, { (projectId, dependentEntry) ->
+    private fun reportCyclicDependencies(paramObject: ParamObject, warnings: MutableList<String>) {
+        paramObject.cyclicDependents.mapTo(warnings, { (projectId, dependentEntry) ->
             val sb = StringBuilder()
-            sb.append("Project ").append(projectId.identifier).append(" has one or more cyclic dependencies.")
+            sb.append("Project ").append(projectId.identifier).append(" has one or more cyclic dependencies. ")
                 .append("The corresponding relation (first ->) was ignored, you need to address this circumstance manually:\n")
+            appendCyclicDependents(sb, projectId, dependentEntry.values)
+            sb.toString()
+        })
+    }
+
+    private fun reportInterModuleCyclicDependencies(paramObject: ParamObject, infos: MutableList<String>) {
+        paramObject.interModuleCyclicDependents.mapTo(infos, { (projectId, dependentEntry) ->
+            val sb = StringBuilder()
+            sb.append("Project ").append(projectId.identifier).append(" has one or more inter module cyclic dependencies. ")
+                .append("Will be handled by the M2 Release Plugin but you should reconsider your design:\n")
             appendCyclicDependents(sb, projectId, dependentEntry.values)
             sb.toString()
         })

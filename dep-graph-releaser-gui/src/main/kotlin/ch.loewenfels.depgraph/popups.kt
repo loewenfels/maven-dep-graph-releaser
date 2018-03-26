@@ -6,13 +6,16 @@ import kotlinx.html.dom.append
 import kotlinx.html.id
 import kotlinx.html.js.div
 import kotlinx.html.js.span
-import org.w3c.dom.HTMLElement
 import kotlin.browser.document
 
 private var msgCounter = 0
 
 fun showMessage(message: String) {
     showMessageOfType("msg", message, withClose = false)
+}
+
+fun showInfo(message: String) {
+    showMessageOfType("info", message, withClose = true)
 }
 
 fun showWarning(message: String) {
@@ -30,7 +33,7 @@ private fun showMessageOfType(type: String, message: String, withClose: Boolean)
             id = msgId
             if (withClose) {
                 span("close") {
-                    val span = this.consumer.asDynamic().downstream.path_0.toArray()[1] as HTMLElement
+                    val span = getUnderlyingHtmlElement()
                     span.addEventListener("click", { elementById(msgId).style.display = "none" })
                 }
             }

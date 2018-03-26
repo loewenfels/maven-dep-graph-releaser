@@ -42,7 +42,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
                 writeNameAndValue(SUBMODULES, value.getAllSubmodules(), mapProjectIdAndSetProjectId)
                 writeNameAndValue(DEPENDENTS, value.getAllDependents(), mapProjectIdAndSetProjectId)
                 writeNameAndValue(WARNINGS, value.warnings, listStringAdapter)
-                writeNameAndValue(INFOS, value.warnings, listStringAdapter)
+                writeNameAndValue(INFOS, value.infos, listStringAdapter)
             }
         }
 
