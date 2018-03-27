@@ -63,7 +63,9 @@ def pomConfig = {
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            from components.java
+            publish_components.each{
+                from it
+            }
             publish_artifacts.each{
                 artifact it
             }

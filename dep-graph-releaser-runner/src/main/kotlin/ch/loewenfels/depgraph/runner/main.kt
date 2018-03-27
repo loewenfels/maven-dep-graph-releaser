@@ -77,11 +77,10 @@ private fun json(args: Array<out String>) {
     Orchestrator.analyseAndCreateJson(directoryToAnalyse, json, mavenProjectId, options)
 }
 
-private const val HTML_JSON_URL = 1
-private const val HTML_OUTPUT_DIR = 2
+private const val HTML_OUTPUT_DIR = 1
 
 fun html(args: Array<out String>) {
-    if (args.size != 3) {
+    if (args.size != 2) {
         error("""
             |Not enough or too many arguments supplied for command: html
             |
@@ -90,11 +89,9 @@ fun html(args: Array<out String>) {
             |${getGivenArgs(args)}
             |
             |Following an example:
-            |./produce html ./release.json ./pipeline.html
+            |./produce html ./html
         """.trimMargin())
     }
-
-    val jsonUrl = args[HTML_JSON_URL]
 
     val outputDir = File(args[HTML_OUTPUT_DIR])
     if (!outputDir.exists()) {
@@ -103,11 +100,10 @@ fun html(args: Array<out String>) {
         """.trimMargin())
     }
 
-    Orchestrator.createHtmlFromJson(jsonUrl, outputDir)
+    Orchestrator.copyResources(outputDir)
 }
 
 private fun getGivenArgs(args: Array<out String>) = "Given: ${args.joinToString(" ")}"
-
 
 private val jsonArguments = """
 |json requires the following arguments in the given order:
@@ -121,7 +117,6 @@ private val jsonArguments = """
 
 private val htmlArguments = """
 |html requires the following arguments in the given order:
-|json       // path + file name for the input json file
 |outDir     // path to the directory in which the html file and resources shall be created
 """.trimMargin()
 

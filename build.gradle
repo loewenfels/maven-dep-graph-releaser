@@ -36,9 +36,9 @@ buildscript {
         apiProjects = subprojects.findAll { it.name.contains('api') }
         apiJvmProjects = ext.apiProjects.findAll { it.name.endsWith('-jvm') }
         apiJsProjects = ext.apiProjects.findAll { it.name.endsWith('-js') }
-        commonApiProjects = ext.apiProjects - ext.apiJvmProjects - ext.apiJsProjects
+        apiCommonProjects = ext.apiProjects - ext.apiJvmProjects - ext.apiJsProjects
 
-        jvmProjects = subprojects - project("${rootProject.name}-gui") - apiProjects
+        jvmProjects = subprojects - project("${rootProject.name}-gui") - ext.apiJsProjects - ext.apiCommonProjects
         jacocoMulti = [
             sourceProjects: jvmProjects - project(':atrium') + apiJvmProjects,
             jacocoProjects: jvmProjects.findAll {
@@ -78,7 +78,7 @@ subprojects {
     }
 }
 
-configure(commonApiProjects) {
+configure(apiCommonProjects) {
     apply plugin: 'kotlin-platform-common'
     dependencies {
         compile "org.jetbrains.kotlin:kotlin-stdlib-common:$kotlin_version"
@@ -114,12 +114,22 @@ configure(jvmProjects - apiProjects) {
     }
 }
 
-def publishedProjects = jvmProjects - project(':atrium')
+def jvmPublishedProjects = jvmProjects - project(':atrium')
+def publishedProjects = subprojects - project(':atrium')
 configure(publishedProjects) {
+    it.ext.publish_components = []
     it.ext.publish_artifacts = []
 }
+configure(jvmPublishedProjects) {
+    it.ext.publish_components = [components.java]
+}
+configure(publishedProjects - jvmPublishedProjects) {
+    afterEvaluate {
+        it.ext.publish_artifacts += [jar]
+    }
+}
 
-def projectsWithSources = publishedProjects - projectsWithoutSources
+def projectsWithSources = jvmPublishedProjects - projectsWithoutSources
 configure(projectsWithSources) {
     apply plugin: 'org.jetbrains.dokka'
 
@@ -127,13 +137,8 @@ configure(projectsWithSources) {
         outputFormat = 'html'
         outputDirectory = "$buildDir/kdoc"
         linkMapping {
-            dir = "$srcKotlin"
-            url = "$github_url/${dokka_sourceMapping}/${project.name}/$srcKotlin"
-            suffix = '#L'
-        }
-        linkMapping {
-            dir = srcOwnProject('api')
-            url = "$github_url/${dokka_sourceMapping}/${project.name}-api/$srcKotlin"
+            dir = rootProject.projectDir.absolutePath
+            url = "$github_url/${dokka_sourceMapping}/"
             suffix = '#L'
         }
 
@@ -153,7 +158,7 @@ configure(projectsWithSources) {
     it.ext.publish_artifacts += [sourceJar, javadocJar]
 }
 
-// has to be after the above block which define `it.ext.publish_artifacts`
+// has to be after the above blocks which define `it.ext.publish_artifacts`
 configure(publishedProjects) { subproject ->
     subproject.ext {
         publish_artifactId = subproject.name
