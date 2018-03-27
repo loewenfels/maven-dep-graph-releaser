@@ -1,6 +1,7 @@
 package ch.loewenfels.depgraph.runner
 
 import ch.loewenfels.depgraph.maven.getTestDirectory
+import ch.loewenfels.depgraph.runner.Json.MPOFF
 import ch.loewenfels.depgraph.serialization.Serializer
 import ch.tutteli.atrium.*
 import ch.tutteli.atrium.api.cc.en_UK.isTrue
@@ -18,9 +19,10 @@ object MainSpec : Spek({
     val tempFolder = TempFolder.perAction()
     registerListener(tempFolder)
     errorHandler = object : ErrorHandler {
-        override fun error(msg: String) {
-            throw AssertionError(msg)
-        }
+        override fun error(msg: String) = throw AssertionError(msg)
+    }
+    fileVerifier = object: FileVerifier{
+        override fun file(path: String, fileDescription: String) = File(path)
     }
 
     describe("happy case, project A with dependent project B") {

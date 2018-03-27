@@ -40,9 +40,6 @@ task distZip(type: Zip) {
     destinationDir outputDir
 }
 
-configure(project) {
-    ext.publish_artifacts += [distZip]
-}
 
 def htmlDir = file("${rootProject.buildDir}/html")
 def jsonFile = file("$htmlDir/release.json")
@@ -63,6 +60,7 @@ task json {
             throw new IllegalArgumentException("you need to specify the artifactId with -Pa")
         }
         javaexec {
+            workingDir = rootProject.projectDir
             classpath = fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.MainKt'
 
@@ -78,6 +76,7 @@ task copyResources {
     doLast {
         mkdir(htmlDir)
         javaexec {
+            workingDir = rootProject.projectDir
             classpath = fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.MainKt'
             args = ['html', htmlDir.absolutePath]
@@ -88,15 +87,6 @@ task copyResources {
 task cleanHtmlDir(type: Delete){
     delete htmlDir
 }
-
-task resourceJar(type: Jar) {
-    dependsOn cleanHtmlDir
-    dependsOn copyResources
-    copyResources.mustRunAfter(cleanHtmlDir)
-    from htmlDir
-    classifier 'resources'
-}
-ext.publish_artifacts += [resourceJar]
 
 task html {
     dependsOn json
@@ -112,3 +102,14 @@ task server {
         java.lang.Thread.sleep(Long.MAX_VALUE)
     }
 }
+
+task resourcesJar(type: Jar) {
+    dependsOn cleanHtmlDir
+    dependsOn copyResources
+    copyResources.mustRunAfter(cleanHtmlDir)
+    from htmlDir
+    from "$projectDir/src/jenkins.pom"
+    classifier 'resources'
+}
+
+ext.publish_artifacts += [resourcesJar, distZip]
