@@ -113,7 +113,7 @@ private val jsonArguments = """
 |dir        // path to the directory where all projects are
 |json       // path + file name for the resulting json file
 |($MPOFF)   // optionally: turns missing parent analysis off
-""".trimIndent()
+""".trimMargin()
 
 private val htmlArguments = """
 |html requires the following arguments in the given order:
