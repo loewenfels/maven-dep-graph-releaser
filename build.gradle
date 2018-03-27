@@ -1,4 +1,4 @@
-version = "0.1.2-SNAPSHOT"
+version = "0.1.2"
 
 buildscript {
     ext {
@@ -12,7 +12,7 @@ buildscript {
         atrium_version = '0.6.0'
         mockito_kotlin_version = '1.5.0'
         dokka_version = '0.9.16'
-        dokka_sourceMapping = 'tree/master'
+        dokka_sourceMapping = 'tree/v0.1.2'
 
         //spek.gradle
         jacoco_tool_version = '0.7.9'
@@ -201,7 +201,7 @@ apply from: 'gradle/scripts/gh-pages.gradle'
 
 Release & deploy a commit
 --------------------------------
-1. change version in build.gradle to X.Y.Z
+1. search for X.Y.Z-SNAPSHOT and change to X.Y.Z
 2. update master:
     a) point to the tag
         1) search for `branch=master` and replace it with `tag=vX.Y.Z` (build status and coverage in README.md)
@@ -210,13 +210,13 @@ Release & deploy a commit
     c) git tag vX.Y.Z
     d) git push origin vX.Y.Z
 3. deploy to bintray:
-    a) gr publishBintray
+    a) gr clean publishBintray
     b) Log in to bintray, check and publish new jars
 4. create release on github
 
 Prepare next dev cycle
 -----------------------
-1. change version in build.gradle to X.Y.Z-SNAPSHOT
+1. search for X.Y.Z and change to X.Y.Z-SNAPSHOT
 2. point to master
    a) search for `tag=vX.Y.Z` and replace it with `branch=master`
    b) search for `tree/vX.Y.Z` and replace it with `tree/master`
