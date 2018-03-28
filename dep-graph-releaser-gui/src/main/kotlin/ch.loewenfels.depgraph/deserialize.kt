@@ -76,7 +76,7 @@ private fun deserializeState(it: Command): CommandState {
 fun deserializeMapOfProjectIdAndSetProjectId(mapJson: Array<GenericMapEntry<ProjectId, Array<GenericType<ProjectId>>>>): Map<ProjectId, Set<ProjectId>> {
     return mapJson.associateBy(
         { createProjectId(it.k) },
-        { it.v.map { createProjectId(it) }.toSet() }
+        { it.v.map { createProjectId(it) }.toHashSet() }
     )
 }
 

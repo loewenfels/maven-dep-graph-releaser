@@ -25,7 +25,7 @@ class Manipulator(private val releasePlan: ReleasePlan) {
         return releasePlan.iterator(projectId)
             .asSequence()
             .map { it.id }
-            .toSet()
+            .toHashSet()
     }
 
     private fun deactivateProjects(projectsToDeactivate: Set<ProjectId>): Map<ProjectId, Project> =

@@ -72,7 +72,7 @@ class Analyser internal constructor(
         return getInternalAnalysedGavs()
             .asSequence()
             .map { it.toMapKey() }
-            .toSet()
+            .toHashSet()
     }
 
     private fun collectDuplicates(pomAnalysis: PomAnalysis): Map<String, List<Project>> {
@@ -196,22 +196,6 @@ class Analyser internal constructor(
             }
         }
         return submodulesOfProjectId to multiModuleOfSubmodule
-    }
-
-    private fun complementSubmodules(submodulesOfProjectId: Map<MavenProjectId, HashSet<MavenProjectId>>): Map<MavenProjectId, Set<MavenProjectId>> {
-        val allSubmodulesOfProjectId = hashMapOf<MavenProjectId, Set<MavenProjectId>>()
-        submodulesOfProjectId.forEach { (multiModuleId, submodules) ->
-            allSubmodulesOfProjectId[multiModuleId] = submodules.asSequence()
-                .flatMap {
-                    sequenceOf(it) + (
-                        allSubmodulesOfProjectId[it]?.asSequence()
-                        ?: submodulesOfProjectId[it]?.asSequence()
-                        ?: emptySequence()
-                    )
-                }
-                .toSet()
-        }
-        return allSubmodulesOfProjectId
     }
 
     private fun complementMultiModules(
