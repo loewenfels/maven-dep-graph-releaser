@@ -70,7 +70,6 @@ class Analyser internal constructor(
 
     private fun getAnalysedProjects(): Set<String> {
         return getInternalAnalysedGavs()
-            .asSequence()
             .map { it.toMapKey() }
             .toHashSet()
     }
