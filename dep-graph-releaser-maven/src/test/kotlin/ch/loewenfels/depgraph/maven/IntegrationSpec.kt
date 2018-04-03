@@ -204,7 +204,11 @@ object IntegrationSpec : Spek({
             testReleaseBWithNoDependent("managingVersions/inDependency")
         }
 
-        //TODO project with dependent and version in property
+        given("project with dependent and version in property") {
+            testReleaseAWithDependentB("managingVersions/viaProperty")
+            testReleaseBWithNoDependent("managingVersions/viaProperty")
+        }
+
         //TODO project with dependent and version is $project.version
 
         given("project with dependent and version in dependency management") {
