@@ -2,7 +2,7 @@ package ch.loewenfels.depgraph
 
 import ch.loewenfels.depgraph.data.*
 
-class Manipulator(private val releasePlan: ReleasePlan) {
+class ReleasePlanManipulator(private val releasePlan: ReleasePlan) {
 
     fun deactivateProject(projectId: ProjectId): ReleasePlan {
         requireValidProjectId(projectId)

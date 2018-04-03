@@ -41,7 +41,7 @@ object ManipulatorSpec : Spek({
         projectWithDependentId to setOf(projectWithoutDependentId),
         projectWithoutDependentId to setOf()
     )
-    val testee = Manipulator(ReleasePlan(rootProjectId,
+    val testee = ReleasePlanManipulator(ReleasePlan(rootProjectId,
         mapOf(
             rootProjectId to rootProject,
             projectWithDependentId to projectWithDependent,

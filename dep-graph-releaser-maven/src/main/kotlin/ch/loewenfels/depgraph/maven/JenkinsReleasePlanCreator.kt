@@ -25,7 +25,7 @@ class JenkinsReleasePlanCreator(
         }
 
         require(!analyser.isSubmodule(projectToRelease)) {
-            """Cannot release a submodule, the given project is part of a multi module hierarchy
+            """Cannot release a submodule, the given project is part of a multi-module hierarchy
                 |Given: $projectToRelease
                 |Multi modules: ${analyser.getMultiModules(projectToRelease).joinToString(",")}
             """.trimMargin()
