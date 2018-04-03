@@ -18,5 +18,26 @@
 			<version>4.12</version>
 			<scope>test</scope>
 		</dependency>
+
+        <dependency>
+            <groupId>test</groupId>
+            <artifactId>test</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>test</groupId>
+            <version>1.0</version>
+            <artifactId>test</artifactId>
+        </dependency>
+        <dependency>
+            <artifactId>test</artifactId>
+            <groupId>test</groupId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
+            <artifactId>test</artifactId>
+            <version>1.0</version>
+            <groupId>test</groupId>
+        </dependency>
 	</dependencies>
 </project>

@@ -20,7 +20,7 @@ object RegexBasedVersionUpdaterSpec : Spek({
 
     val testee = RegexBasedVersionUpdater()
 
-    describe("error cases"){
+    describe("error cases") {
         given("single project with third party dependency") {
             val pom = File(getTestDirectory("singleProject").absolutePath + "/pom.xml")
             context("dependency without version shall be updated") {
@@ -57,6 +57,28 @@ object RegexBasedVersionUpdaterSpec : Spek({
                     "<groupId>junit</groupId>[\\S\\s]*" +
                         "<artifactId>junit</artifactId>[\\S\\s]*" +
                         "<version>4.4</version>"
+                )
+            }
+        }
+
+        context("dependency occurs multiple times") {
+            it("updates the dependency") {
+                val tmpPom = tempFolder.newFile("pom.xml")
+                tmpPom.writeBytes(pom.readBytes())
+                testee.updateDependency(tmpPom, "test", "test", "2.0")
+                assert(tmpPom.readText()).containsRegex(
+                    "<groupId>test</groupId>[\\S\\s]*" +
+                        "<artifactId>test</artifactId>[\\S\\s]*" +
+                        "<version>2.0</version>",
+                    "<groupId>test</groupId>[\\S\\s]*" +
+                        "<version>2.0</version>[\\S\\s]*" +
+                        "<artifactId>test</artifactId>",
+                    "<artifactId>test</artifactId>[\\S\\s]*" +
+                        "<groupId>test</groupId>[\\S\\s]*" +
+                        "<version>2.0</version>",
+                    "<artifactId>test</artifactId>[\\S\\s]*" +
+                        "<version>2.0</version>[\\S\\s]*" +
+                        "<groupId>test</groupId>"
                 )
             }
         }
