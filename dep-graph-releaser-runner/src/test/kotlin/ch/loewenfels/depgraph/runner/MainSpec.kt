@@ -1,7 +1,7 @@
 package ch.loewenfels.depgraph.runner
 
 import ch.loewenfels.depgraph.maven.getTestDirectory
-import ch.loewenfels.depgraph.runner.Json.MPOFF
+import ch.loewenfels.depgraph.runner.Json.MAVEN_PARENT_ANALYSIS_OFF
 import ch.loewenfels.depgraph.serialization.Serializer
 import ch.tutteli.atrium.*
 import ch.tutteli.atrium.api.cc.en_UK.isTrue
@@ -46,14 +46,14 @@ object MainSpec : Spek({
         }
     }
 
-    describe("parent not in analysis, does not matter with $MPOFF") {
+    describe("parent not in analysis, does not matter with $MAVEN_PARENT_ANALYSIS_OFF") {
         on("calling main") {
             val jsonFile = File(tempFolder.tmpDir, "test.json")
             main(
                 "json", "com.example", "b",
                 getTestDirectory("errorCases/parentNotInAnalysis").absolutePath,
                 jsonFile.absolutePath,
-                MPOFF
+                MAVEN_PARENT_ANALYSIS_OFF
             )
             it("creates a corresponding json file") {
                 assert(jsonFile).returnValueOf(jsonFile::exists).isTrue()

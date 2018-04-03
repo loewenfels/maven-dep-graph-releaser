@@ -78,7 +78,9 @@ class Gui(private val releasePlan: ReleasePlan) {
                 if(hasCommands) {
                     toggle(
                         "${id.identifier}:disableAll",
-                        project.commands.any { it.state !is CommandState.Deactivated })
+                        project.commands.any { it.state !is CommandState.Deactivated },
+                        false
+                    )
                 }
                 span {
                     projectId(id)
@@ -140,6 +142,7 @@ class Gui(private val releasePlan: ReleasePlan) {
         CommandState.Succeeded -> "succeeded"
         is CommandState.Failed -> "failed"
         is CommandState.Deactivated -> "deactivated"
+        CommandState.Disabled -> "disabled"
     }
 
     private fun DIV.fieldWithLabel(id: String, label: String, text: String) {
@@ -173,7 +176,12 @@ class Gui(private val releasePlan: ReleasePlan) {
             is ReleaseCommand -> "release"
             else -> ""
         }
-        toggle("$idPrefix:disable", command.state !is CommandState.Deactivated, cssClass)
+        toggle(
+            "$idPrefix:disable",
+            command.state !is CommandState.Deactivated,
+            command.state === CommandState.Disabled,
+            cssClass
+        )
 
         when (command) {
             is JenkinsMavenReleasePlugin -> appendJenkinsMavenReleasePluginField(idPrefix, command)
@@ -184,7 +192,19 @@ class Gui(private val releasePlan: ReleasePlan) {
     }
 
     private fun DIV.appendJenkinsMavenReleasePluginField(idPrefix: String, command: JenkinsMavenReleasePlugin) {
-        fieldWithLabel("$idPrefix:nextDevVersion", "Next Dev Version", command.nextDevVersion)
+        fieldNextDevVersion(idPrefix, command, command.nextDevVersion)
+    }
+
+    private fun DIV.fieldNextDevVersion(
+        idPrefix: String,
+        command: Command,
+        nextDevVersion: String
+    ) {
+        fieldWithLabel("$idPrefix:nextDevVersion", "Next Dev Version", nextDevVersion) {
+            if (command.state === CommandState.Disabled) {
+                disabled = true
+            }
+        }
     }
 
     private fun DIV.appendJenkinsMultiMavenReleasePluginFields(
@@ -192,7 +212,8 @@ class Gui(private val releasePlan: ReleasePlan) {
         projectId: ProjectId,
         command: JenkinsMultiMavenReleasePlugin
     ) {
-        fieldWithLabel("$idPrefix:nextDevVersion", "Next Dev Version", command.nextDevVersion)
+        fieldNextDevVersion(idPrefix, command, command.nextDevVersion)
+
         submodules(projectId)
     }
 
@@ -215,15 +236,20 @@ class Gui(private val releasePlan: ReleasePlan) {
             { projectId(command.projectId) })
     }
 
-    private fun DIV.toggle(id: String, checked: Boolean, checkboxCssClass: String = "") {
+    private fun DIV.toggle(id: String, checked: Boolean, disabled: Boolean, checkboxCssClass: String = "") {
         label("toggle") {
             checkBoxInput(classes = checkboxCssClass) {
                 this.id = id
-                this.checked = checked
+                this.checked = checked && !disabled
+                this.disabled = disabled
                 val checkbox = getUnderlyingHtmlElement()
                 checkbox.addEventListener("click", { toggler.toggle(id)})
             }
-            span("slider")
+            span("slider") {
+                if (disabled) {
+                    this.title = "disabled, cannot be reactivated"
+                }
+            }
         }
     }
 }

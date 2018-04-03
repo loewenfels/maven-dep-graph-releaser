@@ -1,8 +1,10 @@
 package ch.loewenfels.depgraph.maven
 
+import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
+import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.tutteli.atrium.*
 import ch.tutteli.atrium.api.cc.en_UK.*
 import com.nhaarman.mockito_kotlin.any
@@ -132,6 +134,46 @@ object IntegrationSpec : Spek({
                 assert(releasePlan.warnings).containsStrictly({
                     contains(pom.canonicalPath)
                 })
+            }
+        }
+    }
+
+    describe("disableReleaseFor") {
+        given("single project, regex does not match") {
+            action("context Analyser which does not resolve poms") {
+                val releasePlan = analyseAndCreateReleasePlan(
+                    singleProjectIdAndVersions.id,
+                    getTestDirectory("singleProject"),
+                    JenkinsReleasePlanCreator.Options(Regex(".*notTheProject"))
+                )
+                assertSingleProject(releasePlan, singleProjectIdAndVersions)
+            }
+        }
+
+        given("single project, regex matches") {
+            action("context Analyser which does not resolve poms") {
+                val releasePlan = analyseAndCreateReleasePlan(
+                    singleProjectIdAndVersions.id,
+                    getTestDirectory("singleProject"),
+                    JenkinsReleasePlanCreator.Options(Regex(".*:example"))
+                )
+                val rootProject = assertRootProject(releasePlan, singleProjectIdAndVersions)
+                test("root project contains just the ${JenkinsMavenReleasePlugin::class.simpleName} command, which is Disabled with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = ${singleProjectIdAndVersions.nextDevVersion}") {
+                    assert(rootProject) {
+                        property(subject::commands).containsStrictly({
+                            isA<JenkinsMavenReleasePlugin> {
+                                property(subject::state).toBe(CommandState.Disabled)
+                                property(subject::nextDevVersion).toBe(singleProjectIdAndVersions.nextDevVersion)
+                            }
+                        })
+                    }
+                }
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "root", singleProjectIdAndVersions, 0)
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 1)
+                assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
+                test("ReleasePlan.iterator() returns only the root Project projects in the expected order") {
+                    assert(releasePlan).iteratorReturnsRootAndStrictly()
+                }
             }
         }
     }
@@ -834,10 +876,22 @@ private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, testDirecto
     analyseAndCreateReleasePlan(projectToRelease, getTestDirectory(testDirectory))
 
 private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, testDirectory: File): ReleasePlan {
-    val pomFileLoader = mock<PomFileLoader>()
-    val analyser = Analyser(testDirectory, Session(), pomFileLoader)
+    val analyser = createAnalyserWhichDoesNotResolve(testDirectory)
     return analyseAndCreateReleasePlan(projectToRelease, analyser)
 }
+
+private fun createAnalyserWhichDoesNotResolve(testDirectory: File): Analyser
+    = Analyser(testDirectory, Session(),  mock())
+
+private fun analyseAndCreateReleasePlan(
+    projectToRelease: ProjectId,
+    testDirectory: File,
+    options: JenkinsReleasePlanCreator.Options
+): ReleasePlan {
+    val analyser = createAnalyserWhichDoesNotResolve(testDirectory)
+    return analyseAndCreateReleasePlan(projectToRelease, analyser, options)
+}
+
 
 private fun analyseAndCreateReleasePlanWithPomResolverOldVersions(
     projectToRelease: ProjectId,
@@ -868,14 +922,20 @@ private fun analyseAndCreateReleasePlanWithPomResolverOldVersions(
     return analyseAndCreateReleasePlan(projectToRelease, analyser)
 }
 
-private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, analyser: Analyser): ReleasePlan {
-    val jenkinsReleasePlanCreator = JenkinsReleasePlanCreator(VersionDeterminer())
+private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, analyser: Analyser): ReleasePlan
+    = analyseAndCreateReleasePlan(projectToRelease, analyser, JenkinsReleasePlanCreator.Options(Regex("^$")))
+
+private fun analyseAndCreateReleasePlan(
+    projectToRelease: ProjectId,
+    analyser: Analyser,
+    options: JenkinsReleasePlanCreator.Options
+): ReleasePlan {
+    val jenkinsReleasePlanCreator = JenkinsReleasePlanCreator(VersionDeterminer(), options)
     return jenkinsReleasePlanCreator.create(projectToRelease as MavenProjectId, analyser)
 }
 
 private fun ActionBody.testReleaseSingleProject(idAndVersions: IdAndVersions, directory: String) {
     val releasePlan = analyseAndCreateReleasePlan(idAndVersions.id, getTestDirectory(directory))
-
     assertSingleProject(releasePlan, idAndVersions)
 }
 

@@ -7,8 +7,13 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.tutteli.kbox.appendToStringBuilder
+import java.util.logging.Logger
 
-class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer) {
+class JenkinsReleasePlanCreator(
+    private val versionDeterminer: VersionDeterminer,
+    private val options: Options
+) {
+    private val logger = Logger.getLogger(Analyser::class.qualifiedName)
 
     fun create(projectToRelease: MavenProjectId, analyser: Analyser): ReleasePlan {
         val currentVersion = analyser.getCurrentVersion(projectToRelease)
@@ -80,11 +85,17 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
         currentVersion: String,
         state: CommandState
     ): Command {
+        val definitiveState = if (options.disableReleaseFor.matches(projectId.identifier)) {
+            logger.info("Deactivate ${projectId.identifier} due to the specified disableReleaseFor regex: ${options.disableReleaseFor.pattern}")
+            CommandState.Disabled
+        } else {
+            state
+        }
         val nextDevVersion = versionDeterminer.nextDevVersion(currentVersion)
         return if (analyser.hasSubmodules(projectId)) {
-            JenkinsMultiMavenReleasePlugin(state, nextDevVersion)
+            JenkinsMultiMavenReleasePlugin(definitiveState, nextDevVersion)
         } else {
-            JenkinsMavenReleasePlugin(state, nextDevVersion)
+            JenkinsMavenReleasePlugin(definitiveState, nextDevVersion)
         }
     }
 
@@ -214,7 +225,12 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
 
     private fun addDependencyToReleaseCommands(list: List<Command>, dependencyId: MavenProjectId) {
         list.filter { it is ReleaseCommand }.forEach { command ->
-            ((command.state as CommandState.Waiting).dependencies as MutableSet).add(dependencyId)
+            val state = command.state
+            if (state is CommandState.Waiting) {
+                (state.dependencies as MutableSet).add(dependencyId)
+            } else if (state !== CommandState.Disabled) {
+                throw IllegalStateException("only state Waiting and Disabled expected, found: $state")
+            }
         }
     }
 
@@ -390,4 +406,12 @@ class JenkinsReleasePlanCreator(private val versionDeterminer: VersionDeterminer
 
         fun getDependentsOfDependency() = getDependent(dependencyId)
     }
+
+
+    /**
+     * Options for the [JenkinsReleasePlanCreator].
+     */
+    data class Options(
+        val disableReleaseFor: Regex
+    )
 }

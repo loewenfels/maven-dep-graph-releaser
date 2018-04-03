@@ -302,7 +302,6 @@ class Analyser internal constructor(
         return isNestedSubmodule(submodulesToVisit, submoduleId)
     }
 
-
     private fun <T> emptySetIfPartOfAnalysisOrThrow(projectId: MavenProjectId): Set<T>
         = emptySetIfPartOfAnalysisOrThrow(projectId, { emptySet()})
 

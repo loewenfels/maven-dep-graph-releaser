@@ -22,6 +22,7 @@ data class CommandStateJson(
         Succeeded,
         Failed,
         Deactivated,
+        Disabled
     }
 }
 
@@ -32,6 +33,7 @@ fun fromJson(json: CommandStateJson): CommandState = when (json.state) {
     Succeeded -> CommandState.Succeeded
     Failed -> CommandState.Failed(json.message ?: throwIllegal("message", "Failed"))
     Deactivated -> CommandState.Deactivated(fromJson(json.previous ?: throwIllegal("previous", "Deactivated")))
+    Disabled -> CommandState.Disabled
 }
 
 private fun throwIllegal(fieldName: String, stateName: String): Nothing = throw IllegalArgumentException("$fieldName must be defined for state $stateName")

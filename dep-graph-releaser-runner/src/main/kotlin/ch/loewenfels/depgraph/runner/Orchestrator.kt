@@ -10,20 +10,21 @@ import java.util.logging.Logger
 
 object Orchestrator {
     private val logger = Logger.getLogger(Orchestrator::class.qualifiedName)
-    private val releasePlaner = JenkinsReleasePlanCreator(VersionDeterminer())
     private val serializer = Serializer()
 
     fun analyseAndCreateJson(
         directoryToAnalyse: File,
         outputFile: File,
         projectToRelease: MavenProjectId,
-        options: Analyser.Options
+        analyserOptions: Analyser.Options,
+        releasePlanCreatorOptions: JenkinsReleasePlanCreator.Options
     ) {
         logger.info({ "Going to analyse: ${directoryToAnalyse.canonicalPath}" })
-        val analyser = Analyser(directoryToAnalyse, options)
+        val analyser = Analyser(directoryToAnalyse, analyserOptions)
         logger.info({ "Analysed ${analyser.getNumberOfProjects()} projects." })
 
         logger.info("Going to create the release plan with $projectToRelease as root.")
+        val releasePlaner = JenkinsReleasePlanCreator(VersionDeterminer(), releasePlanCreatorOptions)
         val rootProject = releasePlaner.create(projectToRelease, analyser)
         logger.info("Release plan created.")
 

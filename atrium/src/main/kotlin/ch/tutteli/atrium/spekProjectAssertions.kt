@@ -19,13 +19,8 @@ val exampleDeps = IdAndVersions(MavenProjectId("com.example", "deps"), "9-SNAPSH
 fun ActionBody.assertSingleProject(releasePlan: ReleasePlan, projectToRelease: IdAndVersions) {
     assertRootProjectOnlyReleaseCommand(releasePlan, projectToRelease)
 
-    test("it does not have any dependent project") {
-        assert(releasePlan) {
-            returnValueOf(subject::getNumberOfDependents).toBe(1)
-            returnValueOf(subject::getDependents, projectToRelease.id).isEmpty()
-        }
-    }
-
+    assertHasNoDependentsAndIsOnLevel(releasePlan, "root", projectToRelease, 0)
+    assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 1)
     assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
     test("ReleasePlan.iterator() returns only the root Project projects in the expected order") {
         assert(releasePlan).iteratorReturnsRootAndStrictly()

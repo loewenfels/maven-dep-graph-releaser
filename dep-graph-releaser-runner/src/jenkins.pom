@@ -35,6 +35,7 @@
                         <argument>${artifactId}</argument>
                         <argument>${dir}</argument>
                         <argument>${json}</argument>
+                        <argument>${disableRelease}</argument>
                     </arguments>
                 </configuration>
             </plugin>

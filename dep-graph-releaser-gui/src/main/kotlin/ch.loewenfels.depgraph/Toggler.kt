@@ -21,6 +21,9 @@ class Toggler(private val releasePlan: ReleasePlan) {
         val checked = checkbox.checked
         val prefix = id.substring(0, id.indexOf(":disableAll"))
         iterate(prefix) { it, i ->
+            //do nothing if command is disabled
+            if (it.disabled) return@iterate
+
             it.checked = checked
             if (it.isReleaseCommand() && !checked) {
                 toggleCommand(it, "$prefix:$i:disable")

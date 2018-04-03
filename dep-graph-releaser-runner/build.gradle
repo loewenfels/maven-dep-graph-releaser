@@ -64,8 +64,9 @@ task json {
             classpath = fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.MainKt'
 
+            def dr = findProperty('dr') != null ? ["-dr=${findProperty('dr')}"] : []
             def mpOff = findProperty('mpoff') != null ? ['-mpoff'] : []
-            args = ['json', groupId, artifactId, "${rootProject.projectDir}/repos", jsonFile.absolutePath] + mpOff
+            args = ['json', groupId, artifactId, "${rootProject.projectDir}/repos", jsonFile.absolutePath] + dr + mpOff
         }
     }
 }
