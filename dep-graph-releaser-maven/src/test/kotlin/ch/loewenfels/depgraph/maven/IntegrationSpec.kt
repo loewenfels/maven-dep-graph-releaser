@@ -237,6 +237,32 @@ object IntegrationSpec : Spek({
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC)
 
                 assertOneDirectDependent(releasePlan, "parent", exampleC, exampleB)
+                assertOneUpdateAndOneMultiReleaseCommand(releasePlan, "parent", exampleC, exampleA)
+
+                test("direct dependent project has one waiting UpdateVersion and one waiting Release command") {
+                    assert(releasePlan.getProject(exampleB.id)) {
+                        idAndVersions(exampleB)
+                        property(subject::commands).containsStrictly(
+                            { isJenkinsUpdateDependencyWaiting(exampleC) },
+                            { isJenkinsMavenReleaseWaiting(exampleB.nextDevVersion, exampleA, exampleC) }
+                        )
+                    }
+                }
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "direct dependent", exampleB, 2)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
+                assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
+            }
+        }
+
+        given("project with dependent and version in property of parent") {
+            action("context Analyser with a mocked PomFileResolver") {
+                val releasePlan =
+                    analyseAndCreateReleasePlanWithPomResolverOldVersions(exampleA.id, "managingVersions/viaParentProperty")
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC)
+
+                assertOneDirectDependent(releasePlan, "parent", exampleC, exampleB)
+                assertOneUpdateAndOneMultiReleaseCommand(releasePlan, "parent", exampleC, exampleA)
 
                 test("direct dependent project has one waiting UpdateVersion and one waiting Release command") {
                     assert(releasePlan.getProject(exampleB.id)) {
