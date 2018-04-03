@@ -39,5 +39,15 @@
             <version>1.0</version>
             <groupId>test</groupId>
         </dependency>
+
+        <dependency>
+            <groupId>test</groupId>
+            <artifactId>onceWithoutVersion</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>test</groupId>
+            <artifactId>onceWithoutVersion</artifactId>
+            <version>1.0</version>
+        </dependency>
 	</dependencies>
 </project>

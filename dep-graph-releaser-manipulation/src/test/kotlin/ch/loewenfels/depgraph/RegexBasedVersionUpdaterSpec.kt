@@ -54,9 +54,11 @@ object RegexBasedVersionUpdaterSpec : Spek({
                 tmpPom.writeBytes(pom.readBytes())
                 testee.updateDependency(tmpPom, "junit", "junit", "4.4")
                 assert(tmpPom.readText()).containsRegex(
-                    "<groupId>junit</groupId>[\\S\\s]*" +
+                    "<dependency>[\\S\\s]*" +
+                        "<groupId>junit</groupId>[\\S\\s]*" +
                         "<artifactId>junit</artifactId>[\\S\\s]*" +
-                        "<version>4.4</version>"
+                        "<version>4.4</version>[\\S\\s]*" +
+                        "</dependency>"
                 )
             }
         }
@@ -67,18 +69,45 @@ object RegexBasedVersionUpdaterSpec : Spek({
                 tmpPom.writeBytes(pom.readBytes())
                 testee.updateDependency(tmpPom, "test", "test", "2.0")
                 assert(tmpPom.readText()).containsRegex(
-                    "<groupId>test</groupId>[\\S\\s]*" +
-                        "<artifactId>test</artifactId>[\\S\\s]*" +
-                        "<version>2.0</version>",
-                    "<groupId>test</groupId>[\\S\\s]*" +
-                        "<version>2.0</version>[\\S\\s]*" +
-                        "<artifactId>test</artifactId>",
-                    "<artifactId>test</artifactId>[\\S\\s]*" +
+                    "<dependency>[\\S\\s]*" +
                         "<groupId>test</groupId>[\\S\\s]*" +
-                        "<version>2.0</version>",
-                    "<artifactId>test</artifactId>[\\S\\s]*" +
+                        "<artifactId>test</artifactId>[\\S\\s]*" +
                         "<version>2.0</version>[\\S\\s]*" +
-                        "<groupId>test</groupId>"
+                        "</dependency>",
+                    "<dependency>[\\S\\s]*" +
+                        "<groupId>test</groupId>[\\S\\s]*" +
+                        "<version>2.0</version>[\\S\\s]*" +
+                        "<artifactId>test</artifactId>[\\S\\s]*" +
+                        "</dependency>",
+                    "<dependency>[\\S\\s]*" +
+                        "<artifactId>test</artifactId>[\\S\\s]*" +
+                        "<groupId>test</groupId>[\\S\\s]*" +
+                        "<version>2.0</version>[\\S\\s]*" +
+                        "</dependency>",
+                    "<dependency>[\\S\\s]*" +
+                        "<artifactId>test</artifactId>[\\S\\s]*" +
+                        "<version>2.0</version>[\\S\\s]*" +
+                        "<groupId>test</groupId>[\\S\\s]*" +
+                        "</dependency>"
+                )
+            }
+        }
+
+        context("dependency once without version") {
+            it("updates the dependency with version") {
+                val tmpPom = tempFolder.newFile("pom.xml")
+                tmpPom.writeBytes(pom.readBytes())
+                testee.updateDependency(tmpPom, "test", "onceWithoutVersion", "3.4")
+                assert(tmpPom.readText()).containsRegex(
+                    "<dependency>[\\S\\s]*" +
+                        "<groupId>test</groupId>[\\S\\s]*" +
+                        "<artifactId>onceWithoutVersion</artifactId>[\\S\\s]*" +
+                        "<version>3.4</version>[\\S\\s]*" +
+                        "</dependency>",
+                    "<dependency>[\\S\\s]*" +
+                        "<groupId>test</groupId>[\\S\\s]*" +
+                        "<artifactId>onceWithoutVersion</artifactId>[\\S\\s]*" +
+                        "</dependency>"
                 )
             }
         }
