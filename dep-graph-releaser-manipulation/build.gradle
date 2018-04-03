@@ -2,6 +2,8 @@ buildscript {
     ext.publish_description = 'Contains classes to manipulate a release plan.'
 }
 
-dependencies{
+dependencies {
     compile prefixedProject('api-jvm')
+
+    testCompile prefixedProject('maven').sourceSets.test.output
 }
