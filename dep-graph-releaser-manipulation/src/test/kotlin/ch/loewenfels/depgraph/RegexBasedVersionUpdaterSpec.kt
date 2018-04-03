@@ -5,6 +5,7 @@ import ch.tutteli.atrium.api.cc.en_UK.containsRegex
 import ch.tutteli.atrium.api.cc.en_UK.toBe
 import ch.tutteli.atrium.api.cc.en_UK.toThrow
 import ch.tutteli.atrium.assert
+import ch.tutteli.atrium.exampleA
 import ch.tutteli.atrium.expect
 import ch.tutteli.spek.extensions.TempFolder
 import org.jetbrains.spek.api.Spek
@@ -22,7 +23,7 @@ object RegexBasedVersionUpdaterSpec : Spek({
 
     describe("error cases") {
         given("single project with third party dependency") {
-            val pom = File(getTestDirectory("singleProject").absolutePath + "/pom.xml")
+            val pom = File(getTestDirectory("singleProject"), "pom.xml")
             context("dependency without version shall be updated") {
                 it("throws an IllegalStateException, mentioning that at least one dependency should be updated") {
                     val tmpPom = tempFolder.newFile("pom.xml")
@@ -37,7 +38,7 @@ object RegexBasedVersionUpdaterSpec : Spek({
 
 
     given("single project with third party dependency") {
-        val pom = File(getTestDirectory("singleProject").absolutePath + "/pom.xml")
+        val pom = File(getTestDirectory("singleProject"), "pom.xml")
 
         context("dependency shall be updated, same version") {
             it("updates the dependency and file content is the same as before") {
@@ -113,4 +114,32 @@ object RegexBasedVersionUpdaterSpec : Spek({
         }
     }
 
+
+    given("project with dependency and version in dependency management") {
+        val pom = File(getTestDirectory("managingVersions/viaDependencyManagement"), "b.pom")
+
+        context("dependency shall be updated, same version") {
+            it("updates the dependency and file content is the same as before") {
+                val tmpPom = tempFolder.newFile("pom.xml")
+                tmpPom.writeBytes(pom.readBytes())
+                testee.updateDependency(tmpPom, exampleA.id.groupId, exampleA.id.artifactId, "1.0.0")
+                assert(tmpPom.readText()).toBe(pom.readText())
+            }
+        }
+
+        context("dependency shall be updated, new version") {
+            it("updates the dependency") {
+                val tmpPom = tempFolder.newFile("pom.xml")
+                tmpPom.writeBytes(pom.readBytes())
+                testee.updateDependency(tmpPom,exampleA.id.groupId, exampleA.id.artifactId, "1.1.0")
+                assert(tmpPom.readText()).containsRegex(
+                    "<dependency>[\\S\\s]*" +
+                        "<groupId>${exampleA.id.groupId}</groupId>[\\S\\s]*" +
+                        "<artifactId>${exampleA.id.artifactId}</artifactId>[\\S\\s]*" +
+                        "<version>1.1.0</version>[\\S\\s]*" +
+                        "</dependency>"
+                )
+            }
+        }
+    }
 })
