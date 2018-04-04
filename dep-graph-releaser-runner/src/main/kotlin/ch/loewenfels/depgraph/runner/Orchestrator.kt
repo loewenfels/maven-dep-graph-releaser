@@ -70,5 +70,6 @@ object Orchestrator {
 
     fun updateDependency(pom: File, groupId: String, artifactId: String, newVersion: String) {
         RegexBasedVersionUpdater.updateDependency(pom, groupId, artifactId, newVersion)
+        logger.info("updated dependency $groupId:$artifactId to new version $newVersion")
     }
 }
