@@ -24,8 +24,7 @@ object RegexBasedVersionUpdaterSpec : Spek({
             val pom = File(getTestDirectory("singleProject"), "pom.xml")
             context("dependency without version shall be updated") {
                 it("throws an IllegalStateException, mentioning that at least one dependency should be updated") {
-                    val tmpPom = tempFolder.newFile("pom.xml")
-                    tmpPom.writeBytes(pom.readBytes())
+                    val tmpPom = copyPom(tempFolder, pom)
                     expect {
                         testee.updateDependency(tmpPom, "com.google.code.gson", "gson", "4.4")
                     }.toThrow<IllegalStateException>()
@@ -44,8 +43,7 @@ object RegexBasedVersionUpdaterSpec : Spek({
 
         context("dependency shall be updated, new version") {
             it("updates the dependency") {
-                val tmpPom = tempFolder.newFile("pom.xml")
-                tmpPom.writeBytes(pom.readBytes())
+                val tmpPom = copyPom(tempFolder, pom)
                 testee.updateDependency(tmpPom, "junit", "junit", "4.4")
                 assert(tmpPom.readText()).containsRegex(
                     "<dependency>[\\S\\s]*" +
@@ -59,8 +57,7 @@ object RegexBasedVersionUpdaterSpec : Spek({
 
         context("dependency occurs multiple times") {
             it("updates the dependency") {
-                val tmpPom = tempFolder.newFile("pom.xml")
-                tmpPom.writeBytes(pom.readBytes())
+                val tmpPom = copyPom(tempFolder, pom)
                 testee.updateDependency(tmpPom, "test", "test", "2.0")
                 assert(tmpPom.readText()).containsRegex(
                     "<dependency>[\\S\\s]*" +
@@ -92,8 +89,7 @@ object RegexBasedVersionUpdaterSpec : Spek({
 
         context("dependency once without version") {
             it("updates the dependency with version") {
-                val tmpPom = tempFolder.newFile("pom.xml")
-                tmpPom.writeBytes(pom.readBytes())
+                val tmpPom = copyPom(tempFolder, pom)
                 testee.updateDependency(tmpPom, "test", "onceWithoutVersion", "3.4")
                 assert(tmpPom.readText()).containsRegex(
                     "<dependency>[\\S\\s]*" +
@@ -120,9 +116,7 @@ object RegexBasedVersionUpdaterSpec : Spek({
 
         context("dependency shall be updated, new version") {
             it("updates the dependency") {
-                val tmpPom = tempFolder.newFile("pom.xml")
-                tmpPom.writeBytes(pom.readBytes())
-
+                val tmpPom = copyPom(tempFolder, pom)
                 updateDependency(testee, tmpPom, exampleA)
                 assert(tmpPom.readText()).containsRegex(
                     "<dependency>[\\S\\s]*" +
@@ -144,8 +138,7 @@ object RegexBasedVersionUpdaterSpec : Spek({
 
         context("parent dependency shall be updated, new version") {
             it("updates the dependency") {
-                val tmpPom = tempFolder.newFile("pom.xml")
-                tmpPom.writeBytes(pom.readBytes())
+                val tmpPom = copyPom(tempFolder, pom)
                 updateDependency(testee, tmpPom, exampleA)
                 assert(tmpPom.readText()).containsRegex(
                     "<parent>[\\S\\s]*" +
@@ -153,6 +146,24 @@ object RegexBasedVersionUpdaterSpec : Spek({
                         "<artifactId>${exampleA.id.artifactId}</artifactId>[\\S\\s]*" +
                         "<version>${exampleA.releaseVersion}</version>[\\S\\s]*" +
                         "</parent>"
+                )
+            }
+        }
+    }
+
+    given("project with dependent and version in property") {
+        val pom = File(getTestDirectory("managingVersions/viaProperty"), "b.pom")
+
+        context("dependency shall be updated, same version") {
+            testSameContent(testee, tempFolder, pom, exampleA)
+        }
+
+        context("dependency shall be updated, new version") {
+            it("updates the property") {
+                val tmpPom = copyPom(tempFolder, pom)
+                updateDependency(testee, tmpPom, exampleA)
+                assert(tmpPom.readText()).containsRegex(
+                    "<a.version>${exampleA.releaseVersion}</a.version>"
                 )
             }
         }
@@ -189,11 +200,16 @@ private fun SpecBody.testSameContent(
     update: (File) -> Unit
 ) {
     it("updates the dependency and file content is the same as before") {
-        val tmpPom = tempFolder.newFile("pom.xml")
-        tmpPom.writeBytes(pom.readBytes())
+        val tmpPom = copyPom(tempFolder, pom)
         update(tmpPom)
         assert(tmpPom.readText()).toBe(pom.readText())
     }
+}
+
+private fun copyPom(tempFolder: TempFolder, pom: File): File {
+    val tmpPom = tempFolder.newFile("pom.xml")
+    tmpPom.writeBytes(pom.readBytes())
+    return tmpPom
 }
 
 private fun updateDependency(testee: RegexBasedVersionUpdater, tmpPom: File, project: IdAndVersions) {
