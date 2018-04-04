@@ -112,7 +112,7 @@ class RegexBasedVersionUpdater {
     }
 
     private fun appendVersion(paramObject: ParamObject, version: String) {
-        val propertyMatchResult = mavenPropertyRegex.find(version)
+        val propertyMatchResult = mavenPropertyRegex.matchEntire(version)
         when {
             propertyMatchResult != null -> {
                 paramObject.properties.add(propertyMatchResult.groupValues[1])

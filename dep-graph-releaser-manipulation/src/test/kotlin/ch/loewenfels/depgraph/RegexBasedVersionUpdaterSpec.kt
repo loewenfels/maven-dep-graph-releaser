@@ -2,7 +2,8 @@ package ch.loewenfels.depgraph
 
 import ch.loewenfels.depgraph.maven.getTestDirectory
 import ch.tutteli.atrium.IdAndVersions
-import ch.tutteli.atrium.api.cc.en_UK.containsRegex
+import ch.tutteli.atrium.api.cc.en_UK.contains
+import ch.tutteli.atrium.api.cc.en_UK.message
 import ch.tutteli.atrium.api.cc.en_UK.toBe
 import ch.tutteli.atrium.api.cc.en_UK.toThrow
 import ch.tutteli.atrium.assert
@@ -20,15 +21,25 @@ object RegexBasedVersionUpdaterSpec : Spek({
     val testee = RegexBasedVersionUpdater()
 
     describe("error cases") {
-        given("single project with third party dependency") {
-            val pom = File(getTestDirectory("singleProject"), "pom.xml")
-            context("dependency without version shall be updated") {
-                it("throws an IllegalStateException, mentioning that at least one dependency should be updated") {
-                    val tmpPom = copyPom(tempFolder, pom)
-                    expect {
-                        testee.updateDependency(tmpPom, "com.google.code.gson", "gson", "4.4")
-                    }.toThrow<IllegalStateException>()
-                }
+        given("single project with third party dependency without version") {
+            val errMessage = "not managed by the given pom"
+            it("throws an IllegalStateException, mentioning `$errMessage`") {
+                val pom = File(getTestDirectory("singleProject"), "pom.xml")
+                val tmpPom = copyPom(tempFolder, pom)
+                expect {
+                    testee.updateDependency(tmpPom, "com.google.code.gson", "gson", "4.4")
+                }.toThrow<IllegalStateException> { message { contains(errMessage) } }
+            }
+        }
+
+        given("project with dependent and version partially static with property") {
+            val errMessage = "Version was neither static nor a reference to a single property"
+            it("throws an UnsupportedOperationException, mentioning `$errMessage`") {
+                val pom = getPom("versionPartiallyStaticAndProperty.pom")
+                val tmpPom = copyPom(tempFolder, pom)
+                expect {
+                    updateDependency(testee, tmpPom, exampleA)
+                }.toThrow<UnsupportedOperationException> { message { contains(errMessage, "1.0.\${a.fix}") } }
             }
         }
     }
@@ -115,6 +126,8 @@ object RegexBasedVersionUpdaterSpec : Spek({
         }
     }
 })
+
+fun getPom(pomName: String): File = File(RegexBasedVersionUpdaterSpec.javaClass.getResource("/$pomName").path)
 
 fun assertSameAsBeforeAfterReplace(tmpPom: File, pom: File, versionToReplace: String, newVersion: String) {
     val content = pom.readText()
