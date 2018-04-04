@@ -11,19 +11,25 @@
         <profile>
             <id>a</id>
             <properties>
+                <anotherProp>asdf</anotherProp>
                 <a.version>1.0.0</a.version>
             </properties>
         </profile>
         <profile>
             <id>b</id>
-            <properties>
+            <properties> <!-- a comment -->
+                <!--a_comment_without_space-->
                 <a.version>1.0.0</a.version>
+                <a-asdfè></a-asdfè>
+                <!-- another comment -->
             </properties>
         </profile>
     </profiles>
 
     <properties>
+        <emptyProp/>
         <a.version>1.0.0</a.version>
+        <anotherProp>1234</anotherProp>
     </properties>
 
     <dependencies>

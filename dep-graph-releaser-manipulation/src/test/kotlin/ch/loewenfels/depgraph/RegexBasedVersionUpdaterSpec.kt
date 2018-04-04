@@ -89,84 +89,47 @@ object RegexBasedVersionUpdaterSpec : Spek({
 
     given("project with dependency and version in dependency management") {
         val pom = File(getTestDirectory("managingVersions/viaDependencyManagement"), "b.pom")
-
-        context("dependency shall be updated, same version") {
-            testSameContent(testee, tempFolder, pom, exampleA)
-        }
-
-        context("dependency shall be updated, new version") {
-            it("updates the dependency") {
-                val tmpPom = copyPom(tempFolder, pom)
-                updateDependency(testee, tmpPom, exampleA)
-                assertSameAsBeforeAfterReplace(tmpPom, pom, "1.0.0", "1.1.1")
-            }
-        }
+        testWithExampleA(testee, tempFolder, pom)
     }
 
     given("project with parent dependency") {
         val pom = File(getTestDirectory("parentRelations/parent"), "b.pom")
-
-        context("parent dependency shall be updated, same version") {
-            testSameContent(testee, tempFolder, pom, exampleA)
-        }
-
-        context("parent dependency shall be updated, new version") {
-            it("updates the dependency") {
-                val tmpPom = copyPom(tempFolder, pom)
-                updateDependency(testee, tmpPom, exampleA)
-                assertSameAsBeforeAfterReplace(tmpPom, pom, "1.0.0", "1.1.1")
-            }
-        }
+        testWithExampleA(testee, tempFolder, pom)
     }
 
     given("project with dependent and version in property") {
         val pom = File(getTestDirectory("managingVersions/viaProperty"), "b.pom")
-
-        context("dependency shall be updated, same version") {
-            testSameContent(testee, tempFolder, pom, exampleA)
-        }
-
-        context("dependency shall be updated, new version") {
-            it("updates the property") {
-                val tmpPom = copyPom(tempFolder, pom)
-                updateDependency(testee, tmpPom, exampleA)
-                assertSameAsBeforeAfterReplace(tmpPom, pom, "1.0.0", "1.1.1")
-            }
-        }
+        testWithExampleA(testee, tempFolder, pom)
     }
 
     given("project with dependent and empty <properties>") {
         val pom = getPom("emptyProperties.pom")
-
-        context("dependency shall be updated, same version") {
-            testSameContent(testee, tempFolder, pom, exampleA)
-        }
-
-        context("dependency shall be updated, new version") {
-            it("updates the property") {
-                val tmpPom = copyPom(tempFolder, pom)
-                updateDependency(testee, tmpPom, exampleA)
-                assertSameAsBeforeAfterReplace(tmpPom, pom, "1.0.0", "1.1.1")
-            }
-        }
+        testWithExampleA(testee, tempFolder, pom)
     }
 
     given("project with dependent and version in property which is also in profiles") {
         val pom = getPom("propertiesInProfile.pom")
-
-        context("dependency shall be updated, same version") {
-            testSameContent(testee, tempFolder, pom, exampleA)
-        }
-
-        context("dependency shall be updated, new version") {
-            it("updates the property") {
-                val tmpPom = copyPom(tempFolder, pom)
-                updateDependency(testee, tmpPom, exampleA)
-                assertSameAsBeforeAfterReplace(tmpPom, pom, "1.0.0", "1.1.1")
-            }
-        }
+        testWithExampleA(testee, tempFolder, pom)
     }
 })
+
+private fun SpecBody.testWithExampleA(
+    testee: RegexBasedVersionUpdater,
+    tempFolder: TempFolder,
+    pom: File
+) {
+    context("dependency shall be updated, same version") {
+        testSameContent(testee, tempFolder, pom, exampleA)
+    }
+
+    context("dependency shall be updated, new version") {
+        it("updates the property") {
+            val tmpPom = copyPom(tempFolder, pom)
+            updateDependency(testee, tmpPom, exampleA)
+            assertSameAsBeforeAfterReplace(tmpPom, pom, "1.0.0", "1.1.1")
+        }
+    }
+}
 
 fun getPom(pomName: String): File = File(RegexBasedVersionUpdaterSpec.javaClass.getResource("/$pomName").path)
 
