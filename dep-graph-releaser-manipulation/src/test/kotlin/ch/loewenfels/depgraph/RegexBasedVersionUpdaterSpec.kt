@@ -134,8 +134,25 @@ object RegexBasedVersionUpdaterSpec : Spek({
             }
         }
     }
+
     given("project with dependent and empty <properties>") {
         val pom = getPom("emptyProperties.pom")
+
+        context("dependency shall be updated, same version") {
+            testSameContent(testee, tempFolder, pom, exampleA)
+        }
+
+        context("dependency shall be updated, new version") {
+            it("updates the property") {
+                val tmpPom = copyPom(tempFolder, pom)
+                updateDependency(testee, tmpPom, exampleA)
+                assertSameAsBeforeAfterReplace(tmpPom, pom, "1.0.0", "1.1.1")
+            }
+        }
+    }
+
+    given("project with dependent and version in property which is also in profiles") {
+        val pom = getPom("propertiesInProfile.pom")
 
         context("dependency shall be updated, same version") {
             testSameContent(testee, tempFolder, pom, exampleA)
