@@ -45,45 +45,15 @@ object RegexBasedVersionUpdaterSpec : Spek({
             it("updates the dependency") {
                 val tmpPom = copyPom(tempFolder, pom)
                 testee.updateDependency(tmpPom, "junit", "junit", "4.4")
-                assert(tmpPom.readText()).containsRegex(
-                    "<dependency>[\\S\\s]*" +
-                        "<groupId>junit</groupId>[\\S\\s]*" +
-                        "<artifactId>junit</artifactId>[\\S\\s]*" +
-                        "<version>4.4</version>[\\S\\s]*" +
-                        "</dependency>"
-                )
+                assertSameAsBeforeAfterReplace(tmpPom, pom, "4.12", "4.4")
             }
         }
 
         context("dependency occurs multiple times") {
             it("updates the dependency") {
                 val tmpPom = copyPom(tempFolder, pom)
-                testee.updateDependency(tmpPom, "test", "test", "2.0")
-                assert(tmpPom.readText()).containsRegex(
-                    "<dependency>[\\S\\s]*" +
-                        "<groupId>test</groupId>[\\S\\s]*" +
-                        "<artifactId>test</artifactId>[\\S\\s]*" +
-                        "<version>2.0</version>[\\S\\s]*" +
-                        "</dependency>",
-                    "<dependency>[\\S\\s]*" +
-                        "<groupId>test</groupId>[\\S\\s]*" +
-                        "<version>2.0</version>[\\S\\s]*" +
-                        "<type>muss bleiben</type>[\\S\\s]*" +
-                        "<artifactId>test</artifactId>[\\S\\s]*" +
-                        "</dependency>",
-                    "<dependency>[\\S\\s]*" +
-                        "<artifactId>test</artifactId>[\\S\\s]*" +
-                        "<scope>muss bleiben</scope>[\\S\\s]*" +
-                        "<groupId>test</groupId>[\\S\\s]*" +
-                        "<version>2.0</version>[\\S\\s]*" +
-                        "</dependency>",
-                    "<dependency>[\\S\\s]*" +
-                        "<artifactId>test</artifactId>[\\S\\s]*" +
-                        "<version>2.0</version>[\\S\\s]*" +
-                        "<!-- Kommentar muss bleiben -->[\\S\\s]*" +
-                        "<groupId>test</groupId>[\\S\\s]*" +
-                        "</dependency>"
-                )
+                testee.updateDependency(tmpPom, "test", "test", "3.0")
+                assertSameAsBeforeAfterReplace(tmpPom, pom, "2.0", "3.0")
             }
         }
 
@@ -91,17 +61,7 @@ object RegexBasedVersionUpdaterSpec : Spek({
             it("updates the dependency with version") {
                 val tmpPom = copyPom(tempFolder, pom)
                 testee.updateDependency(tmpPom, "test", "onceWithoutVersion", "3.4")
-                assert(tmpPom.readText()).containsRegex(
-                    "<dependency>[\\S\\s]*" +
-                        "<groupId>test</groupId>[\\S\\s]*" +
-                        "<artifactId>onceWithoutVersion</artifactId>[\\S\\s]*" +
-                        "<version>3.4</version>[\\S\\s]*" +
-                        "</dependency>",
-                    "<dependency>[\\S\\s]*" +
-                        "<groupId>test</groupId>[\\S\\s]*" +
-                        "<artifactId>onceWithoutVersion</artifactId>[\\S\\s]*" +
-                        "</dependency>"
-                )
+                assertSameAsBeforeAfterReplace(tmpPom, pom, "3.0", "3.4")
             }
         }
     }
@@ -118,13 +78,7 @@ object RegexBasedVersionUpdaterSpec : Spek({
             it("updates the dependency") {
                 val tmpPom = copyPom(tempFolder, pom)
                 updateDependency(testee, tmpPom, exampleA)
-                assert(tmpPom.readText()).containsRegex(
-                    "<dependency>[\\S\\s]*" +
-                        "<groupId>${exampleA.id.groupId}</groupId>[\\S\\s]*" +
-                        "<artifactId>${exampleA.id.artifactId}</artifactId>[\\S\\s]*" +
-                        "<version>${exampleA.releaseVersion}</version>[\\S\\s]*" +
-                        "</dependency>"
-                )
+                assertSameAsBeforeAfterReplace(tmpPom, pom, "1.0.0", "1.1.1")
             }
         }
     }
@@ -140,13 +94,7 @@ object RegexBasedVersionUpdaterSpec : Spek({
             it("updates the dependency") {
                 val tmpPom = copyPom(tempFolder, pom)
                 updateDependency(testee, tmpPom, exampleA)
-                assert(tmpPom.readText()).containsRegex(
-                    "<parent>[\\S\\s]*" +
-                        "<groupId>${exampleA.id.groupId}</groupId>[\\S\\s]*" +
-                        "<artifactId>${exampleA.id.artifactId}</artifactId>[\\S\\s]*" +
-                        "<version>${exampleA.releaseVersion}</version>[\\S\\s]*" +
-                        "</parent>"
-                )
+                assertSameAsBeforeAfterReplace(tmpPom, pom, "1.0.0", "1.1.1")
             }
         }
     }
@@ -162,13 +110,16 @@ object RegexBasedVersionUpdaterSpec : Spek({
             it("updates the property") {
                 val tmpPom = copyPom(tempFolder, pom)
                 updateDependency(testee, tmpPom, exampleA)
-                assert(tmpPom.readText()).containsRegex(
-                    "<a.version>${exampleA.releaseVersion}</a.version>"
-                )
+                assertSameAsBeforeAfterReplace(tmpPom, pom, "1.0.0", "1.1.1")
             }
         }
     }
 })
+
+fun assertSameAsBeforeAfterReplace(tmpPom: File, pom: File, versionToReplace: String, newVersion: String) {
+    val content = pom.readText()
+    assert(tmpPom.readText()).toBe(content.replace(versionToReplace, newVersion))
+}
 
 private fun SpecBody.testSameContent(
     testee: RegexBasedVersionUpdater,

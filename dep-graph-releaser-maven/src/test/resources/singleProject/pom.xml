@@ -23,11 +23,11 @@
         <dependency>
             <groupId>test</groupId>
             <artifactId>test</artifactId>
-            <version>1.0</version>
+            <version>2.0</version>
         </dependency>
         <dependency>
             <groupId>test</groupId>
-            <version>1.0</version>
+            <version>2.0</version>
             <type>muss bleiben</type>
             <artifactId>test</artifactId>
         </dependency>
@@ -35,11 +35,11 @@
             <artifactId>test</artifactId>
             <scope>muss bleiben</scope>
             <groupId>test</groupId>
-            <version>1.0</version>
+            <version>2.0</version>
         </dependency>
         <dependency>
             <artifactId>test</artifactId>
-            <version>1.0</version>
+            <version>2.0</version>
             <!-- Kommentar muss bleiben -->
             <groupId>test</groupId>
         </dependency>
@@ -51,7 +51,7 @@
         <dependency>
             <groupId>test</groupId>
             <artifactId>onceWithoutVersion</artifactId>
-            <version>1.0</version>
+            <version>3.0</version>
         </dependency>
 	</dependencies>
 </project>
