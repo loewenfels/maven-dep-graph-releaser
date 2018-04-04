@@ -71,16 +71,19 @@ object RegexBasedVersionUpdaterSpec : Spek({
                     "<dependency>[\\S\\s]*" +
                         "<groupId>test</groupId>[\\S\\s]*" +
                         "<version>2.0</version>[\\S\\s]*" +
+                        "<type>muss bleiben</type>[\\S\\s]*" +
                         "<artifactId>test</artifactId>[\\S\\s]*" +
                         "</dependency>",
                     "<dependency>[\\S\\s]*" +
                         "<artifactId>test</artifactId>[\\S\\s]*" +
+                        "<scope>muss bleiben</scope>[\\S\\s]*" +
                         "<groupId>test</groupId>[\\S\\s]*" +
                         "<version>2.0</version>[\\S\\s]*" +
                         "</dependency>",
                     "<dependency>[\\S\\s]*" +
                         "<artifactId>test</artifactId>[\\S\\s]*" +
                         "<version>2.0</version>[\\S\\s]*" +
+                        "<!-- Kommentar muss bleiben -->[\\S\\s]*" +
                         "<groupId>test</groupId>[\\S\\s]*" +
                         "</dependency>"
                 )

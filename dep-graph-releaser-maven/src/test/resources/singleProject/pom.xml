@@ -12,6 +12,7 @@
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
 		</dependency>
+        <!--- ein Kommentar zwischendurch -->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
@@ -27,16 +28,19 @@
         <dependency>
             <groupId>test</groupId>
             <version>1.0</version>
+            <type>muss bleiben</type>
             <artifactId>test</artifactId>
         </dependency>
         <dependency>
             <artifactId>test</artifactId>
+            <scope>muss bleiben</scope>
             <groupId>test</groupId>
             <version>1.0</version>
         </dependency>
         <dependency>
             <artifactId>test</artifactId>
             <version>1.0</version>
+            <!-- Kommentar muss bleiben -->
             <groupId>test</groupId>
         </dependency>
 
