@@ -62,6 +62,18 @@ object RegexBasedVersionUpdaterSpec : Spek({
                 }
             }
         }
+
+        given("version via property but property is absent"){
+            val errMessage = " version is managed in properties but the properties are absent"
+            it("throws an IllegalStateException, mentioning `$errMessage`") {
+                val pom = getPom("errorCases/absentProperty.pom")
+                val tmpPom = copyPom(tempFolder, pom)
+                expect {
+                    updateDependency(testee, tmpPom, exampleA)
+                }.toThrow<IllegalStateException> { message { contains(errMessage, "a.version", "another.version") }
+                }
+            }
+        }
     }
 
     given("single project with third party dependency") {

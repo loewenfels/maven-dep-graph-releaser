@@ -32,6 +32,12 @@ object RegexBasedVersionUpdater {
 
         if (dependenciesParamObject.updated || parentParamObject.updated || propertiesParamObject.updated) {
             pom.writeText(propertiesParamObject.getModifiedContent())
+        } else if(propertiesParamObject.properties.isNotEmpty()) {
+            throw IllegalStateException(
+                "Found the dependency $groupId:$artifactId where the version is managed in properties but the properties are absent." +
+                    "\npom: ${pom.absolutePath}" +
+                    "\nproperties:${propertiesParamObject.properties.joinToString()}"
+            )
         } else {
             throw IllegalStateException(
                 "cannot update (parent) dependency $groupId:$artifactId because " +
