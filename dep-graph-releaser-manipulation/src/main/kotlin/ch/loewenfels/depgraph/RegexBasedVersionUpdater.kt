@@ -143,10 +143,10 @@ object RegexBasedVersionUpdater {
         }
     }
 
-    private fun appendVersionInProperty(propertiesParamObject: ParamObject, tagName: String, version: String) {
+    private fun appendVersionInProperty(propertiesParamObject: ParamObject, propertyName: String, version: String) {
         when {
-            version.contains("$") -> throw UnsupportedOperationException("Property contains another property. Given: $version")
-            propertiesParamObject.properties.contains(tagName) -> appendNewVersionAndSetUpdated(propertiesParamObject)
+            version.contains("$") -> throw UnsupportedOperationException("Property contains another property.\nProperty: $propertyName\nValue: $version")
+            propertiesParamObject.properties.contains(propertyName) -> appendNewVersionAndSetUpdated(propertiesParamObject)
             else -> propertiesParamObject.modifiedPom.append(version)
         }
     }

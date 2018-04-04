@@ -49,6 +49,19 @@ object RegexBasedVersionUpdaterSpec : Spek({
                 }.toThrow<IllegalStateException> { message { contains(errMessage, exampleA.id.identifier) } }
             }
         }
+
+        given("property which contains another property") {
+            val errMessage = "Property contains another property"
+            it("throws an UnsupportedOperationException, mentioning `$errMessage`") {
+                val pom = getPom("errorCases/propertyWithProperty.pom")
+                val tmpPom = copyPom(tempFolder, pom)
+                expect {
+                    updateDependency(testee, tmpPom, exampleA)
+                }.toThrow<UnsupportedOperationException> {
+                    message { contains(errMessage, "a.version", "\${aVersion}") }
+                }
+            }
+        }
     }
 
     given("single project with third party dependency") {
