@@ -24,12 +24,11 @@ Notice, the task is clever and does not regenerate the html if nothing has chang
 (the gradle task is mainly there to ease development, 
 using `repos` as input of the task takes too much time depending on the number of projects you have).
 Thus, if you add another project to the `repos` folder and want to rerun the task, then call `cleanJson` first. 
-Or just always call `gr cleanJson html` :wink:. 
 
 You can use `gr server` to start a lightweight local server serving `pipeline.html`. 
 This is necessary since the `pipeline.html` wants to include a javascript file and your browser forbids that to protect you from XSS attacks.  
 
-#Jenkins
+# Jenkins
 The following guide shows how you can integrate dep-graph-releaser with Jenkins.
 
 1. Get the latest resources at [bintray](https://dl.bintray.com/loewenfels/oss/ch/loewenfels/dep-graph-releaser-runner/)
@@ -61,7 +60,12 @@ The following guide shows how you can integrate dep-graph-releaser with Jenkins.
       JENKINS_JAVA_OPTIONS="-Djava.awt.headless=true -server -Xmx2g -Dhudson.model.DirectoryBrowserSupport.CSP=sandbox allow-scripts; script-src 'self'"
       ```
    
-                
+# Limitations
+
+The project does currently not support (pull requests are more than welcome):
+- version managed in a property which itself refers to a property: `<properties><a>${b}</a><b>1.0.0</b></properties>`
+- version which is partly static and partly a property: `<version>1.0.0-${BUILD_NUMBER}</version>`
+- dependencies only defined in profiles (not yet tested, might be that it already works).                
 
 # License
 Dependent Graph Releaser is published under [Apache 2.0](http://opensource.org/licenses/Apache2.0). 
