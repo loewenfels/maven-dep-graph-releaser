@@ -8,14 +8,16 @@ class RegexBasedVersionUpdater {
         val groupIdArtifactIdRegex = createGroupIdArtifactIdRegex(groupId, artifactId)
         val content = pom.readText()
 
-        val dependenciesParamObject = ParamObject(groupId, artifactId, newVersion, hashSetOf(), content, dependencyRegex)
+        val dependenciesParamObject = ParamObject(
+            groupId, artifactId, newVersion, hashSetOf(), content, dependencyRegex
+        )
         updateDependencies(dependenciesParamObject, groupIdArtifactIdRegex)
 
         val parentParamObject = ParamObject(dependenciesParamObject, parentRegex)
         updateParentRelation(parentParamObject, groupIdArtifactIdRegex, pom)
 
         val propertiesParamObject = ParamObject(parentParamObject, propertiesRegex)
-        updateProperties(propertiesParamObject, pom)
+        updateProperties(propertiesParamObject)
 
         if (dependenciesParamObject.updated || parentParamObject.updated || propertiesParamObject.updated) {
             pom.writeText(propertiesParamObject.getNewContent())
@@ -43,40 +45,43 @@ class RegexBasedVersionUpdater {
                 "pom has two <parent> -- file: ${pom.absolutePath}"
             }
         }
-        parentParamObject.appendAfterMatchIfUpdated()
+        parentParamObject.appendRestIfUpdated()
     }
 
-    private fun updateProperties(propertiesParamObject: ParamObject, pom: File) {
-        val matchResult = propertiesParamObject.matchResult
-        if (matchResult != null) {
+    private fun updateProperties(propertiesParamObject: ParamObject) {
+        while (propertiesParamObject.matchResult != null) {
+            val matchResult = propertiesParamObject.matchResult!!
             propertiesParamObject.appendBeforeMatchAndUpdateStartIndex()
-            propertiesParamObject.modifiedPom.append("<").append(PROPERTIES).append(">")
-            propertiesParamObject.startIndex += PROPERTIES.length + 2
-            var tagMatchResult = tagRegex.find(matchResult.groupValues[1])
-            while (tagMatchResult != null) {
-                val (start, value, end) = tagMatchResult.destructured
-                check(start == end) {
-                    "Property seems to be malformed, start and end tag were different.\nStart: $start\nEnd: $end\nValue: $value"
-                }
-                propertiesParamObject.appendBeforeSubMatch(tagMatchResult)
-                propertiesParamObject.modifiedPom.append("<").append(start).append(">")
-                if (propertiesParamObject.properties.contains(start)) {
-                    appendVersion(propertiesParamObject, value)
-                } else {
-                    propertiesParamObject.modifiedPom.append(value)
-                }
-                propertiesParamObject.modifiedPom.append("</").append(start).append(">")
-                propertiesParamObject.startIndex += tagMatchResult.range.endInclusive + 1
-
-                tagMatchResult = tagMatchResult.next()
-
-            }
-            check(matchResult.next() == null) {
-                "pom has two <$PROPERTIES> -- file: ${pom.absolutePath}"
-            }
+            appendProperties(matchResult, propertiesParamObject)
+            propertiesParamObject.matchResult = matchResult.next()
         }
-        //appends everything after the last property including </properties>
-        propertiesParamObject.appendAfterMatchIfUpdated()
+        propertiesParamObject.appendRestIfUpdated()
+    }
+
+    private fun appendProperties(matchResult: MatchResult, propertiesParamObject: ParamObject) {
+        var tagMatchResult = tagRegex.find(matchResult.value)
+        while (tagMatchResult != null) {
+            val (start, value, end) = tagMatchResult.destructured
+            check(start == end) {
+                "Property seems to be malformed, start and end tag were different.\nStart: $start\nEnd: $end\nValue: $value"
+            }
+            propertiesParamObject.appendBeforeSubMatch(tagMatchResult)
+            propertiesParamObject.modifiedPom.append("<").append(start).append(">")
+            if (propertiesParamObject.properties.contains(start)) {
+                appendVersion(propertiesParamObject, value)
+            } else {
+                propertiesParamObject.modifiedPom.append(value)
+            }
+            propertiesParamObject.modifiedPom.append("</").append(start).append(">")
+
+            val nextMatchResult = tagMatchResult.next()
+            if (nextMatchResult == null) {
+                propertiesParamObject.appendAfterSubMatchAndSetStartIndex(tagMatchResult)
+            } else {
+                propertiesParamObject.startIndex += tagMatchResult.range.endInclusive + 1
+            }
+            tagMatchResult = nextMatchResult
+        }
     }
 
     private fun updateDependencies(dependenciesParamObject: ParamObject, groupIdArtifactIdRegex: Regex) {
@@ -88,7 +93,7 @@ class RegexBasedVersionUpdater {
             }
             dependenciesParamObject.matchResult = matchResult.next()
         }
-        dependenciesParamObject.appendAfterMatchIfUpdated()
+        dependenciesParamObject.appendRestIfUpdated()
     }
 
     private fun appendDependency(paramObject: ParamObject) {
@@ -152,13 +157,13 @@ class RegexBasedVersionUpdater {
         var startIndex: Int = 0
         var updated = false
 
-        fun appendBeforeMatchAndUpdateStartIndex(){
+        fun appendBeforeMatchAndUpdateStartIndex() {
             val nonNullMatchResult = matchResult!!
             appendSubstring(startIndex, nonNullMatchResult.range.start)
             startIndex = nonNullMatchResult.range.start
         }
 
-        fun appendAfterMatchIfUpdated() {
+        fun appendRestIfUpdated() {
             if (updated) {
                 appendSubstring(startIndex)
             }
@@ -171,9 +176,9 @@ class RegexBasedVersionUpdater {
         fun appendAfterSubMatchAndSetStartIndex(subMatchResult: MatchResult) {
             val nonNullMatchResult = matchResult!!
             appendSubstring(
-                startIndex + subMatchResult.range.endInclusive + 1, nonNullMatchResult.range.endInclusive
+                startIndex + subMatchResult.range.endInclusive + 1, nonNullMatchResult.range.endInclusive + 1
             )
-            startIndex = nonNullMatchResult.range.endInclusive
+            startIndex = nonNullMatchResult.range.endInclusive + 1
         }
 
         private fun appendSubstring(startIndex: Int) {
@@ -191,7 +196,7 @@ class RegexBasedVersionUpdater {
         private val dependencyRegex = Regex("<dependency>[\\S\\s]+?</dependency>")
         private val parentRegex = Regex("<parent>[\\S\\s]+?</parent>")
         private const val PROPERTIES = "properties"
-        private val propertiesRegex = Regex("<$PROPERTIES>([\\S\\s]+?)</$PROPERTIES>")
+        private val propertiesRegex = Regex("<$PROPERTIES>[\\S\\s]+?</$PROPERTIES>")
         private const val VERSION = "version"
         private val versionRegex = Regex("<$VERSION>([^<]+)</$VERSION>")
         private val mavenPropertyRegex = Regex("\\$\\{([^}]+)}")

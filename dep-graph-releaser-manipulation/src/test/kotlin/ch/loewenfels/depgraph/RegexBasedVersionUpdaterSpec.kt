@@ -55,7 +55,6 @@ object RegexBasedVersionUpdaterSpec : Spek({
         }
     }
 
-
     given("single project with third party dependency") {
         val pom = File(getTestDirectory("singleProject"), "pom.xml")
 
@@ -87,7 +86,6 @@ object RegexBasedVersionUpdaterSpec : Spek({
             }
         }
     }
-
 
     given("project with dependency and version in dependency management") {
         val pom = File(getTestDirectory("managingVersions/viaDependencyManagement"), "b.pom")
@@ -123,6 +121,21 @@ object RegexBasedVersionUpdaterSpec : Spek({
 
     given("project with dependent and version in property") {
         val pom = File(getTestDirectory("managingVersions/viaProperty"), "b.pom")
+
+        context("dependency shall be updated, same version") {
+            testSameContent(testee, tempFolder, pom, exampleA)
+        }
+
+        context("dependency shall be updated, new version") {
+            it("updates the property") {
+                val tmpPom = copyPom(tempFolder, pom)
+                updateDependency(testee, tmpPom, exampleA)
+                assertSameAsBeforeAfterReplace(tmpPom, pom, "1.0.0", "1.1.1")
+            }
+        }
+    }
+    given("project with dependent and empty <properties>") {
+        val pom = getPom("emptyProperties.pom")
 
         context("dependency shall be updated, same version") {
             testSameContent(testee, tempFolder, pom, exampleA)
