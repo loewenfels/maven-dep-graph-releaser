@@ -35,11 +35,22 @@ object RegexBasedVersionUpdaterSpec : Spek({
         given("project with dependent and version partially static with property") {
             val errMessage = "Version was neither static nor a reference to a single property"
             it("throws an UnsupportedOperationException, mentioning `$errMessage`") {
-                val pom = getPom("versionPartiallyStaticAndProperty.pom")
+                val pom = getPom("errorCases/versionPartiallyStaticAndProperty.pom")
                 val tmpPom = copyPom(tempFolder, pom)
                 expect {
                     updateDependency(testee, tmpPom, exampleA)
                 }.toThrow<UnsupportedOperationException> { message { contains(errMessage, "1.0.\${a.fix}") } }
+            }
+        }
+
+        given("dependency with two <version>") {
+            val errMessage = "<dependency> has two <version>"
+            it("throws an IllegalStateException, mentioning `$errMessage`") {
+                val pom = getPom("errorCases/twoVersions.pom")
+                val tmpPom = copyPom(tempFolder, pom)
+                expect {
+                    updateDependency(testee, tmpPom, exampleA)
+                }.toThrow<IllegalStateException> { message { contains(errMessage, exampleA.id.identifier) } }
             }
         }
     }
