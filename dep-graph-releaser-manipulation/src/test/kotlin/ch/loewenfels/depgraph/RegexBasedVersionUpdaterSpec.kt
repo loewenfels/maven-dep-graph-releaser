@@ -17,6 +17,20 @@ object RegexBasedVersionUpdaterSpec : Spek({
     val testee = RegexBasedVersionUpdater
 
     describe("error cases") {
+        given("pom file which does not exist") {
+            val errMessage = "pom file does not exist"
+            it("throws an IllegalArgumentException, mentioning `$errMessage`") {
+                val pom = File("nonExisting")
+                expect {
+                    testee.updateDependency(pom, "com.google.code.gson", "gson", "4.4")
+                }.toThrow<IllegalArgumentException> {
+                    message {
+                        contains(errMessage, pom.absolutePath, "com.google.code.gson", "gson", "4.4")
+                    }
+                }
+            }
+        }
+
         given("single project with third party dependency without version") {
             val errMessage = "the dependency was not found"
             it("throws an IllegalStateException, mentioning `$errMessage`") {
@@ -63,15 +77,14 @@ object RegexBasedVersionUpdaterSpec : Spek({
             }
         }
 
-        given("version via property but property is absent"){
+        given("version via property but property is absent") {
             val errMessage = "version is managed via one or more properties but they are not present"
             it("throws an IllegalStateException, mentioning `$errMessage`") {
                 val pom = getPom("errorCases/absentProperty.pom")
                 val tmpPom = copyPom(tempFolder, pom)
                 expect {
                     updateDependency(testee, tmpPom, exampleA)
-                }.toThrow<IllegalStateException> { message { contains(errMessage, "a.version", "another.version") }
-                }
+                }.toThrow<IllegalStateException> { message { contains(errMessage, "a.version", "another.version") } }
             }
         }
     }

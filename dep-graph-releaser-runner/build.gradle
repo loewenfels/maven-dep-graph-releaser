@@ -64,7 +64,7 @@ task json {
         javaexec {
             workingDir = rootProject.projectDir
             classpath = fileTree("${project.buildDir}/dist/lib/")
-            main = 'ch.loewenfels.depgraph.runner.MainKt'
+            main = 'ch.loewenfels.depgraph.runner.Main'
 
             def dr = findProperty('dr') != null ? ["-dr=${findProperty('dr')}"] : []
             def mpOff = findProperty('mpoff') != null ? ['-mpoff'] : []
@@ -81,7 +81,7 @@ task copyResources {
         javaexec {
             workingDir = rootProject.projectDir
             classpath = fileTree("${project.buildDir}/dist/lib/")
-            main = 'ch.loewenfels.depgraph.runner.MainKt'
+            main = 'ch.loewenfels.depgraph.runner.Main'
             args = ['html', htmlDir.absolutePath]
         }
     }

@@ -16,6 +16,12 @@ object RegexBasedVersionUpdater {
     private val tagRegex = Regex("<([a-zA-Z0-9_.-]+)>([^<]+)</([a-zA-Z0-9_.-]+)>")
 
     fun updateDependency(pom: File, groupId: String, artifactId: String, newVersion: String) {
+        require(pom.exists()) {
+            "pom file does not exist, cannot update dependency." +
+                "\npom: ${pom.absolutePath}" +
+                "\ndependency: $groupId:$artifactId:$newVersion"
+        }
+
         val groupIdArtifactIdRegex = createGroupIdArtifactIdRegex(groupId, artifactId)
         val content = pom.readText()
 

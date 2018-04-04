@@ -92,7 +92,8 @@ object Json {
         val directoryToAnalyse = fileVerifier.file(args[ARG_DIR], "directory to analyse")
         if (!directoryToAnalyse.exists()) {
             error("""
-                |The given directory $directoryToAnalyse does not exist. Maybe you mixed up the order of the arguments?
+                |The given directory does not exist. Maybe you mixed up the order of the arguments?
+                |directory: ${directoryToAnalyse.absolutePath}
                 |
                 |$jsonArguments
                 |

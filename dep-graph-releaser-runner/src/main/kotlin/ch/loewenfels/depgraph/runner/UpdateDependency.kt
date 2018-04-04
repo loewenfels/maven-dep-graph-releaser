@@ -31,6 +31,18 @@ object UpdateDependency {
         }
 
         val pom = fileVerifier.file(args[ARG_POM_FILE], "pom file")
+        if (!pom.exists()) {
+            error(
+                """
+                |The given pom file does not exist. Maybe you mixed up the order of the arguments?
+                |pom: ${pom.absolutePath}
+                |
+                |${Json.jsonArguments}
+                |
+                |${getGivenArgs(args)}
+                """.trimMargin()
+            )
+        }
         Orchestrator.updateDependency(pom, args[ARG_GROUP_ID], args[ARG_ARTIFACT_ID], args[ARG_NEW_VERSION])
     }
 }
