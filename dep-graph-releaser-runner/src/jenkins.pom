@@ -21,7 +21,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>1.6.0</version>
                 <configuration>
-                    <mainClass>ch.loewenfels.depgraph.runner.MainKt</mainClass>
+                    <mainClass>ch.loewenfels.depgraph.runner.Main</mainClass>
                 </configuration>
                 <executions>
                     <execution>

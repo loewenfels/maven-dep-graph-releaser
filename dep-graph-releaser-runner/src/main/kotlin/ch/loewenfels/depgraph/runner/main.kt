@@ -1,3 +1,4 @@
+@file:JvmName("Main")
 package ch.loewenfels.depgraph.runner
 
 import ch.loewenfels.depgraph.runner.Html.htmlArguments
