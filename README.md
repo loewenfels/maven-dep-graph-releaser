@@ -5,16 +5,26 @@
 
 # Dependent Graph Releaser
 Dependent Graph Releaser is a tool which helps you with releasing a project and its dependent projects.
+Its aim is to simplify the process of using up-to-date internal dependencies.
+ 
+A simple example: having project `A -> B -> C` we want to automate the following process:
+- release C
+- update the dependency in B
+- release B
+- update the dependency in A
+- release A
 
 It will start of with supporting only maven projects and requires Jenkins integration.
-More information will follow...
 
-You can also use it to get an HTML which represents a Pipeline showing you, how you would need to release the projects 
-manually. It generates kind of a bottom up dependency graph, or in other words a dependents graph. 
+You can also merely use it to get an HTML which represents a pipeline showing you, 
+how you would need to release the projects manually. 
+It generates kind of a bottom up dependency graph, or in other words a dependents graph. 
 
 # Local usage
 
-Add the projects you want to analyse the folder `repos` (in the project directory) and run the following gradle command:
+## Analyse
+
+Add the projects you want to analyse to the folder `repos` (in the project directory) and run the following gradle command:
 ````
 gr html -Pg=your.group.id -Pa=the.artifact.id
 ````
@@ -28,7 +38,13 @@ Thus, if you add another project to the `repos` folder and want to rerun the tas
 You can use `gr server` to start a lightweight local server serving `pipeline.html`. 
 This is necessary since the `pipeline.html` wants to include a javascript file and your browser forbids that to protect you from XSS attacks.  
 
+## Release
+
+Not (yet) supported.
+
 # Jenkins
+
+## Set Up
 The following guide shows how you can integrate dep-graph-releaser with Jenkins.
 
 1. Get the latest resources at [bintray](https://dl.bintray.com/loewenfels/oss/ch/loewenfels/dep-graph-releaser-runner/)
@@ -59,8 +75,21 @@ The following guide shows how you can integrate dep-graph-releaser with Jenkins.
       # Modified version to allow dep-graph-releaser to execute its javascripts
       JENKINS_JAVA_OPTIONS="-Djava.awt.headless=true -server -Xmx2g -Dhudson.model.DirectoryBrowserSupport.CSP=sandbox allow-scripts; script-src 'self'"
       ```
+5. Create a job which runs the Main with command json
+    - an example will follow using maven. 
+      In short, you can use the [jenkins.pom](https://github.com/loewenfels/dep-graph-releaser/tree/master/dep-graph-releaser-runner/src/jenkins.pom)
+      if you use mvn (to retrieve dependencies).
+    - if you want to run Main directly then you can use the [zip](https://dl.bintray.com/loewenfels/oss/ch/loewenfels/dep-graph-releaser-runner/) (chose version and then *.zip)
+      containing all necessary libraries as well as a `.bat`
+
+## Release
+
+Explanation will follow
    
-# Limitations
+# Design Decisions   
+- In case a dependency has specified `${project.version}` as `<version>` then it will be replaced with the new version
+   
+# Known Limitations
 
 The project does currently not support (pull requests are more than welcome):
 - version managed in a property which itself refers to a property: `<properties><a>${b}</a><b>1.0.0</b></properties>`
