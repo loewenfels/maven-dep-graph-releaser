@@ -6,6 +6,7 @@ dependencies {
     compile prefixedProject('maven')
     compile prefixedProject('serialization')
     compile prefixedProject('gui')
+    compile prefixedProject('manipulation')
 
     runtimeOnly "org.jetbrains.kotlin:kotlin-runtime:$kotlin_version"
     testCompile prefixedProject('maven').sourceSets.test.output
@@ -47,6 +48,7 @@ def jsonFile = file("$htmlDir/release.json")
 task json {
     inputs.property('g', findProperty('g'))
     inputs.property('a', findProperty('a'))
+    inputs.property('dr', findProperty('dr') ?: '^$')
     inputs.property('mpoff', findProperty('mpoff') ?: 'on')
     inputs.files dist
     outputs.file jsonFile

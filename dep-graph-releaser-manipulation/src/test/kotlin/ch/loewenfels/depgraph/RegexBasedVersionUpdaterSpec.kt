@@ -1,14 +1,10 @@
 package ch.loewenfels.depgraph
 
 import ch.loewenfels.depgraph.maven.getTestDirectory
-import ch.tutteli.atrium.IdAndVersions
+import ch.tutteli.atrium.*
 import ch.tutteli.atrium.api.cc.en_UK.contains
 import ch.tutteli.atrium.api.cc.en_UK.message
-import ch.tutteli.atrium.api.cc.en_UK.toBe
 import ch.tutteli.atrium.api.cc.en_UK.toThrow
-import ch.tutteli.atrium.assert
-import ch.tutteli.atrium.exampleA
-import ch.tutteli.atrium.expect
 import ch.tutteli.spek.extensions.TempFolder
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.*
@@ -18,7 +14,7 @@ object RegexBasedVersionUpdaterSpec : Spek({
     val tempFolder = TempFolder.perTest()
     registerListener(tempFolder)
 
-    val testee = RegexBasedVersionUpdater()
+    val testee = RegexBasedVersionUpdater
 
     describe("error cases") {
         given("single project with third party dependency without version") {
@@ -131,12 +127,7 @@ private fun SpecBody.testWithExampleA(
     }
 }
 
-fun getPom(pomName: String): File = File(RegexBasedVersionUpdaterSpec.javaClass.getResource("/$pomName").path)
-
-fun assertSameAsBeforeAfterReplace(tmpPom: File, pom: File, versionToReplace: String, newVersion: String) {
-    val content = pom.readText()
-    assert(tmpPom.readText()).toBe(content.replace(versionToReplace, newVersion))
-}
+private fun getPom(pomName: String): File = File(RegexBasedVersionUpdaterSpec.javaClass.getResource("/$pomName").path)
 
 private fun SpecBody.testSameContent(
     testee: RegexBasedVersionUpdater,
@@ -151,7 +142,7 @@ private fun SpecBody.testSameContent(
     }
 }
 
-private fun SpecBody.testSameContent(
+private fun TestContainer.testSameContent(
     testee: RegexBasedVersionUpdater,
     tempFolder: TempFolder,
     pom: File,
@@ -160,24 +151,6 @@ private fun SpecBody.testSameContent(
     testSameContent(tempFolder, pom) { tmpPom ->
         updateDependency(testee, tmpPom, idAndVersions, "1.0.0")
     }
-}
-
-private fun SpecBody.testSameContent(
-    tempFolder: TempFolder,
-    pom: File,
-    update: (File) -> Unit
-) {
-    it("updates the dependency and file content is the same as before") {
-        val tmpPom = copyPom(tempFolder, pom)
-        update(tmpPom)
-        assert(tmpPom.readText()).toBe(pom.readText())
-    }
-}
-
-private fun copyPom(tempFolder: TempFolder, pom: File): File {
-    val tmpPom = tempFolder.newFile("pom.xml")
-    tmpPom.writeBytes(pom.readBytes())
-    return tmpPom
 }
 
 private fun updateDependency(testee: RegexBasedVersionUpdater, tmpPom: File, project: IdAndVersions) {

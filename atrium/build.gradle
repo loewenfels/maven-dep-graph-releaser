@@ -11,4 +11,7 @@ dependencies {
     compile("org.jetbrains.spek:spek-api:$spek_version") {
         exclude group: 'org.jetbrains.kotlin'
     }
+    compile("ch.tutteli:tutteli-spek-extensions:$tutteli_spek_extensions") {
+        exclude group: 'org.jetbrains.kotlin'
+    }
 }

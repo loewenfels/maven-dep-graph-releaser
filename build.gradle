@@ -189,7 +189,6 @@ configure(jacocoMulti.jacocoProjects) {
 
     dependencies {
         testCompile project(':atrium')
-        testCompile "ch.tutteli:tutteli-spek-extensions:$tutteli_spek_extensions"
     }
 }
 

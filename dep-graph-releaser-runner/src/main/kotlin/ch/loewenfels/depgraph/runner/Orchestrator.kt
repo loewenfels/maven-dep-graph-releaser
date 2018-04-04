@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.runner
 
+import ch.loewenfels.depgraph.RegexBasedVersionUpdater
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.maven.Analyser
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
@@ -65,5 +66,9 @@ object Orchestrator {
             }
         }
         logger.fine("Created ${outputFile.canonicalPath}")
+    }
+
+    fun updateDependency(pom: File, groupId: String, artifactId: String, newVersion: String) {
+        RegexBasedVersionUpdater.updateDependency(pom, groupId, artifactId, newVersion)
     }
 }

@@ -17,7 +17,6 @@ object Json {
     private const val DISABLE_RELEASE_FOR = "-dr="
     val jsonArguments = """
         |json requires the following arguments in the given order:
-        |
         |groupId     // maven groupId of the project which shall be released
         |artifactId  // maven artifactId of the project which shall be released
         |dir         // path to the directory where all projects are

@@ -2,7 +2,18 @@ package ch.loewenfels.depgraph
 
 import java.io.File
 
-class RegexBasedVersionUpdater {
+object RegexBasedVersionUpdater {
+
+    private const val DEPENDENCY = "dependency"
+    private val dependencyRegex = Regex("<$DEPENDENCY>[\\S\\s]+?</$DEPENDENCY>")
+    private const val PARENT = "parent"
+    private val parentRegex = Regex("<$PARENT>[\\S\\s]+?</$PARENT>")
+    private const val PROPERTIES = "properties"
+    private val propertiesRegex = Regex("<$PROPERTIES>[\\S\\s]+?</$PROPERTIES>")
+    private const val VERSION = "version"
+    private val versionRegex = Regex("<$VERSION>([^<]+)</$VERSION>")
+    private val mavenPropertyRegex = Regex("\\$\\{([^}]+)}")
+    private val tagRegex = Regex("<([a-zA-Z0-9_.-]+)>([^<]+)</([a-zA-Z0-9_.-]+)>")
 
     fun updateDependency(pom: File, groupId: String, artifactId: String, newVersion: String) {
         val groupIdArtifactIdRegex = createGroupIdArtifactIdRegex(groupId, artifactId)
@@ -41,7 +52,7 @@ class RegexBasedVersionUpdater {
             parentParamObject.appendBeforeMatchAndUpdateStartIndex()
             appendDependency(parentParamObject)
             check(matchResult.next() == null) {
-                "pom has two <parent> -- file: ${pom.absolutePath}"
+                "pom has two <$PARENT> -- file: ${pom.absolutePath}"
             }
         }
         parentParamObject.appendRestIfUpdated()
@@ -115,7 +126,7 @@ class RegexBasedVersionUpdater {
             paramObject.appendAfterSubMatchAndSetStartIndex(versionMatchResult)
 
             check(versionMatchResult.next() == null) {
-                "<dependency> has two <$VERSION>: ${paramObject.groupId}:${paramObject.artifactId}"
+                "<$DEPENDENCY> has two <$VERSION>: ${paramObject.groupId}:${paramObject.artifactId}"
             }
         }
     }
@@ -203,16 +214,5 @@ class RegexBasedVersionUpdater {
         }
 
         fun getModifiedContent() = if (updated) modifiedPom.toString() else content
-    }
-
-    companion object {
-        private val dependencyRegex = Regex("<dependency>[\\S\\s]+?</dependency>")
-        private val parentRegex = Regex("<parent>[\\S\\s]+?</parent>")
-        private const val PROPERTIES = "properties"
-        private val propertiesRegex = Regex("<$PROPERTIES>[\\S\\s]+?</$PROPERTIES>")
-        private const val VERSION = "version"
-        private val versionRegex = Regex("<$VERSION>([^<]+)</$VERSION>")
-        private val mavenPropertyRegex = Regex("\\$\\{([^}]+)}")
-        private val tagRegex = Regex("<([a-zA-Z0-9_.-]+)>([^<]+)</([a-zA-Z0-9_.-]+)>")
     }
 }

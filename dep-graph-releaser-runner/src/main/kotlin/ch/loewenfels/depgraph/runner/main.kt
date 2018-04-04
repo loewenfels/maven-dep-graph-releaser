@@ -2,6 +2,7 @@ package ch.loewenfels.depgraph.runner
 
 import ch.loewenfels.depgraph.runner.Html.htmlArguments
 import ch.loewenfels.depgraph.runner.Json.jsonArguments
+import ch.loewenfels.depgraph.runner.UpdateDependency.updateArguments
 import java.io.File
 
 fun main(vararg args: String) {
@@ -16,6 +17,7 @@ fun main(vararg args: String) {
     when (args[0]) {
         "json" -> Json(args)
         "html" -> Html(args)
+        "update" -> UpdateDependency(args)
         else -> error("Unknown command supplied\n$allCommands")
     }
 }
@@ -28,6 +30,8 @@ private val allCommands = """
 |$jsonArguments
 |
 |$htmlArguments
+|
+|$updateArguments
 """.trimMargin()
 
 internal fun getGivenArgs(args: Array<out String>) = "Given: ${args.joinToString(" ")}"

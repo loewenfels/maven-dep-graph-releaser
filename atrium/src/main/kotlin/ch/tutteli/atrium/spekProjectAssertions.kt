@@ -6,7 +6,7 @@ import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.tutteli.atrium.api.cc.en_UK.*
-import org.jetbrains.spek.api.dsl.ActionBody
+import org.jetbrains.spek.api.dsl.TestContainer
 
 val exampleA = IdAndVersions(MavenProjectId("com.example", "a"), "1.1.1-SNAPSHOT", "1.1.1", "1.1.2-SNAPSHOT")
 val exampleB = IdAndVersions(MavenProjectId("com.example", "b"), "1.0.1-SNAPSHOT", "1.0.1", "1.0.2-SNAPSHOT")
@@ -16,7 +16,7 @@ val exampleE = IdAndVersions(MavenProjectId("com.example", "e"), "5.1.3-SNAPSHOT
 val exampleDeps = IdAndVersions(MavenProjectId("com.example", "deps"), "9-SNAPSHOT", "9", "10-SNAPSHOT")
 
 
-fun ActionBody.assertSingleProject(releasePlan: ReleasePlan, projectToRelease: IdAndVersions) {
+fun TestContainer.assertSingleProject(releasePlan: ReleasePlan, projectToRelease: IdAndVersions) {
     assertRootProjectOnlyReleaseCommand(releasePlan, projectToRelease)
 
     assertHasNoDependentsAndIsOnLevel(releasePlan, "root", projectToRelease, 0)
@@ -27,7 +27,7 @@ fun ActionBody.assertSingleProject(releasePlan: ReleasePlan, projectToRelease: I
     }
 }
 
-fun ActionBody.assertProjectAWithDependentBWithDependentC(
+fun TestContainer.assertProjectAWithDependentBWithDependentC(
     releasePlan: ReleasePlan,
     projectB: IdAndVersions = exampleB
 ) {
@@ -40,7 +40,7 @@ fun ActionBody.assertProjectAWithDependentBWithDependentC(
     assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
 }
 
-fun ActionBody.assertMultiModuleAWithSubmoduleBWithDependentC(
+fun TestContainer.assertMultiModuleAWithSubmoduleBWithDependentC(
     releasePlan: ReleasePlan,
     projectB: IdAndVersions
 ) {
@@ -57,7 +57,7 @@ fun ActionBody.assertMultiModuleAWithSubmoduleBWithDependentC(
     assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleB, exampleC)
 }
 
-fun ActionBody.assertProjectAWithDependentB(releasePlan: ReleasePlan) {
+fun TestContainer.assertProjectAWithDependentB(releasePlan: ReleasePlan) {
     assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
 
     assertOneUpdateAndOneReleaseCommand(releasePlan, "direct dependent", exampleB, exampleA)
@@ -66,7 +66,7 @@ fun ActionBody.assertProjectAWithDependentB(releasePlan: ReleasePlan) {
     assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 2)
 }
 
-fun ActionBody.assertRootProjectWithDependents(
+fun TestContainer.assertRootProjectWithDependents(
     releasePlan: ReleasePlan,
     rootProjectIdAndVersions: IdAndVersions,
     dependentIdAndVersions: IdAndVersions,
@@ -82,7 +82,7 @@ fun ActionBody.assertRootProjectWithDependents(
     )
 }
 
-fun ActionBody.assertRootProjectHasDependents(
+fun TestContainer.assertRootProjectHasDependents(
     releasePlan: ReleasePlan,
     rootProjectIdAndVersions: IdAndVersions,
     dependentIdAndVersions: IdAndVersions,
@@ -97,7 +97,7 @@ fun ActionBody.assertRootProjectHasDependents(
     )
 }
 
-fun ActionBody.assertRootProjectMultiReleaseCommandWithSubmodulesAndSameDependents(
+fun TestContainer.assertRootProjectMultiReleaseCommandWithSubmodulesAndSameDependents(
     releasePlan: ReleasePlan,
     rootProjectIdAndVersions: IdAndVersions,
     submodule: IdAndVersions,
@@ -108,14 +108,14 @@ fun ActionBody.assertRootProjectMultiReleaseCommandWithSubmodulesAndSameDependen
     assertRootProjectHasDependents(releasePlan, rootProjectIdAndVersions, submodule, *otherSubmodules)
 }
 
-fun ActionBody.assertRootProjectHasSubmodules(
+fun TestContainer.assertRootProjectHasSubmodules(
     releasePlan: ReleasePlan,
     project: IdAndVersions,
     submodule: IdAndVersions,
     vararg otherSubmodules: IdAndVersions
 ) = assertHasSubmodules(releasePlan, "root", project, submodule, *otherSubmodules)
 
-fun ActionBody.assertRootProjectMultiReleaseCommand(
+fun TestContainer.assertRootProjectMultiReleaseCommand(
     releasePlan: ReleasePlan,
     rootProjectIdAndVersions: IdAndVersions
 ) {
@@ -135,7 +135,7 @@ fun ActionBody.assertRootProjectMultiReleaseCommand(
     }
 }
 
-fun ActionBody.assertRootProjectOnlyReleaseCommand(releasePlan: ReleasePlan, rootProjectIdAndVersions: IdAndVersions) {
+fun TestContainer.assertRootProjectOnlyReleaseCommand(releasePlan: ReleasePlan, rootProjectIdAndVersions: IdAndVersions) {
     val rootProject = assertRootProject(releasePlan, rootProjectIdAndVersions)
     test("root project contains just the ${JenkinsMavenReleasePlugin::class.simpleName} command, which is Ready with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = ${rootProjectIdAndVersions.nextDevVersion}") {
         assert(rootProject) {
@@ -150,7 +150,7 @@ fun ActionBody.assertRootProjectOnlyReleaseCommand(releasePlan: ReleasePlan, roo
 }
 
 
-fun ActionBody.assertRootProject(releasePlan: ReleasePlan, rootProjectIdAndVersions: IdAndVersions): Project {
+fun TestContainer.assertRootProject(releasePlan: ReleasePlan, rootProjectIdAndVersions: IdAndVersions): Project {
     test("${ReleasePlan::rootProjectId.name} is expected rootProject") {
         assert(releasePlan.rootProjectId).toBe(rootProjectIdAndVersions.id)
     }
@@ -168,7 +168,7 @@ fun ActionBody.assertRootProject(releasePlan: ReleasePlan, rootProjectIdAndVersi
     return rootProject
 }
 
-fun ActionBody.assertOneDirectDependent(
+fun TestContainer.assertOneDirectDependent(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
@@ -178,7 +178,7 @@ fun ActionBody.assertOneDirectDependent(
     assertHasOneDependentAndIsOnLevel(releasePlan, name, project, dependent, 1)
 }
 
-fun ActionBody.assertHasOneDependentAndIsOnLevel(
+fun TestContainer.assertHasOneDependentAndIsOnLevel(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
@@ -189,7 +189,7 @@ fun ActionBody.assertHasOneDependentAndIsOnLevel(
     assertProjectIsOnLevel(releasePlan, name, project, level)
 }
 
-fun ActionBody.assertHasTwoDependentsAndIsOnLevel(
+fun TestContainer.assertHasTwoDependentsAndIsOnLevel(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
@@ -201,7 +201,7 @@ fun ActionBody.assertHasTwoDependentsAndIsOnLevel(
     assertProjectIsOnLevel(releasePlan, name, project, level)
 }
 
-private fun ActionBody.assertHasDependents(
+private fun TestContainer.assertHasDependents(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
@@ -214,7 +214,7 @@ private fun ActionBody.assertHasDependents(
 }
 
 
-fun ActionBody.assertHasNoDependentsAndIsOnLevel(
+fun TestContainer.assertHasNoDependentsAndIsOnLevel(
     releasePlan: ReleasePlan,
     name: String,
     dependent: IdAndVersions,
@@ -226,7 +226,7 @@ fun ActionBody.assertHasNoDependentsAndIsOnLevel(
     assertProjectIsOnLevel(releasePlan, name, dependent, level)
 }
 
-fun ActionBody.assertProjectIsOnLevel(
+fun TestContainer.assertProjectIsOnLevel(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
@@ -237,7 +237,7 @@ fun ActionBody.assertProjectIsOnLevel(
     }
 }
 
-fun ActionBody.assertOnlyWaitingReleaseCommand(
+fun TestContainer.assertOnlyWaitingReleaseCommand(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
@@ -253,7 +253,7 @@ fun ActionBody.assertOnlyWaitingReleaseCommand(
     }
 }
 
-fun ActionBody.assertHasNoCommands(releasePlan: ReleasePlan, name: String, idAndVersions: IdAndVersions) {
+fun TestContainer.assertHasNoCommands(releasePlan: ReleasePlan, name: String, idAndVersions: IdAndVersions) {
     test("$name project has no commands") {
         assert(releasePlan.getProject(idAndVersions.id)) {
             idAndVersions(idAndVersions)
@@ -262,7 +262,7 @@ fun ActionBody.assertHasNoCommands(releasePlan: ReleasePlan, name: String, idAnd
     }
 }
 
-fun ActionBody.assertOneUpdateCommand(
+fun TestContainer.assertOneUpdateCommand(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
@@ -278,7 +278,7 @@ fun ActionBody.assertOneUpdateCommand(
     }
 }
 
-fun ActionBody.assertOneUpdateAndOneReleaseCommand(
+fun TestContainer.assertOneUpdateAndOneReleaseCommand(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
@@ -295,7 +295,7 @@ fun ActionBody.assertOneUpdateAndOneReleaseCommand(
     }
 }
 
-fun ActionBody.assertOneUpdateAndOneMultiReleaseCommandAndSubmodulesAndSameDependents(
+fun TestContainer.assertOneUpdateAndOneMultiReleaseCommandAndSubmodulesAndSameDependents(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
@@ -308,7 +308,7 @@ fun ActionBody.assertOneUpdateAndOneMultiReleaseCommandAndSubmodulesAndSameDepen
     assertHasDependents(releasePlan, name, project, submodule, *otherSubmodules)
 }
 
-fun ActionBody.assertOneUpdateAndOneMultiReleaseCommand(
+fun TestContainer.assertOneUpdateAndOneMultiReleaseCommand(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
@@ -325,7 +325,7 @@ fun ActionBody.assertOneUpdateAndOneMultiReleaseCommand(
     }
 }
 
-fun ActionBody.assertTwoUpdateAndOneReleaseCommand(
+fun TestContainer.assertTwoUpdateAndOneReleaseCommand(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
@@ -344,7 +344,7 @@ fun ActionBody.assertTwoUpdateAndOneReleaseCommand(
     }
 }
 
-fun ActionBody.assertReleasePlanHasNumOfProjectsAndDependents(releasePlan: ReleasePlan, num: Int) {
+fun TestContainer.assertReleasePlanHasNumOfProjectsAndDependents(releasePlan: ReleasePlan, num: Int) {
     test("release plan has $num projects and $num dependents") {
         assert(releasePlan) {
             returnValueOf(subject::getNumberOfProjects).toBe(num)
@@ -353,24 +353,24 @@ fun ActionBody.assertReleasePlanHasNumOfProjectsAndDependents(releasePlan: Relea
     }
 }
 
-fun ActionBody.assertReleasePlanHasNoWarningsAndNoInfos(releasePlan: ReleasePlan) {
+fun TestContainer.assertReleasePlanHasNoWarningsAndNoInfos(releasePlan: ReleasePlan) {
     assertReleasePlanHasNoWarnings(releasePlan)
     assertReleasePlanHasNoInfos(releasePlan)
 }
 
-fun ActionBody.assertReleasePlanHasNoWarnings(releasePlan: ReleasePlan) {
+fun TestContainer.assertReleasePlanHasNoWarnings(releasePlan: ReleasePlan) {
     test("it does not have warnings") {
         assert(releasePlan.warnings).isEmpty()
     }
 }
 
-fun ActionBody.assertReleasePlanHasNoInfos(releasePlan: ReleasePlan) {
+fun TestContainer.assertReleasePlanHasNoInfos(releasePlan: ReleasePlan) {
     test("it does not have infos") {
         assert(releasePlan.infos).isEmpty()
     }
 }
 
-fun ActionBody.assertReleasePlanHasWarningWithDependencyGraph(
+fun TestContainer.assertReleasePlanHasWarningWithDependencyGraph(
     releasePlan: ReleasePlan,
     dependencyBranch: String,
     vararg otherDependencyBranches: String
@@ -382,7 +382,7 @@ fun ActionBody.assertReleasePlanHasWarningWithDependencyGraph(
     }
 }
 
-fun ActionBody.assertReleasePlanHasInfoWithDependencyGraph(
+fun TestContainer.assertReleasePlanHasInfoWithDependencyGraph(
     releasePlan: ReleasePlan,
     dependencyBranch: String,
     vararg otherDependencyBranches: String
@@ -394,7 +394,7 @@ fun ActionBody.assertReleasePlanHasInfoWithDependencyGraph(
     }
 }
 
-fun ActionBody.assertReleasePlanIteratorReturnsRootAndStrictly(
+fun TestContainer.assertReleasePlanIteratorReturnsRootAndStrictly(
     releasePlan: ReleasePlan,
     vararg projects: IdAndVersions
 ) {
@@ -404,7 +404,7 @@ fun ActionBody.assertReleasePlanIteratorReturnsRootAndStrictly(
     }
 }
 
-fun ActionBody.assertReleasePlanIteratorReturnsRootAnd(
+fun TestContainer.assertReleasePlanIteratorReturnsRootAnd(
     releasePlan: ReleasePlan,
     vararg groups: List<IdAndVersions>
 ) {
@@ -414,7 +414,7 @@ fun ActionBody.assertReleasePlanIteratorReturnsRootAnd(
     }
 }
 
-fun ActionBody.assertHasSubmodules(
+fun TestContainer.assertHasSubmodules(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
