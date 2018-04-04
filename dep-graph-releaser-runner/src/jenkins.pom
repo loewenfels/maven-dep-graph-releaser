@@ -20,24 +20,43 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>1.6.0</version>
+                <configuration>
+                    <mainClass>ch.loewenfels.depgraph.runner.MainKt</mainClass>
+                </configuration>
                 <executions>
                     <execution>
+                        <id>json</id>
                         <goals>
                             <goal>java</goal>
                         </goals>
+                        <configuration>
+                            <arguments>
+                                <argument>json</argument>
+                                <argument>${groupId}</argument>
+                                <argument>${artifactId}</argument>
+                                <argument>${dir}</argument>
+                                <argument>${json}</argument>
+                                <argument>${disableRelease}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>update</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>
+                                <argument>update</argument>
+                                <argument>${pom}</argument>
+                                <argument>${groupId}</argument>
+                                <argument>${artifactId}</argument>
+                                <argument>${newVersion}</argument>
+                            </arguments>
+                        </configuration>
                     </execution>
                 </executions>
-                <configuration>
-                    <mainClass>ch.loewenfels.depgraph.runner.MainKt</mainClass>
-                    <arguments>
-                        <argument>json</argument>
-                        <argument>${groupId}</argument>
-                        <argument>${artifactId}</argument>
-                        <argument>${dir}</argument>
-                        <argument>${json}</argument>
-                        <argument>${disableRelease}</argument>
-                    </arguments>
-                </configuration>
+
             </plugin>
         </plugins>
     </build>

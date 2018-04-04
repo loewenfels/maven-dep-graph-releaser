@@ -5,7 +5,7 @@ import ch.loewenfels.depgraph.runner.Json.jsonArguments
 import ch.loewenfels.depgraph.runner.UpdateDependency.updateArguments
 import java.io.File
 
-fun main(vararg args: String) {
+fun main(vararg args: String?) {
     if (args.isEmpty()) {
         error("""
             |No arguments supplied
@@ -14,10 +14,16 @@ fun main(vararg args: String) {
         """.trimMargin())
     }
 
+    val nonEmptyArgs = args.asSequence()
+        .filterNotNull()
+        .filter { it.isNotBlank() }
+        .toList()
+        .toTypedArray()
+
     when (args[0]) {
-        "json" -> Json(args)
-        "html" -> Html(args)
-        "update" -> UpdateDependency(args)
+        "json" -> Json(nonEmptyArgs)
+        "html" -> Html(nonEmptyArgs)
+        "update" -> UpdateDependency(nonEmptyArgs)
         else -> error("Unknown command supplied\n$allCommands")
     }
 }
