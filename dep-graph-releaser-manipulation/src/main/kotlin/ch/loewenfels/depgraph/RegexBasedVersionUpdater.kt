@@ -30,20 +30,7 @@ object RegexBasedVersionUpdater {
         val propertiesParamObject = ParamObject(parentParamObject, propertiesRegex)
         updateProperties(propertiesParamObject)
 
-        if (dependenciesParamObject.updated || parentParamObject.updated || propertiesParamObject.updated) {
-            pom.writeText(propertiesParamObject.getModifiedContent())
-        } else if(propertiesParamObject.properties.isNotEmpty()) {
-            throw IllegalStateException(
-                "Found the dependency $groupId:$artifactId where the version is managed in properties but the properties are absent." +
-                    "\npom: ${pom.absolutePath}" +
-                    "\nproperties:${propertiesParamObject.properties.joinToString()}"
-            )
-        } else {
-            throw IllegalStateException(
-                "cannot update (parent) dependency $groupId:$artifactId because " +
-                    "it is either not managed by the given pom or not in there at all.\npom: ${pom.absolutePath}"
-            )
-        }
+        checkAndUpdatePomIfOk(dependenciesParamObject, parentParamObject, propertiesParamObject, pom)
     }
 
     private fun createGroupIdArtifactIdRegex(groupId: String, artifactId: String): Regex {
@@ -83,7 +70,10 @@ object RegexBasedVersionUpdater {
         }
 
         while (tagMatchResult != null) {
-            propertiesParamObject.appendSubstring(propertiesParamObject.startIndex, initialStartIndex + tagMatchResult.range.start)
+            propertiesParamObject.appendSubstring(
+                propertiesParamObject.startIndex,
+                initialStartIndex + tagMatchResult.range.start
+            )
             val (propertyName, version) = getTagNameAndVersion(tagMatchResult)
             propertiesParamObject.modifiedPom.append("<").append(propertyName).append(">")
             appendVersionInProperty(propertiesParamObject, propertyName, version)
@@ -138,21 +128,36 @@ object RegexBasedVersionUpdater {
     }
 
     private fun appendVersion(paramObject: ParamObject, version: String) {
-        val propertyMatchResult = mavenPropertyRegex.matchEntire(version)
+        val resolvedVersion = resolveVersion(paramObject, version)
+        val propertyMatchResult = mavenPropertyRegex.matchEntire(resolvedVersion)
         when {
             propertyMatchResult != null -> {
                 paramObject.properties.add(propertyMatchResult.groupValues[1])
-                paramObject.modifiedPom.append(version)
+                paramObject.modifiedPom.append(resolvedVersion)
             }
-            version.contains("$") -> throw UnsupportedOperationException("Version was neither static nor a reference to a single property. Given: $version")
+            resolvedVersion.contains("$") -> throw UnsupportedOperationException("Version was neither static nor a reference to a single property. Given: $version")
             else -> appendNewVersionAndSetUpdated(paramObject)
+        }
+    }
+
+    private fun resolveVersion(paramObject: ParamObject, version: String): String {
+        return if ("\${project.version}" == version) {
+            paramObject.newVersion
+        } else {
+            version
         }
     }
 
     private fun appendVersionInProperty(propertiesParamObject: ParamObject, propertyName: String, version: String) {
         when {
-            version.contains("$") -> throw UnsupportedOperationException("Property contains another property.\nProperty: $propertyName\nValue: $version")
-            propertiesParamObject.properties.contains(propertyName) -> appendNewVersionAndSetUpdated(propertiesParamObject)
+            resolveVersion(propertiesParamObject, version).contains("$") ->
+                throw UnsupportedOperationException(
+                    "Property contains another property.\nProperty: $propertyName\nValue: $version"
+                )
+
+            propertiesParamObject.properties.contains(propertyName) ->
+                appendNewVersionAndSetUpdated(propertiesParamObject)
+
             else -> propertiesParamObject.modifiedPom.append(version)
         }
     }
@@ -160,6 +165,35 @@ object RegexBasedVersionUpdater {
     private fun appendNewVersionAndSetUpdated(paramObject: ParamObject) {
         paramObject.modifiedPom.append(paramObject.newVersion)
         paramObject.updated = true
+    }
+
+    private fun checkAndUpdatePomIfOk(
+        dependenciesParamObject: ParamObject,
+        parentParamObject: ParamObject,
+        propertiesParamObject: ParamObject,
+        pom: File
+    ) {
+        val wasModified = dependenciesParamObject.updated || parentParamObject.updated || propertiesParamObject.updated
+        when {
+            wasModified ->
+                pom.writeText(propertiesParamObject.getModifiedContent())
+
+            propertiesParamObject.properties.isNotEmpty() ->
+                throw IllegalStateException(
+                    "Cannot update (parent) dependency: The dependency's version is managed via one or more properties" +
+                        " but they are not present in the pom." +
+                        "\ndependency: ${propertiesParamObject.groupId}:${propertiesParamObject.artifactId}" +
+                        "\npom: ${pom.absolutePath}" +
+                        "\nproperties:${propertiesParamObject.properties.joinToString()}"
+                )
+
+            else ->
+                throw IllegalStateException(
+                    "Cannot update (parent) dependency: the dependency was not found." +
+                        "\ndependency: ${propertiesParamObject.groupId}:${propertiesParamObject.artifactId}" +
+                        "\npom: ${pom.absolutePath}"
+                )
+        }
     }
 
     class ParamObject(

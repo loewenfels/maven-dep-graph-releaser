@@ -18,7 +18,7 @@ object RegexBasedVersionUpdaterSpec : Spek({
 
     describe("error cases") {
         given("single project with third party dependency without version") {
-            val errMessage = "not managed by the given pom"
+            val errMessage = "the dependency was not found"
             it("throws an IllegalStateException, mentioning `$errMessage`") {
                 val pom = File(getTestDirectory("singleProject"), "pom.xml")
                 val tmpPom = copyPom(tempFolder, pom)
@@ -64,7 +64,7 @@ object RegexBasedVersionUpdaterSpec : Spek({
         }
 
         given("version via property but property is absent"){
-            val errMessage = " version is managed in properties but the properties are absent"
+            val errMessage = "version is managed via one or more properties but they are not present"
             it("throws an IllegalStateException, mentioning `$errMessage`") {
                 val pom = getPom("errorCases/absentProperty.pom")
                 val tmpPom = copyPom(tempFolder, pom)
@@ -113,6 +113,11 @@ object RegexBasedVersionUpdaterSpec : Spek({
         testWithExampleA(testee, tempFolder, pom)
     }
 
+    given("project with dependent and version is \${project.version}") {
+        val pom = getPom("versionIsProjectVersion.pom")
+        testProjectVersionWithExampleA(tempFolder, pom, testee)
+    }
+
     given("project with parent dependency") {
         val pom = File(getTestDirectory("parentRelations/parent"), "b.pom")
         testWithExampleA(testee, tempFolder, pom)
@@ -123,16 +128,43 @@ object RegexBasedVersionUpdaterSpec : Spek({
         testWithExampleA(testee, tempFolder, pom)
     }
 
+    given("project with dependent and version in property which is \${project.version}") {
+        val pom = getPom("propertyIsProjectVersion.pom")
+        testProjectVersionWithExampleA(tempFolder, pom, testee)
+    }
+
+    given("project with dependent and version in property which is in different profiles") {
+        val pom = getPom("propertiesInProfile.pom")
+        testWithExampleA(testee, tempFolder, pom)
+    }
+
     given("project with dependent and empty <properties>") {
         val pom = getPom("emptyProperties.pom")
         testWithExampleA(testee, tempFolder, pom)
     }
-
-    given("project with dependent and version in property which is also in profiles") {
-        val pom = getPom("propertiesInProfile.pom")
-        testWithExampleA(testee, tempFolder, pom)
-    }
 })
+
+private fun SpecBody.testProjectVersionWithExampleA(
+    tempFolder: TempFolder,
+    pom: File,
+    testee: RegexBasedVersionUpdater
+) {
+    context("dependency shall be updated, same version") {
+        it("nevertheless replaces \${project.version} with the current version") {
+            val tmpPom = copyPom(tempFolder, pom)
+            updateDependency(testee, tmpPom, exampleA, "1.0.0")
+            assertSameAsBeforeAfterReplace(tmpPom, pom, "\${project.version}", "1.0.0")
+        }
+    }
+
+    context("dependency shall be updated, new version") {
+        it("replaces \${project.version} with the new version") {
+            val tmpPom = copyPom(tempFolder, pom)
+            updateDependency(testee, tmpPom, exampleA)
+            assertSameAsBeforeAfterReplace(tmpPom, pom, "\${project.version}", "1.1.1")
+        }
+    }
+}
 
 private fun SpecBody.testWithExampleA(
     testee: RegexBasedVersionUpdater,
