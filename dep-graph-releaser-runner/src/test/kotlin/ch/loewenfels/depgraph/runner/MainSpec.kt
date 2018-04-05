@@ -1,7 +1,10 @@
 package ch.loewenfels.depgraph.runner
 
+import ch.loewenfels.depgraph.console.ErrorHandler
 import ch.loewenfels.depgraph.maven.getTestDirectory
 import ch.loewenfels.depgraph.runner.Json.MAVEN_PARENT_ANALYSIS_OFF
+import ch.loewenfels.depgraph.runner.Main.errorHandler
+import ch.loewenfels.depgraph.runner.Main.fileVerifier
 import ch.loewenfels.depgraph.serialization.Serializer
 import ch.tutteli.atrium.*
 import ch.tutteli.atrium.api.cc.en_UK.isTrue
@@ -19,7 +22,7 @@ object MainSpec : Spek({
     errorHandler = object : ErrorHandler {
         override fun error(msg: String) = throw AssertionError(msg)
     }
-    fileVerifier = object: FileVerifier{
+    fileVerifier = object: Main.FileVerifier {
         override fun file(path: String, fileDescription: String) = File(path)
     }
 
@@ -27,7 +30,7 @@ object MainSpec : Spek({
         given("project A with dependent project B (happy case)") {
             on("calling main") {
                 val jsonFile = File(tempFolder.tmpDir, "test.json")
-                main(
+                Main.main(
                     "json", "com.example", "a",
                     getTestDirectory("managingVersions/inDependency").absolutePath,
                     jsonFile.absolutePath
@@ -48,7 +51,7 @@ object MainSpec : Spek({
         given("parent not in analysis, does not matter with $MAVEN_PARENT_ANALYSIS_OFF") {
             on("calling main") {
                 val jsonFile = File(tempFolder.tmpDir, "test.json")
-                main(
+                Main.main(
                     "json", "com.example", "b",
                     getTestDirectory("errorCases/parentNotInAnalysis").absolutePath,
                     jsonFile.absolutePath,
@@ -76,7 +79,7 @@ object MainSpec : Spek({
                     val tmpPom = copyPom(tempFolder, pom)
 
                     testSameContent(tempFolder, pom) {
-                        main("update", tmpPom.absolutePath, "junit", "junit", "4.12")
+                        Main.main("update", tmpPom.absolutePath, "junit", "junit", "4.12")
                     }
                 }
             }
@@ -86,7 +89,7 @@ object MainSpec : Spek({
                     val tmpPom = copyPom(tempFolder, pom)
 
                     it("updates the dependency") {
-                        main("update", tmpPom.absolutePath, "junit", "junit", "4.4")
+                        Main.main("update", tmpPom.absolutePath, "junit", "junit", "4.4")
                         assertSameAsBeforeAfterReplace(tmpPom, pom, "4.12", "4.4")
                     }
                 }

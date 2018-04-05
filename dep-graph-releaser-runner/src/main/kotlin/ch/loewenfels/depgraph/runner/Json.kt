@@ -1,11 +1,14 @@
 package ch.loewenfels.depgraph.runner
 
+import ch.loewenfels.depgraph.console.ConsoleCommand
+import ch.loewenfels.depgraph.console.ErrorHandler
+import ch.loewenfels.depgraph.console.expectedArgsAndGiven
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.maven.Analyser
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
+import ch.loewenfels.depgraph.runner.Main.fileVerifier
 
-object Json {
-
+object Json : ConsoleCommand {
     private const val ARG_GROUP_ID = 1
     private const val ARG_ARTIFACT_ID = 2
     private const val ARG_DIR = 3
@@ -15,7 +18,12 @@ object Json {
 
     internal const val MAVEN_PARENT_ANALYSIS_OFF = "-mpoff"
     private const val DISABLE_RELEASE_FOR = "-dr="
-    val jsonArguments = """
+
+    override val name = "json"
+    override val description = "analyse projects, create a release plan and serialize it to json"
+    override val example = "./produce json com.example example-project ./repo ./release.json"
+    override val arguments by lazy {
+        """
         |json requires the following arguments in the given order:
         |groupId     // maven groupId of the project which shall be released
         |artifactId  // maven artifactId of the project which shall be released
@@ -25,34 +33,19 @@ object Json {
         |               the release commands have to be disabled
         |($MAVEN_PARENT_ANALYSIS_OFF)    // optionally: turns missing parent analysis off
         """.trimMargin()
+    }
+    override fun numOfArgsNotOk(number: Int) = number < 5 || number > 7
 
-
-    operator fun invoke(args: Array<out String>) {
-        if (args.size < 5 || args.size > 7) {
-            error(
-                """
-                |Not enough or too many arguments supplied for command: json
-                |
-                |$jsonArguments
-                |
-                |${getGivenArgs(args)}
-                |
-                |Following an example:
-                |./produce json com.example example-project ./repo ./release.json
-                """.trimMargin()
-            )
-        }
+    override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
 
         val disableReleaseFor = if (args.size >= 6) {
             val dr = args[ARG_DISABLE_RELEASE_FOR]
             if (!dr.startsWith(DISABLE_RELEASE_FOR) && dr.toLowerCase() != MAVEN_PARENT_ANALYSIS_OFF) {
-                error(
+                errorHandler.error(
                     """
                     |Last argument supplied can only be $DISABLE_RELEASE_FOR=Regex or $MAVEN_PARENT_ANALYSIS_OFF for command: json
                     |
-                    |$jsonArguments
-                    |
-                    |${getGivenArgs(args)}
+                    |${expectedArgsAndGiven(this, args)}
                     |
                     |Following an example:
                     |./produce json com.example example-project ./repo ./release.json -dr=ch.loewenfels:dist.*
@@ -67,14 +60,12 @@ object Json {
 
         val turnMissingPartnerAnalysisOff = if (args.size >= 6) {
             if (args.size == 7) {
-                if(args[ARG_MISSING_PARENT_ANALYSIS].toLowerCase() != MAVEN_PARENT_ANALYSIS_OFF) {
-                    error(
+                if (args[ARG_MISSING_PARENT_ANALYSIS].toLowerCase() != MAVEN_PARENT_ANALYSIS_OFF) {
+                    errorHandler.error(
                         """
                         |Last argument supplied can only be $MAVEN_PARENT_ANALYSIS_OFF for command: json
                         |
-                        |$jsonArguments
-                        |
-                        |${getGivenArgs(args)}
+                        |${expectedArgsAndGiven(this, args)}
                         |
                         |Following an example:
                         |./produce json com.example example-project ./repo ./release.json -mpoff
@@ -91,20 +82,19 @@ object Json {
 
         val directoryToAnalyse = fileVerifier.file(args[ARG_DIR], "directory to analyse")
         if (!directoryToAnalyse.exists()) {
-            error("""
+            errorHandler.error(
+                """
                 |The given directory does not exist. Maybe you mixed up the order of the arguments?
                 |directory: ${directoryToAnalyse.absolutePath}
                 |
-                |$jsonArguments
-                |
-                |${getGivenArgs(args)}
+                |${expectedArgsAndGiven(this, args)}
                 """.trimMargin()
             )
         }
 
         val json = fileVerifier.file(args[ARG_JSON], "json file")
         if (!json.parentFile.exists()) {
-            error(
+            errorHandler.error(
                 """
                 |The directory in which the resulting JSON file shall be created does not exist.
                 |Directory: ${json.parentFile.absolutePath}

@@ -1,0 +1,7 @@
+buildscript {
+    ext.publish_description = 'Provides utilities for Main methods'
+}
+
+dependencies {
+    compile "ch.tutteli:kbox:$kbox_version"
+}
