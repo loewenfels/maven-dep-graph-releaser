@@ -76,11 +76,7 @@ class RemoteJenkinsM2Releaser internal constructor(
             val buildNumber = triggerBuild(httpClient, jobName, releaseVersion, nextDevVersion)
             logTriggeringSuccessful(jobName, buildNumber)
             val result = pollForCompletion(httpClient, jobName, buildNumber)
-
-            check(result == "SUCCESS") {
-                "Job status was not SUCCESS but $result" +
-                    "\nJob: $jobName"
-            }
+            checkResultIsSuccess(result, jobName, buildNumber)
         } finally {
             shutdown(httpClient)
         }
@@ -91,6 +87,15 @@ class RemoteJenkinsM2Releaser internal constructor(
             "triggering was successful, will wait for the job to complete." +
                 "\nVisit ${jobUrl(jobName)}/$buildNumber for detailed information"
         )
+    }
+
+    private fun checkResultIsSuccess(result: String, jobName: String, buildNumber: Int) {
+        check(result == "SUCCESS") {
+            "Job status was not SUCCESS but $result" +
+                "\nJob: $jobName" +
+                "Visit ${jobUrl(jobName)}/$buildNumber for more details"
+
+        }
     }
 
     private fun triggerBuild(
