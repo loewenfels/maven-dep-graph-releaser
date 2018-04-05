@@ -73,7 +73,7 @@ The following guide shows how you can integrate dep-graph-releaser with Jenkins.
       # JENKINS_JAVA_OPTIONS="-Djava.awt.headless=true -server -Xmx2g"
       #
       # Modified version to allow dep-graph-releaser to execute its javascripts
-      JENKINS_JAVA_OPTIONS="-Djava.awt.headless=true -server -Xmx2g -Dhudson.model.DirectoryBrowserSupport.CSP=sandbox allow-scripts; script-src 'self'"
+      JENKINS_JAVA_OPTIONS="-Djava.awt.headless=true -server -Xmx2g -Dhudson.model.DirectoryBrowserSupport.CSP=\"sandbox allow-scripts; script-src 'self'\""
       ```
 5. Create a job which runs the Main with command json
     - an example will follow using maven. 
