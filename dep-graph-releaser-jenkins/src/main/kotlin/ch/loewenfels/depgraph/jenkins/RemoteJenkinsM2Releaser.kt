@@ -4,6 +4,7 @@ import okhttp3.*
 import java.net.MalformedURLException
 import java.net.URL
 import java.util.*
+import java.util.logging.Logger
 
 
 /**
@@ -69,33 +70,49 @@ class RemoteJenkinsM2Releaser internal constructor(
 
     fun release(jobName: String, releaseVersion: String, nextDevVersion: String) {
         val buildNumber = triggerBuild(jobName, releaseVersion, nextDevVersion)
-        pollForCompletion(jobName, buildNumber)
+        val result = pollForCompletion(jobName, buildNumber)
+        check(result == "SUCCESS") {
+            "Result of the run was not SUCCESS but $result" +
+                "\nJob: $jobName"
+        }
     }
 
     private fun triggerBuild(jobName: String, releaseVersion: String, nextDevVersion: String): Int {
-        var count = 0
         lateinit var response: Response
+        var count = 0
         do {
-            check(count < maxTriggerTries) {
-                "Cannot trigger the build, response was not successful after $maxTriggerTries attempts." +
-                    "\nJob: $jobName" +
-                    "\nResponse: $response"
-            }
-            val postUrl = createUrl("${jobUrl(jobName)}/m2release/submit")
-            val inputData = createInputData(releaseVersion, nextDevVersion)
-            val body = RequestBody.create(FORM_URLENCODED, inputData)
-            val request = Request.Builder()
-                .url(postUrl)
-                .addBasicAuthHeader()
-                .post(body)
-                .build()
-            response = httpClient.newCall(request).execute()
+            // we wrap response so that it is not accessed the first time when it is not yet initialised
+            checkMaximumTriesNotYetReached(count, jobName, { response })
+            response = post(jobName, releaseVersion, nextDevVersion)
             ++count
+            if (count % 3 == 0) {
+                logger.info("still no luck after triggering $jobName the $count time")
+            }
         } while (!response.isSuccessful)
 
         // We somehow have to get the build number.
         // Unfortunately it is not returned by jenkins that's why we need to extract it from the resulting HTML
         return extractBuildNumber(response, jobName)
+    }
+
+    private inline fun checkMaximumTriesNotYetReached(count: Int, jobName: String, response: () -> Response) {
+        check(count < maxTriggerTries) {
+            "Cannot trigger the build, response was not successful after $maxTriggerTries attempts." +
+                "\nJob: $jobName" +
+                "\nResponse: ${response()}"
+        }
+    }
+
+    private fun post(jobName: String, releaseVersion: String, nextDevVersion: String): Response {
+        val postUrl = createUrl("${jobUrl(jobName)}/m2release/submit")
+        val inputData = createInputData(releaseVersion, nextDevVersion)
+        val body = RequestBody.create(FORM_URLENCODED, inputData)
+        val request = Request.Builder()
+            .url(postUrl)
+            .addBasicAuthHeader()
+            .post(body)
+            .build()
+        return httpClient.newCall(request).execute()
     }
 
     private fun createUrl(urlSpec: String): URL {
@@ -165,29 +182,39 @@ class RemoteJenkinsM2Releaser internal constructor(
         )
     }
 
-    private fun pollForCompletion(jobName: String, buildNumber: Int) {
-        val url = createUrl("${jobUrl(jobName)}/$buildNumber/api/xml?xpath=/*/result")
-        val request = Request.Builder()
-            .url(url)
-            .build()
+    private fun pollForCompletion(jobName: String, buildNumber: Int): String {
+        val pollUrl = createUrl("${jobUrl(jobName)}/$buildNumber/api/xml?xpath=/*/result")
+        val request = Request.Builder().url(pollUrl).build()
         var result: String?
+        val maxCount = calculateMaxCount()
+        val minuteInterval = calculateMinuteInterval()
         var count = 0
-        val maxCount = (maxReleaseTimeInSeconds / pollEverySecond) +
-            if (maxReleaseTimeInSeconds % pollEverySecond != 0) 1 else 0
         do {
-            check(count < maxCount) {
-                "Waited at least $maxReleaseTimeInSeconds seconds for the release to complete, aborting now." +
-                    "\nJob: $jobName"
-            }
+            checkTimeoutNotYetReached(count, maxCount, jobName)
             Thread.sleep(pollEverySecond * 1000L)
             val response = httpClient.newCall(request).execute()
             result = extractResult(response, response.body())
             ++count
-
+            if (count % minuteInterval == 0) {
+                logger.info("$jobName did not complete after at least ${count * pollEverySecond} seconds")
+            }
         } while (result == null)
+        return result
+    }
 
-        check(result == "SUCCESS") {
-            "Result of the run was not SUCCESS but $result" +
+    private fun calculateMaxCount(): Int {
+        val max = maxReleaseTimeInSeconds / pollEverySecond
+        return if (maxReleaseTimeInSeconds % pollEverySecond == 0) max else max + 1
+    }
+
+    private fun calculateMinuteInterval(): Int {
+        val tmp = 60 / pollEverySecond
+        return if (tmp != 0) tmp else 1
+    }
+
+    private fun checkTimeoutNotYetReached(count: Int, maxCount: Int, jobName: String) {
+        check(count < maxCount) {
+            "Waited at least $maxReleaseTimeInSeconds seconds for the release to complete, aborting now." +
                 "\nJob: $jobName"
         }
     }
@@ -212,5 +239,6 @@ class RemoteJenkinsM2Releaser internal constructor(
                 "</td>"
         )
         private val resultRegex = Regex("<result>([A-Z]+)</result>")
+        private val logger = Logger.getLogger(RemoteJenkinsM2Releaser::class.java.simpleName)
     }
 }

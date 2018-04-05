@@ -95,6 +95,13 @@ object Orchestrator {
             pollEverySecond,
             parameters
         )
+        logger.info(
+            "trigger release for $jobName." +
+                "\nRelease version:  $releaseVersion" +
+                "\nNext dev version: $nextDevVersion" +
+                "\nParameters: $parameters"
+        )
         releaser.release(jobName, releaseVersion, nextDevVersion)
+        logger.info("released $jobName with release version $releaseVersion and next dev version $nextDevVersion")
     }
 }
