@@ -62,7 +62,7 @@ object RemoteJenkinsM2ReleaserSpec : Spek({
             "http://asdf", "user", "password", 1, 0, 1
         )
         testMisconfiguration(
-            "poolEverySecond", "is less than 1",
+            "pollEverySecond", "is less than 1",
             "http://asdf", "user", "password", 1, 1, 0
         )
     }

@@ -55,9 +55,31 @@
                             </arguments>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>remoteRelease</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>
+                                <argument>remoteRelease</argument>
+                                <argument>${jenkinsBaseUrl}</argument>
+                                <argument>${jenkinsUsername}</argument>
+                                <argument>${jenkinsPassword}</argument>
+                                <argument>${maxTriggerTries}</argument>
+                                <argument>${maxReleaseTimeInSeconds}</argument>
+                                <argument>${maxTriggerTries}</argument>
+                                <argument>${pollEverySecond}</argument>
+                                <argument>${parameters}</argument>
+                                <argument>${pollEverySecond}</argument>
+                                <argument>${jobName}</argument>
+                                <argument>${releaseVersion}</argument>
+                                <argument>${nextDevVersion}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>
     </build>
-
 </project>

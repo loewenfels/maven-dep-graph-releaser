@@ -10,16 +10,36 @@ import java.util.*
  * Used to create a release of an artifact with the m2release plugin on a remote jenkins host.
  * It basically triggers the job via the REST API and polls it to see if it completed
  */
-class RemoteJenkinsM2Releaser(
+class RemoteJenkinsM2Releaser internal constructor(
     private val httpClient: OkHttpClient,
     jenkinsBaseUrl: String,
     private val jenkinsUsername: String,
     private val jenkinsPassword: String,
     private val maxTriggerTries: Int,
     private val maxReleaseTimeInSeconds: Int,
-    private val poolEverySecond: Int,
+    private val pollEverySecond: Int,
     private val parameters: Map<String, String>
 ) {
+
+    constructor(
+        jenkinsBaseUrl: String,
+        jenkinsUsername: String,
+        jenkinsPassword: String,
+        maxTriggerTries: Int,
+        maxReleaseTimeInSeconds: Int,
+        pollEverySecond: Int,
+        parameters: Map<String, String>
+    ) : this(
+        OkHttpClient(),
+        jenkinsBaseUrl,
+        jenkinsUsername,
+        jenkinsPassword,
+        maxTriggerTries,
+        maxReleaseTimeInSeconds,
+        pollEverySecond,
+        parameters
+    )
+
     private val jenkinsBaseUrl: String = if (jenkinsBaseUrl.endsWith("/")) {
         jenkinsBaseUrl.substring(0, jenkinsBaseUrl.length - 1)
     } else {
@@ -42,8 +62,8 @@ class RemoteJenkinsM2Releaser(
         require(maxReleaseTimeInSeconds > 0) {
             "maxReleaseTimeInSeconds has to be greater than 0, given: $maxReleaseTimeInSeconds"
         }
-        require(poolEverySecond > 0) {
-            "poolEverySecond has to be greater than 0, given: $poolEverySecond"
+        require(pollEverySecond > 0) {
+            "pollEverySecond has to be greater than 0, given: $pollEverySecond"
         }
     }
 
@@ -152,14 +172,14 @@ class RemoteJenkinsM2Releaser(
             .build()
         var result: String?
         var count = 0
-        val maxCount = (maxReleaseTimeInSeconds / poolEverySecond) +
-                if (maxReleaseTimeInSeconds % poolEverySecond != 0) 1 else 0
+        val maxCount = (maxReleaseTimeInSeconds / pollEverySecond) +
+            if (maxReleaseTimeInSeconds % pollEverySecond != 0) 1 else 0
         do {
             check(count < maxCount) {
                 "Waited at least $maxReleaseTimeInSeconds seconds for the release to complete, aborting now." +
                     "\nJob: $jobName"
             }
-            Thread.sleep(poolEverySecond * 1000L)
+            Thread.sleep(pollEverySecond * 1000L)
             val response = httpClient.newCall(request).execute()
             result = extractResult(response, response.body())
             ++count

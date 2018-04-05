@@ -1,7 +1,8 @@
 package ch.loewenfels.depgraph.runner
 
-import ch.loewenfels.depgraph.manipulation.RegexBasedVersionUpdater
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
+import ch.loewenfels.depgraph.jenkins.RemoteJenkinsM2Releaser
+import ch.loewenfels.depgraph.manipulation.RegexBasedVersionUpdater
 import ch.loewenfels.depgraph.maven.Analyser
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
 import ch.loewenfels.depgraph.maven.VersionDeterminer
@@ -71,5 +72,29 @@ object Orchestrator {
     fun updateDependency(pom: File, groupId: String, artifactId: String, newVersion: String) {
         RegexBasedVersionUpdater.updateDependency(pom, groupId, artifactId, newVersion)
         logger.info("updated dependency $groupId:$artifactId to new version $newVersion")
+    }
+
+    fun remoteRelease(
+        jenkinsBaseUrl: String,
+        jenkinsUsername: String,
+        jenkinsPassword: String,
+        maxTriggerTries: Int,
+        maxReleaseTimeInSeconds: Int,
+        pollEverySecond: Int,
+        parameters: Map<String, String>,
+        jobName: String,
+        releaseVersion: String,
+        nextDevVersion: String
+    ) {
+        val releaser = RemoteJenkinsM2Releaser(
+            jenkinsBaseUrl,
+            jenkinsUsername,
+            jenkinsPassword,
+            maxTriggerTries,
+            maxReleaseTimeInSeconds,
+            pollEverySecond,
+            parameters
+        )
+        releaser.release(jobName, releaseVersion, nextDevVersion)
     }
 }

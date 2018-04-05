@@ -11,7 +11,7 @@ object UpdateDependency : ConsoleCommand {
     override val description = "updates the given dependency to the given version"
     override val example = "./update ./pom.xml com.example example-project 1.2.0"
     override val arguments = """
-        |update requires the following arguments in the given order:
+        |$name requires the following arguments in the given order:
         |pom         // path to the pom file which shall be updated
         |groupId     // maven groupId of the dependency which shall be updated
         |artifactId  // maven artifactId of the dependency which shall be updated

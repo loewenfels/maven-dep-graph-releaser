@@ -10,7 +10,7 @@ object Html : ConsoleCommand {
     override val description = "copy html pipeline including resources"
     override val example = "./produce html ./html"
     override val arguments = """
-        |html requires the following arguments in the given order:
+        |$name requires the following arguments in the given order:
         |outDir     // path to the directory in which the html file and resources shall be created
         """.trimMargin()
 

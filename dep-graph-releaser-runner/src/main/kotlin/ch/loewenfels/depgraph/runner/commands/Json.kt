@@ -24,7 +24,7 @@ object Json : ConsoleCommand {
     override val example = "./produce json com.example example-project ./repo ./release.json"
     override val arguments by lazy {
         """
-        |json requires the following arguments in the given order:
+        |$name requires the following arguments in the given order:
         |groupId     // maven groupId of the project which shall be released
         |artifactId  // maven artifactId of the project which shall be released
         |dir         // path to the directory where all projects are
@@ -43,7 +43,7 @@ object Json : ConsoleCommand {
             if (!dr.startsWith(DISABLE_RELEASE_FOR) && dr.toLowerCase() != MAVEN_PARENT_ANALYSIS_OFF) {
                 errorHandler.error(
                     """
-                    |Last argument supplied can only be $DISABLE_RELEASE_FOR=Regex or $MAVEN_PARENT_ANALYSIS_OFF for command: json
+                    |Last argument supplied can only be $DISABLE_RELEASE_FOR=Regex or $MAVEN_PARENT_ANALYSIS_OFF for command: $name
                     |
                     |${expectedArgsAndGiven(this, args)}
                     |
@@ -63,7 +63,7 @@ object Json : ConsoleCommand {
                 if (args[ARG_MISSING_PARENT_ANALYSIS].toLowerCase() != MAVEN_PARENT_ANALYSIS_OFF) {
                     errorHandler.error(
                         """
-                        |Last argument supplied can only be $MAVEN_PARENT_ANALYSIS_OFF for command: json
+                        |Last argument supplied can only be $MAVEN_PARENT_ANALYSIS_OFF for command: $name
                         |
                         |${expectedArgsAndGiven(this, args)}
                         |
