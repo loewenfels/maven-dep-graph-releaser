@@ -2,7 +2,7 @@ package ch.loewenfels.depgraph.runner
 
 import ch.loewenfels.depgraph.runner.console.ErrorHandler
 import ch.loewenfels.depgraph.maven.getTestDirectory
-import ch.loewenfels.depgraph.runner.Json.MAVEN_PARENT_ANALYSIS_OFF
+import ch.loewenfels.depgraph.runner.commands.Json.MAVEN_PARENT_ANALYSIS_OFF
 import ch.loewenfels.depgraph.runner.Main.errorHandler
 import ch.loewenfels.depgraph.runner.Main.fileVerifier
 import ch.loewenfels.depgraph.runner.console.FileVerifier

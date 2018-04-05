@@ -1,4 +1,6 @@
-package ch.loewenfels.depgraph.runner.console
+package ch.loewenfels.depgraph.runner.commands
+
+import ch.loewenfels.depgraph.runner.console.ErrorHandler
 
 interface ConsoleCommand {
     val name: String

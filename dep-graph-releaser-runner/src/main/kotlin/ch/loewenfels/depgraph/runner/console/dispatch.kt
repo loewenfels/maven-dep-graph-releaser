@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.runner.console
 
+import ch.loewenfels.depgraph.runner.commands.ConsoleCommand
 import ch.tutteli.kbox.appendToStringBuilder
 
 fun dispatch(

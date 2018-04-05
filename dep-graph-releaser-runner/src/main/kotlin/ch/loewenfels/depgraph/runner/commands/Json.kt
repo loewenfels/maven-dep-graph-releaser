@@ -1,11 +1,11 @@
-package ch.loewenfels.depgraph.runner
+package ch.loewenfels.depgraph.runner.commands
 
 import ch.loewenfels.depgraph.runner.console.expectedArgsAndGiven
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.maven.Analyser
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
 import ch.loewenfels.depgraph.runner.Main.fileVerifier
-import ch.loewenfels.depgraph.runner.console.ConsoleCommand
+import ch.loewenfels.depgraph.runner.Orchestrator
 import ch.loewenfels.depgraph.runner.console.ErrorHandler
 
 object Json : ConsoleCommand {

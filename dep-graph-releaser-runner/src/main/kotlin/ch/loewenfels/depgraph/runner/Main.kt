@@ -1,5 +1,8 @@
 package ch.loewenfels.depgraph.runner
 
+import ch.loewenfels.depgraph.runner.commands.Html
+import ch.loewenfels.depgraph.runner.commands.Json
+import ch.loewenfels.depgraph.runner.commands.UpdateDependency
 import ch.loewenfels.depgraph.runner.console.*
 
 object Main {
