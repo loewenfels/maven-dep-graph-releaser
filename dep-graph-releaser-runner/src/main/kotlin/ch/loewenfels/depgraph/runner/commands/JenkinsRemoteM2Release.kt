@@ -49,16 +49,14 @@ object JenkinsRemoteM2Release : ConsoleCommand {
     private fun parametersToStringMap(
         parameters: String,
         errorHandler: ErrorHandler
-    ): Map<String, String> {
-        return parameters
-            .splitToSequence(";")
-            .map { pair ->
-                val index = pair.indexOf('=')
-                if (index < 1) {
-                    errorHandler.error("Property name requires at least one character.\nParameters: $parameters")
-                }
-                pair.substring(0, index) to pair.substring(index + 1)
+    ): Map<String, String> = parameters
+        .splitToSequence(";")
+        .map { pair ->
+            val index = pair.indexOf('=')
+            if (index < 1) {
+                errorHandler.error("Property name requires at least one character.\nParameters: $parameters")
             }
-            .associateBy({ it.first }, { it.second })
-    }
+            pair.substring(0, index) to pair.substring(index + 1)
+        }
+        .associateBy({ it.first }, { it.second })
 }

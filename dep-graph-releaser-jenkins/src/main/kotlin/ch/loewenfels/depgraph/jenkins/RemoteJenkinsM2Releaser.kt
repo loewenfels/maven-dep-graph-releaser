@@ -4,6 +4,8 @@ import okhttp3.*
 import java.net.MalformedURLException
 import java.net.URL
 import java.util.*
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.TimeUnit
 import java.util.logging.Logger
 
 
@@ -72,7 +74,6 @@ class RemoteJenkinsM2Releaser internal constructor(
         val httpClient = httpClientFactory()
         try {
             val buildNumber = triggerBuild(httpClient, jobName, releaseVersion, nextDevVersion)
-
             logTriggeringSuccessful(jobName, buildNumber)
             val result = pollForCompletion(httpClient, jobName, buildNumber)
 
@@ -81,9 +82,7 @@ class RemoteJenkinsM2Releaser internal constructor(
                     "\nJob: $jobName"
             }
         } finally {
-            httpClient.dispatcher()?.executorService()?.shutdown()
-            httpClient.connectionPool()?.evictAll()
-            httpClient.cache()?.close()
+            shutdown(httpClient)
         }
     }
 
@@ -94,7 +93,12 @@ class RemoteJenkinsM2Releaser internal constructor(
         )
     }
 
-    private fun triggerBuild(httpClient: OkHttpClient, jobName: String, releaseVersion: String, nextDevVersion: String): Int {
+    private fun triggerBuild(
+        httpClient: OkHttpClient,
+        jobName: String,
+        releaseVersion: String,
+        nextDevVersion: String
+    ): Int {
         val postUrl = createUrl("${jobUrl(jobName)}/m2release/submit")
         lateinit var response: Response
         var count = 0
@@ -247,6 +251,25 @@ class RemoteJenkinsM2Releaser internal constructor(
             }
         }
         return null
+    }
+
+    private fun shutdown(httpClient: OkHttpClient) {
+        httpClient.dispatcher()?.cancelAll()
+        httpClient.connectionPool()?.evictAll()
+        httpClient.cache()?.close()
+        httpClient.dispatcher()?.executorService()?.extendedShutdown()
+    }
+
+    private fun ExecutorService.extendedShutdown() {
+        try {
+            shutdown()
+            if (!awaitTermination(1, TimeUnit.SECONDS)) {
+                shutdownNow()
+            }
+        } catch (ex: InterruptedException) {
+            shutdownNow()
+            Thread.currentThread().interrupt()
+        }
     }
 
     companion object {

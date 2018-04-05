@@ -22,6 +22,12 @@
                 <version>1.6.0</version>
                 <configuration>
                     <mainClass>ch.loewenfels.depgraph.runner.Main</mainClass>
+                    <!--
+                        otherwise we would have to shutdown the private ConnectionPool.executor
+                        and kill the WatchDog threads. They should terminate when the main process stops (should).
+                        See https://github.com/square/okhttp/issues/3957
+                    -->
+                    <cleanupDaemonThreads>false</cleanupDaemonThreads>
                 </configuration>
                 <executions>
                     <execution>
