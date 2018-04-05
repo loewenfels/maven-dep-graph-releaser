@@ -27,11 +27,9 @@ object JenkinsRemoteM2Release : ConsoleCommand {
     override fun numOfArgsNotOk(number: Int) = number != 11
 
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
-        val first5Args = args.take(5)
-        val afterFirst5 = args.drop(5)
-        val (_, jenkinsBaseUrl, jenkinsUsername, jenkinsPassword, maxTriggerTries) = first5Args
-        val (maxReleaseTimeInSeconds, pollEverySecond, parameters, jobName, releaseVersion) = afterFirst5
-        val nextDevVersion = afterFirst5.last()
+        val (_, jenkinsBaseUrl, jenkinsUsername, jenkinsPassword, maxTriggerTries) = args
+        val (maxReleaseTimeInSeconds, pollEverySecond, parameters, jobName, releaseVersion) = args.drop(5)
+        val nextDevVersion = args.last()
 
         Orchestrator.remoteRelease(
             jenkinsBaseUrl,

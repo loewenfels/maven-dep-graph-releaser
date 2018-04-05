@@ -7,14 +7,10 @@ import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
 import ch.loewenfels.depgraph.runner.Main.fileVerifier
 import ch.loewenfels.depgraph.runner.Orchestrator
 import ch.loewenfels.depgraph.runner.console.ErrorHandler
+import ch.loewenfels.depgraph.runner.console.toOptionalArgs
+import com.google.common.base.Optional
 
 object Json : ConsoleCommand {
-    private const val ARG_GROUP_ID = 1
-    private const val ARG_ARTIFACT_ID = 2
-    private const val ARG_DIR = 3
-    private const val ARG_JSON = 4
-    private const val ARG_DISABLE_RELEASE_FOR = 5
-    private const val ARG_MISSING_PARENT_ANALYSIS = 6
 
     internal const val MAVEN_PARENT_ANALYSIS_OFF = "-mpoff"
     private const val DISABLE_RELEASE_FOR = "-dr="
@@ -37,10 +33,11 @@ object Json : ConsoleCommand {
     override fun numOfArgsNotOk(number: Int) = number < 5 || number > 7
 
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
+        val (_, groupId, artifactId, unsafeDirectoryToAnalyse, jsonFile) = args
+        val (disableReleaseFor, missingParentAnalysis ) = toOptionalArgs(args.drop(5), 2)
 
-        val disableReleaseFor = if (args.size >= 6) {
-            val dr = args[ARG_DISABLE_RELEASE_FOR]
-            if (!dr.startsWith(DISABLE_RELEASE_FOR) && dr.toLowerCase() != MAVEN_PARENT_ANALYSIS_OFF) {
+        val disableReleaseForRegex = if (disableReleaseFor != null) {
+            if (!disableReleaseFor.startsWith(DISABLE_RELEASE_FOR) && disableReleaseFor.toLowerCase() != MAVEN_PARENT_ANALYSIS_OFF) {
                 errorHandler.error(
                     """
                     |Last argument supplied can only be ${DISABLE_RELEASE_FOR}Regex or $MAVEN_PARENT_ANALYSIS_OFF for command: $name
@@ -52,15 +49,15 @@ object Json : ConsoleCommand {
                     """.trimMargin()
                 )
             }
-            Regex(dr.substringAfter(DISABLE_RELEASE_FOR))
+            Regex(disableReleaseFor.substringAfter(DISABLE_RELEASE_FOR))
         } else {
             Regex("^$") //does only match the empty string
         }
 
 
-        val turnMissingPartnerAnalysisOff = if (args.size >= 6) {
-            if (args.size == 7) {
-                if (args[ARG_MISSING_PARENT_ANALYSIS].toLowerCase() != MAVEN_PARENT_ANALYSIS_OFF) {
+        val turnMissingPartnerAnalysisOff = if (disableReleaseFor != null) {
+            if (missingParentAnalysis != null) {
+                if (missingParentAnalysis.toLowerCase() != MAVEN_PARENT_ANALYSIS_OFF) {
                     errorHandler.error(
                         """
                         |Last argument supplied can only be $MAVEN_PARENT_ANALYSIS_OFF for command: $name
@@ -74,13 +71,13 @@ object Json : ConsoleCommand {
                 }
                 true
             } else {
-                args[ARG_DISABLE_RELEASE_FOR].toLowerCase() == MAVEN_PARENT_ANALYSIS_OFF
+                disableReleaseFor.toLowerCase() == MAVEN_PARENT_ANALYSIS_OFF
             }
         } else {
             false
         }
 
-        val directoryToAnalyse = fileVerifier.file(args[ARG_DIR], "directory to analyse")
+        val directoryToAnalyse = fileVerifier.file(unsafeDirectoryToAnalyse, "directory to analyse")
         if (!directoryToAnalyse.exists()) {
             errorHandler.error(
                 """
@@ -92,7 +89,7 @@ object Json : ConsoleCommand {
             )
         }
 
-        val json = fileVerifier.file(args[ARG_JSON], "json file")
+        val json = fileVerifier.file(jsonFile, "json file")
         if (!json.parentFile.exists()) {
             errorHandler.error(
                 """
@@ -102,9 +99,9 @@ object Json : ConsoleCommand {
             )
         }
 
-        val mavenProjectId = MavenProjectId(args[ARG_GROUP_ID], args[ARG_ARTIFACT_ID])
+        val mavenProjectId = MavenProjectId(groupId, artifactId)
         val analyserOptions = Analyser.Options(!turnMissingPartnerAnalysisOff)
-        val releasePlanCreatorOptions = JenkinsReleasePlanCreator.Options(disableReleaseFor)
+        val releasePlanCreatorOptions = JenkinsReleasePlanCreator.Options(disableReleaseForRegex)
 
         Orchestrator.analyseAndCreateJson(
             directoryToAnalyse,

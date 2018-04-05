@@ -35,7 +35,7 @@ class Analyser internal constructor(
         }
         pomAnalysis = analyseDirectory(directoryWithProjects, pomFileLoader)
         val analysedProjects = getAnalysedProjects()
-        require(analysedProjects.isNotEmpty()){
+        require(analysedProjects.isNotEmpty()) {
             "No pom files found in the given directory (which exists): ${directoryWithProjects.absolutePath}"
         }
 
@@ -259,7 +259,7 @@ class Analyser internal constructor(
      * Returns all submodules of the multi module project with the given [projectId]
      * or an empty set if the project is not a multi module (has not any modules).
      */
-    fun getSubmodules(projectId: MavenProjectId): Set<MavenProjectId>{
+    fun getSubmodules(projectId: MavenProjectId): Set<MavenProjectId> {
         return submodulesOfProjectId[projectId] ?: emptySetIfPartOfAnalysisOrThrow(projectId)
     }
 
@@ -268,14 +268,14 @@ class Analyser internal constructor(
      * or an empty set if the project is not a submodule.
      */
     fun getMultiModules(projectId: MavenProjectId): LinkedHashSet<MavenProjectId> {
-        return allMultiModulesOfSubmodule[projectId] ?: emptySetIfPartOfAnalysisOrThrow(projectId, { linkedSetOf<MavenProjectId>()})
+        return allMultiModulesOfSubmodule[projectId] ?:
+            emptySetIfPartOfAnalysisOrThrow(projectId, { linkedSetOf<MavenProjectId>()})
     }
 
     /**
      * Indicates whether the given [projectId] is a submodule of a multi module project or not.
      */
-    fun isSubmodule(projectId: MavenProjectId): Boolean
-        = getMultiModules(projectId).isNotEmpty()
+    fun isSubmodule(projectId: MavenProjectId): Boolean = getMultiModules(projectId).isNotEmpty()
 
     /**
      * Indicates whether the given [submoduleId] is a submodule (can also be a nested submodule) of the multi module
@@ -283,9 +283,19 @@ class Analyser internal constructor(
      */
     fun isSubmoduleOf(submoduleId: MavenProjectId, multiModuleId: MavenProjectId): Boolean {
         val submodules = submodulesOfProjectId[multiModuleId] ?: emptySetIfPartOfAnalysisOrThrow(multiModuleId)
-        if(submodules.contains(submoduleId)) return true
+        if (submodules.contains(submoduleId)) return true
 
         return isNestedSubmodule(submodules, submoduleId)
+    }
+
+    /**
+     * Returns all identifier
+     */
+    fun getAllReleaseableProjects(): Set<MavenProjectId> {
+        return getInternalAnalysedGavs()
+            .map { it.toMavenProjectId() }
+            .filter { !isSubmodule(it) }
+            .toSet()
     }
 
     private tailrec fun isNestedSubmodule(
@@ -296,16 +306,19 @@ class Analyser internal constructor(
 
         val submodulesToVisit = hashSetOf<MavenProjectId>()
         submodules.forEach {
-            if(it == submoduleId) return true
+            if (it == submoduleId) return true
             submodulesToVisit.addAll(submodulesOfProjectId[it] ?: emptySet())
         }
         return isNestedSubmodule(submodulesToVisit, submoduleId)
     }
 
-    private fun <T> emptySetIfPartOfAnalysisOrThrow(projectId: MavenProjectId): Set<T>
-        = emptySetIfPartOfAnalysisOrThrow(projectId, { emptySet()})
+    private fun <T> emptySetIfPartOfAnalysisOrThrow(projectId: MavenProjectId): Set<T> =
+        emptySetIfPartOfAnalysisOrThrow(projectId, { emptySet() })
 
-    private inline fun <T, S: Set<T>> emptySetIfPartOfAnalysisOrThrow(projectId: MavenProjectId, emptySetCreator: () -> S): S {
+    private inline fun <T, S : Set<T>> emptySetIfPartOfAnalysisOrThrow(
+        projectId: MavenProjectId,
+        emptySetCreator: () -> S
+    ): S {
         return if (projectIds.containsKey(projectId)) {
             emptySetCreator()
         } else {
