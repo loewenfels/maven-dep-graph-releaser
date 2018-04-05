@@ -227,11 +227,7 @@ class Analyser internal constructor(
     /**
      * Returns the [MavenProjectId]s of the analysed projects together with the current version.
      */
-    fun getAnalysedProjectsAsString(): CharSequence {
-        val sb = StringBuilder()
-        projectIds.entries.joinTo(sb, transform = { (k, v) -> "${k.identifier}:$v" })
-        return sb
-    }
+    fun getAnalysedProjectsAsString() = projectIds.entries.joinToString("\n") { (k, v) -> "${k.identifier}:$v" }
 
     /**
      * Returns a set of dependent [MavenProjectId]s for the given [projectId] where only the
@@ -268,8 +264,9 @@ class Analyser internal constructor(
      * or an empty set if the project is not a submodule.
      */
     fun getMultiModules(projectId: MavenProjectId): LinkedHashSet<MavenProjectId> {
-        return allMultiModulesOfSubmodule[projectId] ?:
-            emptySetIfPartOfAnalysisOrThrow(projectId, { linkedSetOf<MavenProjectId>()})
+        return allMultiModulesOfSubmodule[projectId] ?: emptySetIfPartOfAnalysisOrThrow(
+            projectId,
+            { linkedSetOf<MavenProjectId>() })
     }
 
     /**
