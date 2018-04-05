@@ -39,6 +39,15 @@ object Orchestrator {
         logger.info({ "Created json file at: ${outputFile.canonicalPath}" })
     }
 
+    fun printReleasableProjects(directoryToAnalyse: File) {
+        logger.info({ "Going to analyse: ${directoryToAnalyse.canonicalPath}" })
+        val analyser = Analyser(directoryToAnalyse, Analyser.Options(false))
+        logger.info({ "Analysed ${analyser.getNumberOfProjects()} projects." })
+        println(analyser.getAllReleaseableProjects().joinToString("\n") {
+            it.artifactId.padEnd(44) + " groupId: " + it.groupId
+        })
+    }
+
     fun copyResources(outputDir: File) {
         logger.info("Going to copy resource files")
         copyResourceToFile(outputDir, "kotlin.js")

@@ -11,7 +11,7 @@ object Html : ConsoleCommand {
     override val example = "./produce html ./html"
     override val arguments = """
         |$name requires the following arguments in the given order:
-        |outDir     // path to the directory in which the html file and resources shall be created
+        |outDir      // path to the directory in which the html file and resources shall be created
         """.trimMargin()
 
     override fun numOfArgsNotOk(number: Int) = number != 2

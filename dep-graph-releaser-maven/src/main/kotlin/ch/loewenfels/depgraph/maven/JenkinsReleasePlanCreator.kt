@@ -19,7 +19,7 @@ class JenkinsReleasePlanCreator(
         val currentVersion = analyser.getCurrentVersion(projectToRelease)
         require(currentVersion != null) {
             """Can only release a project which is part of the analysis.
-                |Given: $projectToRelease
+                |Given: ${projectToRelease.identifier}
                 |Analysed projects: ${analyser.getAnalysedProjectsAsString()}
             """.trimMargin()
         }

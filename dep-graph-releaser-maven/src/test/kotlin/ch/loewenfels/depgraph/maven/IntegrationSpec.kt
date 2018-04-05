@@ -50,7 +50,7 @@ object IntegrationSpec : Spek({
                     analyseAndCreateReleasePlan(wrongProject, "singleProject")
                 }.toThrow<IllegalArgumentException> {
                     message {
-                        contains(errMsg, wrongProject.toString(), singleProjectIdAndVersions.id.toString())
+                        contains(errMsg, wrongProject.identifier, singleProjectIdAndVersions.id.identifier)
                     }
                 }
             }

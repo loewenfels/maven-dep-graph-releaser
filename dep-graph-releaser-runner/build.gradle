@@ -98,6 +98,18 @@ task html {
     copyResources.mustRunAfter(json)
 }
 
+task releasable {
+    inputs.files dist
+    doLast {
+        javaexec {
+            workingDir = rootProject.projectDir
+            classpath = fileTree("${project.buildDir}/dist/lib/")
+            main = 'ch.loewenfels.depgraph.runner.Main'
+            args = ['releasable', "${rootProject.projectDir}/repos"]
+        }
+    }
+}
+
 task server {
     doLast {
         SimpleHttpFileServerFactory factory = new SimpleHttpFileServerFactory()

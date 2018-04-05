@@ -52,8 +52,9 @@ fun dispatch(
 private fun getAllCommands(commands: Map<String, ConsoleCommand>): String {
     val sb = StringBuilder("Currently we support the following commands:\n")
     commands.entries.appendToStringBuilder(sb, "\n") { (k, v), sb2 ->
-        sb2.append(k.padEnd(12)).append("// ").append(v.description).append("\n\n")
+        sb2.append(k.padEnd(15)).append("// ").append(v.description)
     }
+    sb.append("\n\n")
     commands.values.appendToStringBuilder(sb, "\n\n") { it, sb2 ->
         sb2.append(it.arguments)
     }

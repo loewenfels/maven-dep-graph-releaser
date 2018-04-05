@@ -1,9 +1,6 @@
 package ch.loewenfels.depgraph.runner
 
-import ch.loewenfels.depgraph.runner.commands.Html
-import ch.loewenfels.depgraph.runner.commands.JenkinsRemoteM2Release
-import ch.loewenfels.depgraph.runner.commands.Json
-import ch.loewenfels.depgraph.runner.commands.UpdateDependency
+import ch.loewenfels.depgraph.runner.commands.*
 import ch.loewenfels.depgraph.runner.console.*
 
 object Main {
@@ -11,6 +8,7 @@ object Main {
     fun main(vararg args: String?) {
         val commands = listOf(
             Json,
+            PrintReleasableProjects,
             Html,
             UpdateDependency,
             JenkinsRemoteM2Release

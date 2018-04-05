@@ -229,7 +229,7 @@ class Analyser internal constructor(
      */
     fun getAnalysedProjectsAsString(): CharSequence {
         val sb = StringBuilder()
-        projectIds.entries.joinTo(sb, transform = { (k, v) -> "$k:$v" })
+        projectIds.entries.joinTo(sb, transform = { (k, v) -> "${k.identifier}:$v" })
         return sb
     }
 
