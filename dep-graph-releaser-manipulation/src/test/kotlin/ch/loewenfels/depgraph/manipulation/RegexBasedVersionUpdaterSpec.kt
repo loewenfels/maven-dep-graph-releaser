@@ -1,4 +1,4 @@
-package ch.loewenfels.depgraph
+package ch.loewenfels.depgraph.manipulation
 
 import ch.loewenfels.depgraph.maven.getTestDirectory
 import ch.tutteli.atrium.*

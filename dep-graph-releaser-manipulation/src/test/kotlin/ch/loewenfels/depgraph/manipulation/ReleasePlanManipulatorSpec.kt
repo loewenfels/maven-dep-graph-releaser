@@ -1,4 +1,4 @@
-package ch.loewenfels.depgraph
+package ch.loewenfels.depgraph.manipulation
 
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.Project
@@ -12,7 +12,7 @@ import ch.tutteli.atrium.api.cc.en_UK.*
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.*
 
-object ManipulatorSpec : Spek({
+object ReleasePlanManipulatorSpec : Spek({
     val rootProjectId = MavenProjectId("com.example", "a")
     val rootProject = Project(rootProjectId, false, "1.1.0-SNAPSHOT", "1.2.0", 0, listOf())
 
@@ -41,15 +41,18 @@ object ManipulatorSpec : Spek({
         projectWithDependentId to setOf(projectWithoutDependentId),
         projectWithoutDependentId to setOf()
     )
-    val testee = ReleasePlanManipulator(ReleasePlan(rootProjectId,
-        mapOf(
-            rootProjectId to rootProject,
-            projectWithDependentId to projectWithDependent,
-            projectWithoutDependentId to projectWithoutDependent
-        ),
-        mapOf(),
-        dependents
-    ))
+    val testee = ReleasePlanManipulator(
+        ReleasePlan(
+            rootProjectId,
+            mapOf(
+                rootProjectId to rootProject,
+                projectWithDependentId to projectWithDependent,
+                projectWithoutDependentId to projectWithoutDependent
+            ),
+            mapOf(),
+            dependents
+        )
+    )
 
     fun ActionBody.assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan: ReleasePlan) {
         test("rootProjectId is still the same") {

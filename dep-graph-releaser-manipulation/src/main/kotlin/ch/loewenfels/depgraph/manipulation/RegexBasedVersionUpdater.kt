@@ -1,17 +1,17 @@
-package ch.loewenfels.depgraph
+package ch.loewenfels.depgraph.manipulation
 
 import java.io.File
 
 object RegexBasedVersionUpdater {
 
     private const val DEPENDENCY = "dependency"
-    private val dependencyRegex = Regex("<$DEPENDENCY>[\\S\\s]+?</$DEPENDENCY>")
+    private val dependencyRegex = Regex("<${DEPENDENCY}>[\\S\\s]+?</${DEPENDENCY}>")
     private const val PARENT = "parent"
-    private val parentRegex = Regex("<$PARENT>[\\S\\s]+?</$PARENT>")
+    private val parentRegex = Regex("<${PARENT}>[\\S\\s]+?</${PARENT}>")
     private const val PROPERTIES = "properties"
-    private val propertiesRegex = Regex("<$PROPERTIES>[\\S\\s]+?</$PROPERTIES>")
+    private val propertiesRegex = Regex("<${PROPERTIES}>[\\S\\s]+?</${PROPERTIES}>")
     private const val VERSION = "version"
-    private val versionRegex = Regex("<$VERSION>([^<]+)</$VERSION>")
+    private val versionRegex = Regex("<${VERSION}>([^<]+)</${VERSION}>")
     private val mavenPropertyRegex = Regex("\\$\\{([^}]+)}")
     private val tagRegex = Regex("<([a-zA-Z0-9_.-]+)>([^<]+)</([a-zA-Z0-9_.-]+)>")
 
@@ -22,21 +22,48 @@ object RegexBasedVersionUpdater {
                 "\ndependency: $groupId:$artifactId:$newVersion"
         }
 
-        val groupIdArtifactIdRegex = createGroupIdArtifactIdRegex(groupId, artifactId)
+        val groupIdArtifactIdRegex =
+            createGroupIdArtifactIdRegex(
+                groupId,
+                artifactId
+            )
         val content = pom.readText()
 
         val dependenciesParamObject = ParamObject(
-            groupId, artifactId, newVersion, hashSetOf(), content, dependencyRegex
+            groupId,
+            artifactId,
+            newVersion,
+            hashSetOf(),
+            content,
+            dependencyRegex
         )
-        updateDependencies(dependenciesParamObject, groupIdArtifactIdRegex)
+        updateDependencies(
+            dependenciesParamObject,
+            groupIdArtifactIdRegex
+        )
 
-        val parentParamObject = ParamObject(dependenciesParamObject, parentRegex)
-        updateParentRelation(parentParamObject, groupIdArtifactIdRegex, pom)
+        val parentParamObject = ParamObject(
+            dependenciesParamObject,
+            parentRegex
+        )
+        updateParentRelation(
+            parentParamObject,
+            groupIdArtifactIdRegex,
+            pom
+        )
 
-        val propertiesParamObject = ParamObject(parentParamObject, propertiesRegex)
+        val propertiesParamObject = ParamObject(
+            parentParamObject,
+            propertiesRegex
+        )
         updateProperties(propertiesParamObject)
 
-        checkAndUpdatePomIfOk(dependenciesParamObject, parentParamObject, propertiesParamObject, pom)
+        checkAndUpdatePomIfOk(
+            dependenciesParamObject,
+            parentParamObject,
+            propertiesParamObject,
+            pom
+        )
     }
 
     private fun createGroupIdArtifactIdRegex(groupId: String, artifactId: String): Regex {
@@ -51,7 +78,7 @@ object RegexBasedVersionUpdater {
             parentParamObject.appendBeforeMatchAndUpdateStartIndex()
             appendDependency(parentParamObject)
             check(matchResult.next() == null) {
-                "pom has two <$PARENT> -- file: ${pom.absolutePath}"
+                "pom has two <${PARENT}> -- file: ${pom.absolutePath}"
             }
         }
         parentParamObject.appendRestIfUpdated()
@@ -80,9 +107,15 @@ object RegexBasedVersionUpdater {
                 propertiesParamObject.startIndex,
                 initialStartIndex + tagMatchResult.range.start
             )
-            val (propertyName, version) = getTagNameAndVersion(tagMatchResult)
+            val (propertyName, version) = getTagNameAndVersion(
+                tagMatchResult
+            )
             propertiesParamObject.modifiedPom.append("<").append(propertyName).append(">")
-            appendVersionInProperty(propertiesParamObject, propertyName, version)
+            appendVersionInProperty(
+                propertiesParamObject,
+                propertyName,
+                version
+            )
             propertiesParamObject.modifiedPom.append("</").append(propertyName).append(">")
 
             val nextMatchResult = tagMatchResult.next()
@@ -121,20 +154,24 @@ object RegexBasedVersionUpdater {
 
             paramObject.appendBeforeSubMatch(versionMatchResult)
 
-            paramObject.modifiedPom.append("<$VERSION>")
-            appendVersion(paramObject, versionMatchResult.groupValues[1])
-            paramObject.modifiedPom.append("</$VERSION>")
+            paramObject.modifiedPom.append("<${VERSION}>")
+            appendVersion(
+                paramObject,
+                versionMatchResult.groupValues[1]
+            )
+            paramObject.modifiedPom.append("</${VERSION}>")
 
             paramObject.appendAfterSubMatchAndSetStartIndex(versionMatchResult)
 
             check(versionMatchResult.next() == null) {
-                "<$DEPENDENCY> has two <$VERSION>: ${paramObject.groupId}:${paramObject.artifactId}"
+                "<${DEPENDENCY}> has two <${VERSION}>: ${paramObject.groupId}:${paramObject.artifactId}"
             }
         }
     }
 
     private fun appendVersion(paramObject: ParamObject, version: String) {
-        val resolvedVersion = resolveVersion(paramObject, version)
+        val resolvedVersion =
+            resolveVersion(paramObject, version)
         val propertyMatchResult = mavenPropertyRegex.matchEntire(resolvedVersion)
         when {
             propertyMatchResult != null -> {
@@ -142,7 +179,9 @@ object RegexBasedVersionUpdater {
                 paramObject.modifiedPom.append(resolvedVersion)
             }
             resolvedVersion.contains("$") -> throw UnsupportedOperationException("Version was neither static nor a reference to a single property. Given: $version")
-            else -> appendNewVersionAndSetUpdated(paramObject)
+            else -> appendNewVersionAndSetUpdated(
+                paramObject
+            )
         }
     }
 
@@ -162,7 +201,9 @@ object RegexBasedVersionUpdater {
                 )
 
             propertiesParamObject.properties.contains(propertyName) ->
-                appendNewVersionAndSetUpdated(propertiesParamObject)
+                appendNewVersionAndSetUpdated(
+                    propertiesParamObject
+                )
 
             else -> propertiesParamObject.modifiedPom.append(version)
         }

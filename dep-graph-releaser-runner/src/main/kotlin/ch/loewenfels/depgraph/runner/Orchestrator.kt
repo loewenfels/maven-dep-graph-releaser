@@ -1,6 +1,6 @@
 package ch.loewenfels.depgraph.runner
 
-import ch.loewenfels.depgraph.RegexBasedVersionUpdater
+import ch.loewenfels.depgraph.manipulation.RegexBasedVersionUpdater
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.maven.Analyser
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
