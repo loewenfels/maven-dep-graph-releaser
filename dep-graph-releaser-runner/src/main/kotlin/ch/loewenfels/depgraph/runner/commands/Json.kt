@@ -43,7 +43,7 @@ object Json : ConsoleCommand {
             if (!dr.startsWith(DISABLE_RELEASE_FOR) && dr.toLowerCase() != MAVEN_PARENT_ANALYSIS_OFF) {
                 errorHandler.error(
                     """
-                    |Last argument supplied can only be $DISABLE_RELEASE_FOR=Regex or $MAVEN_PARENT_ANALYSIS_OFF for command: $name
+                    |Last argument supplied can only be ${DISABLE_RELEASE_FOR}Regex or $MAVEN_PARENT_ANALYSIS_OFF for command: $name
                     |
                     |${expectedArgsAndGiven(this, args)}
                     |
