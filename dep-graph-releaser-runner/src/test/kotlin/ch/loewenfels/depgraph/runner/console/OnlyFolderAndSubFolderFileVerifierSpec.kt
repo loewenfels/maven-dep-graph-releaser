@@ -21,12 +21,12 @@ object OnlyFolderAndSubFolderFileVerifierSpec : Spek({
             }
         }
 
-         action("given which points to C:\\Windows, hence not folder or subfolder") {
+         action("given which points to /Windows, hence not folder or subfolder") {
             val fileDescription = "testFile"
             val errMsg = "$fileDescription is neither a relative path nor an absolute path"
             it("throws an IllegalArgumentException, mentioning $errMsg") {
                 expect {
-                    OnlyFolderAndSubFolderFileVerifier.file("C:\\Windows", fileDescription)
+                    OnlyFolderAndSubFolderFileVerifier.file("/Windows", fileDescription)
                 }.toThrow<IllegalArgumentException> { message { contains(errMsg) } }
             }
         }
