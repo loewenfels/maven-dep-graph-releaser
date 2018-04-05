@@ -12,7 +12,7 @@ import java.util.logging.Logger
  * It basically triggers the job via the REST API and polls it to see if it completed
  */
 class RemoteJenkinsM2Releaser internal constructor(
-    private val httpClient: OkHttpClient,
+    private val httpClientFactory: () -> OkHttpClient,
     jenkinsBaseUrl: String,
     private val jenkinsUsername: String,
     private val jenkinsPassword: String,
@@ -31,7 +31,7 @@ class RemoteJenkinsM2Releaser internal constructor(
         pollEverySecond: Int,
         parameters: Map<String, String>
     ) : this(
-        OkHttpClient(),
+        { OkHttpClient() },
         jenkinsBaseUrl,
         jenkinsUsername,
         jenkinsPassword,
@@ -69,13 +69,21 @@ class RemoteJenkinsM2Releaser internal constructor(
     }
 
     fun release(jobName: String, releaseVersion: String, nextDevVersion: String) {
-        val buildNumber = triggerBuild(jobName, releaseVersion, nextDevVersion)
-        logTriggeringSuccessful(jobName, buildNumber)
-        val result = pollForCompletion(jobName, buildNumber)
+        val httpClient = httpClientFactory()
+        try {
+            val buildNumber = triggerBuild(httpClient, jobName, releaseVersion, nextDevVersion)
 
-        check(result == "SUCCESS") {
-            "Result of the run was not SUCCESS but $result" +
-                "\nJob: $jobName"
+            logTriggeringSuccessful(jobName, buildNumber)
+            val result = pollForCompletion(httpClient, jobName, buildNumber)
+
+            check(result == "SUCCESS") {
+                "Job status was not SUCCESS but $result" +
+                    "\nJob: $jobName"
+            }
+        } finally {
+            httpClient.dispatcher()?.executorService()?.shutdown()
+            httpClient.connectionPool()?.evictAll()
+            httpClient.cache()?.close()
         }
     }
 
@@ -86,14 +94,14 @@ class RemoteJenkinsM2Releaser internal constructor(
         )
     }
 
-    private fun triggerBuild(jobName: String, releaseVersion: String, nextDevVersion: String): Int {
+    private fun triggerBuild(httpClient: OkHttpClient, jobName: String, releaseVersion: String, nextDevVersion: String): Int {
         val postUrl = createUrl("${jobUrl(jobName)}/m2release/submit")
         lateinit var response: Response
         var count = 0
         do {
             // we wrap response so that it is not accessed the first time when it is not yet initialised
             checkMaximumTriesNotYetReached(count, jobName, { response })
-            response = post(postUrl, releaseVersion, nextDevVersion)
+            response = post(httpClient, postUrl, releaseVersion, nextDevVersion)
             ++count
             if (count % 3 == 0) {
                 logger.info("still no luck after triggering $jobName the $count time")
@@ -114,7 +122,7 @@ class RemoteJenkinsM2Releaser internal constructor(
         }
     }
 
-    private fun post(postUrl: URL, releaseVersion: String, nextDevVersion: String): Response {
+    private fun post(httpClient: OkHttpClient, postUrl: URL, releaseVersion: String, nextDevVersion: String): Response {
         val inputData = createInputData(releaseVersion, nextDevVersion)
         val body = RequestBody.create(FORM_URLENCODED, inputData)
         val request = Request.Builder()
@@ -193,7 +201,7 @@ class RemoteJenkinsM2Releaser internal constructor(
         )
     }
 
-    private fun pollForCompletion(jobName: String, buildNumber: Int): String {
+    private fun pollForCompletion(httpClient: OkHttpClient, jobName: String, buildNumber: Int): String {
         val pollUrl = createUrl("${jobUrl(jobName)}/$buildNumber/api/xml?xpath=/*/result")
         val request = Request.Builder().url(pollUrl).build()
         var result: String?

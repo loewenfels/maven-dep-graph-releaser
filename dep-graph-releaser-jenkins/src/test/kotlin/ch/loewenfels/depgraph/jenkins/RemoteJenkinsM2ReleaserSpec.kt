@@ -28,7 +28,7 @@ object RemoteJenkinsM2ReleaserSpec : Spek({
             it("throws an IllegalArgumentException in case the $prop $cause") {
                 expect {
                     RemoteJenkinsM2Releaser(
-                        OkHttpClient(),
+                        { OkHttpClient() },
                         jenkinsBaseUrl,
                         jenkinsUsername,
                         jenkinsPassword,
@@ -136,7 +136,7 @@ object RemoteJenkinsM2ReleaserSpec : Spek({
                 val testee = createTestee(httpClient, 1)
                 expect {
                     testee.release(jobName, "1.0.0", "1.2.0")
-                }.toThrow<IllegalStateException>{message { contains(jobName, "Waited at least 1 seconds") }}
+                }.toThrow<IllegalStateException> { message { contains(jobName, "Waited at least 1 seconds") } }
             }
         }
 
@@ -149,7 +149,7 @@ object RemoteJenkinsM2ReleaserSpec : Spek({
                 val testee = createTestee(httpClient, 1)
                 expect {
                     testee.release(jobName, "1.0.0", "1.2.0")
-                }.toThrow<IllegalStateException>{message { contains(jobName, "not SUCCESS but FAILURE") }}
+                }.toThrow<IllegalStateException> { message { contains(jobName, "not SUCCESS but FAILURE") } }
             }
         }
     }
@@ -229,6 +229,6 @@ private fun createCall(
 }
 
 private fun createTestee(httpClient: OkHttpClient, maxTriggerTries: Int) =
-    RemoteJenkinsM2Releaser(httpClient, HOST, "user", "password", maxTriggerTries, 1, 1, mapOf())
+    RemoteJenkinsM2Releaser({ httpClient }, HOST, "user", "password", maxTriggerTries, 1, 1, mapOf())
 
 private const val HOST = "http://asdf"
