@@ -43,9 +43,21 @@ object Orchestrator {
         logger.info({ "Going to analyse: ${directoryToAnalyse.canonicalPath}" })
         val analyser = Analyser(directoryToAnalyse, Analyser.Options(false))
         logger.info({ "Analysed ${analyser.getNumberOfProjects()} projects." })
-        println(analyser.getAllReleaseableProjects().joinToString("\n") {
-            it.artifactId.padEnd(44) + " groupId: " + it.groupId
-        })
+        val list = analyser.getAllReleaseableProjects().sortedBy { it.artifactId }.joinToString("\n") {
+            it.artifactId.padEnd(30, " -") + " groupId: " + it.groupId
+        }
+        println(list)
+    }
+
+    private fun CharSequence.padEnd(length: Int, padString: String): String {
+        if (length <= this.length)
+            return this.subSequence(0, this.length).toString()
+
+        val sb = StringBuilder(length)
+        sb.append(this)
+        for (i in 1..(length - this.length) step padString.length)
+            sb.append(padString)
+        return sb.toString()
     }
 
     fun copyResources(outputDir: File) {
