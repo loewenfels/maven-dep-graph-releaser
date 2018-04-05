@@ -70,16 +70,20 @@ class RemoteJenkinsM2Releaser internal constructor(
 
     fun release(jobName: String, releaseVersion: String, nextDevVersion: String) {
         val buildNumber = triggerBuild(jobName, releaseVersion, nextDevVersion)
-        logger.info(
-            "triggering was successful, will wait for the job to complete." +
-                "\nVisit ${jobUrl(jobName)}/$buildNumber for detailed information"
-        )
+        logTriggeringSuccessful(jobName, buildNumber)
         val result = pollForCompletion(jobName, buildNumber)
 
         check(result == "SUCCESS") {
             "Result of the run was not SUCCESS but $result" +
                 "\nJob: $jobName"
         }
+    }
+
+    private fun logTriggeringSuccessful(jobName: String, buildNumber: Int) {
+        logger.info(
+            "triggering was successful, will wait for the job to complete." +
+                    "\nVisit ${jobUrl(jobName)}/$buildNumber for detailed information"
+        )
     }
 
     private fun triggerBuild(jobName: String, releaseVersion: String, nextDevVersion: String): Int {
@@ -94,6 +98,7 @@ class RemoteJenkinsM2Releaser internal constructor(
             if (count % 3 == 0) {
                 logger.info("still no luck after triggering $jobName the $count time")
             }
+            response.body()?.close()
         } while (!response.isSuccessful)
 
         // We somehow have to get the build number.
@@ -101,11 +106,13 @@ class RemoteJenkinsM2Releaser internal constructor(
         return extractBuildNumber(response, jobName)
     }
 
-    private inline fun checkMaximumTriesNotYetReached(count: Int, jobName: String, response: () -> Response) {
+    private inline fun checkMaximumTriesNotYetReached(count: Int, jobName: String, getResponse: () -> Response) {
         check(count < maxTriggerTries) {
+            val response = getResponse()
+            response.body()?.close()
             "Cannot trigger the build, response was not successful after $maxTriggerTries attempts." +
                 "\nJob: $jobName" +
-                "\nResponse: ${response()}"
+                "\nResponse: $response"
         }
     }
 
@@ -199,6 +206,7 @@ class RemoteJenkinsM2Releaser internal constructor(
             Thread.sleep(pollEverySecond * 1000L)
             val response = httpClient.newCall(request).execute()
             result = extractResult(response, response.body())
+            response.body()?.close()
             ++count
             if (count % minuteInterval == 0) {
                 logger.info("$jobName did not complete after at least ${count * pollEverySecond} seconds")
