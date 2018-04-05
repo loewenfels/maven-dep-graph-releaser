@@ -30,6 +30,7 @@ include {
     _ maven
     _ manipulation
     _ gui
+    _ jenkins
 
     project 'atrium'
 }

@@ -1,0 +1,7 @@
+buildscript {
+    ext.publish_description = 'Contains i.a. the RemoteJenkinsBuilder'
+}
+
+dependencies {
+    compile "com.squareup.okhttp3:okhttp:$okhttp_version"
+}
