@@ -1,4 +1,4 @@
-package ch.loewenfels.depgraph
+package ch.loewenfels.depgraph.gui
 
 import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
@@ -35,7 +35,9 @@ fun deserializeProjects(releasePlanJson: ReleasePlanJson): Map<ProjectId, Projec
     val map = hashMapOf<ProjectId, Project>()
     releasePlanJson.projects.forEach {
         val projectId = createProjectId(it.id)
-        map[projectId] = Project(projectId, it.isSubmodule, it.currentVersion, it.releaseVersion, it.level, deserializeCommands(it.commands))
+        map[projectId] = Project(projectId, it.isSubmodule, it.currentVersion, it.releaseVersion, it.level,
+            deserializeCommands(it.commands)
+        )
     }
     return map
 }
@@ -44,9 +46,15 @@ fun deserializeCommands(commands: Array<GenericType<Command>>): List<Command> {
 
     return commands.map {
         when (it.t) {
-            JENKINS_MAVEN_RELEASE_PLUGIN -> createJenkinsMavenReleasePlugin(it.p)
-            JENKINS_MULTI_MAVEN_RELEASE_PLUGIN -> createJenkinsMultiMavenReleasePlugin(it.p)
-            JENKINS_UPDATE_DEPENDENCY -> createJenkinsUpdateDependency(it.p)
+            JENKINS_MAVEN_RELEASE_PLUGIN -> createJenkinsMavenReleasePlugin(
+                it.p
+            )
+            JENKINS_MULTI_MAVEN_RELEASE_PLUGIN -> createJenkinsMultiMavenReleasePlugin(
+                it.p
+            )
+            JENKINS_UPDATE_DEPENDENCY -> createJenkinsUpdateDependency(
+                it.p
+            )
             else -> throw UnsupportedOperationException("${it.t} is not supported.")
         }
     }

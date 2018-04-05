@@ -1,4 +1,4 @@
-package ch.loewenfels.depgraph
+package ch.loewenfels.depgraph.gui
 
 import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ProjectId

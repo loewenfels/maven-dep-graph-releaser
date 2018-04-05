@@ -1,4 +1,7 @@
-import ch.loewenfels.depgraph.*
+import ch.loewenfels.depgraph.gui.Gui
+import ch.loewenfels.depgraph.gui.deserialize
+import ch.loewenfels.depgraph.gui.display
+import ch.loewenfels.depgraph.gui.showError
 import org.w3c.fetch.Request
 import kotlin.browser.window
 import kotlin.js.Promise
@@ -23,6 +26,8 @@ fun main() {
             showError(it)
         }
 }
+
+@Suppress("unused")
 val onlyUsedToCallMain = main()
 
 private fun loadJson(jsonUrl: String): Promise<Any> {

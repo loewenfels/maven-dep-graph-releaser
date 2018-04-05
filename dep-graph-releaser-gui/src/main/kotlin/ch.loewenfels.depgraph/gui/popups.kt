@@ -1,4 +1,4 @@
-package ch.loewenfels.depgraph
+package ch.loewenfels.depgraph.gui
 
 import kotlinx.html.HTMLTag
 import kotlinx.html.br
@@ -43,8 +43,9 @@ private fun showMessageOfType(type: String, message: String, withClose: Boolean)
 }
 
 fun showError(t: Throwable) {
-    showError("${t::class.js.name}: ${t.message}" +
-        if (t.cause != null) "\nCause: ${t.cause}" else ""
+    showError(
+        "${t::class.js.name}: ${t.message}" +
+            if (t.cause != null) "\nCause: ${t.cause}" else ""
     )
     throw t //this way it also shows up in console with stacktrace
 }

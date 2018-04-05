@@ -1,10 +1,12 @@
-package ch.loewenfels.depgraph
+package ch.loewenfels.depgraph.gui
 
+import ch.loewenfels.depgraph.PeekingIterator
 import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
+import ch.loewenfels.depgraph.toPeekingIterator
 import kotlinx.html.*
 import kotlinx.html.dom.append
 import kotlinx.html.js.div

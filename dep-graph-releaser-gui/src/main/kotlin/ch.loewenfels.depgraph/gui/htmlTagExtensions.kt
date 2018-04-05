@@ -1,4 +1,4 @@
-package ch.loewenfels.depgraph
+package ch.loewenfels.depgraph.gui
 
 import kotlinx.html.HTMLTag
 import org.w3c.dom.HTMLElement
