@@ -1,4 +1,4 @@
-version = "0.1.5"
+version = "0.1.6-SNAPSHOT"
 
 buildscript {
     ext {
@@ -12,7 +12,7 @@ buildscript {
         atrium_version = '0.6.0'
         mockito_kotlin_version = '1.5.0'
         dokka_version = '0.9.16'
-        dokka_sourceMapping = 'tree/v0.1.5'
+        dokka_sourceMapping = 'tree/master'
 
         //spek.gradle
         jacoco_tool_version = '0.7.9'
@@ -215,10 +215,10 @@ Release & deploy a commit
 
 Prepare next dev cycle
 -----------------------
-1. search for X.Y.Z and change to X.Y.Z-SNAPSHOT
-2. point to master
+1. point to master
    a) search for `tag=vX.Y.Z` and replace it with `branch=master`
    b) search for `tree/vX.Y.Z` and replace it with `tree/master`
+2. search for X.Y.Z and change to X.Y.Z-SNAPSHOT
 3. commit & push changes
 
 */
