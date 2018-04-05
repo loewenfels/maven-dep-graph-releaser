@@ -1,4 +1,4 @@
-package ch.loewenfels.depgraph.console
+package ch.loewenfels.depgraph.runner.console
 
 import ch.tutteli.atrium.api.cc.en_UK.contains
 import ch.tutteli.atrium.api.cc.en_UK.message

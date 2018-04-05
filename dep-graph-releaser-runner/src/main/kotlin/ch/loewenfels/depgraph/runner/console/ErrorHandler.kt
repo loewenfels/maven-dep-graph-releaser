@@ -1,4 +1,4 @@
-package ch.loewenfels.depgraph.console
+package ch.loewenfels.depgraph.runner.console
 
 interface ErrorHandler {
     fun error(msg: String): Nothing

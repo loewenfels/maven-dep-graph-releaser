@@ -31,7 +31,6 @@ include {
     _ manipulation
     _ gui
     _ jenkins
-    _ console
 
     project 'atrium'
 }

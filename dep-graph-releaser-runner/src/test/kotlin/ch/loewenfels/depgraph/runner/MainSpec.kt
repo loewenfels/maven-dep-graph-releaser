@@ -1,10 +1,11 @@
 package ch.loewenfels.depgraph.runner
 
-import ch.loewenfels.depgraph.console.ErrorHandler
+import ch.loewenfels.depgraph.runner.console.ErrorHandler
 import ch.loewenfels.depgraph.maven.getTestDirectory
 import ch.loewenfels.depgraph.runner.Json.MAVEN_PARENT_ANALYSIS_OFF
 import ch.loewenfels.depgraph.runner.Main.errorHandler
 import ch.loewenfels.depgraph.runner.Main.fileVerifier
+import ch.loewenfels.depgraph.runner.console.FileVerifier
 import ch.loewenfels.depgraph.serialization.Serializer
 import ch.tutteli.atrium.*
 import ch.tutteli.atrium.api.cc.en_UK.isTrue
@@ -22,7 +23,7 @@ object MainSpec : Spek({
     errorHandler = object : ErrorHandler {
         override fun error(msg: String) = throw AssertionError(msg)
     }
-    fileVerifier = object: Main.FileVerifier {
+    fileVerifier = object: FileVerifier {
         override fun file(path: String, fileDescription: String) = File(path)
     }
 

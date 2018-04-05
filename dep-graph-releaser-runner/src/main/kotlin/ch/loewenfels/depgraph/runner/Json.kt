@@ -1,12 +1,12 @@
 package ch.loewenfels.depgraph.runner
 
-import ch.loewenfels.depgraph.console.ConsoleCommand
-import ch.loewenfels.depgraph.console.ErrorHandler
-import ch.loewenfels.depgraph.console.expectedArgsAndGiven
+import ch.loewenfels.depgraph.runner.console.expectedArgsAndGiven
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.maven.Analyser
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
 import ch.loewenfels.depgraph.runner.Main.fileVerifier
+import ch.loewenfels.depgraph.runner.console.ConsoleCommand
+import ch.loewenfels.depgraph.runner.console.ErrorHandler
 
 object Json : ConsoleCommand {
     private const val ARG_GROUP_ID = 1

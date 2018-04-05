@@ -1,4 +1,4 @@
-package ch.loewenfels.depgraph.console
+package ch.loewenfels.depgraph.runner.console
 
 fun expectedArgsAndGiven(command: ConsoleCommand, args: Array<out String>) = """
     |${command.arguments}
