@@ -70,7 +70,12 @@ class RemoteJenkinsM2Releaser internal constructor(
 
     fun release(jobName: String, releaseVersion: String, nextDevVersion: String) {
         val buildNumber = triggerBuild(jobName, releaseVersion, nextDevVersion)
+        logger.info(
+            "triggering was successful, will wait for the job to complete." +
+                "\nVisit ${jobUrl(jobName)}/$buildNumber for detailed information"
+        )
         val result = pollForCompletion(jobName, buildNumber)
+
         check(result == "SUCCESS") {
             "Result of the run was not SUCCESS but $result" +
                 "\nJob: $jobName"
@@ -78,12 +83,13 @@ class RemoteJenkinsM2Releaser internal constructor(
     }
 
     private fun triggerBuild(jobName: String, releaseVersion: String, nextDevVersion: String): Int {
+        val postUrl = createUrl("${jobUrl(jobName)}/m2release/submit")
         lateinit var response: Response
         var count = 0
         do {
             // we wrap response so that it is not accessed the first time when it is not yet initialised
             checkMaximumTriesNotYetReached(count, jobName, { response })
-            response = post(jobName, releaseVersion, nextDevVersion)
+            response = post(postUrl, releaseVersion, nextDevVersion)
             ++count
             if (count % 3 == 0) {
                 logger.info("still no luck after triggering $jobName the $count time")
@@ -103,8 +109,7 @@ class RemoteJenkinsM2Releaser internal constructor(
         }
     }
 
-    private fun post(jobName: String, releaseVersion: String, nextDevVersion: String): Response {
-        val postUrl = createUrl("${jobUrl(jobName)}/m2release/submit")
+    private fun post(postUrl: URL, releaseVersion: String, nextDevVersion: String): Response {
         val inputData = createInputData(releaseVersion, nextDevVersion)
         val body = RequestBody.create(FORM_URLENCODED, inputData)
         val request = Request.Builder()
@@ -183,7 +188,7 @@ class RemoteJenkinsM2Releaser internal constructor(
     }
 
     private fun pollForCompletion(jobName: String, buildNumber: Int): String {
-        val pollUrl = createUrl("${jobUrl(jobName)}/$buildNumber/api/xml?xpath=/*/result")
+        val pollUrl =  createUrl("${jobUrl(jobName)}/$buildNumber/api/xml?xpath=/*/result")
         val request = Request.Builder().url(pollUrl).build()
         var result: String?
         val maxCount = calculateMaxCount()
