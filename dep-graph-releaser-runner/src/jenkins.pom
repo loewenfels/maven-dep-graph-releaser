@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>ch.loewenfels</groupId>
     <artifactId>dep-graph-releaser-runner-maven</artifactId>
-    <version>0.1.6</version>
+    <version>0.1.7-SNAPSHOT</version>
 
     <dependencies>
         <dependency>
@@ -42,7 +42,7 @@
                                 <argument>${artifactId}</argument>
                                 <argument>${dir}</argument>
                                 <argument>${json}</argument>
-                                <argument>${disableRelease}</argument>
+                                <argument>-dr=${disableRelease}</argument>
                             </arguments>
                         </configuration>
                     </execution>
