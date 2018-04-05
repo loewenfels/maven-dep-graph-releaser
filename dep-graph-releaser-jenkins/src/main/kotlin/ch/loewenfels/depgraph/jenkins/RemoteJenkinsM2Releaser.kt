@@ -82,7 +82,7 @@ class RemoteJenkinsM2Releaser internal constructor(
     private fun logTriggeringSuccessful(jobName: String, buildNumber: Int) {
         logger.info(
             "triggering was successful, will wait for the job to complete." +
-                    "\nVisit ${jobUrl(jobName)}/$buildNumber for detailed information"
+                "\nVisit ${jobUrl(jobName)}/$buildNumber for detailed information"
         )
     }
 
@@ -98,7 +98,6 @@ class RemoteJenkinsM2Releaser internal constructor(
             if (count % 3 == 0) {
                 logger.info("still no luck after triggering $jobName the $count time")
             }
-            response.body()?.close()
         } while (!response.isSuccessful)
 
         // We somehow have to get the build number.
@@ -109,7 +108,6 @@ class RemoteJenkinsM2Releaser internal constructor(
     private inline fun checkMaximumTriesNotYetReached(count: Int, jobName: String, getResponse: () -> Response) {
         check(count < maxTriggerTries) {
             val response = getResponse()
-            response.body()?.close()
             "Cannot trigger the build, response was not successful after $maxTriggerTries attempts." +
                 "\nJob: $jobName" +
                 "\nResponse: $response"
@@ -182,6 +180,7 @@ class RemoteJenkinsM2Releaser internal constructor(
                 "\nResponse: $response"
         }
         val content = body!!.string()
+        body.close()
         val matchResult = builderNumberRegex.find(content)
         if (matchResult != null) {
             return matchResult.groupValues[1].toInt()
@@ -195,7 +194,7 @@ class RemoteJenkinsM2Releaser internal constructor(
     }
 
     private fun pollForCompletion(jobName: String, buildNumber: Int): String {
-        val pollUrl =  createUrl("${jobUrl(jobName)}/$buildNumber/api/xml?xpath=/*/result")
+        val pollUrl = createUrl("${jobUrl(jobName)}/$buildNumber/api/xml?xpath=/*/result")
         val request = Request.Builder().url(pollUrl).build()
         var result: String?
         val maxCount = calculateMaxCount()
@@ -206,7 +205,6 @@ class RemoteJenkinsM2Releaser internal constructor(
             Thread.sleep(pollEverySecond * 1000L)
             val response = httpClient.newCall(request).execute()
             result = extractResult(response, response.body())
-            response.body()?.close()
             ++count
             if (count % minuteInterval == 0) {
                 logger.info("$jobName did not complete after at least ${count * pollEverySecond} seconds")
@@ -235,6 +233,7 @@ class RemoteJenkinsM2Releaser internal constructor(
     private fun extractResult(response: Response, body: ResponseBody?): String? {
         if (response.isSuccessful && body != null) {
             val matchResult = resultRegex.matchEntire(body.string())
+            body.close()
             if (matchResult != null) {
                 return matchResult.groupValues[1]
             }
