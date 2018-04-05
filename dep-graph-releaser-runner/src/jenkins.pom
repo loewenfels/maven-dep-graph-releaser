@@ -68,10 +68,8 @@
                                 <argument>${jenkinsPassword}</argument>
                                 <argument>${maxTriggerTries}</argument>
                                 <argument>${maxReleaseTimeInSeconds}</argument>
-                                <argument>${maxTriggerTries}</argument>
                                 <argument>${pollEverySecond}</argument>
                                 <argument>${parameters}</argument>
-                                <argument>${pollEverySecond}</argument>
                                 <argument>${jobName}</argument>
                                 <argument>${releaseVersion}</argument>
                                 <argument>${nextDevVersion}</argument>
