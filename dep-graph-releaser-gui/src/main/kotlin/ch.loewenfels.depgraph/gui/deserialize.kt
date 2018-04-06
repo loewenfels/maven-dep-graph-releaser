@@ -10,7 +10,8 @@ import ch.loewenfels.depgraph.data.serialization.fromJson
 
 private const val MAVEN_PROJECT_ID = "ch.loewenfels.depgraph.data.maven.MavenProjectId"
 private const val JENKINS_MAVEN_RELEASE_PLUGIN = "ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin"
-private const val JENKINS_MULTI_MAVEN_RELEASE_PLUGIN = "ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin"
+private const val JENKINS_MULTI_MAVEN_RELEASE_PLUGIN =
+    "ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin"
 private const val JENKINS_UPDATE_DEPENDENCY = "ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency"
 
 fun deserialize(body: String): ReleasePlan {
@@ -35,7 +36,8 @@ fun deserializeProjects(releasePlanJson: ReleasePlanJson): Map<ProjectId, Projec
     val map = hashMapOf<ProjectId, Project>()
     releasePlanJson.projects.forEach {
         val projectId = createProjectId(it.id)
-        map[projectId] = Project(projectId, it.isSubmodule, it.currentVersion, it.releaseVersion, it.level,
+        map[projectId] = Project(
+            projectId, it.isSubmodule, it.currentVersion, it.releaseVersion, it.level,
             deserializeCommands(it.commands)
         )
     }
@@ -59,6 +61,7 @@ fun deserializeCommands(commands: Array<GenericType<Command>>): List<Command> {
         }
     }
 }
+
 fun createJenkinsMavenReleasePlugin(command: Command): JenkinsMavenReleasePlugin {
     val it = command.unsafeCast<JenkinsMavenReleasePlugin>()
     return JenkinsMavenReleasePlugin(deserializeState(it), it.nextDevVersion)
@@ -76,9 +79,21 @@ fun createJenkinsUpdateDependency(command: Command): JenkinsUpdateDependency {
 
 private fun deserializeState(it: Command): CommandState {
     val json = it.state.unsafeCast<CommandStateJson>()
-    //necessary to fake an enum's name attribute (state is actually a string and not the enum)
-    js("json.state = {name: json.state}")
+    fakeEnumsName(json)
     return fromJson(json)
+}
+
+private fun fakeEnumsName(json: CommandStateJson) {
+    var command: CommandStateJson? = json
+    while (command != null) {
+        //necessary to fake an enum's name attribute (state is actually a json object and not really a CommandStateJson)
+        js("command.state = {name: command.state}")
+        command = if (command.state.name == "Deactivated") {
+            json.previous
+        } else {
+            null
+        }
+    }
 }
 
 fun deserializeMapOfProjectIdAndSetProjectId(mapJson: Array<GenericMapEntry<ProjectId, Array<GenericType<ProjectId>>>>): Map<ProjectId, Set<ProjectId>> {
