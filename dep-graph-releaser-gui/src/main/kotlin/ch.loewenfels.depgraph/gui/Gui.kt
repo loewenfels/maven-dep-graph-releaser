@@ -215,7 +215,6 @@ class Gui(private val releasePlan: ReleasePlan) {
         command: JenkinsMultiMavenReleasePlugin
     ) {
         fieldNextDevVersion(idPrefix, command, command.nextDevVersion)
-
         submodules(projectId)
     }
 
