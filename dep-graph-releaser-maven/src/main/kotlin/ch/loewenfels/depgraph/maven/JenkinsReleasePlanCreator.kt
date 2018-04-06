@@ -6,6 +6,7 @@ import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
+import ch.loewenfels.depgraph.manipulation.ReleasePlanManipulator
 import ch.tutteli.kbox.appendToStringBuilder
 import java.util.logging.Logger
 
@@ -13,8 +14,6 @@ class JenkinsReleasePlanCreator(
     private val versionDeterminer: VersionDeterminer,
     private val options: Options
 ) {
-    private val logger = Logger.getLogger(Analyser::class.qualifiedName)
-
     fun create(projectToRelease: MavenProjectId, analyser: Analyser): ReleasePlan {
         val currentVersion = analyser.getCurrentVersion(projectToRelease)
         require(currentVersion != null) {
@@ -41,7 +40,7 @@ class JenkinsReleasePlanCreator(
         val infos = mutableListOf<String>()
         reportInterModuleCyclicDependencies(paramObject, infos)
 
-        return ReleasePlan(
+        val releasePlan = ReleasePlan(
             rootProject.id,
             paramObject.projects,
             paramObject.submodules,
@@ -49,6 +48,7 @@ class JenkinsReleasePlanCreator(
             warnings,
             infos
         )
+        return disableProjectsAsDefinedInOptions(releasePlan)
     }
 
     private fun createRootProject(
@@ -85,23 +85,17 @@ class JenkinsReleasePlanCreator(
         currentVersion: String,
         state: CommandState
     ): Command {
-        val definitiveState = if (options.disableReleaseFor.matches(projectId.identifier)) {
-            logger.info("Deactivate ${projectId.identifier} due to the specified disableReleaseFor regex: ${options.disableReleaseFor.pattern}")
-            CommandState.Disabled
-        } else {
-            state
-        }
         val nextDevVersion = versionDeterminer.nextDevVersion(currentVersion)
         return if (analyser.hasSubmodules(projectId)) {
-            JenkinsMultiMavenReleasePlugin(definitiveState, nextDevVersion)
+            JenkinsMultiMavenReleasePlugin(state, nextDevVersion)
         } else {
-            JenkinsMavenReleasePlugin(definitiveState, nextDevVersion)
+            JenkinsMavenReleasePlugin(state, nextDevVersion)
         }
     }
 
     private fun createDependents(analyser: Analyser, rootProject: Project): ParamObject {
         val paramObject = ParamObject(analyser, rootProject)
-        while(paramObject.levelIterator.hasNext()){
+        while (paramObject.levelIterator.hasNext()) {
             val dependent = paramObject.levelIterator.next()
             paramObject.submodules[dependent.id] = analyser.getSubmodules(dependent.id as MavenProjectId)
             createCommandsForDependents(paramObject, dependent)
@@ -125,7 +119,10 @@ class JenkinsReleasePlanCreator(
 
                     else ->
                         //TODO rethink this branch, couldn't we miss a cyclic dependency?
-                        updateCommandsAddDependentAddToProjectsAndUpdateMultiModuleIfNecessary(paramObject, existingDependent)
+                        updateCommandsAddDependentAddToProjectsAndUpdateMultiModuleIfNecessary(
+                            paramObject,
+                            existingDependent
+                        )
                 }
             }
         }
@@ -138,7 +135,7 @@ class JenkinsReleasePlanCreator(
         updateCommandsAddDependentAddToProjectsAndUpdateMultiModuleIfNecessary(paramObject, newDependent)
     }
 
-    private fun checkForCyclicAndUpdateIfOk(paramObject: ParamObject, existingDependent: Project) : Boolean {
+    private fun checkForCyclicAndUpdateIfOk(paramObject: ParamObject, existingDependent: Project): Boolean {
         analyseCycles(paramObject, existingDependent)
         return if (paramObject.hasRelationNoCycleToDependency()) {
             //TODO if we have submodule with a dependent and we need to update the level of the multi module
@@ -280,7 +277,9 @@ class JenkinsReleasePlanCreator(
                         map[dependencyId] = dependentBranch
                         return
                     } else {
-                        val map = paramObject.interModuleCyclicDependents.getOrPut(existingDependent.id, { linkedMapOf() })
+                        val map = paramObject.interModuleCyclicDependents.getOrPut(
+                            existingDependent.id, { linkedMapOf() }
+                        )
                         map[dependencyId] = dependentBranch
                         //we cannot stop here because cyclic inter module dependencies can be dealt with others not (yet)
                     }
@@ -307,7 +306,8 @@ class JenkinsReleasePlanCreator(
     private fun reportInterModuleCyclicDependencies(paramObject: ParamObject, infos: MutableList<String>) {
         paramObject.interModuleCyclicDependents.mapTo(infos, { (projectId, dependentEntry) ->
             val sb = StringBuilder()
-            sb.append("Project ").append(projectId.identifier).append(" has one or more inter module cyclic dependencies. ")
+            sb.append("Project ").append(projectId.identifier)
+                .append(" has one or more inter module cyclic dependencies. ")
                 .append("Will be handled by the M2 Release Plugin but you should reconsider your design:\n")
             appendCyclicDependents(sb, projectId, dependentEntry.values)
             sb.toString()
@@ -328,11 +328,36 @@ class JenkinsReleasePlanCreator(
         }
     }
 
+
+    private fun disableProjectsAsDefinedInOptions(releasePlan: ReleasePlan): ReleasePlan {
+        var transformedReleasePlan = releasePlan
+        releasePlan.getProjects().forEach { project ->
+            val projectId = project.id
+            if (options.disableReleaseFor.matches(projectId.identifier)) {
+                logger.info("Deactivate release commands of ${projectId.identifier} due to the specified disableReleaseFor regex: ${options.disableReleaseFor.pattern}")
+                project.commands.asSequence()
+                    .mapIndexed { index, it -> index to it }
+                    .filter { (_, command) -> command is ReleaseCommand && command.state !== CommandState.Disabled }
+                    .forEach inner@{ (index, _) ->
+                        val manipulator = ReleasePlanManipulator(transformedReleasePlan)
+                        transformedReleasePlan = manipulator.disableCommand(projectId, index)
+                        //we only need to disable the first release-command we find, others will be disabled automatically
+                        return@inner
+                    }
+            }
+        }
+        return transformedReleasePlan
+    }
+
+    companion object {
+        private val logger = Logger.getLogger(JenkinsReleasePlanCreator::class.qualifiedName)
+    }
+
     private class ParamObject(
         val analyser: Analyser,
         rootProject: Project
-    ){
-        val projects =  hashMapOf(rootProject.id to rootProject)
+    ) {
+        val projects = hashMapOf(rootProject.id to rootProject)
         val submodules = hashMapOf<ProjectId, Set<ProjectId>>()
         val dependents = hashMapOf(rootProject.id to hashSetOf<ProjectId>())
         val cyclicDependents = hashMapOf<ProjectId, LinkedHashMap<ProjectId, MutableList<ProjectId>>>()

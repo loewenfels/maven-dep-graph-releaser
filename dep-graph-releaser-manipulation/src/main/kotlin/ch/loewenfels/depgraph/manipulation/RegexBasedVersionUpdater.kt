@@ -5,13 +5,13 @@ import java.io.File
 object RegexBasedVersionUpdater {
 
     private const val DEPENDENCY = "dependency"
-    private val dependencyRegex = Regex("<${DEPENDENCY}>[\\S\\s]+?</${DEPENDENCY}>")
+    private val dependencyRegex = Regex("<$DEPENDENCY>[\\S\\s]+?</$DEPENDENCY>")
     private const val PARENT = "parent"
-    private val parentRegex = Regex("<${PARENT}>[\\S\\s]+?</${PARENT}>")
+    private val parentRegex = Regex("<$PARENT>[\\S\\s]+?</$PARENT>")
     private const val PROPERTIES = "properties"
-    private val propertiesRegex = Regex("<${PROPERTIES}>[\\S\\s]+?</${PROPERTIES}>")
+    private val propertiesRegex = Regex("<$PROPERTIES>[\\S\\s]+?</$PROPERTIES>")
     private const val VERSION = "version"
-    private val versionRegex = Regex("<${VERSION}>([^<]+)</${VERSION}>")
+    private val versionRegex = Regex("<$VERSION>([^<]+)</$VERSION>")
     private val mavenPropertyRegex = Regex("\\$\\{([^}]+)}")
     private val tagRegex = Regex("<([a-zA-Z0-9_.-]+)>([^<]+)</([a-zA-Z0-9_.-]+)>")
 
@@ -78,7 +78,7 @@ object RegexBasedVersionUpdater {
             parentParamObject.appendBeforeMatchAndUpdateStartIndex()
             appendDependency(parentParamObject)
             check(matchResult.next() == null) {
-                "pom has two <${PARENT}> -- file: ${pom.absolutePath}"
+                "pom has two <$PARENT> -- file: ${pom.absolutePath}"
             }
         }
         parentParamObject.appendRestIfUpdated()
@@ -154,17 +154,17 @@ object RegexBasedVersionUpdater {
 
             paramObject.appendBeforeSubMatch(versionMatchResult)
 
-            paramObject.modifiedPom.append("<${VERSION}>")
+            paramObject.modifiedPom.append("<$VERSION>")
             appendVersion(
                 paramObject,
                 versionMatchResult.groupValues[1]
             )
-            paramObject.modifiedPom.append("</${VERSION}>")
+            paramObject.modifiedPom.append("</$VERSION>")
 
             paramObject.appendAfterSubMatchAndSetStartIndex(versionMatchResult)
 
             check(versionMatchResult.next() == null) {
-                "<${DEPENDENCY}> has two <${VERSION}>: ${paramObject.groupId}:${paramObject.artifactId}"
+                "<$DEPENDENCY> has two <$VERSION>: ${paramObject.groupId}:${paramObject.artifactId}"
             }
         }
     }

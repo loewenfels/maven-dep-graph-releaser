@@ -19,6 +19,18 @@ interface Command {
         }
         return asNewState(CommandState.Deactivated(state))
     }
+
+    /**
+     * Makes a copy of this command but with [CommandState.Disabled] as [state]
+     *
+     * @throws IllegalStateException in case the state was already [CommandState.Disabled]
+     */
+    fun asDisabled(): Command {
+        check(state !== CommandState.Disabled) {
+            "Cannot disable an already disabled command: $this"
+        }
+        return asNewState(CommandState.Disabled)
+    }
 }
 
 sealed class CommandState {

@@ -1,10 +1,8 @@
 package ch.loewenfels.depgraph.maven
 
-import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
-import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.tutteli.atrium.*
 import ch.tutteli.atrium.api.cc.en_UK.*
 import com.nhaarman.mockito_kotlin.any
@@ -18,7 +16,8 @@ import org.jetbrains.spek.api.dsl.*
 import java.io.File
 
 object IntegrationSpec : Spek({
-    val singleProjectIdAndVersions = IdAndVersions(MavenProjectId("com.example", "example"), "1.0-SNAPSHOT", "1.0", "1.1-SNAPSHOT")
+    val singleProjectIdAndVersions =
+        IdAndVersions(MavenProjectId("com.example", "example"), "1.0-SNAPSHOT", "1.0", "1.1-SNAPSHOT")
 
     describe("validation errors") {
 
@@ -113,6 +112,25 @@ object IntegrationSpec : Spek({
                 }
             }
         }
+
+        given("single project, disableFor regex matches") {
+            it("throws an IllegalArgumentException, mentioning that it does not make sense to deactivate the root project") {
+                expect {
+                    analyseAndCreateReleasePlan(
+                        singleProjectIdAndVersions.id,
+                        getTestDirectory("singleProject"),
+                        JenkinsReleasePlanCreator.Options(Regex(".*:example"))
+                    )
+                }.toThrow<IllegalArgumentException> {
+                    message {
+                        contains(
+                            "Disabling a command of the root project does not make sense",
+                            singleProjectIdAndVersions.id.identifier
+                        )
+                    }
+                }
+            }
+        }
     }
 
     describe("warnings") {
@@ -150,30 +168,60 @@ object IntegrationSpec : Spek({
             }
         }
 
-        given("single project, regex matches") {
+        given("project with single dependent and regex matches dependent") {
             action("context Analyser which does not resolve poms") {
                 val releasePlan = analyseAndCreateReleasePlan(
-                    singleProjectIdAndVersions.id,
-                    getTestDirectory("singleProject"),
-                    JenkinsReleasePlanCreator.Options(Regex(".*:example"))
+                    exampleA.id,
+                    getTestDirectory("managingVersions/inDependency"),
+                    JenkinsReleasePlanCreator.Options(Regex("${exampleB.id.groupId}:${exampleB.id.artifactId}"))
                 )
-                val rootProject = assertRootProject(releasePlan, singleProjectIdAndVersions)
-                test("root project contains just the ${JenkinsMavenReleasePlugin::class.simpleName} command, which is Disabled with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = ${singleProjectIdAndVersions.nextDevVersion}") {
-                    assert(rootProject) {
-                        property(subject::commands).containsStrictly({
-                            isA<JenkinsMavenReleasePlugin> {
-                                property(subject::state).toBe(CommandState.Disabled)
-                                property(subject::nextDevVersion).toBe(singleProjectIdAndVersions.nextDevVersion)
-                            }
-                        })
-                    }
-                }
-                assertHasNoDependentsAndIsOnLevel(releasePlan, "root", singleProjectIdAndVersions, 0)
-                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 1)
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
+
+                assertOneUpdateAndOneDisabledReleaseCommand(releasePlan, "direct dependent", exampleB, exampleA)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "direct dependent", exampleB, 1)
+
                 assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
-                test("ReleasePlan.iterator() returns only the root Project projects in the expected order") {
-                    assert(releasePlan).iteratorReturnsRootAndStrictly()
-                }
+                assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleB)
+            }
+        }
+
+        given("project with implicit transitive dependent and regex matches direct dependent") {
+            action("context Analyser which does not resolve poms") {
+                val releasePlan = analyseAndCreateReleasePlan(
+                    exampleA.id,
+                    getTestDirectory("transitive/implicit"),
+                    JenkinsReleasePlanCreator.Options(Regex("${exampleB.id.groupId}:${exampleB.id.artifactId}"))
+                )
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
+
+                assertOneUpdateAndOneDisabledReleaseCommand(releasePlan, "direct dependent", exampleB, exampleA)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "direct dependent", exampleB, exampleC, 1)
+
+                assertOneDeactivatedUpdateAndOneDeactivatedReleaseCommand(releasePlan, "indirect dependent", exampleC, exampleB)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
+
+                assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
+                assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleB, exampleC)
+            }
+        }
+
+        given("project with implicit transitive dependent and regex matches both dependent") {
+            action("context Analyser which does not resolve poms") {
+                val releasePlan = analyseAndCreateReleasePlan(
+                    exampleA.id,
+                    getTestDirectory("transitive/implicit"),
+                    JenkinsReleasePlanCreator.Options(Regex("${exampleB.id.groupId}:(${exampleB.id.artifactId}|${exampleC.id.artifactId})"))
+                )
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
+
+                assertOneUpdateAndOneDisabledReleaseCommand(releasePlan, "direct dependent", exampleB, exampleA)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "direct dependent", exampleB, exampleC, 1)
+
+                assertOneDeactivatedUpdateAndOneDisabledReleaseCommand(releasePlan, "indirect dependent", exampleC, exampleB)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
+
+                assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
+                assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleB, exampleC)
             }
         }
     }
@@ -258,7 +306,10 @@ object IntegrationSpec : Spek({
         given("project with dependent and version in property of parent") {
             action("context Analyser with a mocked PomFileResolver") {
                 val releasePlan =
-                    analyseAndCreateReleasePlanWithPomResolverOldVersions(exampleA.id, "managingVersions/viaParentProperty")
+                    analyseAndCreateReleasePlanWithPomResolverOldVersions(
+                        exampleA.id,
+                        "managingVersions/viaParentProperty"
+                    )
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC)
 
                 assertOneDirectDependent(releasePlan, "parent", exampleC, exampleB)
@@ -472,7 +523,7 @@ object IntegrationSpec : Spek({
                 val releasePlan =
                     analyseAndCreateReleasePlan(exampleA.id, "transitive/explicitDiamondDependenciesToSubmodules")
                 assertRootProjectMultiReleaseCommand(releasePlan, exampleA)
-                assertRootProjectHasSubmodules(releasePlan, exampleA,  exampleB, exampleD)
+                assertRootProjectHasSubmodules(releasePlan, exampleA, exampleB, exampleD)
                 assertRootProjectHasDependents(releasePlan, exampleA, exampleB, exampleC, exampleD)
 
                 assertHasNoCommands(releasePlan, "first submodule", exampleB)
@@ -660,7 +711,8 @@ object IntegrationSpec : Spek({
         given("inter module dependency and version in multi module parent (which is not the root project)") {
             action("context Analyser which does not resolve poms") {
 
-                val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "multiModule/interDependencyVersionViaParent")
+                val releasePlan =
+                    analyseAndCreateReleasePlan(exampleA.id, "multiModule/interDependencyVersionViaParent")
 
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC)
 
@@ -685,7 +737,12 @@ object IntegrationSpec : Spek({
             action("context Analyser which does not resolve poms") {
 
                 val releasePlan = analyseAndCreateReleasePlan(exampleA.id, "multiModule/cyclicInterDependency")
-                assertRootProjectMultiReleaseCommandWithSubmodulesAndSameDependents(releasePlan, exampleA, exampleB, exampleC)
+                assertRootProjectMultiReleaseCommandWithSubmodulesAndSameDependents(
+                    releasePlan,
+                    exampleA,
+                    exampleB,
+                    exampleC
+                )
 
                 // Notice that the order below depends on the hash function implemented.
                 // Might fail if we update the JDK version, we can fix it then
@@ -801,7 +858,7 @@ object IntegrationSpec : Spek({
                     assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
 
                     assertOneUpdateAndOneMultiReleaseCommand(releasePlan, "multi module", exampleB, exampleA)
-                    assertHasSubmodules(releasePlan, "multi module",exampleB, exampleC)
+                    assertHasSubmodules(releasePlan, "multi module", exampleB, exampleC)
                     assertHasTwoDependentsAndIsOnLevel(releasePlan, "multi module", exampleB, exampleC, exampleD, 1)
 
                     assertOneUpdateCommand(releasePlan, "submodule", exampleC, exampleD)
@@ -875,9 +932,11 @@ object IntegrationSpec : Spek({
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 5)
                 assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
-                assertReleasePlanIteratorReturnsRootAnd(releasePlan,
+                assertReleasePlanIteratorReturnsRootAnd(
+                    releasePlan,
                     listOf(exampleE),
-                    listOf(exampleB, exampleC, exampleD))
+                    listOf(exampleB, exampleC, exampleD)
+                )
             }
         }
     }
@@ -910,8 +969,8 @@ private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, testDirecto
     return analyseAndCreateReleasePlan(projectToRelease, analyser)
 }
 
-private fun createAnalyserWhichDoesNotResolve(testDirectory: File): Analyser
-    = Analyser(testDirectory, Session(),  mock())
+private fun createAnalyserWhichDoesNotResolve(testDirectory: File): Analyser =
+    Analyser(testDirectory, Session(), mock())
 
 private fun analyseAndCreateReleasePlan(
     projectToRelease: ProjectId,
@@ -952,8 +1011,8 @@ private fun analyseAndCreateReleasePlanWithPomResolverOldVersions(
     return analyseAndCreateReleasePlan(projectToRelease, analyser)
 }
 
-private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, analyser: Analyser): ReleasePlan
-    = analyseAndCreateReleasePlan(projectToRelease, analyser, JenkinsReleasePlanCreator.Options(Regex("^$")))
+private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, analyser: Analyser): ReleasePlan =
+    analyseAndCreateReleasePlan(projectToRelease, analyser, JenkinsReleasePlanCreator.Options(Regex("^$")))
 
 private fun analyseAndCreateReleasePlan(
     projectToRelease: ProjectId,

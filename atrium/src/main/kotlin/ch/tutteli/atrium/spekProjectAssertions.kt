@@ -135,7 +135,10 @@ fun TestContainer.assertRootProjectMultiReleaseCommand(
     }
 }
 
-fun TestContainer.assertRootProjectOnlyReleaseCommand(releasePlan: ReleasePlan, rootProjectIdAndVersions: IdAndVersions) {
+fun TestContainer.assertRootProjectOnlyReleaseCommand(
+    releasePlan: ReleasePlan,
+    rootProjectIdAndVersions: IdAndVersions
+) {
     val rootProject = assertRootProject(releasePlan, rootProjectIdAndVersions)
     test("root project contains just the ${JenkinsMavenReleasePlugin::class.simpleName} command, which is Ready with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = ${rootProjectIdAndVersions.nextDevVersion}") {
         assert(rootProject) {
@@ -295,6 +298,54 @@ fun TestContainer.assertOneUpdateAndOneReleaseCommand(
     }
 }
 
+fun TestContainer.assertOneUpdateAndOneDisabledReleaseCommand(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    dependency: IdAndVersions
+) {
+    test("$name has one waiting Update and one disabled Release command with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = ${project.nextDevVersion}") {
+        assert(releasePlan.getProject(project.id)) {
+            property(subject::commands).containsStrictly(
+                { isJenkinsUpdateDependencyWaiting(dependency) },
+                { isJenkinsMavenReleaseDisabled(project.nextDevVersion) }
+            )
+        }
+    }
+}
+
+fun TestContainer.assertOneDeactivatedUpdateAndOneDeactivatedReleaseCommand(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    dependency: IdAndVersions
+) {
+    test("$name has one deactivated Update and one deactivated Release command with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = ${project.nextDevVersion}") {
+        assert(releasePlan.getProject(project.id)) {
+            property(subject::commands).containsStrictly(
+                { isJenkinsUpdateDependencyDeactivatedWaiting(dependency) },
+                { isJenkinsMavenReleaseDeactivatedWaiting(project.nextDevVersion, dependency) }
+            )
+        }
+    }
+}
+
+fun TestContainer.assertOneDeactivatedUpdateAndOneDisabledReleaseCommand(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    dependency: IdAndVersions
+) {
+    test("$name has one deactivated Update and one disabled Release command with ${JenkinsMavenReleasePlugin::nextDevVersion.name} = ${project.nextDevVersion}") {
+        assert(releasePlan.getProject(project.id)) {
+            property(subject::commands).containsStrictly(
+                { isJenkinsUpdateDependencyDeactivatedWaiting(dependency) },
+                { isJenkinsMavenReleaseDisabled(project.nextDevVersion) }
+            )
+        }
+    }
+}
+
 fun TestContainer.assertOneUpdateAndOneMultiReleaseCommandAndSubmodulesAndSameDependents(
     releasePlan: ReleasePlan,
     name: String,
@@ -399,8 +450,7 @@ fun TestContainer.assertReleasePlanIteratorReturnsRootAndStrictly(
     vararg projects: IdAndVersions
 ) {
     test("ReleasePlan.iterator() returns the projects in the expected order") {
-        val mappedProjects = mapIdAndVersionToProjectIds(projects)
-        assert(releasePlan).iteratorReturnsRootAndStrictly(*mappedProjects)
+        assert(releasePlan).iteratorReturnsRootAndStrictly(*projects.mapToProjectIds())
     }
 }
 
@@ -409,7 +459,7 @@ fun TestContainer.assertReleasePlanIteratorReturnsRootAnd(
     vararg groups: List<IdAndVersions>
 ) {
     test("ReleasePlan.iterator() returns the projects in the expected order") {
-        val projectGroups = groups.map { it.map{ it.id }}.toTypedArray()
+        val projectGroups = groups.map { it.map { it.id } }.toTypedArray()
         assert(releasePlan).iteratorReturnsRootAndInOrderGrouped(*projectGroups)
     }
 }
@@ -420,13 +470,13 @@ fun TestContainer.assertHasSubmodules(
     project: IdAndVersions,
     submodule: IdAndVersions,
     vararg otherSubmodules: IdAndVersions
-){
+) {
     test("$name project has ${otherSubmodules.size + 1} submodules") {
         assert(releasePlan.getSubmodules(project.id)).contains.inAnyOrder.only.objects(
-            submodule.id, *mapIdAndVersionToProjectIds(otherSubmodules)
+            submodule.id, *otherSubmodules.mapToProjectIds()
         )
     }
 }
 
 
-private fun mapIdAndVersionToProjectIds(projects: Array<out IdAndVersions>) = projects.map { it.id }.toTypedArray()
+fun Array<out IdAndVersions>.mapToProjectIds() = this.map { it.id }.toTypedArray()

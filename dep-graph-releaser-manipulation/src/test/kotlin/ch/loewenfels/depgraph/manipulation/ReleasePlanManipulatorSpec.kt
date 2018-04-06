@@ -17,8 +17,10 @@ object ReleasePlanManipulatorSpec : Spek({
     val rootProject = Project(rootProjectId, false, "1.1.0-SNAPSHOT", "1.2.0", 0, listOf())
 
     val projectWithDependentId = MavenProjectId("com.example", "b")
-    val projectWithDependentUpdateDependency = JenkinsUpdateDependency(CommandState.Waiting(setOf(rootProjectId)), rootProjectId)
-    val projectWithDependentJenkinsRelease = JenkinsMavenReleasePlugin(CommandState.Waiting(setOf(rootProjectId)), "3.1-SNAPSHOT")
+    val projectWithDependentUpdateDependency =
+        JenkinsUpdateDependency(CommandState.Waiting(setOf(rootProjectId)), rootProjectId)
+    val projectWithDependentJenkinsRelease =
+        JenkinsMavenReleasePlugin(CommandState.Waiting(setOf(rootProjectId)), "3.1-SNAPSHOT")
     val projectWithDependentCommands = listOf(
         projectWithDependentUpdateDependency,
         projectWithDependentJenkinsRelease
@@ -26,15 +28,27 @@ object ReleasePlanManipulatorSpec : Spek({
     val projectWithDependent = Project(projectWithDependentId, false, "2.0", "3.0", 1, projectWithDependentCommands)
 
     val projectWithoutDependentId = MavenProjectId("com.example", "c")
-    val projectWithoutDependentUpdateDependency1 = JenkinsUpdateDependency(CommandState.Waiting(setOf(rootProjectId)), rootProjectId)
-    val projectWithoutDependentUpdateDependency2 = JenkinsUpdateDependency(CommandState.Waiting(setOf(projectWithDependentId)), projectWithDependentId)
-    val projectWithoutDependentJenkinsRelease = JenkinsMavenReleasePlugin(CommandState.Deactivated(CommandState.Waiting(setOf(projectWithDependentId, rootProjectId))), "4.2-SNAPSHOT")
+    val projectWithoutDependentUpdateDependency1 =
+        JenkinsUpdateDependency(CommandState.Waiting(setOf(rootProjectId)), rootProjectId)
+    val projectWithoutDependentUpdateDependency2 =
+        JenkinsUpdateDependency(CommandState.Waiting(setOf(projectWithDependentId)), projectWithDependentId)
+    val projectWithoutDependentJenkinsRelease = JenkinsMavenReleasePlugin(
+        CommandState.Deactivated(
+            CommandState.Waiting(
+                setOf(
+                    projectWithDependentId,
+                    rootProjectId
+                )
+            )
+        ), "4.2-SNAPSHOT"
+    )
     val projectWithoutDependentCommands = listOf(
         projectWithoutDependentUpdateDependency1,
         projectWithoutDependentUpdateDependency2,
         projectWithoutDependentJenkinsRelease
     )
-    val projectWithoutDependent = Project(projectWithoutDependentId, false, "4.0", "4.1", 2,  projectWithoutDependentCommands)
+    val projectWithoutDependent =
+        Project(projectWithoutDependentId, false, "4.0", "4.1", 2, projectWithoutDependentCommands)
 
     val dependents = mapOf<ProjectId, Set<MavenProjectId>>(
         rootProjectId to setOf(projectWithDependentId),
@@ -54,7 +68,7 @@ object ReleasePlanManipulatorSpec : Spek({
         )
     )
 
-    fun ActionBody.assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan: ReleasePlan) {
+    fun TestContainer.assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan: ReleasePlan) {
         test("rootProjectId is still the same") {
             assert(newReleasePlan.rootProjectId).toBe(rootProjectId)
         }
@@ -65,7 +79,7 @@ object ReleasePlanManipulatorSpec : Spek({
             assert(newReleasePlan.getNumberOfProjects()).toBe(3)
         }
         test("the dependents are unchanged, is still the same instance") {
-            assert(newReleasePlan){
+            assert(newReleasePlan) {
                 returnValueOf(subject::getNumberOfDependents).toBe(dependents.size)
                 dependents.forEach {
                     returnValueOf(subject::getDependents, it.key).isSame(it.value)
@@ -88,18 +102,25 @@ object ReleasePlanManipulatorSpec : Spek({
         }
     }
 
-    fun ActionBody.assertProjectWithDependentStillSame(newReleasePlan: ReleasePlan) {
+    fun TestContainer.assertProjectWithDependentStillSame(newReleasePlan: ReleasePlan) {
         test("project with dependent is still the same") {
             assert(newReleasePlan.getProject(projectWithDependentId)).isSame(projectWithDependent)
         }
     }
 
-    fun SpecBody.errorCasesInvalidProjectId(act: (ProjectId) -> Unit) {
+    fun SpecBody.errorCasesInvalidProjectId(action: String, act: (ProjectId) -> Unit) {
         given("id of the root project") {
             it("throws an IllegalArgumentException which contains rootProjectId") {
                 expect {
                     act(rootProjectId)
-                }.toThrow<IllegalArgumentException> { message { contains(rootProjectId.toString()) } }
+                }.toThrow<IllegalArgumentException> {
+                    message {
+                        contains(
+                            "$action the root project does not make sense",
+                            rootProjectId.identifier
+                        )
+                    }
+                }
             }
         }
 
@@ -116,7 +137,7 @@ object ReleasePlanManipulatorSpec : Spek({
     describe("fun ${testee::deactivateProject.name}") {
 
         describe("error cases") {
-            errorCasesInvalidProjectId { projectId ->
+            errorCasesInvalidProjectId("Deactivating") { projectId ->
                 testee.deactivateProject(projectId)
             }
         }
@@ -162,7 +183,7 @@ object ReleasePlanManipulatorSpec : Spek({
     describe("fun ${testee::deactivateCommand.name}") {
 
         describe("error cases") {
-            errorCasesInvalidProjectId { projectId ->
+            errorCasesInvalidProjectId("Deactivating a command of") { projectId ->
                 testee.deactivateCommand(projectId, 0)
             }
 
@@ -230,5 +251,13 @@ object ReleasePlanManipulatorSpec : Spek({
         }
     }
 
+    describe("fun ${testee::disableCommand.name}") {
+
+        describe("error cases") {
+            errorCasesInvalidProjectId("Disabling a command of") { projectId ->
+                testee.disableCommand(projectId, 0)
+            }
+        }
+    }
 })
 

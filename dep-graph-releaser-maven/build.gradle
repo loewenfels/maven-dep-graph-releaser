@@ -4,6 +4,7 @@ buildscript {
 
 dependencies {
     compile prefixedProject('maven-api-jvm')
+    compile prefixedProject('manipulation')
     compile "ch.tutteli.copies:pom-explorer-core:$pom_explorer_version"
     compile "ch.tutteli:kbox:$kbox_version"
 }
