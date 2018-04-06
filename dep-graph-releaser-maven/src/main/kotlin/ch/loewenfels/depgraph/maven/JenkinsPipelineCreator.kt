@@ -17,7 +17,7 @@ class JenkinsPipelineCreator(
 ) {
 
     fun create(releasePlan: ReleasePlan): CharSequence {
-        val sb = StringBuilder()
+        val sb = StringBuilder("node(params.label) {\n\n")
         val itr = releasePlan.iterator().toPeekingIterator()
         var level: Int
         while (itr.hasNext()) {
@@ -33,8 +33,9 @@ class JenkinsPipelineCreator(
                 appended = appendIfNotSubmoduleOrNotMavenProject(nextParamObject, appended)
             }
 
-            sb.append("\n)}\n")
+            sb.append("\n)}\n\n")
         }
+        sb.append("}")
         return sb
     }
 
