@@ -40,6 +40,9 @@ This is necessary since the `pipeline.html` wants to include a javascript file a
 
 ## Release
 
+You can create a jenkinsfile based on the previously generated `release.json` as follows:
+`gr pipeline -PupdateDependencyJob=dep-graph-releaser-update -PremoteRegex="^.*" -PremoteJob=dep-graph-releaser-remote -PregexParams=".*#branch.name=master" -Pjenkinsfile=build/html/jenkinsfile` 
+
 Not (yet) supported.
 
 # Jenkins

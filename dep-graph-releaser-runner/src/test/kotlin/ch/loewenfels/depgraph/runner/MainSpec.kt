@@ -8,9 +8,7 @@ import ch.loewenfels.depgraph.runner.console.ErrorHandler
 import ch.loewenfels.depgraph.runner.console.FileVerifier
 import ch.loewenfels.depgraph.serialization.Serializer
 import ch.tutteli.atrium.*
-import ch.tutteli.atrium.api.cc.en_UK.containsRegex
-import ch.tutteli.atrium.api.cc.en_UK.isTrue
-import ch.tutteli.atrium.api.cc.en_UK.returnValueOf
+import ch.tutteli.atrium.api.cc.en_UK.*
 import ch.tutteli.spek.extensions.TempFolder
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.*
@@ -95,7 +93,7 @@ object MainSpec : Spek({
     }
 
     describe("pipeline") {
-        given("project A with dependent project B, remoteRegex=.* (happy case)") {
+        given("project A with dependent B, remoteRegex=.* (happy case)") {
             on("calling main") {
                 val jsonFile = callJson(tempFolder)
                 assert(jsonFile).returnValueOf(jsonFile::exists).isTrue()
@@ -120,7 +118,33 @@ object MainSpec : Spek({
                         "build job: 'dep-graph-releaser-remote'[\\S\\s]*?name: 'jobName', value: '${exampleB.id.artifactId}'"
                     )
                 }
+            }
+        }
 
+        val parameters = "branch.name=master"
+        given("project A with dependent B, remoteRegex=.* and regexParams=.*#$parameters )") {
+            on("calling main") {
+                val jsonFile = callJson(tempFolder)
+                assert(jsonFile).returnValueOf(jsonFile::exists).isTrue()
+
+                val jenkinsfile = File(tempFolder.tmpDir, "jenkinsfile")
+                Main.main(
+                    "pipeline",
+                    jsonFile.absolutePath,
+                    "dep-graph-releaser-updater",
+                    "^.*",
+                    "dep-graph-releaser-remote",
+                    "-jenkinsfile=${jenkinsfile.absolutePath}",
+                    "-regexParams=.*#$parameters"
+                )
+                it("creates a corresponding jenkinsfile") {
+                    assert(jenkinsfile).returnValueOf(jenkinsfile::exists).isTrue()
+                }
+
+                it("contains twice the parameters $parameters") {
+                    val content = jenkinsfile.readText()
+                    assert(content).contains.exactly(2).value("'parameters', value: '$parameters'")
+                }
             }
         }
     }

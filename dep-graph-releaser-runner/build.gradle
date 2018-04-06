@@ -116,19 +116,19 @@ task releasable {
 
 task pipeline {
     def updateDependencyJobArg = 'updateDependencyJob'
-    def regexArg = 'remoteRegex'
+    def remoteRegexArg = 'remoteRegex'
     def remoteJobArg = 'remoteJob'
     def paramsArg = 'regexParams'
     def jenkinsfileArg = 'jenkinsfile'
     inputs.property(updateDependencyJobArg, findProperty(updateDependencyJobArg))
-    inputs.property(regexArg, findProperty(regexArg))
+    inputs.property(remoteRegexArg, findProperty(remoteRegexArg))
     inputs.property(remoteJobArg, findProperty(remoteJobArg))
     inputs.property(paramsArg, findProperty(paramsArg) ?: '')
     inputs.property(jenkinsfileArg, findProperty(jenkinsfileArg) ?: '')
     inputs.files dist
     doLast {
         def updateDependencyJob = getDefinedParam(updateDependencyJobArg, updateDependencyJobArg)
-        def remoteRegex = getDefinedParam(regexArg, regexArg)
+        def remoteRegex = getDefinedParam(remoteRegexArg, remoteRegexArg)
         def remoteJob = getDefinedParam(remoteJobArg, remoteJobArg)
         def params = findProperty(paramsArg) != null ? ["-$paramsArg=${findProperty(paramsArg)}"] : []
         def jenkinsfile = findProperty(jenkinsfileArg) != null ? ["-$jenkinsfileArg=${findProperty(jenkinsfileArg)}"] : []
