@@ -4,11 +4,10 @@ import ch.loewenfels.depgraph.runner.console.expectedArgsAndGiven
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.maven.Analyser
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
-import ch.loewenfels.depgraph.runner.Main.fileVerifier
 import ch.loewenfels.depgraph.runner.Orchestrator
 import ch.loewenfels.depgraph.runner.console.ErrorHandler
 import ch.loewenfels.depgraph.runner.console.toOptionalArgs
-import com.google.common.base.Optional
+import ch.loewenfels.depgraph.runner.toVerifiedFile
 
 object Json : ConsoleCommand {
 
@@ -34,7 +33,7 @@ object Json : ConsoleCommand {
 
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
         val (_, groupId, artifactId, unsafeDirectoryToAnalyse, jsonFile) = args
-        val (disableReleaseFor, missingParentAnalysis ) = toOptionalArgs(args.drop(5), 2)
+        val (disableReleaseFor, missingParentAnalysis ) = args.drop(5).toOptionalArgs(2)
 
         val disableReleaseForRegex = if (disableReleaseFor != null) {
             if (!disableReleaseFor.startsWith(DISABLE_RELEASE_FOR) && disableReleaseFor.toLowerCase() != MAVEN_PARENT_ANALYSIS_OFF) {
@@ -77,7 +76,7 @@ object Json : ConsoleCommand {
             false
         }
 
-        val directoryToAnalyse = fileVerifier.file(unsafeDirectoryToAnalyse, "directory to analyse")
+        val directoryToAnalyse = unsafeDirectoryToAnalyse.toVerifiedFile("directory to analyse")
         if (!directoryToAnalyse.exists()) {
             errorHandler.error(
                 """
@@ -89,7 +88,7 @@ object Json : ConsoleCommand {
             )
         }
 
-        val json = fileVerifier.file(jsonFile, "json file")
+        val json = jsonFile.toVerifiedFile("json file")
         if (!json.parentFile.exists()) {
             errorHandler.error(
                 """

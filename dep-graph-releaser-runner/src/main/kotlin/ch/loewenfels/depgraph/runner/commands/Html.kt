@@ -1,8 +1,8 @@
 package ch.loewenfels.depgraph.runner.commands
 
 import ch.loewenfels.depgraph.runner.console.ErrorHandler
-import ch.loewenfels.depgraph.runner.Main.fileVerifier
 import ch.loewenfels.depgraph.runner.Orchestrator
+import ch.loewenfels.depgraph.runner.toVerifiedFile
 
 object Html : ConsoleCommand {
 
@@ -18,7 +18,7 @@ object Html : ConsoleCommand {
 
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
         val (_, outputDirPath) = args
-        val outputDir = fileVerifier.file(outputDirPath, "output directory")
+        val outputDir = outputDirPath.toVerifiedFile("output directory")
         if (!outputDir.exists()) {
             errorHandler.error(
                 """

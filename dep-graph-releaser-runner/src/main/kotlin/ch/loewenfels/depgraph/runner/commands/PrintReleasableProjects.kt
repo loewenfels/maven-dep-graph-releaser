@@ -1,8 +1,8 @@
 package ch.loewenfels.depgraph.runner.commands
 
 import ch.loewenfels.depgraph.runner.console.ErrorHandler
-import ch.loewenfels.depgraph.runner.Main.fileVerifier
 import ch.loewenfels.depgraph.runner.Orchestrator
+import ch.loewenfels.depgraph.runner.toVerifiedFile
 
 object PrintReleasableProjects : ConsoleCommand {
 
@@ -18,7 +18,7 @@ object PrintReleasableProjects : ConsoleCommand {
 
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
         val (_, unsafeDirectoryToAnalyse) = args
-        val directoryToAnalyse = fileVerifier.file(unsafeDirectoryToAnalyse, "directory to analyse")
+        val directoryToAnalyse = unsafeDirectoryToAnalyse.toVerifiedFile("directory to analyse")
         if (!directoryToAnalyse.exists()) {
             errorHandler.error(
                 """

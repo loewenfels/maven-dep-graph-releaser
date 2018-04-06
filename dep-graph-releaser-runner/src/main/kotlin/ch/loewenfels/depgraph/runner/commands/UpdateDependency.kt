@@ -2,8 +2,8 @@ package ch.loewenfels.depgraph.runner.commands
 
 import ch.loewenfels.depgraph.runner.console.ErrorHandler
 import ch.loewenfels.depgraph.runner.console.expectedArgsAndGiven
-import ch.loewenfels.depgraph.runner.Main.fileVerifier
 import ch.loewenfels.depgraph.runner.Orchestrator
+import ch.loewenfels.depgraph.runner.toVerifiedFile
 
 object UpdateDependency : ConsoleCommand {
 
@@ -22,7 +22,7 @@ object UpdateDependency : ConsoleCommand {
 
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
         val (_, pomFile, groupId, artifactId, newVersion) = args
-        val pom = fileVerifier.file(pomFile, "pom file")
+        val pom = pomFile.toVerifiedFile("pom file")
         if (!pom.exists()) {
             errorHandler.error(
                 """

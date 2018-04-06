@@ -131,11 +131,16 @@ object Orchestrator {
         json: File,
         remoteProjectRegex: Regex,
         remoteReleaseJobName: String,
-        regexParametersList: List<Pair<Regex, String>>
+        regexParametersList: List<Pair<Regex, String>>,
+        jenkinsfile: File?
     ) {
         val releasePlan = serializer.deserialize(json.readText())
         val creator = JenkinsPipelineCreator(remoteProjectRegex, remoteReleaseJobName, regexParametersList)
         val pipeline = creator.create(releasePlan)
-        println(pipeline)
+        if (jenkinsfile != null) {
+            jenkinsfile.writeText(pipeline.toString())
+        } else {
+            println(pipeline)
+        }
     }
 }
