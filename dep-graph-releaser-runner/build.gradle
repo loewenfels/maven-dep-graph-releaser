@@ -54,6 +54,21 @@ String getDefinedParam(String name, String represent) {
     return prop
 }
 
+task man {
+    def commandArg = 'command'
+    inputs.property(commandArg, findProperty(commandArg))
+    inputs.files dist
+    doLast {
+        def command = findProperty(commandArg) != null ? ["-$commandArg=${findProperty(commandArg)}"] : []
+        javaexec {
+            workingDir = rootProject.projectDir
+            classpath = fileTree("${project.buildDir}/dist/lib/")
+            main = 'ch.loewenfels.depgraph.runner.Main'
+            args = ['man'] + command
+        }
+    }
+}
+
 task json {
     def groupIdArg = 'g'
     def artifactIdArg = 'a'

@@ -40,10 +40,21 @@ This is necessary since the `pipeline.html` wants to include a javascript file a
 
 ## Release
 
-You can create a jenkinsfile based on the previously generated `release.json` as follows:
-`gr pipeline -PupdateDependencyJob=dep-graph-releaser-update -PremoteRegex="^.*" -PremoteJob=dep-graph-releaser-remote -PregexParams=".*#branch.name=master" -Pjenkinsfile=build/html/jenkinsfile` 
+You can create a jenkinsfile based on the previously generated `release.json` with the `pipeline` command.
 
-Not (yet) supported.
+Use the `man` command to get to know more about the command (or any other command) 
+ as follows:
+```
+gr man -Pcommand=pipeline
+``` 
+
+Following an example, in case you follow our conventions
+```
+gr pipeline -PupdateDependencyJob=dep-graph-releaser-update -PremoteRegex="^.*" -PremoteJob=dep-graph-releaser-remote -PregexParams=".*#branch.name=master" -Pjenkinsfile=build/html/jenkinsfile
+ ```
+
+See section [Jenkins - Release](#jenkins-release) for how to setup the Jenkins jobs
+
 
 # Jenkins
 
@@ -84,6 +95,8 @@ The following guide shows how you can integrate dep-graph-releaser with Jenkins.
       if you use mvn (to retrieve dependencies).
     - if you want to run Main directly then you can use the [zip](https://dl.bintray.com/loewenfels/oss/ch/loewenfels/dep-graph-releaser-runner/) (chose version and then *.zip)
       containing all necessary libraries as well as a `.bat`
+
+<a name="jenkins-release"></a>  
 
 ## Release
 
