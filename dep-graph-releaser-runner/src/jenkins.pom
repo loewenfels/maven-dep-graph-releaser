@@ -38,11 +38,23 @@
                         <configuration>
                             <arguments>
                                 <argument>json</argument>
-                                <argument>${groupId}</argument>
-                                <argument>${artifactId}</argument>
+                                <argument>${gId}</argument>
+                                <argument>${aId}</argument>
                                 <argument>${dir}</argument>
                                 <argument>${json}</argument>
                                 <argument>-dr=${disableRelease}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>releasable</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>
+                                <argument>releasable</argument>
+                                <argument>${dir}</argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -55,8 +67,8 @@
                             <arguments>
                                 <argument>update</argument>
                                 <argument>${pom}</argument>
-                                <argument>${groupId}</argument>
-                                <argument>${artifactId}</argument>
+                                <argument>${gId}</argument>
+                                <argument>${aId}</argument>
                                 <argument>${newVersion}</argument>
                             </arguments>
                         </configuration>
