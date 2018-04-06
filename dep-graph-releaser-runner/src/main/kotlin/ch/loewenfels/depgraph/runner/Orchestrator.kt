@@ -22,7 +22,7 @@ object Orchestrator {
         analyserOptions: Analyser.Options,
         releasePlanCreatorOptions: JenkinsReleasePlanCreator.Options
     ) {
-        logger.info({ "Going to analyse: ${directoryToAnalyse.canonicalPath}" })
+        logger.info({ "Going to analyse: ${directoryToAnalyse.absolutePath}" })
         val analyser = Analyser(directoryToAnalyse, analyserOptions)
         logger.info({ "Analysed ${analyser.getNumberOfProjects()} projects." })
 
@@ -32,16 +32,14 @@ object Orchestrator {
         logger.info("Release plan created.")
 
         logger.info("Going to serialize the release plan to a json file.")
-        if (outputFile.exists()) {
-            logger.info("The resulting json file already exists, going to overwrite it.")
-        }
+        logIfFileExists(outputFile, "resulting json file")
         val json = serializer.serialize(rootProject)
         outputFile.writeText(json)
-        logger.info({ "Created json file at: ${outputFile.canonicalPath}" })
+        logger.info({ "Created json file at: ${outputFile.absolutePath}" })
     }
 
     fun printReleasableProjects(directoryToAnalyse: File) {
-        logger.info({ "Going to analyse: ${directoryToAnalyse.canonicalPath}" })
+        logger.info({ "Going to analyse: ${directoryToAnalyse.absolutePath}" })
         val analyser = Analyser(directoryToAnalyse, Analyser.Options(false))
         logger.info({ "Analysed ${analyser.getNumberOfProjects()} projects." })
         val list = analyser.getAllReleaseableProjects().sortedBy { it.artifactId }.joinToString("\n") {
@@ -76,9 +74,7 @@ object Orchestrator {
 
     private fun copyResourceToFile(outputDir: File, input: String) {
         val outputFile = File(outputDir, input)
-        if (outputFile.exists()) {
-            logger.info("The file $input already exists, going to overwrite it.")
-        }
+        logIfFileExists(outputFile, "file $input")
         val stream = this::class.java.getResourceAsStream("/$input")
         check(stream != null) {
             "Could not find /$input, please verify it is part of the classpath"
@@ -88,7 +84,13 @@ object Orchestrator {
                 inputStream.copyTo(fileOut)
             }
         }
-        logger.fine("Created ${outputFile.canonicalPath}")
+        logger.fine("Created ${outputFile.absolutePath}")
+    }
+
+    private fun logIfFileExists(file: File, fileDescription: String) {
+        if (file.exists()) {
+            logger.info("The $fileDescription already exists, going to overwrite it.")
+        }
     }
 
     fun updateDependency(pom: File, groupId: String, artifactId: String, newVersion: String) {
@@ -129,15 +131,27 @@ object Orchestrator {
 
     fun jenkinsPipeline(
         json: File,
+        updateDependencyJobName: String,
         remoteProjectRegex: Regex,
         remoteReleaseJobName: String,
         regexParametersList: List<Pair<Regex, String>>,
         jenkinsfile: File?
     ) {
+        logger.info({ "Going to deserialize json: ${json.absolutePath}" })
         val releasePlan = serializer.deserialize(json.readText())
-        val creator = JenkinsPipelineCreator(remoteProjectRegex, remoteReleaseJobName, regexParametersList)
+        logger.info({ "Json deserialized" })
+
+        val creator = JenkinsPipelineCreator(
+            updateDependencyJobName,
+            remoteProjectRegex,
+            remoteReleaseJobName,
+            regexParametersList
+        )
+
+        logger.info({ "Going to generate the jenkinsfile" })
         val pipeline = creator.create(releasePlan)
         if (jenkinsfile != null) {
+            logIfFileExists(jenkinsfile, "resulting jenkinsfile")
             jenkinsfile.writeText(pipeline.toString())
         } else {
             println(pipeline)

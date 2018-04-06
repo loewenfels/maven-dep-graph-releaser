@@ -46,22 +46,26 @@ task distZip(type: Zip) {
 def htmlDir = file("${rootProject.buildDir}/html")
 def jsonFile = file("$htmlDir/release.json")
 
+String getDefinedParam(String name, String represent) {
+    def prop = findProperty(name)
+    if(prop == null) {
+        throw new IllegalArgumentException("you need to specify the $represent with -P$name")
+    }
+    return prop
+}
+
 task json {
-    inputs.property('g', findProperty('g'))
-    inputs.property('a', findProperty('a'))
+    def groupIdArg = 'g'
+    def artifactIdArg = 'a'
+    inputs.property(groupIdArg, findProperty(groupIdArg))
+    inputs.property(artifactIdArg, findProperty(artifactIdArg))
     inputs.property('dr', findProperty('dr') ?: '^$')
     inputs.property('mpoff', findProperty('mpoff') ?: 'on')
     inputs.files dist
     outputs.file jsonFile
     doLast {
-        def groupId = findProperty('g')
-        def artifactId = findProperty('a')
-        if (groupId == null) {
-            throw new IllegalArgumentException("you need to specify the groupId with -Pg")
-        }
-        if (artifactId == null) {
-            throw new IllegalArgumentException("you need to specify the artifactId with -Pa")
-        }
+        def groupId = getDefinedParam(groupIdArg, "groupId")
+        def artifactId = getDefinedParam(artifactIdArg, "artifactId")
         javaexec {
             workingDir = rootProject.projectDir
             classpath = fileTree("${project.buildDir}/dist/lib/")
@@ -106,6 +110,29 @@ task releasable {
             classpath = fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.Main'
             args = ['releasable', "${rootProject.projectDir}/repos"]
+        }
+    }
+}
+
+task pipeline {
+    def regexArg = 'remoteRegex'
+    def remoteJobArg = 'remoteJob'
+    def paramsArg = 'params'
+    inputs.property(regexArg, findProperty(regexArg))
+    inputs.property(remoteJobArg, findProperty(remoteJobArg))
+    inputs.property(paramsArg, findProperty(paramsArg))
+    inputs.property('file', findProperty('file') ?: '')
+    inputs.files dist
+    doLast {
+        def remoteRegex = getDefinedParam(regexArg, "remoteRegex")
+        def remoteJob = getDefinedParam(remoteJobArg, "remoteJob")
+        def params = getDefinedParam(paramsArg, "params")
+        def jenkinsfile = findProperty('file') != null ? [findProperty('file')] : []
+        javaexec {
+            workingDir = rootProject.projectDir
+            classpath = fileTree("${project.buildDir}/dist/lib/")
+            main = 'ch.loewenfels.depgraph.runner.Main'
+            args = ['pipeline', jsonFile.absolutePath, remoteRegex, remoteJob, params] + jenkinsfile
         }
     }
 }

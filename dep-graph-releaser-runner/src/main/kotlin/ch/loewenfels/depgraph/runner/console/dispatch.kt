@@ -35,7 +35,7 @@ fun dispatch(
     if (command.numOfArgsNotOk(nonBlankArgs.size)) {
         errorHandler.error(
             """
-            |Not enough or too many arguments supplied for command: json
+            |Not enough or too many arguments supplied for command: ${command.name}
             |
             |${expectedArgsAndGiven(command, nonBlankArgs)}
             |

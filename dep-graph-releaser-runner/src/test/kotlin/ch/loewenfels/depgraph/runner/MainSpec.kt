@@ -1,13 +1,15 @@
 package ch.loewenfels.depgraph.runner
 
-import ch.loewenfels.depgraph.runner.console.ErrorHandler
 import ch.loewenfels.depgraph.maven.getTestDirectory
-import ch.loewenfels.depgraph.runner.commands.Json.MAVEN_PARENT_ANALYSIS_OFF
 import ch.loewenfels.depgraph.runner.Main.errorHandler
 import ch.loewenfels.depgraph.runner.Main.fileVerifier
+import ch.loewenfels.depgraph.runner.commands.Json.MAVEN_PARENT_ANALYSIS_OFF
+import ch.loewenfels.depgraph.runner.console.ErrorHandler
 import ch.loewenfels.depgraph.runner.console.FileVerifier
 import ch.loewenfels.depgraph.serialization.Serializer
 import ch.tutteli.atrium.*
+import ch.tutteli.atrium.api.cc.en_UK.contains
+import ch.tutteli.atrium.api.cc.en_UK.containsRegex
 import ch.tutteli.atrium.api.cc.en_UK.isTrue
 import ch.tutteli.atrium.api.cc.en_UK.returnValueOf
 import ch.tutteli.spek.extensions.TempFolder
@@ -23,19 +25,14 @@ object MainSpec : Spek({
     errorHandler = object : ErrorHandler {
         override fun error(msg: String) = throw AssertionError(msg)
     }
-    fileVerifier = object: FileVerifier {
+    fileVerifier = object : FileVerifier {
         override fun file(path: String, fileDescription: String) = File(path)
     }
 
     describe("json") {
         given("project A with dependent project B (happy case)") {
             on("calling main") {
-                val jsonFile = File(tempFolder.tmpDir, "test.json")
-                Main.main(
-                    "json", "com.example", "a",
-                    getTestDirectory("managingVersions/inDependency").absolutePath,
-                    jsonFile.absolutePath
-                )
+                val jsonFile = callJson(tempFolder)
                 it("creates a corresponding json file") {
                     assert(jsonFile).returnValueOf(jsonFile::exists).isTrue()
                 }
@@ -97,4 +94,46 @@ object MainSpec : Spek({
             }
         }
     }
+
+    describe("pipeline") {
+        given("project A with dependent project B, remoteRegex=.* (happy case)") {
+            on("calling main") {
+                val jsonFile = callJson(tempFolder)
+                assert(jsonFile).returnValueOf(jsonFile::exists).isTrue()
+
+                val jenkinsfile = File(tempFolder.tmpDir, "jenkinsfile")
+                Main.main(
+                    "pipeline",
+                    jsonFile.absolutePath,
+                    "dep-graph-releaser-updater",
+                    "^.*",
+                    "dep-graph-releaser-remote",
+                    ".*#branch=master",
+                    jenkinsfile.absolutePath
+                )
+                it("creates a corresponding jenkinsfile") {
+                    assert(jenkinsfile).returnValueOf(jenkinsfile::exists).isTrue()
+                }
+
+                it("contains remote release command for both a and b") {
+                    val content = jenkinsfile.readText()
+                    assert(content).containsRegex(
+                        "build job: 'dep-graph-releaser-remote'[\\S\\s]*?name: 'jobName', value: '${exampleA.id.artifactId}'",
+                        "build job: 'dep-graph-releaser-remote'[\\S\\s]*?name: 'jobName', value: '${exampleB.id.artifactId}'"
+                    )
+                }
+
+            }
+        }
+    }
 })
+
+private fun callJson(tempFolder: TempFolder): File {
+    val jsonFile = File(tempFolder.tmpDir, "test.json")
+    Main.main(
+        "json", "com.example", "a",
+        getTestDirectory("managingVersions/inDependency").absolutePath,
+        jsonFile.absolutePath
+    )
+    return jsonFile
+}

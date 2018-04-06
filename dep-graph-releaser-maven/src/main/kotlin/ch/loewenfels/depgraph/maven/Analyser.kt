@@ -148,7 +148,7 @@ class Analyser internal constructor(
 
         if (duplicates.isNotEmpty()) {
             sb.append("Found duplicated projects in the given `directoryWithProjects`.\n")
-                .append("directory: ${directoryWithProjects.canonicalPath}\n")
+                .append("directory: ${directoryWithProjects.absolutePath}\n")
                 .append("duplicates:\n\n")
             duplicates.values.appendToStringBuilder(sb, "\n\n") { projects, _ ->
                 projects.appendToStringBuilder(sb, "\n") { project, _ ->
@@ -170,7 +170,7 @@ class Analyser internal constructor(
         check(sb.isEmpty()) { sb.toString() }
     }
 
-    private fun projectToString(project: Project): String = "${project.gav} (${project.pomFile.canonicalPath})"
+    private fun projectToString(project: Project): String = "${project.gav} (${project.pomFile.absolutePath})"
 
     private fun analyseSubmodules(): kotlin.Pair<Map<MavenProjectId, Set<MavenProjectId>>, Map<MavenProjectId, MavenProjectId>> {
         val submodulesOfProjectId = hashMapOf<MavenProjectId, HashSet<MavenProjectId>>()
@@ -246,7 +246,7 @@ class Analyser internal constructor(
     fun getNumberOfProjects(): Int = projectIds.size
 
     fun getErroneousPomFiles(): List<String> = pomAnalysis.erroneousPomFiles.map {
-        "Error reading pom file.\nFile: ${it.pomFile.canonicalPath}\nMessage: ${it.cause!!.message}"
+        "Error reading pom file.\nFile: ${it.pomFile.absolutePath}\nMessage: ${it.cause!!.message}"
     }
 
     fun hasSubmodules(projectId: MavenProjectId) = submodulesOfProjectId.containsKey(projectId)

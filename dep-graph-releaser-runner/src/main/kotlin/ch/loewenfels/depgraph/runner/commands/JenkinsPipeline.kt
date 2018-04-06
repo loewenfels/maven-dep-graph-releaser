@@ -9,23 +9,28 @@ object JenkinsPipeline : ConsoleCommand {
 
     override val name = "pipeline"
     override val description = "generate and print a jenkinsfile or writes it to the specified file"
-    override val example = "./produce $name ./release.json \"^.*\" dep-graph-releaser-remote \".*|branch=master\""
+    override val example =
+        "./produce $name ./release.json \"^.*\" dep-graph-releaser-remote dep-graph-releaser-updater \".*#branch=master\""
     override val arguments = """
         |$name requires the following arguments in the given order:
-        |json             // path to the release.json
-        |remoteRegex      // regex which specifies which projects are released remotely
-        |remoteJobName    // the job which triggers the remote build
-        |regexParameters  // parameters of the form regex#a=b;c=d$.*#e=f where the regex defines for
-        |                 // which job the parameters shall apply. Multiple regex can be specified.
-        |                 // In the above, .* matches all, so every job gets e=f as argument
-        |(jenkinsfile)    // optionally: a path to the jenkinsfile, it gets printed to the console if not present
+        |json                      // path to the release.json
+        |updateDependencyJobName   // the name of the update dependency job
+        |remoteRegex               // regex which specifies which projects are released remotely
+        |remoteJobName             // the job which triggers the remote build
+        |regexParameters           // parameters of the form regex#a=b;c=d$.*#e=f where the regex defines for
+        |                          // which job the parameters shall apply. Multiple regex can be specified.
+        |                          // In the above, .* matches all, so every job gets e=f as argument.
+        |(jenkinsfile)             // optionally: a path to the resulting jenkinsfile,
+        |                          // it gets printed to the console if not present
         """.trimMargin()
 
-    override fun numOfArgsNotOk(number: Int) = number < 5 || number > 6
+    override fun numOfArgsNotOk(number: Int) = number < 6 || number > 7
 
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
-        val (_, jsonFile, remoteRegex, remoteJobName, regexParameters) = args
-        val (jenkinsFilePath) = args.drop(5).toOptionalArgs(1)
+        val (_, jsonFile, updateDependencyJobName, remoteRegex, remoteJobName) = args
+        val afterFirst5 = args.drop(5)
+        val (regexParameters) = afterFirst5
+        val (jenkinsFilePath) = afterFirst5.drop(1).toOptionalArgs(1)
 
         val json = jsonFile.toVerifiedFile("json file")
         if (!json.exists()) {
@@ -56,7 +61,14 @@ object JenkinsPipeline : ConsoleCommand {
             )
         }
 
-        Orchestrator.jenkinsPipeline(json, Regex(remoteRegex), remoteJobName, regexParametersList, jenkinsfile)
+        Orchestrator.jenkinsPipeline(
+            json,
+            updateDependencyJobName,
+            Regex(remoteRegex),
+            remoteJobName,
+            regexParametersList,
+            jenkinsfile
+        )
     }
 
     private fun checkRegexNotEmpty(pair: String, errorHandler: ErrorHandler, regexParameters: String): Int {

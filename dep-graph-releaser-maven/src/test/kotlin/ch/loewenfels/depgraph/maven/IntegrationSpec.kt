@@ -105,7 +105,7 @@ object IntegrationSpec : Spek({
                 }.toThrow<IllegalStateException> {
                     message {
                         contains(
-                            "${exampleB.id.identifier}:${exampleB.currentVersion} (${b.canonicalPath})",
+                            "${exampleB.id.identifier}:${exampleB.currentVersion} (${b.absolutePath})",
                             "${exampleA.id.identifier}:1.0.0"
                         )
                     }
@@ -140,7 +140,7 @@ object IntegrationSpec : Spek({
                 val pom = File(testDir, "b.pom")
                 val releasePlan = analyseAndCreateReleasePlan(exampleA.id, testDir)
                 assert(releasePlan.warnings).containsStrictly({
-                    contains(pom.canonicalPath)
+                    contains(pom.absolutePath)
                 })
             }
         }
@@ -150,7 +150,7 @@ object IntegrationSpec : Spek({
                 val pom = File(testDir, "b.pom")
                 val releasePlan = analyseAndCreateReleasePlan(exampleA.id, testDir)
                 assert(releasePlan.warnings).containsStrictly({
-                    contains(pom.canonicalPath)
+                    contains(pom.absolutePath)
                 })
             }
         }
@@ -1088,9 +1088,9 @@ private fun SpecBody.testDuplicateProject(directory: String, vararg poms: Pair<S
         }.toThrow<IllegalStateException> {
             message {
                 contains(
-                    "directory: ${testDirectory.canonicalPath}",
+                    "directory: ${testDirectory.absolutePath}",
                     *poms.map {
-                        "${exampleA.id.identifier}:${it.second} (${File(testDirectory, it.first).canonicalPath})"
+                        "${exampleA.id.identifier}:${it.second} (${File(testDirectory, it.first).absolutePath})"
                     }.toTypedArray()
                 )
             }
