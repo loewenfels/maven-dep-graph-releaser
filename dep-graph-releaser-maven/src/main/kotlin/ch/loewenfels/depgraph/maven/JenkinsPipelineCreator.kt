@@ -24,7 +24,7 @@ class JenkinsPipelineCreator(
             val project = itr.next()
             level = project.level
 
-            sb.append("parallel(\n")
+            sb.append("stage('level $level'){ parallel(\n")
 
             val paramObject = ParamObject(sb, project, releasePlan)
             var appended = appendIfNotSubmoduleOrNotMavenProject(paramObject, false)
@@ -33,7 +33,7 @@ class JenkinsPipelineCreator(
                 appended = appendIfNotSubmoduleOrNotMavenProject(nextParamObject, appended)
             }
 
-            sb.append("\n)\n")
+            sb.append("\n)}\n")
         }
         return sb
     }
