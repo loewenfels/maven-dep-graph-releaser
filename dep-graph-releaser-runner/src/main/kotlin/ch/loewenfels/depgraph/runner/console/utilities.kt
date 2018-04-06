@@ -10,15 +10,35 @@ fun expectedArgsAndGiven(command: ConsoleCommand, args: Array<out String>) = """
 
 fun getGivenArgs(args: Array<out String>) = "Given: ${args.joinToString(" ")}"
 
-fun List<String>.toOptionalArgs(number: Int): List<String?> {
-    require(size <= number) {
-        "There are more arguments than specified. Expected to create at max $number optional arguments." +
-            "\nGiven: ${this.joinToString(",")}"
+internal fun List<String>.toOptionalArgs(
+    errorHandler: ErrorHandler,
+    vararg params: String
+): List<String?> {
+    val numOfOptionalArgs = params.size
+    if (numOfOptionalArgs < size) {
+        errorHandler.error(
+            "There are more arguments than specified. " +
+                "Expected to create at max $numOfOptionalArgs optional arguments." +
+                "\nGiven: ${this.joinToString()}" +
+                "\nAccepted optional arguments: ${params.joinToString()}"
+        )
     }
-    val optionalList = ArrayList<String?>(number)
-    optionalList.addAll(this)
-    for (i in size until number) {
-        optionalList.add(null)
+    val optionalList = ArrayList<String?>((0 until numOfOptionalArgs).map { null })
+    this.forEach { arg ->
+        var found = false
+        params.forEachIndexed { index, param ->
+            if (arg.startsWith(param)) {
+                optionalList[index] = arg.substringAfter(param)
+                found = true
+            }
+        }
+        if (!found) {
+            errorHandler.error(
+                "Unknown optional argument passed." +
+                    "\nArgument: $arg" +
+                    "\nAccepted optional arguments: ${params.joinToString()}"
+            )
+        }
     }
     return optionalList
 }

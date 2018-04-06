@@ -84,7 +84,7 @@ object Orchestrator {
                 inputStream.copyTo(fileOut)
             }
         }
-        logger.fine("Created ${outputFile.absolutePath}")
+        logger.fine({"Created ${outputFile.absolutePath}"})
     }
 
     private fun logIfFileExists(file: File, fileDescription: String) {
@@ -119,12 +119,12 @@ object Orchestrator {
             pollEverySecond,
             parameters
         )
-        logger.info(
+        logger.info({
             "trigger release for $jobName." +
                 "\nRelease version:  $releaseVersion" +
                 "\nNext dev version: $nextDevVersion" +
                 "\nParameters: $parameters"
-        )
+        })
         releaser.release(jobName, releaseVersion, nextDevVersion)
         logger.info("released $jobName with release version $releaseVersion and next dev version $nextDevVersion")
     }
@@ -139,7 +139,7 @@ object Orchestrator {
     ) {
         logger.info({ "Going to deserialize json: ${json.absolutePath}" })
         val releasePlan = serializer.deserialize(json.readText())
-        logger.info({ "Json deserialized" })
+        logger.info( "Json deserialized" )
 
         val creator = JenkinsPipelineCreator(
             updateDependencyJobName,
@@ -148,11 +148,12 @@ object Orchestrator {
             regexParametersList
         )
 
-        logger.info({ "Going to generate the jenkinsfile" })
+        logger.info("Going to generate the jenkinsfile")
         val pipeline = creator.create(releasePlan)
         if (jenkinsfile != null) {
             logIfFileExists(jenkinsfile, "resulting jenkinsfile")
             jenkinsfile.writeText(pipeline.toString())
+            logger.info({"Created ${jenkinsfile.absolutePath}"})
         } else {
             println(pipeline)
         }

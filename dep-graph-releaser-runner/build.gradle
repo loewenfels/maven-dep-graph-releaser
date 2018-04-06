@@ -115,24 +115,28 @@ task releasable {
 }
 
 task pipeline {
+    def updateDependencyJobArg = 'updateDependencyJob'
     def regexArg = 'remoteRegex'
     def remoteJobArg = 'remoteJob'
-    def paramsArg = 'params'
+    def paramsArg = 'regexParams'
+    def jenkinsfileArg = 'jenkinsfile'
+    inputs.property(updateDependencyJobArg, findProperty(updateDependencyJobArg))
     inputs.property(regexArg, findProperty(regexArg))
     inputs.property(remoteJobArg, findProperty(remoteJobArg))
-    inputs.property(paramsArg, findProperty(paramsArg))
-    inputs.property('file', findProperty('file') ?: '')
+    inputs.property(paramsArg, findProperty(paramsArg) ?: '')
+    inputs.property(jenkinsfileArg, findProperty(jenkinsfileArg) ?: '')
     inputs.files dist
     doLast {
-        def remoteRegex = getDefinedParam(regexArg, "remoteRegex")
-        def remoteJob = getDefinedParam(remoteJobArg, "remoteJob")
-        def params = getDefinedParam(paramsArg, "params")
-        def jenkinsfile = findProperty('file') != null ? [findProperty('file')] : []
+        def updateDependencyJob = getDefinedParam(updateDependencyJobArg, updateDependencyJobArg)
+        def remoteRegex = getDefinedParam(regexArg, regexArg)
+        def remoteJob = getDefinedParam(remoteJobArg, remoteJobArg)
+        def params = findProperty(paramsArg) != null ? ["-$paramsArg=${findProperty(paramsArg)}"] : []
+        def jenkinsfile = findProperty(jenkinsfileArg) != null ? ["-$jenkinsfileArg=${findProperty(jenkinsfileArg)}"] : []
         javaexec {
             workingDir = rootProject.projectDir
             classpath = fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.Main'
-            args = ['pipeline', jsonFile.absolutePath, remoteRegex, remoteJob, params] + jenkinsfile
+            args = ['pipeline', jsonFile.absolutePath, updateDependencyJob, remoteRegex, remoteJob] + params + jenkinsfile
         }
     }
 }

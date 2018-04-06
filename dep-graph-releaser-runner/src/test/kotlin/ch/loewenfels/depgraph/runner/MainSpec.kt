@@ -8,7 +8,6 @@ import ch.loewenfels.depgraph.runner.console.ErrorHandler
 import ch.loewenfels.depgraph.runner.console.FileVerifier
 import ch.loewenfels.depgraph.serialization.Serializer
 import ch.tutteli.atrium.*
-import ch.tutteli.atrium.api.cc.en_UK.contains
 import ch.tutteli.atrium.api.cc.en_UK.containsRegex
 import ch.tutteli.atrium.api.cc.en_UK.isTrue
 import ch.tutteli.atrium.api.cc.en_UK.returnValueOf
@@ -108,8 +107,7 @@ object MainSpec : Spek({
                     "dep-graph-releaser-updater",
                     "^.*",
                     "dep-graph-releaser-remote",
-                    ".*#branch=master",
-                    jenkinsfile.absolutePath
+                    "-jenkinsfile=${jenkinsfile.absolutePath}"
                 )
                 it("creates a corresponding jenkinsfile") {
                     assert(jenkinsfile).returnValueOf(jenkinsfile::exists).isTrue()
