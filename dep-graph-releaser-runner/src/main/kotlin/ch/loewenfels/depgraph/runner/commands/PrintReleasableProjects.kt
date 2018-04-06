@@ -8,7 +8,7 @@ object PrintReleasableProjects : ConsoleCommand {
 
     override val name = "releasable"
     override val description = "prints all releasable projects"
-    override val example = "./produce releasable ./repos"
+    override val example = "./produce $name ./repos"
     override val arguments = """
         |$name requires the following arguments in the given order:
         |dir         // path to the directory where all projects are

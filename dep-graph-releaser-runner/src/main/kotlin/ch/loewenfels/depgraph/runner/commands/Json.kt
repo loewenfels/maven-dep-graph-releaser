@@ -17,7 +17,7 @@ object Json : ConsoleCommand {
 
     override val name = "json"
     override val description = "analyse projects, create a release plan and serialize it to json"
-    override val example = "./produce json com.example example-project ./repo ./release.json"
+    override val example = "./produce $name com.example example-project ./repo ./release.json"
     override val arguments by lazy {
         """
         |$name requires the following arguments in the given order:

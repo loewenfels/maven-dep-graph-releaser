@@ -4,6 +4,7 @@ import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.jenkins.RemoteJenkinsM2Releaser
 import ch.loewenfels.depgraph.manipulation.RegexBasedVersionUpdater
 import ch.loewenfels.depgraph.maven.Analyser
+import ch.loewenfels.depgraph.maven.JenkinsPipelineCreator
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
 import ch.loewenfels.depgraph.maven.VersionDeterminer
 import ch.loewenfels.depgraph.serialization.Serializer
@@ -124,5 +125,17 @@ object Orchestrator {
         )
         releaser.release(jobName, releaseVersion, nextDevVersion)
         logger.info("released $jobName with release version $releaseVersion and next dev version $nextDevVersion")
+    }
+
+    fun jenkinsPipeline(
+        json: File,
+        remoteProjectRegex: Regex,
+        remoteReleaseJobName: String,
+        regexParametersList: List<Pair<Regex, String>>
+    ) {
+        val releasePlan = serializer.deserialize(json.readText())
+        val creator = JenkinsPipelineCreator(remoteProjectRegex, remoteReleaseJobName, regexParametersList)
+        val pipeline = creator.create(releasePlan)
+        println(pipeline)
     }
 }

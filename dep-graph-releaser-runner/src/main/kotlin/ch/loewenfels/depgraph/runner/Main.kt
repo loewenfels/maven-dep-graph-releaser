@@ -11,7 +11,8 @@ object Main {
             PrintReleasableProjects,
             Html,
             UpdateDependency,
-            JenkinsRemoteM2Release
+            JenkinsRemoteM2Release,
+            JenkinsPipeline
         )
         dispatch(args, errorHandler, commands)
     }
@@ -19,5 +20,3 @@ object Main {
     internal var errorHandler: ErrorHandler = SystemExitErrorHandler
     internal var fileVerifier: FileVerifier = OnlyFolderAndSubFolderFileVerifier
 }
-
-
