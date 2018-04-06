@@ -1,11 +1,11 @@
 package ch.loewenfels.depgraph.gui
 
-import ch.loewenfels.depgraph.PeekingIterator
 import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
+import ch.loewenfels.depgraph.hasNextOnTheSameLevel
 import ch.loewenfels.depgraph.toPeekingIterator
 import kotlinx.html.*
 import kotlinx.html.dom.append
@@ -35,7 +35,7 @@ class Gui(private val releasePlan: ReleasePlan) {
                         project(project)
                     }
                     set.add(project.id)
-                    while (hasNextOnTheSameLevel(itr, level)) {
+                    while (itr.hasNextOnTheSameLevel(level)) {
                         val nextProject = itr.next()
                         if (!nextProject.isSubmodule) {
                             project(nextProject)
@@ -53,12 +53,6 @@ class Gui(private val releasePlan: ReleasePlan) {
             )
         }
     }
-
-    private fun hasNextOnTheSameLevel(
-        itr: PeekingIterator<Project>,
-        level: Int
-    ) = itr.hasNext() && level == itr.peek().level
-
 
     private fun DIV.project(project: Project) {
         div {
