@@ -331,10 +331,11 @@ class JenkinsReleasePlanCreator(
 
     private fun disableProjectsAsDefinedInOptions(releasePlan: ReleasePlan): ReleasePlan {
         var transformedReleasePlan = releasePlan
+        val deactivatedProjects = hashSetOf<String>()
         releasePlan.getProjects().forEach { project ->
             val projectId = project.id
             if (options.disableReleaseFor.matches(projectId.identifier)) {
-                logger.info("Deactivate release commands of ${projectId.identifier} due to the specified disableReleaseFor regex: ${options.disableReleaseFor.pattern}")
+                deactivatedProjects.add(projectId.identifier)
                 project.commands.asSequence()
                     .mapIndexed { index, it -> index to it }
                     .filter { (_, command) -> command is ReleaseCommand && command.state !== CommandState.Disabled }
@@ -345,6 +346,13 @@ class JenkinsReleasePlanCreator(
                         return@inner
                     }
             }
+        }
+        if(deactivatedProjects.isNotEmpty()){
+            logger.info("Deactivated release commands of the following projects " +
+                "due to the specified disableReleaseFor regex." +
+                "\nRegex: ${options.disableReleaseFor.pattern}" +
+                "\nProjects:\n" +  deactivatedProjects.sorted().joinToString("\n")
+            )
         }
         return transformedReleasePlan
     }
