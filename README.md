@@ -26,7 +26,7 @@ It generates kind of a bottom up dependency graph, or in other words a dependent
 
 Add the projects you want to analyse to the folder `repos` (in the project directory) and run the following gradle command:
 ````
-gr html -Pg=your.group.id -Pa=the.artifact.id
+gr html -PgId=your.group.id -PaId=the.artifact.id
 ````
 This creates a `pipeline.html` in the folder `rootFolder/build/html`. 
 

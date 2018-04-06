@@ -70,8 +70,8 @@ task man {
 }
 
 task json {
-    def groupIdArg = 'g'
-    def artifactIdArg = 'a'
+    def groupIdArg = 'gId'
+    def artifactIdArg = 'aId'
     inputs.property(groupIdArg, findProperty(groupIdArg))
     inputs.property(artifactIdArg, findProperty(artifactIdArg))
     inputs.property('dr', findProperty('dr') ?: '^$')
