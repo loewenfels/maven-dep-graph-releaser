@@ -38,7 +38,8 @@ fun deserializeProjects(releasePlanJson: ReleasePlanJson): Map<ProjectId, Projec
         val projectId = createProjectId(it.id)
         map[projectId] = Project(
             projectId, it.isSubmodule, it.currentVersion, it.releaseVersion, it.level,
-            deserializeCommands(it.commands)
+            deserializeCommands(it.commands),
+            it.relativePath
         )
     }
     return map
@@ -124,6 +125,7 @@ external interface ProjectJson {
     val releaseVersion: String
     val level: Int
     val commands: Array<GenericType<Command>>
+    val relativePath: String
 }
 
 external interface GenericType<out T> {

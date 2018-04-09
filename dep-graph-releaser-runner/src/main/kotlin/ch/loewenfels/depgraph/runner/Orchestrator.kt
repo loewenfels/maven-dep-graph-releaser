@@ -42,7 +42,7 @@ object Orchestrator {
         logger.info({ "Going to analyse: ${directoryToAnalyse.absolutePath}" })
         val analyser = Analyser(directoryToAnalyse, Analyser.Options(false))
         logger.info({ "Analysed ${analyser.getNumberOfProjects()} projects." })
-        val list = analyser.getAllReleaseableProjects().sortedBy { it.artifactId }.joinToString("\n") {
+        val list = analyser.getAllReleasableProjects().sortedBy { it.artifactId }.joinToString("\n") {
             it.artifactId.padEnd(30, " -") + " groupId: " + it.groupId
         }
         println(list)

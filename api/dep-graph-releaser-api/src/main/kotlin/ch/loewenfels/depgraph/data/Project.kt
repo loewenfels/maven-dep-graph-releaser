@@ -26,19 +26,37 @@ data class Project(
      * To be complete, A has level 1 and ROOT has level 0.
      */
     val level: Int,
-    val commands: List<Command>
+    val commands: List<Command>,
+    /**
+     * The relative path to this project from the root directory of the analysis.
+     */
+    val relativePath: String
 ) {
     /**
      * Copy constructor for the use case, that only the commands of the project need to change.
      */
     constructor(project: Project, commands: List<Command>) :
-        this(project.id, project.isSubmodule, project.currentVersion, project.releaseVersion, project.level, commands)
-//    this(project.id, project.currentVersion, project.releaseVersion, project.level, commands)
+        this(
+            project.id,
+            project.isSubmodule,
+            project.currentVersion,
+            project.releaseVersion,
+            project.level,
+            commands,
+            project.relativePath
+        )
 
     /**
      * Copy constructor for the use case, that only the level of the projects needs to change.
      */
     constructor(project: Project, level: Int) :
-        this(project.id, project.isSubmodule, project.currentVersion, project.releaseVersion, level, project.commands)
-//        this(project.id,  project.currentVersion, project.releaseVersion, level, project.commands)
+        this(
+            project.id,
+            project.isSubmodule,
+            project.currentVersion,
+            project.releaseVersion,
+            level,
+            project.commands,
+            project.relativePath
+        )
 }

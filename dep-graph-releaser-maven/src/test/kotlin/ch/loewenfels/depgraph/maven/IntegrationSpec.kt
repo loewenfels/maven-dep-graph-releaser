@@ -969,8 +969,8 @@ private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, testDirecto
     return analyseAndCreateReleasePlan(projectToRelease, analyser)
 }
 
-private fun createAnalyserWhichDoesNotResolve(testDirectory: File): Analyser =
-    Analyser(testDirectory, Session(), mock())
+private fun createAnalyserWhichDoesNotResolve(testDirectory: File): Analyser
+    = Analyser(testDirectory, Session(), mock())
 
 private fun analyseAndCreateReleasePlan(
     projectToRelease: ProjectId,

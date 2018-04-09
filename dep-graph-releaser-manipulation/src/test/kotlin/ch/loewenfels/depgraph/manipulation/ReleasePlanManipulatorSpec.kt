@@ -14,7 +14,7 @@ import org.jetbrains.spek.api.dsl.*
 
 object ReleasePlanManipulatorSpec : Spek({
     val rootProjectId = MavenProjectId("com.example", "a")
-    val rootProject = Project(rootProjectId, false, "1.1.0-SNAPSHOT", "1.2.0", 0, listOf())
+    val rootProject = Project(rootProjectId, false, "1.1.0-SNAPSHOT", "1.2.0", 0, listOf(), "")
 
     val projectWithDependentId = MavenProjectId("com.example", "b")
     val projectWithDependentUpdateDependency =
@@ -25,7 +25,7 @@ object ReleasePlanManipulatorSpec : Spek({
         projectWithDependentUpdateDependency,
         projectWithDependentJenkinsRelease
     )
-    val projectWithDependent = Project(projectWithDependentId, false, "2.0", "3.0", 1, projectWithDependentCommands)
+    val projectWithDependent = Project(projectWithDependentId, false, "2.0", "3.0", 1, projectWithDependentCommands, "")
 
     val projectWithoutDependentId = MavenProjectId("com.example", "c")
     val projectWithoutDependentUpdateDependency1 =
@@ -48,7 +48,7 @@ object ReleasePlanManipulatorSpec : Spek({
         projectWithoutDependentJenkinsRelease
     )
     val projectWithoutDependent =
-        Project(projectWithoutDependentId, false, "4.0", "4.1", 2, projectWithoutDependentCommands)
+        Project(projectWithoutDependentId, false, "4.0", "4.1", 2, projectWithoutDependentCommands, "")
 
     val dependents = mapOf<ProjectId, Set<MavenProjectId>>(
         rootProjectId to setOf(projectWithDependentId),

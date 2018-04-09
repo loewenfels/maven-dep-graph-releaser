@@ -15,24 +15,32 @@ import org.jetbrains.spek.api.dsl.it
 
 object ReleasePlanSpec : Spek({
 
+
+    fun createProject(
+        id: ProjectId,
+        isSubmodule: Boolean,
+        currentVersion: String,
+        releaseVersion: String, level: Int
+    ) = Project(id, isSubmodule, currentVersion, releaseVersion, level, listOf(), "")
+
     describe("iterator") {
 
         given("root project with dependent parent project with three children each on a different level"){
 
             val rootProjectId = MavenProjectId("com.example", "parent-parent")
-            val rootProject = Project(rootProjectId, false, "1.1.0-SNAPSHOT", "1.2.0", 0, listOf())
+            val rootProject = createProject(rootProjectId, false, "1.1.0-SNAPSHOT", "1.2.0", 0)
 
             val parentId = MavenProjectId("com.example", "parent")
-            val parent = Project(parentId, false, "1.1.0-SNAPSHOT", "1.2.0", 1, listOf())
+            val parent = createProject(parentId, false, "1.1.0-SNAPSHOT", "1.2.0", 1)
 
             val projectInterfaceId = MavenProjectId("com.example", "interface")
-            val projectInterface = Project(projectInterfaceId, false, "2.0", "3.0", 2, listOf())
+            val projectInterface = createProject(projectInterfaceId, false, "2.0", "3.0", 2)
 
             val projectAnnotationsId = MavenProjectId("com.example", "annotations")
-            val projectAnnotations = Project(projectAnnotationsId, false, "4.0", "4.1", 3, listOf())
+            val projectAnnotations = createProject(projectAnnotationsId, false, "4.0", "4.1", 3)
 
             val projectNotifierId = MavenProjectId("com.example", "notifier")
-            val projectNotifier = Project(projectNotifierId, false, "5.0", "5.1", 4, listOf())
+            val projectNotifier = createProject(projectNotifierId, false, "5.0", "5.1", 4)
 
             val dependents = mapOf<ProjectId, Set<MavenProjectId>>(
                 rootProjectId to setOf(parentId),
@@ -69,13 +77,13 @@ object ReleasePlanSpec : Spek({
         }
 
         val multiModuleId = MavenProjectId("com.example", "multi")
-        val multiModule = Project(multiModuleId, false, "1.1.0-SNAPSHOT", "1.2.0", 0, listOf())
+        val multiModule = createProject(multiModuleId, false, "1.1.0-SNAPSHOT", "1.2.0", 0)
 
         val submodule1Id = MavenProjectId("com.example", "sub1")
-        val submodule = Project(submodule1Id, true, "1.1.0-SNAPSHOT", "1.2.0", 0, listOf())
+        val submodule = createProject(submodule1Id, true, "1.1.0-SNAPSHOT", "1.2.0", 0)
 
         val submodule2Id = MavenProjectId("com.example", "sub2")
-        val submodule2 = Project(submodule2Id, true, "2.0", "3.0", 0, listOf())
+        val submodule2 = createProject(submodule2Id, true, "2.0", "3.0", 0)
 
 
 
@@ -107,7 +115,7 @@ object ReleasePlanSpec : Spek({
 
         given("multi module project with two submodules and one dependent") {
             val dependentId = MavenProjectId("com.example", "dependent")
-            val dependent = Project(dependentId, false, "4.1.0-SNAPSHOT", "4.2.0", 1, listOf())
+            val dependent = createProject(dependentId, false, "4.1.0-SNAPSHOT", "4.2.0", 1)
 
             val dependents = mapOf<ProjectId, Set<MavenProjectId>>(
                 multiModuleId to setOf(dependentId, submodule1Id, submodule2Id),

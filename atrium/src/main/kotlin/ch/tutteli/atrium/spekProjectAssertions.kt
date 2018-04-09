@@ -32,12 +32,27 @@ fun TestContainer.assertProjectAWithDependentBWithDependentC(
     projectB: IdAndVersions = exampleB
 ) {
     assertRootProjectWithDependents(releasePlan, exampleA, projectB)
+    assertHasRelativePath(releasePlan, "root", exampleA, "a.pom")
 
     assertOneDirectDependent(releasePlan, "direct dependent", projectB, exampleC)
+    assertHasRelativePath(releasePlan, "direct dependent", projectB, "b.pom")
+
     assertOneUpdateAndOneReleaseCommand(releasePlan, "indirect dependent", exampleC, exampleB)
     assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
+    assertHasRelativePath(releasePlan, "indirect dependent", exampleC, "c.pom")
 
     assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
+}
+
+private fun TestContainer.assertHasRelativePath(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    relativePath: String
+) {
+    test("$name has relative path $relativePath") {
+        assert(releasePlan.getProject(project.id).relativePath).toBe(relativePath)
+    }
 }
 
 fun TestContainer.assertMultiModuleAWithSubmoduleBWithDependentC(

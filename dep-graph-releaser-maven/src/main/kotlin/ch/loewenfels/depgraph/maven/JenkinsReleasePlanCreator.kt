@@ -61,7 +61,8 @@ class JenkinsReleasePlanCreator(
                 analyser, projectToRelease, currentVersion!!, CommandState.Ready
             )
         )
-        return createInitialProject(projectToRelease, false, currentVersion, 0, commands)
+        val relativePath = analyser.getRelativePath(projectToRelease)
+        return createInitialProject(projectToRelease, false, currentVersion, 0, commands, relativePath)
     }
 
     private fun createInitialProject(
@@ -69,14 +70,16 @@ class JenkinsReleasePlanCreator(
         isSubmodule: Boolean,
         currentVersion: String,
         level: Int,
-        commands: List<Command>
+        commands: List<Command>,
+        relativePath: String
     ) = Project(
         projectId,
         isSubmodule,
         currentVersion,
         versionDeterminer.releaseVersion(currentVersion),
         level,
-        commands
+        commands,
+        relativePath
     )
 
     private fun createJenkinsReleasePlugin(
@@ -129,7 +132,8 @@ class JenkinsReleasePlanCreator(
     }
 
     private fun initDependent(paramObject: ParamObject) {
-        val newDependent = createInitialWaitingProject(paramObject)
+        val relativePath = paramObject.analyser.getRelativePath(paramObject.relation.id)
+        val newDependent = createInitialWaitingProject(paramObject, relativePath)
         paramObject.dependents[newDependent.id] = hashSetOf()
         paramObject.levelIterator.addToNextLevel(newDependent.id to newDependent)
         updateCommandsAddDependentAddToProjectsAndUpdateMultiModuleIfNecessary(paramObject, newDependent)
@@ -235,7 +239,7 @@ class JenkinsReleasePlanCreator(
         paramObject.getDependentsOfDependency().add(dependent.id)
     }
 
-    private fun createInitialWaitingProject(paramObject: ParamObject): Project {
+    private fun createInitialWaitingProject(paramObject: ParamObject, relativePath: String): Project {
         val relation = paramObject.relation
         val isNotSubmodule = paramObject.isRelationNotSubmodule()
         val commands = if (isNotSubmodule) {
@@ -251,7 +255,14 @@ class JenkinsReleasePlanCreator(
             mutableListOf()
         }
         val level = determineLevel(paramObject)
-        return createInitialProject(relation.id, !isNotSubmodule, relation.currentVersion, level, commands)
+        return createInitialProject(
+            relation.id,
+            !isNotSubmodule,
+            relation.currentVersion,
+            level,
+            commands,
+            relativePath
+        )
     }
 
     private fun determineLevel(paramObject: ParamObject): Int {
@@ -347,11 +358,12 @@ class JenkinsReleasePlanCreator(
                     }
             }
         }
-        if(deactivatedProjects.isNotEmpty()){
-            logger.info("Deactivated release commands of the following projects " +
-                "due to the specified disableReleaseFor regex." +
-                "\nRegex: ${options.disableReleaseFor.pattern}" +
-                "\nProjects:\n" +  deactivatedProjects.sorted().joinToString("\n")
+        if (deactivatedProjects.isNotEmpty()) {
+            logger.info(
+                "Deactivated release commands of the following projects " +
+                    "due to the specified disableReleaseFor regex." +
+                    "\nRegex: ${options.disableReleaseFor.pattern}" +
+                    "\nProjects:\n" + deactivatedProjects.sorted().joinToString("\n")
             )
         }
         return transformedReleasePlan

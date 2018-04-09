@@ -24,9 +24,7 @@ class Analyser internal constructor(
 
     private val logger = Logger.getLogger(Analyser::class.qualifiedName)
     private val dependents: Map<String, Set<Relation<MavenProjectId>>>
-    private val projectIds: Map<MavenProjectId, String>
-    private val submodulesOfProjectId: Map<MavenProjectId, Set<MavenProjectId>>
-    private val allMultiModulesOfSubmodule: Map<MavenProjectId, LinkedHashSet<MavenProjectId>>
+    private val projectsData: ProjectDataCollection
     private val pomAnalysis: PomAnalysis
 
     init {
@@ -39,9 +37,7 @@ class Analyser internal constructor(
             "No pom files found in the given directory (which exists): ${directoryWithProjects.absolutePath}"
         }
 
-        val pair = analyseSubmodules()
-        submodulesOfProjectId = pair.first
-        allMultiModulesOfSubmodule = complementMultiModules(pair.first, pair.second)
+        projectsData = ProjectDataCollection(session, directoryWithProjects, getInternalAnalysedGavs())
 
         val duplicates = collectDuplicates(pomAnalysis)
         //TODO maybe we should still emit a warning if missing parent analysis is turned off?
@@ -52,8 +48,6 @@ class Analyser internal constructor(
         reportDuplicatesAndMissingParentsIfNecessary(directoryWithProjects, duplicates, parentsNotInAnalysis)
 
         dependents = analyseDependents(analysedProjects)
-        projectIds = getInternalAnalysedGavs()
-            .associateBy({ it.toMavenProjectId() }, { it.version })
     }
 
     private fun analyseDirectory(directoryWithProjects: File, pomFileLoader: PomFileLoader): PomAnalysis {
@@ -129,14 +123,6 @@ class Analyser internal constructor(
         .filter { it.isNotExternal }
 
     private fun Gav.toProject() = session.projects().forGav(this)
-    private val Project.isNotExternal get() = !isExternal
-
-    private fun Gav.toRelation(isVersionSelfManaged: Boolean): Relation<MavenProjectId> =
-        Relation(toMavenProjectId(), version, isVersionSelfManaged)
-
-    private fun fr.lteconsulting.pomexplorer.graph.relation.Relation.targetToMapKey() = target.toMapKey()
-    private fun Gav.toMapKey() = toMavenProjectId().identifier
-    private fun Gav.toMavenProjectId() = MavenProjectId(groupId, artifactId)
 
 
     private fun reportDuplicatesAndMissingParentsIfNecessary(
@@ -172,62 +158,18 @@ class Analyser internal constructor(
 
     private fun projectToString(project: Project): String = "${project.gav} (${project.pomFile.absolutePath})"
 
-    private fun analyseSubmodules(): kotlin.Pair<Map<MavenProjectId, Set<MavenProjectId>>, Map<MavenProjectId, MavenProjectId>> {
-        val submodulesOfProjectId = hashMapOf<MavenProjectId, HashSet<MavenProjectId>>()
-        val multiModuleOfSubmodule = hashMapOf<MavenProjectId, MavenProjectId>()
-        getInternalAnalysedGavs().forEach { gav ->
-            val gavsToVisit = linkedSetOf(gav)
-            while (gavsToVisit.isNotEmpty()) {
-                val multiModuleGav = gavsToVisit.iterator().next()
-                gavsToVisit.remove(multiModuleGav)
-                val multiModuleProjectId = multiModuleGav.toMavenProjectId()
-
-                session.projects().getSubmodulesAsStream(multiModuleGav).forEach { submoduleGav ->
-                    val submoduleProjectId = submoduleGav.toMavenProjectId()
-                    val submodules = submodulesOfProjectId.getOrPut(multiModuleProjectId, { hashSetOf() })
-                    val notAlreadyContained = submodules.add(submoduleProjectId)
-                    //just to prevent from maniac projects which have cyclic modules defined :)
-                    if (notAlreadyContained && !gavsToVisit.contains(submoduleGav)) {
-                        gavsToVisit.add(submoduleGav)
-                    }
-                    multiModuleOfSubmodule[submoduleProjectId] = multiModuleProjectId
-                }
-            }
-        }
-        return submodulesOfProjectId to multiModuleOfSubmodule
-    }
-
-    private fun complementMultiModules(
-        submodulesOfProjectId: Map<MavenProjectId, Set<MavenProjectId>>,
-        multiModuleOfSubmodule: Map<MavenProjectId, MavenProjectId>
-    ): Map<MavenProjectId, LinkedHashSet<MavenProjectId>> {
-        val map = hashMapOf<MavenProjectId, LinkedHashSet<MavenProjectId>>()
-        submodulesOfProjectId.forEach { multiModuleId, submodules ->
-            submodules.forEach { submoduleId ->
-                val set = linkedSetOf(multiModuleId)
-                //TODO would go forever if there are multi modules which have one another as modules, better as above
-                var parentMultiModule = multiModuleOfSubmodule[multiModuleId]
-                while (parentMultiModule != null) {
-                    set.add(parentMultiModule)
-                    parentMultiModule = multiModuleOfSubmodule[parentMultiModule]
-                }
-                map[submoduleId] = set
-            }
-        }
-        return map
-    }
 
     /**
      * Returns the current version for the given [projectId] if it was involved in the analysis; `null` otherwise.
      * @return The current version or `null` if [projectId] was not part of the analysis.
      */
-    fun getCurrentVersion(projectId: MavenProjectId): String? = projectIds[projectId]
+    fun getCurrentVersion(projectId: MavenProjectId): String? = projectsData.getProjectIfPresent(projectId)?.version
 
 
     /**
      * Returns the [MavenProjectId]s of the analysed projects together with the current version.
      */
-    fun getAnalysedProjectsAsString() = projectIds.entries.joinToString("\n") { (k, v) -> "${k.identifier}:$v" }
+    fun getAnalysedProjectsAsString() = projectsData.getIdentifiersWithVersion()
 
     /**
      * Returns a set of dependent [MavenProjectId]s for the given [projectId] where only the
@@ -243,30 +185,26 @@ class Analyser internal constructor(
     /**
      * Returns the number of analysed projects.
      */
-    fun getNumberOfProjects(): Int = projectIds.size
+    fun getNumberOfProjects(): Int = projectsData.size
 
     fun getErroneousPomFiles(): List<String> = pomAnalysis.erroneousPomFiles.map {
         "Error reading pom file.\nFile: ${it.pomFile.absolutePath}\nMessage: ${it.cause!!.message}"
     }
 
-    fun hasSubmodules(projectId: MavenProjectId) = submodulesOfProjectId.containsKey(projectId)
+    fun hasSubmodules(projectId: MavenProjectId) = getSubmodules(projectId).isNotEmpty()
 
     /**
      * Returns all submodules of the multi module project with the given [projectId]
      * or an empty set if the project is not a multi module (has not any modules).
      */
-    fun getSubmodules(projectId: MavenProjectId): Set<MavenProjectId> {
-        return submodulesOfProjectId[projectId] ?: emptySetIfPartOfAnalysisOrThrow(projectId)
-    }
+    fun getSubmodules(projectId: MavenProjectId): Set<MavenProjectId> = projectsData.getSubmodules(projectId)
 
     /**
      * Returns all multi modules of the given submodule project including super multi modules (multi module of multi module)
      * or an empty set if the project is not a submodule.
      */
     fun getMultiModules(projectId: MavenProjectId): LinkedHashSet<MavenProjectId> {
-        return allMultiModulesOfSubmodule[projectId] ?: emptySetIfPartOfAnalysisOrThrow(
-            projectId,
-            { linkedSetOf<MavenProjectId>() })
+        return projectsData.getProject(projectId).multiModules
     }
 
     /**
@@ -279,20 +217,10 @@ class Analyser internal constructor(
      * project with the given [multiModuleId] or not.
      */
     fun isSubmoduleOf(submoduleId: MavenProjectId, multiModuleId: MavenProjectId): Boolean {
-        val submodules = submodulesOfProjectId[multiModuleId] ?: emptySetIfPartOfAnalysisOrThrow(multiModuleId)
+        val submodules = projectsData.getSubmodules(multiModuleId)
         if (submodules.contains(submoduleId)) return true
 
         return isNestedSubmodule(submodules, submoduleId)
-    }
-
-    /**
-     * Returns all identifier
-     */
-    fun getAllReleaseableProjects(): Set<MavenProjectId> {
-        return getInternalAnalysedGavs()
-            .map { it.toMavenProjectId() }
-            .filter { !isSubmodule(it) }
-            .toSet()
     }
 
     private tailrec fun isNestedSubmodule(
@@ -304,28 +232,138 @@ class Analyser internal constructor(
         val submodulesToVisit = hashSetOf<MavenProjectId>()
         submodules.forEach {
             if (it == submoduleId) return true
-            submodulesToVisit.addAll(submodulesOfProjectId[it] ?: emptySet())
+            submodulesToVisit.addAll(projectsData.getSubmodules(it))
         }
         return isNestedSubmodule(submodulesToVisit, submoduleId)
     }
 
-    private fun <T> emptySetIfPartOfAnalysisOrThrow(projectId: MavenProjectId): Set<T> =
-        emptySetIfPartOfAnalysisOrThrow(projectId, { emptySet() })
+    /**
+     * Returns all identifier
+     */
+    fun getAllReleasableProjects(): Set<MavenProjectId> {
+        return getInternalAnalysedGavs()
+            .map { it.toMavenProjectId() }
+            .filter { !isSubmodule(it) }
+            .toSet()
+    }
 
-    private inline fun <T, S : Set<T>> emptySetIfPartOfAnalysisOrThrow(
-        projectId: MavenProjectId,
-        emptySetCreator: () -> S
-    ): S {
-        return if (projectIds.containsKey(projectId)) {
-            emptySetCreator()
-        } else {
-            throwProjectNotPartOfAnalysis(projectId)
+    fun getRelativePath(projectId: MavenProjectId): String = projectsData.getProject(projectId).relativePath
+
+
+    private fun <T> emptySetIfPartOfAnalysisOrThrow(projectId: MavenProjectId): Set<T> {
+        //throws if project does not exist
+        projectsData.getProject(projectId)
+        return emptySet()
+    }
+
+    companion object {
+        private val Project.isNotExternal get() = !isExternal
+
+        private fun Gav.toRelation(isVersionSelfManaged: Boolean): Relation<MavenProjectId> =
+            Relation(toMavenProjectId(), version, isVersionSelfManaged)
+
+        private fun fr.lteconsulting.pomexplorer.graph.relation.Relation.targetToMapKey() = target.toMapKey()
+        private fun Gav.toMapKey() = toMavenProjectId().identifier
+        private fun Gav.toMavenProjectId() = MavenProjectId(groupId, artifactId)
+
+        private fun throwProjectNotPartOfAnalysis(projectId: MavenProjectId): Nothing {
+            throw IllegalArgumentException("project is not part of the analysis: $projectId")
         }
     }
 
-    private fun throwProjectNotPartOfAnalysis(projectId: MavenProjectId): Nothing {
-        throw IllegalArgumentException("project is not part of the analysis: $projectId")
+    private class ProjectDataCollection(
+        private val session: Session,
+        private val directoryWithProjects: File,
+        private val internalAnalysedGavs: Sequence<Gav>
+    ) {
+        private val projects = HashMap<MavenProjectId, ProjectData>()
+        val size get() = projects.size
+
+        init {
+            val (submodulesOfProjectId, multiModuleOfSubmodule) = analyseSubmodules()
+            val allMultiModules = complementMultiModules(submodulesOfProjectId, multiModuleOfSubmodule)
+            internalAnalysedGavs.forEach { gav ->
+                val mavenProjectId = gav.toMavenProjectId()
+                val submodules = submodulesOfProjectId[mavenProjectId] ?: emptySet()
+                val multiModules = allMultiModules[mavenProjectId] ?: LinkedHashSet(0)
+                val relativePath = calculateRelativePath(gav)
+
+                projects[mavenProjectId] = ProjectData(gav.version, submodules, multiModules, relativePath)
+            }
+        }
+
+        private fun analyseSubmodules(): kotlin.Pair<Map<MavenProjectId, Set<MavenProjectId>>, Map<MavenProjectId, MavenProjectId>> {
+            val submodulesOfProjectId = hashMapOf<MavenProjectId, HashSet<MavenProjectId>>()
+            val multiModuleOfSubmodule = hashMapOf<MavenProjectId, MavenProjectId>()
+            internalAnalysedGavs.forEach { gav ->
+                val gavsToVisit = linkedSetOf(gav)
+                while (gavsToVisit.isNotEmpty()) {
+                    val multiModuleGav = gavsToVisit.iterator().next()
+                    gavsToVisit.remove(multiModuleGav)
+                    val multiModuleProjectId = multiModuleGav.toMavenProjectId()
+
+                    session.projects().getSubmodulesAsStream(multiModuleGav).forEach { submoduleGav ->
+                        val submoduleProjectId = submoduleGav.toMavenProjectId()
+                        val submodules = submodulesOfProjectId.getOrPut(multiModuleProjectId, { hashSetOf() })
+                        val notAlreadyContained = submodules.add(submoduleProjectId)
+                        //just to prevent from maniac projects which have cyclic modules defined :)
+                        if (notAlreadyContained && !gavsToVisit.contains(submoduleGav)) {
+                            gavsToVisit.add(submoduleGav)
+                        }
+                        multiModuleOfSubmodule[submoduleProjectId] = multiModuleProjectId
+                    }
+                }
+            }
+            return submodulesOfProjectId to multiModuleOfSubmodule
+        }
+
+        private fun complementMultiModules(
+            submodulesOfProjectId: Map<MavenProjectId, Set<MavenProjectId>>,
+            multiModuleOfSubmodule: Map<MavenProjectId, MavenProjectId>
+        ): Map<MavenProjectId, LinkedHashSet<MavenProjectId>> {
+            val map = hashMapOf<MavenProjectId, LinkedHashSet<MavenProjectId>>()
+            submodulesOfProjectId.forEach { multiModuleId, submodules ->
+                submodules.forEach { submoduleId ->
+                    val set = linkedSetOf(multiModuleId)
+                    //TODO would go forever if there are multi modules which have one another as modules, should we add a check?
+                    var parentMultiModule = multiModuleOfSubmodule[multiModuleId]
+                    while (parentMultiModule != null) {
+                        set.add(parentMultiModule)
+                        parentMultiModule = multiModuleOfSubmodule[parentMultiModule]
+                    }
+                    map[submoduleId] = set
+                }
+            }
+            return map
+        }
+
+        private fun calculateRelativePath(gav: Gav): String {
+            val pomFile = session.projects().forGav(gav).pomFile
+            return directoryWithProjects.toURI().relativize(pomFile.toURI()).path
+        }
+
+        fun getProjectIfPresent(projectId: MavenProjectId): ProjectData? = projects[projectId]
+        fun getProject(projectId: MavenProjectId): ProjectData {
+            return projects[projectId] ?: throwProjectNotPartOfAnalysis(projectId)
+        }
+
+        fun getSubmodules(projectId: MavenProjectId): Set<MavenProjectId> {
+            return getProject(projectId).submodules
+        }
+
+        fun getIdentifiersWithVersion(): String {
+            return projects.entries.joinToString("\n") { (mavenProjectId, project) ->
+                "${mavenProjectId.identifier}:${project.version}"
+            }
+        }
     }
+
+    private class ProjectData(
+        val version: String,
+        val submodules: Set<MavenProjectId>,
+        val multiModules: LinkedHashSet<MavenProjectId>,
+        val relativePath: String
+    )
 
     /**
      * Options for the [Analyser].
