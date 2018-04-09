@@ -338,8 +338,9 @@ class Analyser internal constructor(
         }
 
         private fun calculateRelativePath(gav: Gav): String {
-            val pomFile = session.projects().forGav(gav).pomFile
-            return directoryWithProjects.toURI().relativize(pomFile.toURI()).path
+            val projectDir = session.projects().forGav(gav).pomFile.parentFile
+            val path = directoryWithProjects.toURI().relativize(projectDir.toURI()).path
+            return if (path.isNotEmpty()) path else "./"
         }
 
         fun getProjectIfPresent(projectId: MavenProjectId): ProjectData? = projects[projectId]

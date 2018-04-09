@@ -32,19 +32,19 @@ fun TestContainer.assertProjectAWithDependentBWithDependentC(
     projectB: IdAndVersions = exampleB
 ) {
     assertRootProjectWithDependents(releasePlan, exampleA, projectB)
-    assertHasRelativePath(releasePlan, "root", exampleA, "a.pom")
+    assertHasRelativePath(releasePlan, "root", exampleA, "./")
 
     assertOneDirectDependent(releasePlan, "direct dependent", projectB, exampleC)
-    assertHasRelativePath(releasePlan, "direct dependent", projectB, "b.pom")
+    assertHasRelativePath(releasePlan, "direct dependent", projectB, "./")
 
     assertOneUpdateAndOneReleaseCommand(releasePlan, "indirect dependent", exampleC, exampleB)
     assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
-    assertHasRelativePath(releasePlan, "indirect dependent", exampleC, "c.pom")
+    assertHasRelativePath(releasePlan, "indirect dependent", exampleC, "./")
 
     assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
 }
 
-private fun TestContainer.assertHasRelativePath(
+fun TestContainer.assertHasRelativePath(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,

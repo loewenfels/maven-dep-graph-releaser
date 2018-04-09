@@ -197,7 +197,12 @@ object IntegrationSpec : Spek({
                 assertOneUpdateAndOneDisabledReleaseCommand(releasePlan, "direct dependent", exampleB, exampleA)
                 assertHasOneDependentAndIsOnLevel(releasePlan, "direct dependent", exampleB, exampleC, 1)
 
-                assertOneDeactivatedUpdateAndOneDeactivatedReleaseCommand(releasePlan, "indirect dependent", exampleC, exampleB)
+                assertOneDeactivatedUpdateAndOneDeactivatedReleaseCommand(
+                    releasePlan,
+                    "indirect dependent",
+                    exampleC,
+                    exampleB
+                )
                 assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
 
                 assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
@@ -217,7 +222,12 @@ object IntegrationSpec : Spek({
                 assertOneUpdateAndOneDisabledReleaseCommand(releasePlan, "direct dependent", exampleB, exampleA)
                 assertHasOneDependentAndIsOnLevel(releasePlan, "direct dependent", exampleB, exampleC, 1)
 
-                assertOneDeactivatedUpdateAndOneDisabledReleaseCommand(releasePlan, "indirect dependent", exampleC, exampleB)
+                assertOneDeactivatedUpdateAndOneDisabledReleaseCommand(
+                    releasePlan,
+                    "indirect dependent",
+                    exampleC,
+                    exampleB
+                )
                 assertHasNoDependentsAndIsOnLevel(releasePlan, "indirect dependent", exampleC, 2)
 
                 assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
@@ -227,8 +237,20 @@ object IntegrationSpec : Spek({
     }
 
     given("single project with third party dependencies") {
-        action("context Analyser which does not resolve poms") {
-            testReleaseSingleProject(singleProjectIdAndVersions, "singleProject")
+
+        context("in root folder") {
+            action("context Analyser which does not resolve poms") {
+                val releasePlan = analyseAndCreateReleasePlan(singleProjectIdAndVersions.id, getTestDirectory("singleProject"))
+                assertSingleProject(releasePlan, singleProjectIdAndVersions)
+                assertHasRelativePath(releasePlan, "root", singleProjectIdAndVersions, "./")
+            }
+        }
+        context("in subfolder") {
+            action("context Analyser which does not resolve poms") {
+                val releasePlan = analyseAndCreateReleasePlan(singleProjectIdAndVersions.id, getTestDirectory("singleProjectInSubfolder"))
+                assertSingleProject(releasePlan, singleProjectIdAndVersions)
+                assertHasRelativePath(releasePlan, "root", singleProjectIdAndVersions, "subfolder/")
+            }
         }
     }
 
@@ -969,8 +991,8 @@ private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, testDirecto
     return analyseAndCreateReleasePlan(projectToRelease, analyser)
 }
 
-private fun createAnalyserWhichDoesNotResolve(testDirectory: File): Analyser
-    = Analyser(testDirectory, Session(), mock())
+private fun createAnalyserWhichDoesNotResolve(testDirectory: File): Analyser =
+    Analyser(testDirectory, Session(), mock())
 
 private fun analyseAndCreateReleasePlan(
     projectToRelease: ProjectId,
