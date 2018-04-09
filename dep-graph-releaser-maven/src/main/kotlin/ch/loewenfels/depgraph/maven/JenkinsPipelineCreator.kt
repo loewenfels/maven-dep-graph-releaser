@@ -64,10 +64,13 @@ class JenkinsPipelineCreator(
 
     private fun appendUpdateDependency(paramObject: ParamObject, it: JenkinsUpdateDependency) {
         paramObject.sb.appendJob(updateDependencyJobName) {
-            appendStringParam("pathToProject", paramObject.mavenProjectId.artifactId).append(",")
-            appendStringParam("groupId", paramObject.mavenProjectId.groupId).append(",")
-            appendStringParam("artifactId", paramObject.mavenProjectId.artifactId).append(",")
-            appendStringParam("newVersion", paramObject.releasePlan.getProject(it.projectId).releaseVersion)
+            val project = paramObject.releasePlan.getProject(paramObject.mavenProjectId)
+            val dependency = paramObject.releasePlan.getProject(it.projectId)
+            val dependencyMavenProjectId = dependency.id as MavenProjectId
+            appendStringParam("pathToProject", project.relativePath).append(",")
+            appendStringParam("groupId", dependencyMavenProjectId.groupId).append(",")
+            appendStringParam("artifactId", dependencyMavenProjectId.artifactId).append(",")
+            appendStringParam("newVersion", dependency.releaseVersion)
         }
     }
 
