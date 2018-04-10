@@ -44,5 +44,5 @@ private fun loadJson(jsonUrl: String): Promise<Any> {
 
 private fun switchLoaderAndGui() {
     display("loader", "none")
-    display("gui", "table")
+    display("gui", "block")
 }

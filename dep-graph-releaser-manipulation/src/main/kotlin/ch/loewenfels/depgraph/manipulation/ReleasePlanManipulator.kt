@@ -170,5 +170,4 @@ class ReleasePlanManipulator(private val releasePlan: ReleasePlan) {
             oldCommand
         }
     }
-
 }

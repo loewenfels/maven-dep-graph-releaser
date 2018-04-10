@@ -5,39 +5,42 @@ import kotlinx.html.br
 import kotlinx.html.dom.append
 import kotlinx.html.id
 import kotlinx.html.js.div
+import kotlinx.html.js.i
 import kotlinx.html.js.span
-import kotlin.browser.document
 
 private var msgCounter = 0
 
-fun showMessage(message: String) {
-    showMessageOfType("msg", message, withClose = false)
+fun showStatus(message: String) {
+    elementById("status").innerText = message
 }
 
 fun showInfo(message: String) {
-    showMessageOfType("info", message, withClose = true)
+    showMessageOfType("info", "info_outline", message)
 }
 
 fun showWarning(message: String) {
-    showMessageOfType("warning", message, withClose = true)
+    showMessageOfType("warning", "warning", message)
 }
 
 fun showError(message: String) {
-    showMessageOfType("error", message, withClose = true)
+    showMessageOfType("error", "error_outline", message)
 }
 
-private fun showMessageOfType(type: String, message: String, withClose: Boolean) {
-    document.getElementById("messages")!!.append {
+private fun showMessageOfType(type: String, icon: String, message: String) {
+    elementById("messages").append {
         div(type) {
             val msgId = "msg${msgCounter++}"
-            id = msgId
-            if (withClose) {
-                span("close") {
-                    val span = getUnderlyingHtmlElement()
-                    span.addEventListener("click", { elementById(msgId).style.display = "none" })
-                }
+            this.id = msgId
+            span("close") {
+                val span = getUnderlyingHtmlElement()
+                span.addEventListener("click", { elementById(msgId).style.display = "none" })
             }
-            convertNewLinesToBr(message)
+            i("material-icons") {
+                +icon
+            }
+            div("text") {
+                convertNewLinesToBr(message)
+            }
         }
     }
 }

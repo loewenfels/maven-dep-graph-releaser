@@ -2,15 +2,26 @@
 <head>
     <title>Release ....</title>
     <link rel="Stylesheet" type="text/css" href="style.css">
+    <link rel="Stylesheet" type="text/css" href="material-icons.css">
     <script type="text/javascript" src="kotlin.js"></script>
     <script type="text/javascript" src="kotlinx-html-js.js"></script>
     <script type="text/javascript" src="dep-graph-releaser-api-js.js"></script>
     <script type="text/javascript" src="dep-graph-releaser-maven-api-js.js"></script>
-    <script type="text/javascript" src="dep-graph-releaser-gui.js"></script>
+    <script type="text/javascript" src="dep-graph-releaser-gui.js?v=0.1.8-SNAPSHOT"></script>
 </head>
 <body>
-<div id="loader">Loading...</div>
-<div id="gui"></div>
-<div id="messages"></div>
+    <div id="loader">Loading...</div>
+    <div id="gui">
+        <div id="pipeline"></div>
+    </div>
+    <div id="status"></div>
+    <div id="messages"></div>
+
+    <div id="warningsMinimized" class="minimized" title="show warnings">
+        <i class="material-icons">warning</i>
+    </div>
+    <div id="infosMinimized" class="minimized" title="show additional hints and information">
+        <i class="material-icons">info</i>
+    </div>
 </body>
 </html>

@@ -16,14 +16,25 @@ class Gui(private val releasePlan: ReleasePlan) {
     private val toggler = Toggler(releasePlan)
     fun load() {
         document.title = "Release " + releasePlan.rootProjectId.identifier
+        setUpMessages(releasePlan.warnings, "warnings", ::showWarning)
+        setUpMessages(releasePlan.infos, "infos", ::showInfo)
         setUpProjects()
-        releasePlan.warnings.forEach(::showWarning)
-        releasePlan.infos.forEach(::showInfo)
+    }
+
+    private fun setUpMessages(messages: List<String>, id: String,  action: (String) -> Unit){
+        if (messages.isNotEmpty()) {
+            val minimized = elementById("${id}Minimized")
+            minimized.style.display = "block"
+            minimized.addEventListener("click", {
+                minimized.style.display = "none"
+                releasePlan.infos.forEach(action)
+            })
+        }
     }
 
     private fun setUpProjects() {
         val set = hashSetOf<ProjectId>()
-        elementById("gui").append {
+        elementById("pipeline").append {
             val itr = releasePlan.iterator().toPeekingIterator()
             var level: Int
             while (itr.hasNext()) {
@@ -46,7 +57,7 @@ class Gui(private val releasePlan: ReleasePlan) {
             }
         }
         val involvedProjects = set.size
-        showMessage("Projects involved: $involvedProjects")
+        showStatus("Projects involved: $involvedProjects")
         if (involvedProjects != releasePlan.getNumberOfProjects()) {
             showError("Not all dependent projects are involved in the process, please report a bug. The following where left out\n" +
                 (releasePlan.getProjectIds() - set).joinToString("\n") { it.identifier }
@@ -62,16 +73,16 @@ class Gui(private val releasePlan: ReleasePlan) {
             val hasCommands = project.commands.isNotEmpty()
             classes = setOf(
                 "project",
-                if(project.isSubmodule) "submodule" else "",
-                if(!hasCommands) "withoutCommands" else "",
-                if(releasePlan.hasSubmodules(project.id)) "withSubmodules" else ""
+                if (project.isSubmodule) "submodule" else "",
+                if (!hasCommands) "withoutCommands" else "",
+                if (releasePlan.hasSubmodules(project.id)) "withSubmodules" else ""
             )
 
             val id = project.id
             this.id = id.identifier
 
             div("title") {
-                if(hasCommands) {
+                if (hasCommands) {
                     toggle(
                         "${id.identifier}:disableAll",
                         project.commands.any { it.state !is CommandState.Deactivated },
@@ -183,7 +194,7 @@ class Gui(private val releasePlan: ReleasePlan) {
             is JenkinsMavenReleasePlugin -> appendJenkinsMavenReleasePluginField(idPrefix, command)
             is JenkinsMultiMavenReleasePlugin -> appendJenkinsMultiMavenReleasePluginFields(idPrefix, projectId, command)
             is JenkinsUpdateDependency -> appendJenkinsUpdateDependencyField(idPrefix, command)
-
+            else -> showError("unknown command found, cannot display its fields.\n$command")
         }
     }
 
@@ -238,7 +249,7 @@ class Gui(private val releasePlan: ReleasePlan) {
                 this.checked = checked && !disabled
                 this.disabled = disabled
                 val checkbox = getUnderlyingHtmlElement()
-                checkbox.addEventListener("click", { toggler.toggle(id)})
+                checkbox.addEventListener("click", { toggler.toggle(id) })
             }
             span("slider") {
                 if (disabled) {

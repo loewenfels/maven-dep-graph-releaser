@@ -68,6 +68,10 @@ object Orchestrator {
         copyResourceToFile(outputDir, "dep-graph-releaser-gui.js")
         copyResourceToFile(outputDir, "style.css")
         copyResourceToFile(outputDir, "pipeline.html")
+        copyResourceToFile(outputDir, "material-icons.css")
+        copyResourceToFile(outputDir, "MaterialIcons-Regular.ttf")
+        copyResourceToFile(outputDir, "MaterialIcons-Regular.woff")
+        copyResourceToFile(outputDir, "MaterialIcons-Regular.woff2")
         logger.info("copied resources files")
         logger.info("Everything done :)")
     }
