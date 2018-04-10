@@ -20,9 +20,9 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
     private fun toggleProject(disableAllCheckbox: HTMLInputElement, id: String) {
         val checked = disableAllCheckbox.checked
         val prefix = id.substring(0, id.indexOf(":disableAll"))
-        iterate(prefix) { checkbox, i ->
+        iterateCommands(prefix) { checkbox, i ->
             //do nothing if command is disabled
-            if (checkbox.disabled) return@iterate
+            if (checkbox.disabled) return@iterateCommands
 
             menu.activateSaveButton()
             checkbox.checked = checked
@@ -44,16 +44,18 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
             deactivateReleaseCommands(prefix, id)
             deactivateDependents(prefix)
         } else if (checkbox.isReleaseCommand()) {
-            //can only activate release if all checkboxes are activated
-            if (notAllChecked(prefix, id)) {
+            if (notAllCommandsActive(prefix, id) || notAllSubmodulesActive(prefix)) {
+                // cannot reactivate release command if not all commands are active
+                // setting checked again to false
                 checkbox.checked = false
-                menu.activateSaveButton()
+                showInfo("Cannot reactivate the ReleaseCommand for project $prefix because some commands (of submodules) are deactivated.")
             }
+            menu.activateSaveButton()
         }
     }
 
     private fun deactivateReleaseCommands(prefix: String, id: String) {
-        iterate(prefix) { checkbox, _ ->
+        iterateCommands(prefix) { checkbox, _ ->
             if (checkbox.id != id && checkbox.isReleaseCommand()) {
                 checkbox.checked = false
             }
@@ -61,13 +63,22 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
     }
 
     private fun deactivateDependents(prefix: String) {
-        val project = elementById(prefix).asDynamic().project as Project
+        val project = getProject(prefix)
         deactivateDependents(project.id)
     }
 
-    private fun deactivateDependents(projectId: ProjectId){
+    private fun getProject(prefix: String) = elementById(prefix).asDynamic().project as Project
+
+    private fun deactivateDependents(projectId: ProjectId) {
         releasePlan.getDependents(projectId).forEach(this::disableProject)
-        releasePlan.getSubmodules(projectId).forEach(this::deactivateDependents)
+        releasePlan.getSubmodules(projectId).forEach {
+            val id = "${it.identifier}:disableAll"
+            if (document.getElementById(id) != null) {
+                disableProject(it)
+            } else {
+                deactivateDependents(it)
+            }
+        }
     }
 
     private fun disableProject(it: ProjectId) {
@@ -84,9 +95,9 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
         return classList.contains("release")
     }
 
-    private fun notAllChecked(prefix: String, id: String): Boolean {
+    private fun notAllCommandsActive(prefix: String, id: String): Boolean {
         var notAllChecked = false
-        iterate(prefix) { checkbox, _ ->
+        iterateCommands(prefix) { checkbox, _ ->
             if (checkbox.id != id && !checkbox.checked) {
                 notAllChecked = true
             }
@@ -94,17 +105,29 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
         return notAllChecked
     }
 
-    private fun iterate(prefix: String, act: (HTMLInputElement, Int) -> Unit) {
-        var found = true
+    private fun notAllSubmodulesActive(prefix: String): Boolean {
+        val project = getProject(prefix)
+        releasePlan.getSubmodules(project.id).forEach {
+            val id = "${it.identifier}:disableAll"
+            if (document.getElementById(id) != null) {
+                if (notAllCommandsActive(it.identifier, "notACommandOfTheSubmodule")) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    private fun iterateCommands(prefix: String, act: (HTMLInputElement, Int) -> Unit) {
         var i = 0
-        while (found) {
+        do {
             val checkbox = getCheckboxOrNull("$prefix:$i:disable")
-            found = checkbox != null
+            val found = checkbox != null
             if (found) {
                 act(checkbox!!, i)
                 ++i
             }
-        }
+        } while (found)
     }
 
 

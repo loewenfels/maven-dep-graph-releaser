@@ -98,6 +98,7 @@ body {
 #messages .material-icons {
     display: block;
     position: absolute;
+    margin-top: -5px;
 }
 
 #messages .text {

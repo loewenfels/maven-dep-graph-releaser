@@ -86,6 +86,7 @@ class Gui(private val releasePlan: ReleasePlan, body: String) {
                 if (hasCommands) {
                     toggle(
                         "${id.identifier}:disableAll",
+                        "disable all commands",
                         project.commands.any { it.state !is CommandState.Deactivated },
                         false
                     )
@@ -187,6 +188,7 @@ class Gui(private val releasePlan: ReleasePlan, body: String) {
         }
         toggle(
             "$idPrefix:disable",
+            "disable ${command::class.simpleName}",
             command.state !is CommandState.Deactivated,
             command.state === CommandState.Disabled,
             cssClass
@@ -244,7 +246,7 @@ class Gui(private val releasePlan: ReleasePlan, body: String) {
             { projectId(command.projectId) })
     }
 
-    private fun DIV.toggle(id: String, checked: Boolean, disabled: Boolean, checkboxCssClass: String = "") {
+    private fun DIV.toggle(id: String, title: String, checked: Boolean, disabled: Boolean, checkboxCssClass: String = "") {
         label("toggle") {
             checkBoxInput(classes = checkboxCssClass) {
                 this.id = id
@@ -254,6 +256,7 @@ class Gui(private val releasePlan: ReleasePlan, body: String) {
                 checkbox.addEventListener("click", { toggler.toggle(id) })
             }
             span("slider") {
+                this.title = title
                 if (disabled) {
                     this.title = "disabled, cannot be reactivated"
                 }
