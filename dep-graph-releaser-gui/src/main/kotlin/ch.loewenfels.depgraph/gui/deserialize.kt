@@ -9,10 +9,10 @@ import ch.loewenfels.depgraph.data.serialization.CommandStateJson
 import ch.loewenfels.depgraph.data.serialization.fromJson
 
 private const val MAVEN_PROJECT_ID = "ch.loewenfels.depgraph.data.maven.MavenProjectId"
-private const val JENKINS_MAVEN_RELEASE_PLUGIN = "ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin"
-private const val JENKINS_MULTI_MAVEN_RELEASE_PLUGIN =
+internal const val JENKINS_MAVEN_RELEASE_PLUGIN = "ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin"
+internal const val JENKINS_MULTI_MAVEN_RELEASE_PLUGIN =
     "ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin"
-private const val JENKINS_UPDATE_DEPENDENCY = "ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency"
+internal const val JENKINS_UPDATE_DEPENDENCY = "ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency"
 
 fun deserialize(body: String): ReleasePlan {
     val releasePlanJson = JSON.parse<ReleasePlanJson>(body)
@@ -49,15 +49,9 @@ fun deserializeCommands(commands: Array<GenericType<Command>>): List<Command> {
 
     return commands.map {
         when (it.t) {
-            JENKINS_MAVEN_RELEASE_PLUGIN -> createJenkinsMavenReleasePlugin(
-                it.p
-            )
-            JENKINS_MULTI_MAVEN_RELEASE_PLUGIN -> createJenkinsMultiMavenReleasePlugin(
-                it.p
-            )
-            JENKINS_UPDATE_DEPENDENCY -> createJenkinsUpdateDependency(
-                it.p
-            )
+            JENKINS_MAVEN_RELEASE_PLUGIN -> createJenkinsMavenReleasePlugin(it.p)
+            JENKINS_MULTI_MAVEN_RELEASE_PLUGIN -> createJenkinsMultiMavenReleasePlugin(it.p)
+            JENKINS_UPDATE_DEPENDENCY -> createJenkinsUpdateDependency(it.p)
             else -> throw UnsupportedOperationException("${it.t} is not supported.")
         }
     }

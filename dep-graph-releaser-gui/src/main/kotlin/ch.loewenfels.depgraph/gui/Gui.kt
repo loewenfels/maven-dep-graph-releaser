@@ -12,8 +12,8 @@ import kotlinx.html.dom.append
 import kotlinx.html.js.div
 import kotlin.browser.document
 
-class Gui(private val releasePlan: ReleasePlan) {
-    private val menu = Menu()
+class Gui(private val releasePlan: ReleasePlan, body: String) {
+    private val menu = Menu(body)
     private val toggler = Toggler(releasePlan, menu)
     fun load() {
         document.title = "Release " + releasePlan.rootProjectId.identifier
@@ -171,7 +171,7 @@ class Gui(private val releasePlan: ReleasePlan) {
                 this.id = id
                 value = text
                 inputAct()
-                getUnderlyingHtmlElement().addEventListener("change", { menu.activateSaveButton() })
+                getUnderlyingHtmlElement().addEventListener("keyup", { menu.activateSaveButton() })
             }
         }
     }

@@ -107,14 +107,5 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
         }
     }
 
-    private fun getCheckbox(id: String): HTMLInputElement = getCheckboxOrNull(id)
-        ?: throw IllegalStateException("no checkbox found for id $id")
 
-    private fun getCheckboxOrNull(id: String): HTMLInputElement? {
-        val element = document.getElementById(id) ?: return null
-        require((element is HTMLInputElement && element.type == "checkbox")) {
-            "$id was not a checkbox but $element"
-        }
-        return element as HTMLInputElement
-    }
 }

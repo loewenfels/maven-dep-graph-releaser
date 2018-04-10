@@ -19,7 +19,7 @@ fun main() {
         }
         .then { body: String ->
             val releasePlan = deserialize(body)
-            Gui(releasePlan).load()
+            Gui(releasePlan, body).load()
             switchLoaderAndGui()
         }
         .catch {
