@@ -13,7 +13,8 @@ import kotlinx.html.js.div
 import kotlin.browser.document
 
 class Gui(private val releasePlan: ReleasePlan) {
-    private val toggler = Toggler(releasePlan)
+    private val menu = Menu()
+    private val toggler = Toggler(releasePlan, menu)
     fun load() {
         document.title = "Release " + releasePlan.rootProjectId.identifier
         setUpMessages(releasePlan.warnings, "warnings", ::showWarning)
@@ -21,13 +22,13 @@ class Gui(private val releasePlan: ReleasePlan) {
         setUpProjects()
     }
 
-    private fun setUpMessages(messages: List<String>, id: String,  action: (String) -> Unit){
+    private fun setUpMessages(messages: List<String>, id: String, action: (String) -> Unit) {
         if (messages.isNotEmpty()) {
             val minimized = elementById("${id}Minimized")
             minimized.style.display = "block"
             minimized.addEventListener("click", {
                 minimized.style.display = "none"
-                releasePlan.infos.forEach(action)
+                messages.forEach(action)
             })
         }
     }
@@ -170,6 +171,7 @@ class Gui(private val releasePlan: ReleasePlan) {
                 this.id = id
                 value = text
                 inputAct()
+                getUnderlyingHtmlElement().addEventListener("change", { menu.activateSaveButton() })
             }
         }
     }

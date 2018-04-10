@@ -6,7 +6,7 @@ import ch.loewenfels.depgraph.data.ReleasePlan
 import org.w3c.dom.HTMLInputElement
 import kotlin.browser.document
 
-class Toggler(private val releasePlan: ReleasePlan) {
+class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
     @JsName("toggle")
     fun toggle(id: String) {
@@ -17,16 +17,17 @@ class Toggler(private val releasePlan: ReleasePlan) {
         }
     }
 
-    private fun toggleProject(checkbox: HTMLInputElement, id: String) {
-        val checked = checkbox.checked
+    private fun toggleProject(disableAllCheckbox: HTMLInputElement, id: String) {
+        val checked = disableAllCheckbox.checked
         val prefix = id.substring(0, id.indexOf(":disableAll"))
-        iterate(prefix) { it, i ->
+        iterate(prefix) { checkbox, i ->
             //do nothing if command is disabled
-            if (it.disabled) return@iterate
+            if (checkbox.disabled) return@iterate
 
-            it.checked = checked
-            if (it.isReleaseCommand() && !checked) {
-                toggleCommand(it, "$prefix:$i:disable")
+            menu.activateSaveButton()
+            checkbox.checked = checked
+            if (checkbox.isReleaseCommand() && !checked) {
+                toggleCommand(checkbox, "$prefix:$i:disable")
             }
         }
     }
@@ -39,12 +40,14 @@ class Toggler(private val releasePlan: ReleasePlan) {
         }
         val prefix = result!!.groups[1]!!.value
         if (!checkbox.checked) {
+            menu.activateSaveButton()
             deactivateReleaseCommands(prefix, id)
             deactivateDependents(prefix)
         } else if (checkbox.isReleaseCommand()) {
             //can only activate release if all checkboxes are activated
             if (notAllChecked(prefix, id)) {
                 checkbox.checked = false
+                menu.activateSaveButton()
             }
         }
     }
