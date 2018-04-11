@@ -13,8 +13,10 @@ import kotlin.dom.removeClass
 
 external fun encodeURIComponent(encodedURI: String): String
 
-class Menu(private val body: String) {
-
+class Menu(
+    private val body: String,
+    private val publishJobUrl: String?
+) {
     private val saveButton get() = elementById("save")
     private val dryRunButton get() = elementById("dryRun")
     private val buildButton get() = elementById("build")
@@ -32,41 +34,41 @@ class Menu(private val body: String) {
     }
 
     private fun initDryRunAndBuildButton() {
-        dryRunButton.addEventListener("click", {
+        dryRunButton.addClickEventListener {
             //TODO implement
-        })
-        buildButton.addEventListener("click", {
+        }
+        buildButton.addClickEventListener {
             //TODO implement
-        })
+        }
     }
 
     private fun initSaveButton() {
-        saveButton.addEventListener("click", {
+        saveButton.addClickEventListener {
             //nothing to do if deactivated
-            if (saveButton.hasClass(DEACTIVATED)) return@addEventListener
+            if (saveButton.hasClass(DEACTIVATED)) return@addClickEventListener
             save()
-        })
+        }
         deactivateSaveButton()
     }
 
     private fun deactivateSaveButton() {
         saveButton.addClass(DEACTIVATED)
-        saveButton.title = "nothing to save, no changes were made"
+        saveButton.title = "Nothing to save, no changes were made"
     }
 
     fun activateSaveButton() {
         saveButton.removeClass(DEACTIVATED)
-        saveButton.title = "Download changed json file"
+        saveButton.title =
+            if (publishJobUrl != null) "Publish changed json file and reload"
+            else "Download changed json file"
     }
 
     private fun save() {
         val releasePlanJson = JSON.parse<ReleasePlanJson>(body)
-        var changed = applyChanges(releasePlanJson)
+        val changed = applyChanges(releasePlanJson)
 
         if (changed) {
-            val newJson = JSON.stringify(releasePlanJson)
-            //TODO make configurable if download is used or a publish function
-            download(newJson)
+            downloadOrPublish(releasePlanJson)
         } else {
             showInfo("Seems like all changes have been reverted manually. Will not save anything.")
         }
@@ -130,6 +132,16 @@ class Menu(private val body: String) {
             return true
         }
         return false
+    }
+
+    private fun downloadOrPublish(releasePlanJson: ReleasePlanJson) {
+        val newJson = JSON.stringify(releasePlanJson)
+        if (publishJobUrl == null) {
+            download(newJson)
+        } else {
+            val newFileName = "release-${generateUniqueId()}"
+            publish(newJson, newFileName, publishJobUrl)
+        }
     }
 
     private fun download(json: String) {

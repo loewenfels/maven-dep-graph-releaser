@@ -12,9 +12,9 @@ import kotlinx.html.dom.append
 import kotlinx.html.js.div
 import kotlin.browser.document
 
-class Gui(private val releasePlan: ReleasePlan, body: String) {
-    private val menu = Menu(body)
+class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
     private val toggler = Toggler(releasePlan, menu)
+
     fun load() {
         document.title = "Release " + releasePlan.rootProjectId.identifier
         setUpMessages(releasePlan.warnings, "warnings", ::showWarning)
@@ -263,16 +263,7 @@ class Gui(private val releasePlan: ReleasePlan, body: String) {
                 this.checked = checked && !disabled
                 this.disabled = disabled
                 val checkbox = getUnderlyingHtmlElement()
-                checkbox.addEventListener("click", {
-                    try {
-                        toggler.toggle(id)
-                    } catch (t: Throwable) {
-                        showError(RuntimeException(
-                            "An unexpected error occurred during toggling. Please report a bug with the following information.",
-                            t
-                        ))
-                    }
-                })
+                checkbox.addClickEventListener { toggler.toggle(id) }
             }
             span("slider") {
                 this.title = title

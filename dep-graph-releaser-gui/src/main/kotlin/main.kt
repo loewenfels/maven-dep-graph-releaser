@@ -1,25 +1,22 @@
-import ch.loewenfels.depgraph.gui.Gui
-import ch.loewenfels.depgraph.gui.deserialize
-import ch.loewenfels.depgraph.gui.display
-import ch.loewenfels.depgraph.gui.showError
+import ch.loewenfels.depgraph.gui.*
 import org.w3c.fetch.Request
+import org.w3c.fetch.Response
 import kotlin.browser.window
 import kotlin.js.Promise
 
 @JsName("main")
 fun main() {
-    val jsonUrl = if(window.location.hash != "") {
-        window.location.hash.substring(1)
-    } else {
-        "./release.json"
-    }
+    val jsonUrl = determineJsonUrl()
     loadJson(jsonUrl)
+        .then(::checkStatus)
         .catch {
             throw Error("Could not load json.", it)
         }
         .then { body: String ->
+            val publishJob = determinePublishJob()
             val releasePlan = deserialize(body)
-            Gui(releasePlan, body).load()
+            val menu = Menu(body, publishJob)
+            Gui(releasePlan, menu).load()
             switchLoaderAndGui()
         }
         .catch {
@@ -27,22 +24,41 @@ fun main() {
         }
 }
 
+fun determinePublishJob(): String? {
+    return if (window.location.hash != "") {
+        window.location.hash.substringAfter(PUBLISH_JOB)
+    } else {
+        null
+    }
+}
+
+private fun determineJsonUrl(): String {
+    return if (window.location.hash != "") {
+        window.location.hash.substring(1).substringBefore("&")
+    } else {
+        "./release.json"
+    }
+}
+
 @Suppress("unused")
 val onlyUsedToCallMain = main()
 
-private fun loadJson(jsonUrl: String): Promise<Any> {
+private fun loadJson(jsonUrl: String): Promise<Response> {
     return window.fetch(Request(jsonUrl))
-        .then { response ->
-            response.text().then { text ->
-                require(response.ok) {
-                    "response was not ok, ${response.status}: ${response.statusText}\n$text"
-                }
-                text
-            }
+}
+
+fun checkStatus(response: Response): Promise<String> {
+    return response.text().then { text ->
+        check(response.ok) {
+            "response was not ok, ${response.status}: ${response.statusText}\n$text"
         }
+        text
+    }
 }
 
 private fun switchLoaderAndGui() {
     display("loader", "none")
     display("gui", "block")
 }
+
+const val PUBLISH_JOB = "&publishJob="

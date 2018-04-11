@@ -119,7 +119,7 @@ object RemoteJenkinsM2ReleaserSpec : Spek({
                 expect {
                     testee.release(jobName, "1.0.0", "1.2.0")
                 }.toThrow<IllegalStateException> {
-                    message { contains(jobName, "Could not find the build number", response) }
+                    message { contains(jobName, "Could not find the build number", "<nothing found", response) }
                 }
             }
         }

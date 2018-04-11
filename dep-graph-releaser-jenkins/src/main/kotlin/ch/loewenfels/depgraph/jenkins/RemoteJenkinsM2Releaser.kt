@@ -206,8 +206,13 @@ class RemoteJenkinsM2Releaser internal constructor(
             "Could not find the build number in the returned body." +
                 "\nJob: $jobName" +
                 "\nRegex used: ${builderNumberRegex.pattern}" +
-                "\n50 first chars of the body: ${content.take(50)}"
+                "\nFollowing the content of the first build-row:\n" + extractFirstBuildRow(content)
         )
+    }
+
+    private fun extractFirstBuildRow(content: String): String {
+        val regex = Regex("<tr[^>]+class=\"[^\"]*build-row[^\"][^>]*>([\\S\\s]*?)</tr>")
+        return regex.find(content)?.value ?: "<nothing found, 100 first chars of body instead:>\n${content.take(100)}"
     }
 
     private fun pollForCompletion(httpClient: OkHttpClient, jobName: String, buildNumber: Int): String {
