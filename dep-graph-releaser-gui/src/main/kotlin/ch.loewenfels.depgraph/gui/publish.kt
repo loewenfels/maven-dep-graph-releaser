@@ -32,7 +32,7 @@ fun publish(json: String, fileName: String, possiblyRelativePublishJobUrl: Strin
         }.then { buildNumber ->
             extractResultJsonUrl(jobUrl, buildNumber)
         }.then { (buildNumber, releaseJsonUrl) ->
-            changeUrlAndReloadOrAddHint(possiblyRelativePublishJobUrl, jobUrl, buildNumber, releaseJsonUrl)
+            changeUrlAndReloadOrAddHint(jobUrl, buildNumber, releaseJsonUrl)
         }.catch {
             showError(it)
         }.finally {
@@ -218,13 +218,12 @@ class PollException(message: String, val body: String) : RuntimeException(messag
 
 
 fun changeUrlAndReloadOrAddHint(
-    possiblyRelativePublishJobUrl: String,
     jobUrl: String,
     buildNumber: Int,
     releaseJsonUrl: String
 ) {
     val prefix = window.location.protocol + "//" + window.location.hostname + "/"
-    val isOnSameHost = possiblyRelativePublishJobUrl.startsWith(prefix)
+    val isOnSameHost = jobUrl.startsWith(prefix)
     if (isOnSameHost) {
         window.location.href = window.location.href.substringBefore('#') + "#$releaseJsonUrl$PUBLISH_JOB$jobUrl"
         window.location.reload()
