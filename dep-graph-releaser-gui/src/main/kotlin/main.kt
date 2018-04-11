@@ -36,7 +36,8 @@ private fun determineJsonUrl(): String {
     return if (window.location.hash != "") {
         window.location.hash.substring(1).substringBefore("&")
     } else {
-        "./release.json"
+        showError(IllegalStateException("You need to specify a release.json." +
+            "\nAppend the path with preceding # to the url, e.g., http://...pipeline.html#release.json"))
     }
 }
 

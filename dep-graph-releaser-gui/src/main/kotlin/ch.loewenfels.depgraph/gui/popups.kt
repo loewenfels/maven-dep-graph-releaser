@@ -45,7 +45,7 @@ private fun showMessageOfType(type: String, icon: String, message: String) {
     }
 }
 
-fun showError(t: Throwable) {
+fun showError(t: Throwable): Nothing {
     val sb = StringBuilder()
     var cause = t.cause
     while(cause != null){
