@@ -3,7 +3,6 @@ package ch.loewenfels.depgraph.gui
 import PUBLISH_JOB
 import checkStatus
 import org.w3c.fetch.*
-import kotlin.browser.document
 import kotlin.browser.window
 import kotlin.js.Promise
 
@@ -15,7 +14,7 @@ fun publish(json: String, fileName: String, possiblyRelativePublishJobUrl: Strin
 
     val jobUrl = getJobUrl(possiblyRelativePublishJobUrl)
     val jenkinsUrl = jobUrl.substringBefore("/job/")
-    document.body!!.style.cursor = "progress"
+    changeCursorToProgress()
     issueCrumb(jenkinsUrl)
         .then { crumbWithId: Pair<String, String>? ->
             post(jobUrl, crumbWithId, fileName, json)
@@ -29,16 +28,15 @@ fun publish(json: String, fileName: String, possiblyRelativePublishJobUrl: Strin
             pollJobForCompletion(jobUrl, buildNumber)
                 .then { result -> buildNumber to result }
         }.then { (buildNumber, result) ->
-            document.body!!.style.cursor = "default"
             checkJobResult(jobUrl, buildNumber, result)
         }.then { buildNumber ->
             extractResultJsonUrl(jobUrl, buildNumber)
         }.then { (buildNumber, releaseJsonUrl) ->
             changeUrlAndReloadOrAddHint(possiblyRelativePublishJobUrl, jobUrl, buildNumber, releaseJsonUrl)
-        }
-        .catch {
-            document.body!!.style.cursor = "default"
+        }.catch {
             showError(it)
+        }.finally {
+            changeCursorBackToNormal()
         }
 }
 
