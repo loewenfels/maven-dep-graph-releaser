@@ -34,6 +34,14 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 toggleCommand(checkbox)
             }
         }
+        releasePlan.getSubmodules(project.id)
+            .asSequence()
+            .map { submoduleId -> getCheckboxOrNull(getDisableAllId(submoduleId)) }
+            .filterNotNull()
+            .forEach { checkbox ->
+                checkbox.checked = checked
+                toggleProject(checkbox)
+            }
     }
 
     private fun getDisableAllId(projectId: ProjectId) = "${projectId.identifier}:$DISABLE_ALL"
