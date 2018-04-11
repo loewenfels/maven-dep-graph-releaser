@@ -46,10 +46,13 @@ private fun showMessageOfType(type: String, icon: String, message: String) {
 }
 
 fun showError(t: Throwable) {
-    showError(
-        "${t::class.js.name}: ${t.message}" +
-            if (t.cause != null) "\nCause: ${t.cause}" else ""
-    )
+    val sb = StringBuilder()
+    var cause = t.cause
+    while(cause != null){
+        sb.append("\nCause: ").append(cause)
+        cause = cause.cause
+    }
+    showError("${t::class.js.name}: ${t.message}$sb")
     throw t //this way it also shows up in console with stacktrace
 }
 
