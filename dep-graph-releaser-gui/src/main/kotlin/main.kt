@@ -25,7 +25,7 @@ fun main() {
 }
 
 fun determinePublishJob(): String? {
-    return if (window.location.hash != "") {
+    return if (window.location.hash.contains(PUBLISH_JOB)) {
         window.location.hash.substringAfter(PUBLISH_JOB)
     } else {
         null
