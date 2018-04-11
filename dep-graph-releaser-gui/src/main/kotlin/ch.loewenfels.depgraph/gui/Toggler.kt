@@ -13,14 +13,14 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
     fun toggle(id: String) {
         val checkbox = getCheckbox(id)
         when {
-            id.endsWith(DISABLE_ALL) -> toggleProject(checkbox)
+            id.endsWith(DISABLE_ALL_SUFFIX) -> toggleProject(checkbox)
             else -> toggleCommand(checkbox)
         }
     }
 
     private fun toggleProject(disableAllCheckbox: HTMLInputElement) {
         val checked = disableAllCheckbox.checked
-        val identifier = disableAllCheckbox.id.substring(0, disableAllCheckbox.id.indexOf(DISABLE_ALL))
+        val identifier = disableAllCheckbox.id.substring(0, disableAllCheckbox.id.indexOf(DISABLE_ALL_SUFFIX))
         val project = getProject(identifier)
 
         project.commands.forEachIndexed { index, _ ->
@@ -44,7 +44,7 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
             }
     }
 
-    private fun getDisableAllId(projectId: ProjectId) = "${projectId.identifier}:$DISABLE_ALL"
+    private fun getDisableAllId(projectId: ProjectId) = "${projectId.identifier}$DISABLE_ALL_SUFFIX"
     private fun getCheckbox(identifier: String, index: Int) = getCheckbox("$identifier:$index:disable")
 
     private fun toggleCommand(checkbox: HTMLInputElement) {
@@ -128,6 +128,6 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
     }
 
     companion object {
-        private const val DISABLE_ALL = ":disableAll"
+        private const val DISABLE_ALL_SUFFIX = ":disableAll"
     }
 }
