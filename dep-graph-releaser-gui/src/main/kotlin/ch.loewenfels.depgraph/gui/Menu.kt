@@ -89,9 +89,7 @@ class Menu(
 
     fun activateSaveButton() {
         saveButton.removeClass(DEACTIVATED)
-        saveButton.title =
-            if (publishJobUrl != null) "Publish changed json file and reload"
-            else "Download changed json file"
+        saveButton.title = "Publish changed json file and reload"
     }
 
     private fun save() {
