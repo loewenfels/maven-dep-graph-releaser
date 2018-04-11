@@ -18,6 +18,7 @@ class Menu(
     private val publishJobUrl: String?
 ) {
     private val saveButton get() = elementById("save")
+    private val downloadButton get() = elementById("download")
     private val dryRunButton get() = elementById("dryRun")
     private val buildButton get() = elementById("build")
 
@@ -29,26 +30,56 @@ class Menu(
                 null
             }
         }
-        initSaveButton()
+        initSaveAndDownloadButton()
         initDryRunAndBuildButton()
     }
 
     private fun initDryRunAndBuildButton() {
-        dryRunButton.addClickEventListener {
+        dryRunButton.addClickEventListenerIfNotDeactivatedNorDisabled {
             //TODO implement
         }
-        buildButton.addClickEventListener {
+        buildButton.addClickEventListenerIfNotDeactivatedNorDisabled {
             //TODO implement
         }
     }
 
-    private fun initSaveButton() {
-        saveButton.addClickEventListener {
-            //nothing to do if deactivated
-            if (saveButton.hasClass(DEACTIVATED)) return@addClickEventListener
-            save()
+    private fun initSaveAndDownloadButton() {
+        if (publishJobUrl == null) {
+            saveButton.addClass(DISABLED)
+        } else {
+            saveButton.addClickEventListenerIfNotDeactivatedNorDisabled {
+                save()
+            }
         }
         deactivateSaveButton()
+
+        downloadButton.addClickEventListenerIfNotDeactivatedNorDisabled {
+            download()
+        }
+    }
+
+    private fun HTMLElement.addClickEventListenerIfNotDeactivatedNorDisabled(action: () -> Unit) {
+        addClickEventListener {
+            if (hasClass(DEACTIVATED) || hasClass(DISABLED)) return@addClickEventListener
+            action()
+        }
+    }
+
+    private fun download() {
+        val releasePlanJson = JSON.parse<ReleasePlanJson>(body)
+        applyChanges(releasePlanJson)
+        val json = JSON.stringify(releasePlanJson)
+        download(json)
+    }
+
+    private fun download(json: String) {
+        val a = document.createElement("a") as HTMLElement
+        a.setAttribute("href", "data:text/plain;charset=utf-8,${encodeURIComponent(json)}")
+        a.setAttribute("download", "release.json")
+        a.style.display = "none"
+        document.body!!.appendChild(a)
+        a.click()
+        document.body!!.removeChild(a)
     }
 
     private fun deactivateSaveButton() {
@@ -66,9 +97,18 @@ class Menu(
     private fun save() {
         val releasePlanJson = JSON.parse<ReleasePlanJson>(body)
         val changed = applyChanges(releasePlanJson)
-
         if (changed) {
-            downloadOrPublish(releasePlanJson)
+            if (publishJobUrl != null) {
+                val newFileName = "release-${generateUniqueId()}"
+                val newJson = JSON.stringify(releasePlanJson)
+                publish(newJson, newFileName, publishJobUrl)
+            } else {
+                showError(
+                    IllegalStateException(
+                        "save button should not be activate if now publish job url was specified.\nPlease report a bug"
+                    )
+                )
+            }
         } else {
             showInfo("Seems like all changes have been reverted manually. Will not save anything.")
         }
@@ -134,27 +174,8 @@ class Menu(
         return false
     }
 
-    private fun downloadOrPublish(releasePlanJson: ReleasePlanJson) {
-        val newJson = JSON.stringify(releasePlanJson)
-        if (publishJobUrl == null) {
-            download(newJson)
-        } else {
-            val newFileName = "release-${generateUniqueId()}"
-            publish(newJson, newFileName, publishJobUrl)
-        }
-    }
-
-    private fun download(json: String) {
-        val a = document.createElement("a") as HTMLElement
-        a.setAttribute("href", "data:text/plain;charset=utf-8,${encodeURIComponent(json)}")
-        a.setAttribute("download", "release.json")
-        a.style.display = "none"
-        document.body!!.appendChild(a)
-        a.click()
-        document.body!!.removeChild(a)
-    }
-
     companion object {
         private const val DEACTIVATED = "deactivated"
+        private const val DISABLED = "disabled"
     }
 }
