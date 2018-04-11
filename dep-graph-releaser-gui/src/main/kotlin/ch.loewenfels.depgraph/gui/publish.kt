@@ -225,7 +225,8 @@ fun changeUrlAndReloadOrAddHint(
     val prefix = window.location.protocol + "//" + window.location.hostname + "/"
     val isOnSameHost = jobUrl.startsWith(prefix)
     if (isOnSameHost) {
-        window.location.href = window.location.href.substringBefore('#') + "#$releaseJsonUrl$PUBLISH_JOB$jobUrl"
+        val pipelineUrl = window.location.href.substringBefore('#')
+        window.location.href = "$pipelineUrl#$releaseJsonUrl$PUBLISH_JOB${jobUrl.substringAfter(prefix)}"
         window.location.reload()
     } else {
         showWarning(
