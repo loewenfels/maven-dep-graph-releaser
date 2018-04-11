@@ -100,6 +100,9 @@ body {
     position: absolute;
     margin-top: -5px;
 }
+#messages .error .material-icons {
+    margin-top: -4px;
+}
 
 #messages .text {
     padding-left: 33px;

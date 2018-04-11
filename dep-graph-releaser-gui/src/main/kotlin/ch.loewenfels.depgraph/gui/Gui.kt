@@ -195,10 +195,14 @@ class Gui(private val releasePlan: ReleasePlan, body: String) {
         )
 
         when (command) {
-            is JenkinsMavenReleasePlugin -> appendJenkinsMavenReleasePluginField(idPrefix, command)
-            is JenkinsMultiMavenReleasePlugin -> appendJenkinsMultiMavenReleasePluginFields(idPrefix, projectId, command)
-            is JenkinsUpdateDependency -> appendJenkinsUpdateDependencyField(idPrefix, command)
-            else -> showError("unknown command found, cannot display its fields.\n$command")
+            is JenkinsMavenReleasePlugin ->
+                appendJenkinsMavenReleasePluginField(idPrefix, command)
+            is JenkinsMultiMavenReleasePlugin ->
+                appendJenkinsMultiMavenReleasePluginFields(idPrefix, projectId, command)
+            is JenkinsUpdateDependency ->
+                appendJenkinsUpdateDependencyField(idPrefix, command)
+            else ->
+                showError("unknown command found, cannot display its fields.\n$command")
         }
     }
 
@@ -246,14 +250,29 @@ class Gui(private val releasePlan: ReleasePlan, body: String) {
             { projectId(command.projectId) })
     }
 
-    private fun DIV.toggle(id: String, title: String, checked: Boolean, disabled: Boolean, checkboxCssClass: String = "") {
+    private fun DIV.toggle(
+        id: String,
+        title: String,
+        checked: Boolean,
+        disabled: Boolean,
+        checkboxCssClass: String = ""
+    ) {
         label("toggle") {
             checkBoxInput(classes = checkboxCssClass) {
                 this.id = id
                 this.checked = checked && !disabled
                 this.disabled = disabled
                 val checkbox = getUnderlyingHtmlElement()
-                checkbox.addEventListener("click", { toggler.toggle(id) })
+                checkbox.addEventListener("click", {
+                    try {
+                        toggler.toggle(id)
+                    } catch (t: Throwable) {
+                        showError(RuntimeException(
+                            "An unexpected error occurred during toggling. Please report a bug with the following information.",
+                            t
+                        ))
+                    }
+                })
             }
             span("slider") {
                 this.title = title
