@@ -44,14 +44,15 @@ class Menu(
     }
 
     private fun initSaveAndDownloadButton() {
+        deactivateSaveButton()
         if (publishJobUrl == null) {
             saveButton.addClass(DISABLED)
+            saveButton.title = "Cannot publish; you need to append &publishJob=jobUrl to the url and replace jobUrl accordingly."
         } else {
             saveButton.addClickEventListenerIfNotDeactivatedNorDisabled {
                 save()
             }
         }
-        deactivateSaveButton()
 
         downloadButton.addClickEventListenerIfNotDeactivatedNorDisabled {
             download()
@@ -83,11 +84,13 @@ class Menu(
     }
 
     private fun deactivateSaveButton() {
+        if (saveButton.hasClass(DISABLED)) return
         saveButton.addClass(DEACTIVATED)
         saveButton.title = "Nothing to save, no changes were made"
     }
 
     fun activateSaveButton() {
+        if (saveButton.hasClass(DISABLED)) return
         saveButton.removeClass(DEACTIVATED)
         saveButton.title = "Publish changed json file and reload"
     }
