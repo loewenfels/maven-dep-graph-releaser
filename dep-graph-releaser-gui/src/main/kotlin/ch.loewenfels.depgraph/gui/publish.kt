@@ -226,10 +226,13 @@ fun changeUrlAndReloadOrAddHint(
     val prefix = window.location.protocol + "//" + window.location.hostname + "/"
     val isOnSameHost = jobUrl.startsWith(prefix)
     if (isOnSameHost) {
-        showSuccess("Publishing successful, going to change the location", 3000)
-        //TODO jobUrl is appended twice under some circumstances, once with &amp;
         val pipelineUrl = window.location.href.substringBefore('#')
-        window.location.href = "$pipelineUrl#$releaseJsonUrl$PUBLISH_JOB${jobUrl.substringAfter(prefix)}"
+        val url = "$pipelineUrl#$releaseJsonUrl$PUBLISH_JOB${jobUrl.substringAfter(prefix)}"
+        showSuccess("Publishing successful, going to change the location." +
+            "\nIf this message does not disappear, then it means the reload failed. Please visit the following url manually:" +
+            "\n$url")
+        //TODO jobUrl is appended twice under some circumstances, once with &amp;
+        window.location.href = url
         window.location.reload()
     } else {
         showWarning(
