@@ -6,22 +6,24 @@ import kotlin.js.Promise
 
 @JsName("main")
 fun main() {
-    val jsonUrl = determineJsonUrl()
-    loadJson(jsonUrl)
-        .then(::checkStatus)
-        .catch {
-            throw Error("Could not load json.", it)
-        }
-        .then { body: String ->
-            val publishJob = determinePublishJob()
-            val releasePlan = deserialize(body)
-            val menu = Menu(body, publishJob)
-            Gui(releasePlan, menu).load()
-            switchLoaderAndGui()
-        }
-        .catch {
-            showError(it)
-        }
+    window.onload = {
+        val jsonUrl = determineJsonUrl()
+        loadJson(jsonUrl)
+            .then(::checkStatus)
+            .catch {
+                throw Error("Could not load json.", it)
+            }
+            .then { body: String ->
+                val publishJob = determinePublishJob()
+                val releasePlan = deserialize(body)
+                val menu = Menu(body, publishJob)
+                Gui(releasePlan, menu).load()
+                switchLoaderAndGui()
+            }
+            .catch {
+                showError(it)
+            }
+    }
 }
 
 fun determinePublishJob(): String? {
