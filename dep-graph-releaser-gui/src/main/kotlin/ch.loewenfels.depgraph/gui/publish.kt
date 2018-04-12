@@ -22,6 +22,7 @@ fun publish(json: String, fileName: String, possiblyRelativePublishJobUrl: Strin
         .catch {
             throw Error("Could not trigger the publish job", it)
         }.then { _: String ->
+            showInfo("Triggered publish job successfully, wait for completion...", 2000)
             //POST does not return anything, that's why we don't pass anything
             extractBuildNumber(fileName, jobUrl)
         }.then { buildNumber: Int ->
@@ -225,6 +226,8 @@ fun changeUrlAndReloadOrAddHint(
     val prefix = window.location.protocol + "//" + window.location.hostname + "/"
     val isOnSameHost = jobUrl.startsWith(prefix)
     if (isOnSameHost) {
+        showSuccess("Publishing successful, going to change the location", 3000)
+        //TODO jobUrl is appended twice under some circumstances, once with &amp;
         val pipelineUrl = window.location.href.substringBefore('#')
         window.location.href = "$pipelineUrl#$releaseJsonUrl$PUBLISH_JOB${jobUrl.substringAfter(prefix)}"
         window.location.reload()

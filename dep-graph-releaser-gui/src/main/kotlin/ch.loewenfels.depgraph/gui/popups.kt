@@ -7,33 +7,37 @@ import kotlinx.html.id
 import kotlinx.html.js.div
 import kotlinx.html.js.i
 import kotlinx.html.js.span
+import kotlin.browser.window
 
 private var msgCounter = 0
 
 fun showStatus(message: String) {
     elementById("status").innerText = message
 }
-
-fun showInfo(message: String) {
-    showMessageOfType("info", "info_outline", message)
+fun showSuccess(message: String, autoCloseAfterMs: Int? = null) {
+    showMessageOfType("success", "check_circle", message, autoCloseAfterMs)
 }
 
-fun showWarning(message: String) {
-    showMessageOfType("warning", "warning", message)
+fun showInfo(message: String, autoCloseAfterMs: Int? = null) {
+    showMessageOfType("info", "info_outline", message, autoCloseAfterMs)
+}
+
+fun showWarning(message: String, autoCloseAfterMs: Int? = null) {
+    showMessageOfType("warning", "warning", message, autoCloseAfterMs)
 }
 
 fun showError(message: String) {
-    showMessageOfType("error", "error_outline", message)
+    showMessageOfType("error", "error_outline", message, null)
 }
 
-private fun showMessageOfType(type: String, icon: String, message: String) {
+private fun showMessageOfType(type: String, icon: String, message: String, autoCloseAfterMs: Int?) {
     elementById("messages").append {
         div(type) {
             val msgId = "msg${msgCounter++}"
             this.id = msgId
             span("close") {
                 val span = getUnderlyingHtmlElement()
-                span.addEventListener("click", { elementById(msgId).style.display = "none" })
+                span.addEventListener("click", { closeMessage(msgId) })
             }
             i("material-icons") {
                 +icon
@@ -41,14 +45,21 @@ private fun showMessageOfType(type: String, icon: String, message: String) {
             div("text") {
                 convertNewLinesToBr(message)
             }
+            if (autoCloseAfterMs != null) {
+                window.setTimeout({ closeMessage(msgId) }, autoCloseAfterMs)
+            }
         }
     }
+}
+
+private fun closeMessage(msgId: String) {
+    elementById(msgId).style.display = "none"
 }
 
 fun showError(t: Throwable): Nothing {
     val sb = StringBuilder()
     var cause = t.cause
-    while(cause != null){
+    while (cause != null) {
         sb.append("\nCause: ").append(cause)
         cause = cause.cause
     }

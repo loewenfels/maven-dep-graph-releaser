@@ -17,8 +17,8 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
     fun load() {
         document.title = "Release " + releasePlan.rootProjectId.identifier
-        setUpMessages(releasePlan.warnings, "warnings", ::showWarning)
-        setUpMessages(releasePlan.infos, "infos", ::showInfo)
+        setUpMessages(releasePlan.warnings, "warnings", { showWarning(it) })
+        setUpMessages(releasePlan.infos, "infos", { showInfo(it) })
         setUpProjects()
     }
 

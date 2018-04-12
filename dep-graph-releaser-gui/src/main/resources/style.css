@@ -154,6 +154,17 @@ body {
     border-color: #5454d4;
 }
 
+#messages > .success {
+    border-color: #008000;
+    background-color: #c9fdc9;
+    color: #272525;
+    font-size: 1em;
+}
+
+#messages > .success .material-icons {
+    color: #008000;
+}
+
 
 .close {
    position: absolute;
