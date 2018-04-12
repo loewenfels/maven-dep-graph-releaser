@@ -47,7 +47,7 @@ private fun getJobUrl(possiblyRelativePublishJobUrl: String): String {
     } else {
         prefix + possiblyRelativePublishJobUrl
     }
-    return if (tmpUrl.endsWith("/")) tmpUrl.substring(0, tmpUrl.length - 1) else tmpUrl
+    return if (tmpUrl.endsWith("/")) tmpUrl else "$tmpUrl/"
 }
 
 fun issueCrumb(jenkinsUrl: String): Promise<Pair<String, String>?> {
@@ -112,11 +112,11 @@ private fun post(
             "delete init.keepalive;" +
             "delete init.window;"
     )
-    return window.fetch("$jobUrl/buildWithParameters", init)
+    return window.fetch("${jobUrl}buildWithParameters", init)
 }
 
-private fun pollJobForCompletion(url: String, buildNumber: Int): Promise<String> {
-    return poll("$url/$buildNumber/api/xml?xpath=/*/result", 0, { body ->
+private fun pollJobForCompletion(jobUrl: String, buildNumber: Int): Promise<String> {
+    return poll("$jobUrl$buildNumber/api/xml?xpath=/*/result", 0, { body ->
         val matchResult = resultRegex.matchEntire(body)
         if (matchResult != null) {
             true to matchResult.groupValues[1]
@@ -126,7 +126,7 @@ private fun pollJobForCompletion(url: String, buildNumber: Int): Promise<String>
     })
 }
 
-private fun extractBuildNumber(fileName: String, url: String): Promise<Int> {
+private fun extractBuildNumber(fileName: String, jobUrl: String): Promise<Int> {
     val buildNumberRegex = Regex(
         "<div[^>]+id=\"buildHistoryPage\"[^>]*>[\\S\\s]*?" +
             "<td[^>]+class=\"build-row-cell[^>]+>[\\S\\s]*?" +
@@ -134,10 +134,10 @@ private fun extractBuildNumber(fileName: String, url: String): Promise<Int> {
             "<a[^>]+class=\"[^\"]+build-link[^>]+>#[0-9]+ $fileName[^<]*</a>[\\S\\s]*?" +
             "</td>"
     )
-    return pollAndExtract(url, buildNumberRegex) { e ->
+    return pollAndExtract(jobUrl, buildNumberRegex) { e ->
         throw IllegalStateException(
             "Could not find the build number in the returned body." +
-                "\nJob URL: $url" +
+                "\nJob URL: $jobUrl" +
                 "\nRegex used: ${buildNumberRegex.pattern}" +
                 "\nFollowing the content of the first build-row:\n" + extractFirstBuildRow(e)
         )
@@ -160,25 +160,25 @@ private fun pollAndExtract(url: String, regex: Regex, errorHandler: (PollExcepti
     }).catch { t -> errorHandler(t as PollException) }
 }
 
-fun checkJobResult(url: String, buildNumber: Int, result: String): Int {
+fun checkJobResult(jobUrl: String, buildNumber: Int, result: String): Int {
     check(result == SUCCESS) {
         "Publishing the json failed, job did not end with status $SUCCESS but $result." +
-            "\nVisit $url/$buildNumber for further information"
+            "\nVisit $jobUrl$buildNumber for further information"
     }
     return buildNumber
 }
 
-fun extractResultJsonUrl(url: String, buildNumber: Int): Promise<Pair<Int, String>> {
+fun extractResultJsonUrl(jobUrl: String, buildNumber: Int): Promise<Pair<Int, String>> {
     val resultJsonRegex = Regex(
         "<div[^>]+id=\"buildHistoryPage\"[^>]*>[\\S\\s]*?" +
             "<td[^>]+class=\"build-row-cell[^>]+>[\\S\\s]*?" +
             "<a[^>]+href=\"[^\"]+pipeline.html#([^\"]+)\"[^>]*>[\\S\\s]*?" +
             "</td>"
     )
-    return pollAndExtract(url, resultJsonRegex) { e ->
+    return pollAndExtract(jobUrl, resultJsonRegex) { e ->
         throw IllegalStateException(
             "Could not find the published release json link." +
-                "\nJob URL: $url" +
+                "\nJob URL: $jobUrl" +
                 "\nRegex used: ${resultJsonRegex.pattern}" +
                 extractFirstBuildRow(e)
         )
@@ -232,7 +232,7 @@ fun changeUrlAndReloadOrAddHint(
         showWarning(
             "The release.json was successfully published. " +
                 "However, since it is not on the same server, we cannot consume it." +
-                "\nVisit the publish job for further information: $jobUrl/$buildNumber"
+                "\nVisit the publish job for further information: $jobUrl$buildNumber"
         )
     }
 }
