@@ -173,7 +173,7 @@ fun extractResultJsonUrl(jobUrl: String, buildNumber: Int): Promise<Pair<Int, St
     val resultJsonRegex = Regex(
         "<div[^>]+id=\"buildHistoryPage\"[^>]*>[\\S\\s]*?" +
             "<td[^>]+class=\"build-row-cell[^>]+>[\\S\\s]*?" +
-            "<a[^>]+href=\"[^\"]+pipeline.html#([^\"]+)\"[^>]*>[\\S\\s]*?" +
+            "<a[^>]+href=\"[^\"]+pipeline.html#([^\"]+?)(?:&[^\"]+)?\"[^>]*>[\\S\\s]*?" +
             "</td>"
     )
     return pollAndExtract(jobUrl, resultJsonRegex) { e ->
@@ -227,13 +227,15 @@ fun changeUrlAndReloadOrAddHint(
     val isOnSameHost = jobUrl.startsWith(prefix)
     if (isOnSameHost) {
         val pipelineUrl = window.location.href.substringBefore('#')
-        val url = "$pipelineUrl#$releaseJsonUrl$PUBLISH_JOB${jobUrl.substringAfter(prefix)}"
+        val relativeJobUrl = jobUrl.substringAfter(prefix)
+        val url = "$pipelineUrl#$releaseJsonUrl$PUBLISH_JOB$relativeJobUrl"
         showSuccess("Publishing successful, going to change the location." +
             "\nIf this message does not disappear, then it means the reload failed. Please visit the following url manually:" +
             "\n$url")
-        //TODO jobUrl is appended twice under some circumstances, once with &amp;
-        window.location.href = url
-        window.location.reload()
+        sleep(500) {
+            window.location.href = url
+            window.location.reload()
+        }
     } else {
         showWarning(
             "The release.json was successfully published. " +
