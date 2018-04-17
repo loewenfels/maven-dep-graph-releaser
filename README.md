@@ -76,7 +76,7 @@ The following guide shows how you can integrate dep-graph-releaser with Jenkins.
    then you need to modify the following system property: `hudson.model.DirectoryBrowserSupport.CSP`
    1. Open up the Jenkins Script Console and run: 
       ```groovy
-      System.setProperty("hudson.model.DirectoryBrowserSupport.CSP", "sandbox allow-scripts; script-src 'self'");
+      System.setProperty("hudson.model.DirectoryBrowserSupport.CSP", "sandbox allow-same-origin allow-scripts; script-src 'self'");
       ```
       This will allow that scripts of the same domain (same protocol and port) can be executed.
    2. The `Loading...` should now disappear (force reload if it does not, could also be caching)
@@ -87,7 +87,7 @@ The following guide shows how you can integrate dep-graph-releaser with Jenkins.
       # JENKINS_JAVA_OPTIONS="-Djava.awt.headless=true -server -Xmx2g"
       #
       # Modified version to allow dep-graph-releaser to execute its javascripts
-      JENKINS_JAVA_OPTIONS="-Djava.awt.headless=true -server -Xmx2g -Dhudson.model.DirectoryBrowserSupport.CSP=\"sandbox allow-scripts; script-src 'self'\""
+      JENKINS_JAVA_OPTIONS="-Djava.awt.headless=true -server -Xmx2g -Dhudson.model.DirectoryBrowserSupport.CSP=\"sandbox allow-same-origin allow-scripts; script-src 'self'\""
       ```
 5. Create a job which runs the Main with command json
     - an example will follow using maven. 
