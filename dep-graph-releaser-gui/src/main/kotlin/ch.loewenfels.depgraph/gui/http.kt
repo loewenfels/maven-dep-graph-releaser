@@ -1,7 +1,6 @@
 package ch.loewenfels.depgraph.gui
 
-import org.w3c.fetch.RequestInit
-import org.w3c.fetch.Response
+import org.w3c.fetch.*
 import kotlin.browser.window
 import kotlin.js.Promise
 
@@ -26,13 +25,56 @@ private fun checkResponseIgnore(response: Response, ignoringError: Int?): Promis
 
 
 @Suppress("UnsafeCastFromDynamic")
-fun createFetchInitWithCredentials() : RequestInit {
+fun createFetchInitWithCredentials(): RequestInit {
     val init = js("({})")
     init.credentials = "include"
     return init
 }
 
+
+fun createHeaderWithAuthAndCrumb(crumbWithId: CrumbWithId?, usernameToken: UsernameToken): dynamic {
+    val headers = js("({})")
+    addAuthentication(headers, usernameToken)
+    if (crumbWithId != null) {
+        headers[crumbWithId.id] = crumbWithId.crumb
+    }
+    return headers
+}
+
 fun addAuthentication(headers: dynamic, usernameToken: UsernameToken) {
     val base64UsernameAndToken = window.btoa("${usernameToken.username}:${usernameToken.token}")
     headers["Authorization"] = "Basic $base64UsernameAndToken"
+}
+
+@Suppress("NESTED_CLASS_IN_EXTERNAL_INTERFACE")
+external interface RequestVerb {
+    companion object
+}
+
+inline val RequestVerb.Companion.GET get() = "GET".asDynamic().unsafeCast<RequestVerb>()
+inline val RequestVerb.Companion.POST get() = "POST".asDynamic().unsafeCast<RequestVerb>()
+
+fun createRequestInit(
+    body: String?,
+    method: RequestVerb,
+    headers: dynamic
+): RequestInit {
+    val init = RequestInit(
+        body = body,
+        method = method.unsafeCast<String>(),
+        headers = headers,
+        mode = RequestMode.CORS,
+        cache = org.w3c.fetch.RequestCache.NO_CACHE,
+        redirect = org.w3c.fetch.RequestRedirect.FOLLOW,
+        credentials = org.w3c.fetch.RequestCredentials.INCLUDE
+    )
+    //have to remove properties because RequestInit sets them to null which is not what we want/is not valid
+    js(
+        "delete init.integrity;" +
+            "delete init.referer;" +
+            "delete init.referrerPolicy;" +
+            "delete init.keepalive;" +
+            "delete init.window;"
+    )
+    return init
 }
