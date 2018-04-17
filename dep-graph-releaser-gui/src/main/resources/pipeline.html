@@ -10,18 +10,17 @@
     <script type="text/javascript" src="dep-graph-releaser-gui.js?v=0.1.8-SNAPSHOT"></script>
 </head>
 <body>
-    <div id="loader">Loading...</div>
     <div id="gui">
         <div id="menu">
             <a class="button deactivated" id="user">
                 <i class="material-icons" id="user.icon">error</i>
                 <span class="text" id="user.name">Anonymous</span>
             </a>
-            <a class="button deactivated" id="save">
+            <a class="button deactivated" id="save" title="cannot save; most probably javascript was not loaded correctly">
                 <i class="material-icons">save</i>
                 <span class="text">Save Changes</span>
             </a>
-            <a class="button" id="download" title="Download the release.json">
+            <a class="button deactivated" id="download" title="cannot download; most probably javascript was not loaded correctly">
                 <i class="material-icons">file_download</i>
                 <span class="text">Download</span>
             </a>
@@ -35,6 +34,18 @@
             </a>
         </div>
         <div id="pipeline"></div>
+    </div>
+    <div id="loaderJs">
+        <p>Loading Javascript...</p>
+        <p>
+        If you keep seeing this after a few seconds, then most probably Content Security Policy blocked this site from
+        loading the javascript file.
+        You can verify it by opening the developer console (F12 in many browsers)
+        </p>
+    </div>
+    <div id="loaderJson">
+        Loading Javascript successful<br/>
+        Loading Json...
     </div>
     <div id="status"></div>
     <div id="messages"></div>

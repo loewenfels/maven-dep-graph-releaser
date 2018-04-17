@@ -25,10 +25,3 @@ fun <T> Promise<T>.finally(action: () -> T): T {
     return this.then { action() }
         .catch { action() }.asDynamic() as T
 }
-
-@Suppress("UnsafeCastFromDynamic")
-fun createFetchInitWithCredentials() : RequestInit {
-    val init = js("({})")
-    init.credentials = "include"
-    return init
-}

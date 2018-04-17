@@ -3,6 +3,9 @@ body {
     font-size: 12px;
     margin: 0;
 }
+#loaderJson {
+    display: none;
+}
 
 #gui {
     display: none;
@@ -69,8 +72,8 @@ body {
 
 
 #pipeline {
+    display: none;
     height: 100%;
-    display: table;
 }
 
 #status, #messages {
