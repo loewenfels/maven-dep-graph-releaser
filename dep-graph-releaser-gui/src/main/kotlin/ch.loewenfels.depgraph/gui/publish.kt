@@ -7,12 +7,7 @@ import kotlin.browser.window
 import kotlin.js.Promise
 
 
-fun publish(json: String, fileName: String, possiblyRelativePublishJobUrl: String) {
-    require(!possiblyRelativePublishJobUrl.contains("://") || possiblyRelativePublishJobUrl.startsWith("http")) {
-        "The publish job URL does not start with http but contains ://"
-    }
-
-    val jobUrl = getJobUrl(possiblyRelativePublishJobUrl)
+fun publish(json: String, fileName: String, jobUrl: String) {
     val jenkinsUrl = jobUrl.substringBefore("/job/")
     changeCursorToProgress()
     issueCrumb(jenkinsUrl)

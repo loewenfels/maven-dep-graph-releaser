@@ -28,11 +28,25 @@ fun main() {
 
 fun determinePublishJob(): String? {
     return if (window.location.hash.contains(PUBLISH_JOB)) {
-        window.location.hash.substringAfter(PUBLISH_JOB)
+        getJobUrl(window.location.hash.substringAfter(PUBLISH_JOB))
     } else {
         null
     }
 }
+private fun getJobUrl(possiblyRelativePublishJobUrl: String): String {
+    require(!possiblyRelativePublishJobUrl.contains("://") || possiblyRelativePublishJobUrl.startsWith("http")) {
+        "The publish job URL does not start with http but contains ://"
+    }
+
+    val prefix = window.location.protocol + "//" + window.location.hostname + "/"
+    val tmpUrl = if (possiblyRelativePublishJobUrl.contains("://")) {
+        possiblyRelativePublishJobUrl
+    } else {
+        prefix + possiblyRelativePublishJobUrl
+    }
+    return if (tmpUrl.endsWith("/")) tmpUrl else "$tmpUrl/"
+}
+
 
 private fun determineJsonUrl(): String {
     return if (window.location.hash != "") {
