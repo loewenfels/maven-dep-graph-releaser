@@ -5,11 +5,13 @@ import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
 import ch.loewenfels.depgraph.data.serialization.CommandStateJson
 import org.w3c.dom.HTMLElement
+import org.w3c.fetch.Response
 import kotlin.browser.document
 import kotlin.browser.window
 import kotlin.dom.addClass
 import kotlin.dom.hasClass
 import kotlin.dom.removeClass
+import kotlin.js.*
 
 external fun encodeURIComponent(encodedURI: String): String
 
@@ -17,10 +19,13 @@ class Menu(
     private val body: String,
     private val publishJobUrl: String?
 ) {
+    private val userButton get() = elementById("user")
     private val saveButton get() = elementById("save")
     private val downloadButton get() = elementById("download")
     private val dryRunButton get() = elementById("dryRun")
     private val buildButton get() = elementById("build")
+    private val jenkinsUrl = publishJobUrl?.substringBefore("/job/")
+    private var apiToken: String? = null
 
     init {
         window.onbeforeunload = {
@@ -30,8 +35,71 @@ class Menu(
                 null
             }
         }
-        initSaveAndDownloadButton()
-        initDryRunAndBuildButton()
+        retrieveUserAndApiToken()
+            .then {
+                initSaveAndDownloadButton()
+                initDryRunAndBuildButton()
+            }
+    }
+
+    private fun retrieveUserAndApiToken(): Promise<Unit> {
+        //cannot login if no jenkins url is given
+        if (jenkinsUrl == null) {
+            val info = "You need to specify publishJob if you want to use other functionality than Download."
+            showInfo(
+                info +
+                    "\nAn example: ${window.location}&publishJob=jobUrl" +
+                    "\nwhere you need to replace jobUrl accordingly."
+            )
+            listOf(saveButton, dryRunButton, buildButton).forEach { it.disable(info) }
+            return Promise.resolve(Unit)
+        }
+
+        return window.fetch("$jenkinsUrl/me/configure", createFetchInitWithCredentials())
+            .then(::checkStatusOkOr403)
+            .then { body: String? ->
+                if (body == null) {
+                    val info = "You need to log in if you want to use other functionality than Download."
+                    showInfo(info)
+                    userButton.title = info
+                    listOf(saveButton, dryRunButton, buildButton).forEach { it.disable(info) }
+                } else {
+                    val (name, apiToken) = extractNameAndApiToken(body)
+                    elementById("user.name").innerText = name
+                    userButton.removeClass(DEACTIVATED)
+                    this.apiToken = apiToken
+                }
+            }
+    }
+
+    private fun extractNameAndApiToken(body: String): Pair<String, String> {
+        val fullNameMatch = fullNameRegex.find(body) ?: throw IllegalStateException("Could not find username")
+        val apiTokenMatch = apiTokenRegex.find(body) ?: throw IllegalStateException("Could not find API token")
+        return fullNameMatch.groupValues[1] to apiTokenMatch.groupValues[1]
+    }
+
+    private fun checkStatusOkOr403(response: Response): Promise<String?> {
+        return response.text().then { text ->
+            if (response.status == 403.toShort()) {
+                null
+            } else {
+                check(response.ok) { "response was not ok, ${response.status}: ${response.statusText}\n$text" }
+                text
+            }
+        }
+    }
+
+    private fun initSaveAndDownloadButton() {
+        deactivateSaveButton()
+        if (publishJobUrl != null) {
+            saveButton.addClickEventListenerIfNotDeactivatedNorDisabled {
+                save()
+            }
+        }
+
+        downloadButton.addClickEventListenerIfNotDeactivatedNorDisabled {
+            download()
+        }
     }
 
     private fun initDryRunAndBuildButton() {
@@ -43,20 +111,9 @@ class Menu(
         }
     }
 
-    private fun initSaveAndDownloadButton() {
-        deactivateSaveButton()
-        if (publishJobUrl == null) {
-            saveButton.addClass(DISABLED)
-            saveButton.title = "Cannot publish; you need to append &publishJob=jobUrl to the url and replace jobUrl accordingly."
-        } else {
-            saveButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                save()
-            }
-        }
-
-        downloadButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-            download()
-        }
+    private fun HTMLElement.disable(reason: String) {
+        this.addClass(DISABLED)
+        this.title = reason
     }
 
     private fun HTMLElement.addClickEventListenerIfNotDeactivatedNorDisabled(action: () -> Unit) {
@@ -178,5 +235,7 @@ class Menu(
     companion object {
         private const val DEACTIVATED = "deactivated"
         private const val DISABLED = "disabled"
+        private val fullNameRegex = Regex("<input[^>]+name=\"_\\.fullName\"[^>]+value=\"([^\"]+)\"[^>]*>")
+        private val apiTokenRegex = Regex("<input[^>]+name=\"_\\.apiToken\"[^>]+value=\"([^\"]+)\"[^>]*>")
     }
 }

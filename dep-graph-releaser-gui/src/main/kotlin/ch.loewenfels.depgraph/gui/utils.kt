@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.gui
 
+import org.w3c.fetch.RequestInit
 import kotlin.browser.document
 import kotlin.browser.window
 import kotlin.js.Promise
@@ -23,4 +24,11 @@ fun changeCursorBackToNormal() {
 fun <T> Promise<T>.finally(action: () -> T): T {
     return this.then { action() }
         .catch { action() }.asDynamic() as T
+}
+
+@Suppress("UnsafeCastFromDynamic")
+fun createFetchInitWithCredentials() : RequestInit {
+    val init = js("({})")
+    init.credentials = "include"
+    return init
 }

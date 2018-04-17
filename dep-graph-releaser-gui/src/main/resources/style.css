@@ -37,16 +37,21 @@ body {
    color: #fdf36e;
 }
 
+#user {
+    float: right;
+    cursor: auto;
+}
+#user .material-icons {
+    color: #75d075;
+}
+#user.deactivated .material-icons {
+    color: #CCC;
+}
+
 .button .text {
     display: inline-block;
     padding-top: 5px;
     padding-left: 4px;
-}
-
-.button::after {
-    content: '';
-    display: block;
-    clear:both;
 }
 
 .button.deactivated, .button.deactivated .material-icons {
@@ -264,7 +269,7 @@ div.title {
     margin-bottom: 0px;
 }
 
-div.title::after, div.command > div.fields::after {
+div.title::after, div.command > div.fields::after, #menu::after, .button::after  {
     content: '';
     display: block;
     clear:both;

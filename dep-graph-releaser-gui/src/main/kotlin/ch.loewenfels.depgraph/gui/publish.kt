@@ -52,11 +52,9 @@ private fun getJobUrl(possiblyRelativePublishJobUrl: String): String {
 }
 
 fun issueCrumb(jenkinsUrl: String): Promise<Pair<String, String>?> {
-    val init = js("({})")
-    init.credentials = "include"
     val url = "$jenkinsUrl/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)"
     @Suppress("UnsafeCastFromDynamic")
-    return window.fetch(url, init)
+    return window.fetch(url, createFetchInitWithCredentials())
         .then(::checkStatusOkOr404)
         .catch {
             throw Error("Cannot issue a crumb", it)
