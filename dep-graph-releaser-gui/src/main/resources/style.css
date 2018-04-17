@@ -37,17 +37,6 @@ body {
    color: #fdf36e;
 }
 
-#user {
-    float: right;
-    cursor: auto;
-}
-#user .material-icons {
-    color: #75d075;
-}
-#user.deactivated .material-icons {
-    color: #CCC;
-}
-
 .button .text {
     display: inline-block;
     padding-top: 5px;
@@ -63,6 +52,21 @@ body {
     color: #888;
     cursor: not-allowed;
 }
+
+#user {
+    float: right;
+    cursor: auto;
+}
+#user .material-icons {
+    color: #75d075;
+}
+#user.deactivated, #user.deactivated .material-icons{
+    cursor: help;
+}
+#user.deactivated .material-icons {
+    color: #e67878;
+}
+
 
 #pipeline {
     height: 100%;

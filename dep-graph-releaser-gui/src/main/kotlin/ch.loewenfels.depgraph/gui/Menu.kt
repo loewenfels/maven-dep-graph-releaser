@@ -66,6 +66,7 @@ class Menu(
                 } else {
                     val (name, apiToken) = extractNameAndApiToken(body)
                     elementById("user.name").innerText = name
+                    elementById("user.icon").innerText = "verified_user"
                     userButton.removeClass(DEACTIVATED)
                     this.apiToken = apiToken
                 }
