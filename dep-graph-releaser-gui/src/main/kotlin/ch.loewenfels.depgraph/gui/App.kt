@@ -96,7 +96,7 @@ class App {
                         null
                     } else {
                         val (username, name, apiToken) = extractNameAndApiToken(body)
-                        menu.setVerifiedUser(name)
+                        menu.setVerifiedUser(username, name)
                         UsernameToken(username, apiToken)
                     }
                 }

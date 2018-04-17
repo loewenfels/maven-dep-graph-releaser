@@ -37,9 +37,10 @@ class Menu {
         listOf(saveButton, dryRunButton, buildButton).forEach { it.disable(titleButtons) }
     }
 
-    fun setVerifiedUser(name: String) {
+    fun setVerifiedUser(username: String, name: String) {
         userName.innerText = name
         userIcon.innerText = "verified_user"
+        userButton.title = "Logged in as $username"
         userButton.removeClass(Menu.DEACTIVATED)
     }
 

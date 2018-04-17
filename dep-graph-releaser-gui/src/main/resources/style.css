@@ -55,13 +55,10 @@ body {
 
 #user {
     float: right;
-    cursor: auto;
+    cursor: help;
 }
 #user .material-icons {
     color: #75d075;
-}
-#user.deactivated, #user.deactivated .material-icons{
-    cursor: help;
 }
 #user.deactivated .material-icons {
     color: #e67878;
