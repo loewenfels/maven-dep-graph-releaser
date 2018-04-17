@@ -7,12 +7,12 @@ import kotlin.browser.window
 import kotlin.js.Promise
 
 
-fun publish(json: String, fileName: String, jobUrl: String) {
+fun publish(json: String, fileName: String, jobUrl: String, usernameToken: UsernameToken) {
     val jenkinsUrl = jobUrl.substringBefore("/job/")
     changeCursorToProgress()
-    issueCrumb(jenkinsUrl)
+    issueCrumb(jenkinsUrl, usernameToken)
         .then { crumbWithId: Pair<String, String>? ->
-            post(jobUrl, crumbWithId, fileName, json)
+            post(jobUrl, crumbWithId, fileName, json, usernameToken)
         }.then(::checkStatus)
         .catch {
             throw Error("Could not trigger the publish job", it)
@@ -36,20 +36,13 @@ fun publish(json: String, fileName: String, jobUrl: String) {
         }
 }
 
-private fun getJobUrl(possiblyRelativePublishJobUrl: String): String {
-    val prefix = window.location.protocol + "//" + window.location.hostname + "/"
-    val tmpUrl = if (possiblyRelativePublishJobUrl.contains("://")) {
-        possiblyRelativePublishJobUrl
-    } else {
-        prefix + possiblyRelativePublishJobUrl
-    }
-    return if (tmpUrl.endsWith("/")) tmpUrl else "$tmpUrl/"
-}
-
-fun issueCrumb(jenkinsUrl: String): Promise<Pair<String, String>?> {
+fun issueCrumb(jenkinsUrl: String, usernameToken: UsernameToken): Promise<Pair<String, String>?> {
     val url = "$jenkinsUrl/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)"
-    @Suppress("UnsafeCastFromDynamic")
-    return window.fetch(url, createFetchInitWithCredentials())
+    val init =  createFetchInitWithCredentials()
+    val headers = js("({})")
+    addAuthentication(headers, usernameToken)
+    init.headers = headers
+    return window.fetch(url, init)
         .then(::checkStatusOkOr404)
         .catch {
             throw Error("Cannot issue a crumb", it)
@@ -61,6 +54,11 @@ fun issueCrumb(jenkinsUrl: String): Promise<Pair<String, String>?> {
                 null
             }
         }
+}
+
+private fun addAuthentication(headers: dynamic, usernameToken: UsernameToken) {
+    val base64UsernameAndToken = window.btoa("${usernameToken.username}:${usernameToken.token}")
+    headers["Authorization"] = "Basic $base64UsernameAndToken"
 }
 
 fun checkStatusOkOr404(response: Response): Promise<String?> {
@@ -78,10 +76,12 @@ private fun post(
     jobUrl: String,
     crumbPair: Pair<String, String>?,
     fileName: String,
-    newJson: String
+    newJson: String,
+    usernameToken: UsernameToken
 ): Promise<Response> {
 
     val headers = js("({})")
+    addAuthentication(headers, usernameToken)
     headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8"
     val mode = if (crumbPair != null) {
         headers[crumbPair.first] = crumbPair.second
@@ -89,6 +89,7 @@ private fun post(
     } else {
         RequestMode.NO_CORS
     }
+
     val init = RequestInit(
         body = "fileName=$fileName&json=$newJson",
         method = "POST",
@@ -98,13 +99,14 @@ private fun post(
         redirect = org.w3c.fetch.RequestRedirect.FOLLOW,
         credentials = RequestCredentials.INCLUDE
     )
-    //have to remove property because RequestInit sets it to null which is not valid
+    //have to remove properties because RequestInit sets them to null which is not what we want/is not valid
     js(
         "delete init.integrity;" +
             "delete init.referer;" +
             "delete init.referrerPolicy;" +
             "delete init.keepalive;" +
             "delete init.window;"
+            //+ "delete init.credentials;"
     )
     return window.fetch("${jobUrl}buildWithParameters", init)
 }

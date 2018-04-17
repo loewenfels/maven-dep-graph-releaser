@@ -20,12 +20,14 @@ class Menu(
     private val publishJobUrl: String?
 ) {
     private val userButton get() = elementById("user")
+    private val userIcon get() = elementById("user.icon")
+    private val userName get() = elementById("user.name")
     private val saveButton get() = elementById("save")
     private val downloadButton get() = elementById("download")
     private val dryRunButton get() = elementById("dryRun")
     private val buildButton get() = elementById("build")
     private val jenkinsUrl = publishJobUrl?.substringBefore("/job/")
-    private var apiToken: String? = null
+    private lateinit var usernameToken: UsernameToken
 
     init {
         window.onbeforeunload = {
@@ -43,40 +45,50 @@ class Menu(
     }
 
     private fun retrieveUserAndApiToken(): Promise<Unit> {
-        //cannot login if no jenkins url is given
-        if (jenkinsUrl == null) {
-            val info = "You need to specify publishJob if you want to use other functionality than Download."
-            showInfo(
-                info +
-                    "\nAn example: ${window.location}&publishJob=jobUrl" +
-                    "\nwhere you need to replace jobUrl accordingly."
-            )
-            listOf(saveButton, dryRunButton, buildButton).forEach { it.disable(info) }
-            return Promise.resolve(Unit)
-        }
-
-        return window.fetch("$jenkinsUrl/me/configure", createFetchInitWithCredentials())
-            .then(::checkStatusOkOr403)
-            .then { body: String? ->
-                if (body == null) {
-                    val info = "You need to log in if you want to use other functionality than Download."
-                    showInfo(info)
-                    userButton.title = info
-                    listOf(saveButton, dryRunButton, buildButton).forEach { it.disable(info) }
-                } else {
-                    val (name, apiToken) = extractNameAndApiToken(body)
-                    elementById("user.name").innerText = name
-                    elementById("user.icon").innerText = "verified_user"
-                    userButton.removeClass(DEACTIVATED)
-                    this.apiToken = apiToken
+        return if (jenkinsUrl == null) {
+            disableButtonsDueToNoPublishUrl()
+            Promise.resolve(Unit)
+        } else {
+            window.fetch("$jenkinsUrl/me/configure", createFetchInitWithCredentials())
+                .then(::checkStatusOkOr403)
+                .then { body: String? ->
+                    if (body == null) {
+                        val info = "You need to log in if you want to use other functionality than Download."
+                        disableButtonsDueToNoAuth(info, info)
+                    } else {
+                        val (username, name, apiToken) = extractNameAndApiToken(body)
+                        userName.innerText = name
+                        userIcon.innerText = "verified_user"
+                        userButton.removeClass(DEACTIVATED)
+                        usernameToken = UsernameToken(username, apiToken)
+                    }
                 }
-            }
+        }
     }
 
-    private fun extractNameAndApiToken(body: String): Pair<String, String> {
-        val fullNameMatch = fullNameRegex.find(body) ?: throw IllegalStateException("Could not find username")
+    private fun disableButtonsDueToNoPublishUrl() {
+        val titleButtons = "You need to specify publishJob if you want to use other functionality than Download."
+        disableButtonsDueToNoAuth(
+            titleButtons, titleButtons +
+                "\nAn example: ${window.location}&publishJob=jobUrl" +
+                "\nwhere you need to replace jobUrl accordingly."
+        )
+    }
+
+    private fun disableButtonsDueToNoAuth(titleButtons: String, info: String) {
+        showInfo(info)
+        userButton.title = titleButtons
+        userButton.addClass(DEACTIVATED)
+        userName.innerText = "Anonymous"
+        userIcon.innerText = "error"
+        listOf(saveButton, dryRunButton, buildButton).forEach { it.disable(titleButtons) }
+    }
+
+    private fun extractNameAndApiToken(body: String): Triple<String, String, String> {
+        val usernameMatch = usernameRegex.find(body) ?: throw IllegalStateException("Could not find username")
+        val fullNameMatch = fullNameRegex.find(body) ?: throw IllegalStateException("Could not find user's name")
         val apiTokenMatch = apiTokenRegex.find(body) ?: throw IllegalStateException("Could not find API token")
-        return fullNameMatch.groupValues[1] to apiTokenMatch.groupValues[1]
+        return Triple(usernameMatch.groupValues[1], fullNameMatch.groupValues[1], apiTokenMatch.groupValues[1])
     }
 
     private fun checkStatusOkOr403(response: Response): Promise<String?> {
@@ -150,7 +162,7 @@ class Menu(
     fun activateSaveButton() {
         if (saveButton.hasClass(DISABLED)) return
         saveButton.removeClass(DEACTIVATED)
-        saveButton.title = "Publish changed json file and reload"
+        saveButton.title = "Publish changed json file and change location"
     }
 
     private fun save() {
@@ -160,11 +172,11 @@ class Menu(
             if (publishJobUrl != null) {
                 val newFileName = "release-${generateUniqueId()}"
                 val newJson = JSON.stringify(releasePlanJson)
-                publish(newJson, newFileName, publishJobUrl)
+                publish(newJson, newFileName, publishJobUrl, usernameToken)
             } else {
                 showError(
                     IllegalStateException(
-                        "save button should not be activate if now publish job url was specified.\nPlease report a bug"
+                        "Save button should not be activate if no publish job url was specified.\nPlease report a bug."
                     )
                 )
             }
@@ -236,7 +248,8 @@ class Menu(
     companion object {
         private const val DEACTIVATED = "deactivated"
         private const val DISABLED = "disabled"
-        private val fullNameRegex = Regex("<input[^>]+name=\"_\\.fullName\"[^>]+value=\"([^\"]+)\"[^>]*>")
-        private val apiTokenRegex = Regex("<input[^>]+name=\"_\\.apiToken\"[^>]+value=\"([^\"]+)\"[^>]*>")
+        private val fullNameRegex = Regex("<input[^>]+name=\"_\\.fullName\"[^>]+value=\"([^\"]+)\"")
+        private val apiTokenRegex = Regex("<input[^>]+name=\"_\\.apiToken\"[^>]+value=\"([^\"]+)\"")
+        private val usernameRegex = Regex("<a[^>]+href=\"[^\"]*/user/([^\"]+)\"")
     }
 }
