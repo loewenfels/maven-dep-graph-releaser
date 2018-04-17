@@ -10,6 +10,8 @@ class App {
     private val menu: Menu
 
     init {
+        switchLoader("loaderJs", "loaderApiToken")
+
         val jsonUrl = determineJsonUrl()
         publishJobUrl = determinePublishJob()
         jenkinsUrl = publishJobUrl?.substringBefore("/job/")
@@ -55,7 +57,7 @@ class App {
 
     private fun start(jsonUrl: String) {
         retrieveUserAndApiToken().then { usernameToken ->
-            switchJsLoaderWithGui()
+            display("gui", "block")
 
             loadJson(jsonUrl, usernameToken)
                 .then(::checkStatusOk)
@@ -63,6 +65,7 @@ class App {
                     throw Error("Could not load json.", it)
                 }
                 .then { body: String ->
+                    switchLoader("loaderApiToken", "loaderJson")
                     val publisher = if (publishJobUrl != null && usernameToken != null) {
                         Publisher(publishJobUrl, usernameToken)
                     } else {
@@ -118,15 +121,14 @@ class App {
         return window.fetch(jsonUrl, init)
     }
 
-    private fun switchJsLoaderWithGui() {
-        display("loaderJs", "none")
-        display("loaderJson", "block")
-        display("gui", "block")
-    }
-
     private fun switchLoaderJsonWithPipeline() {
         display("loaderJson", "none")
         display("pipeline", "table")
+    }
+
+    private fun switchLoader(firstLoader: String, secondLoader: String) {
+        display(firstLoader, "none")
+        display(secondLoader, "block")
     }
 
     companion object {

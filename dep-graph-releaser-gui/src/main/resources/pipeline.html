@@ -35,17 +35,30 @@
         </div>
         <div id="pipeline"></div>
     </div>
-    <div id="loaderJs">
+    <div id="loaderJs" class="loader">
         <p>Loading Javascript...</p>
         <p>
-        If you keep seeing this after a few seconds, then most probably Content Security Policy blocked this site from
-        loading the javascript file.
-        You can verify it by opening the developer console (F12 in many browsers)
+            If you keep seeing this after a few seconds, then most probably Content Security Policy blocked this site from
+            loading the javascript file.<br/>
+            You can verify it by opening the developer console (F12 in many browsers)
         </p>
     </div>
-    <div id="loaderJson">
-        Loading Javascript successful<br/>
-        Loading Json...
+    <div id="loaderApiToken" class="loader">
+        <p>Loading Javascript successful</p>
+        <p>Retrieving API Token...</p>
+        <p>
+            If you keep seeing this after a few seconds, then most probably CORS was not successful and a request was
+            blocked by the server.<br/>
+            You can verify it by opening the developer console (F12 in many browsers)
+        </p>
+    </div>
+    <div id="loaderJson" class="loader">
+        <p>Loading Javascript successful</p>
+        <p>Retrieving API Token successful</p>
+        <p>Loading Json...</p>
+        <p>Should disappear after a few seconds, otherwise the request most likely silently failed.<br/>
+            You can verify it by opening the developer console (F12 in many browsers)</p>
+
     </div>
     <div id="status"></div>
     <div id="messages"></div>

@@ -38,12 +38,11 @@ class Publisher(
             }
     }
 
-    fun issueCrumb(jenkinsUrl: String, usernameToken: UsernameToken): Promise<Pair<String, String>?> {
+    private fun issueCrumb(jenkinsUrl: String, usernameToken: UsernameToken): Promise<Pair<String, String>?> {
         val url = "$jenkinsUrl/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)"
-        val init = createFetchInitWithCredentials()
         val headers = js("({})")
         addAuthentication(headers, usernameToken)
-        init.headers = headers
+        val init = createRequestInit(null, "GET", headers, RequestMode.CORS)
         return window.fetch(url, init)
             .then(::checkStatusOkOr404)
             .catch {
@@ -77,9 +76,19 @@ class Publisher(
             RequestMode.NO_CORS
         }
 
+        val init = createRequestInit("fileName=$fileName&json=$newJson","POST", headers, mode)
+        return window.fetch("${jobUrl}buildWithParameters", init)
+    }
+
+    private fun createRequestInit(
+        body: String?,
+        method: String,
+        headers: dynamic,
+        mode: RequestMode
+    ): RequestInit {
         val init = RequestInit(
-            body = "fileName=$fileName&json=$newJson",
-            method = "POST",
+            body = body,
+            method = method,
             headers = headers,
             mode = mode,
             cache = org.w3c.fetch.RequestCache.NO_CACHE,
@@ -89,13 +98,13 @@ class Publisher(
         //have to remove properties because RequestInit sets them to null which is not what we want/is not valid
         js(
             "delete init.integrity;" +
-                "delete init.referer;" +
-                "delete init.referrerPolicy;" +
-                "delete init.keepalive;" +
-                "delete init.window;"
+                    "delete init.referer;" +
+                    "delete init.referrerPolicy;" +
+                    "delete init.keepalive;" +
+                    "delete init.window;"
             //+ "delete init.credentials;"
         )
-        return window.fetch("${jobUrl}buildWithParameters", init)
+        return init
     }
 
     private fun pollJobForCompletion(jobUrl: String, buildNumber: Int): Promise<String> {
@@ -143,7 +152,7 @@ class Publisher(
         }).catch { t -> errorHandler(t as PollException) }
     }
 
-    fun checkJobResult(jobUrl: String, buildNumber: Int, result: String): Int {
+    private fun checkJobResult(jobUrl: String, buildNumber: Int, result: String): Int {
         check(result == SUCCESS) {
             "Publishing the json failed, job did not end with status $SUCCESS but $result." +
                 "\nVisit $jobUrl$buildNumber for further information"
@@ -151,7 +160,7 @@ class Publisher(
         return buildNumber
     }
 
-    fun extractResultJsonUrl(jobUrl: String, buildNumber: Int): Promise<Pair<Int, String>> {
+    private fun extractResultJsonUrl(jobUrl: String, buildNumber: Int): Promise<Pair<Int, String>> {
         val resultJsonRegex = Regex(
             "<div[^>]+id=\"buildHistoryPage\"[^>]*>[\\S\\s]*?" +
                 "<td[^>]+class=\"build-row-cell[^>]+>[\\S\\s]*?" +
@@ -200,7 +209,7 @@ class Publisher(
     class PollException(message: String, val body: String) : RuntimeException(message)
 
 
-    fun changeUrlAndReloadOrAddHint(
+    private fun changeUrlAndReloadOrAddHint(
         jobUrl: String,
         buildNumber: Int,
         releaseJsonUrl: String

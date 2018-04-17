@@ -3,9 +3,6 @@ body {
     font-size: 12px;
     margin: 0;
 }
-#loaderJson {
-    display: none;
-}
 
 #gui {
     display: none;
@@ -215,7 +212,7 @@ div.level{
     border-right: 1px solid #CCC;
 }
 
-.project {
+.project, .loader {
     border:1px solid #CCC;
     background: #fff;
     margin: 0 auto 20px auto;
@@ -231,6 +228,17 @@ div.level{
     rgba(0, 0, 0, 0.3), 0 0 40px
     rgba(0, 0, 0, 0.1) inset;
 }
+
+.loader {
+    margin: auto;
+    width: 600px;
+    margin-top: 50px;
+    display: none;
+}
+#loaderJs {
+    display: block
+}
+
 
 .submodules {
     margin-top: 15px;
