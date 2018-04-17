@@ -9,10 +9,10 @@ class Publisher(
     private val usernameToken: UsernameToken
 ) {
 
-    fun publish(json: String, fileName: String) {
+    fun publish(json: String, fileName: String): Promise<Boolean> {
         val jenkinsUrl = publishJobUrl.substringBefore("/job/")
         changeCursorToProgress()
-        issueCrumb(jenkinsUrl).then { crumbWithId: CrumbWithId? ->
+        return issueCrumb(jenkinsUrl).then { crumbWithId: CrumbWithId? ->
             post(crumbWithId, publishJobUrl, fileName, json)
                 .then(::checkStatusOk)
                 .catch {
@@ -32,8 +32,9 @@ class Publisher(
                 }
         }.catch {
             showError(it)
-        }.finally {
+        }.finally { it: Any? ->
             changeCursorBackToNormal()
+            it != null
         }
     }
 

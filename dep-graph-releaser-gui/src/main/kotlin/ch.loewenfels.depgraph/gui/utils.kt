@@ -1,6 +1,5 @@
 package ch.loewenfels.depgraph.gui
 
-import org.w3c.fetch.RequestInit
 import kotlin.browser.document
 import kotlin.browser.window
 import kotlin.js.Promise
@@ -21,7 +20,7 @@ fun changeCursorBackToNormal() {
     document.body!!.style.cursor = "default"
 }
 
-fun <T> Promise<T>.finally(action: () -> T): T {
-    return this.then { action() }
-        .catch { action() }.asDynamic() as T
+fun <T, S> Promise<T>.finally(action: (T?) -> S): Promise<S> {
+    return this.then { action(it) }
+        .catch { action(null) }.asDynamic() as Promise<S>
 }

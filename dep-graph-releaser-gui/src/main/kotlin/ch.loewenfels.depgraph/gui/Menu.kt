@@ -112,8 +112,13 @@ class Menu {
         if (changed) {
             if (publisher != null) {
                 val newFileName = "release-${generateUniqueId()}"
-                publisher.publish(newJson, newFileName)
+                publisher.publish(newJson, newFileName).then { success: Boolean ->
+                    if (success) {
+                        deactivateSaveButton()
+                    }
+                }
             } else {
+                deactivateSaveButton()
                 showError(
                     IllegalStateException(
                         "Save button should not be activate if no publish job url was specified.\nPlease report a bug."
@@ -122,8 +127,8 @@ class Menu {
             }
         } else {
             showInfo("Seems like all changes have been reverted manually. Will not save anything.")
+            deactivateSaveButton()
         }
-        deactivateSaveButton()
     }
 
     private fun download(downloader: Downloader) {
