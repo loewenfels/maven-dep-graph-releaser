@@ -7,10 +7,11 @@ import ch.loewenfels.depgraph.data.serialization.CommandStateJson
 
 object Serializer {
 
-    fun createReleasePlanJsonWithChanges(body: String): Pair<Boolean, String> {
-        val releasePlanJson = JSON.parse<ReleasePlanJson>(body)
-        val json = JSON.stringify(releasePlanJson)
-        return applyChanges(releasePlanJson) to json
+    fun createReleasePlanJsonWithChanges(json: String): Pair<Boolean, String> {
+        val releasePlanJson = JSON.parse<ReleasePlanJson>(json)
+        val changed = applyChanges(releasePlanJson)
+        val newJson = JSON.stringify(releasePlanJson)
+        return changed to newJson
     }
 
     private fun applyChanges(releasePlanJson: ReleasePlanJson): Boolean {
