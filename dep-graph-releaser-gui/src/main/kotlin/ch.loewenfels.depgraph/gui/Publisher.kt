@@ -14,7 +14,7 @@ class Publisher(
     fun publish(fileName: String): Promise<Boolean> {
         changeCursorToProgress()
         val body = "fileName=$fileName&json=${modifiableJson.json}"
-        return jobExecutor.trigger(publishJobUrl, "publish release-$fileName.json", body)
+        return jobExecutor.trigger(publishJobUrl, "publish release-$fileName.json", body, {})
             .then { (crumbWithId, buildNumber) ->
                 extractResultJsonUrl(crumbWithId, publishJobUrl, buildNumber).then{
                     buildNumber to it

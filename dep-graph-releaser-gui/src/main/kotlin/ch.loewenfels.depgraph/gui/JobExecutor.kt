@@ -6,7 +6,12 @@ import kotlin.js.Promise
 
 class JobExecutor(private val jenkinsUrl: String, private val usernameToken: UsernameToken) {
 
-    fun trigger(jobUrl: String, jobName: String, body: String): Promise<Pair<CrumbWithId, Int>> {
+    fun trigger(
+        jobUrl: String,
+        jobName: String,
+        body: String,
+        jobStartedHook: (buildNumber: Int) -> Unit
+    ): Promise<Pair<CrumbWithId, Int>> {
         return issueCrumb(jenkinsUrl).then { crumbWithId: CrumbWithId? ->
             post(crumbWithId, jobUrl, body)
                 .then { response ->
@@ -18,6 +23,7 @@ class JobExecutor(private val jenkinsUrl: String, private val usernameToken: Use
                     extractBuildNumber(crumbWithId, queuedItemUrl)
                 }.then { buildNumber: Int ->
                     showInfo("$jobName started with build number $buildNumber, wait for completion...", 2000)
+                    jobStartedHook(buildNumber)
                     pollJobForCompletion(crumbWithId, jobUrl, buildNumber)
                         .then { result -> buildNumber to result }
                 }.then { (buildNumber, result) ->

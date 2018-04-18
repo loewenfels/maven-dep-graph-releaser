@@ -2,6 +2,7 @@ package ch.loewenfels.depgraph.gui
 
 import ch.loewenfels.depgraph.Config
 import ch.loewenfels.depgraph.data.*
+import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
 import ch.loewenfels.depgraph.hasNextOnTheSameLevel
@@ -9,25 +10,30 @@ import ch.loewenfels.depgraph.toPeekingIterator
 
 class Releaser(
     private val jenkinsUrl: String,
-    private val usernameToken: UsernameToken,
+    usernameToken: UsernameToken,
     private val modifiableJson: ModifiableJson
 ) {
+    private val jobExecutor = JobExecutor(jenkinsUrl, usernameToken)
+
     fun release() {
         val releasePlan = deserialize(modifiableJson.json)
         val config = checkConfig(releasePlan)
+
 
         val itr = releasePlan.iterator().toPeekingIterator()
         var level: Int
         var notOneReleaseSucceeded: Boolean
         while (itr.hasNext()) {
             notOneReleaseSucceeded = true
+            val paramObject = ParamObject(releasePlan, config, itr.next())
             val project = itr.next()
             level = project.level
-            notOneReleaseSucceeded = notOneReleaseSucceeded or triggerCommandsOfProject(project, config)
+
+            notOneReleaseSucceeded = notOneReleaseSucceeded or triggerCommandsOfProject(paramObject)
 
             while (itr.hasNextOnTheSameLevel(level)) {
-                val nextProject = itr.next()
-                notOneReleaseSucceeded = notOneReleaseSucceeded or triggerCommandsOfProject(nextProject, config)
+                val nextParamObject = ParamObject(paramObject, itr.next())
+                notOneReleaseSucceeded = notOneReleaseSucceeded or triggerCommandsOfProject(nextParamObject)
             }
 
             if (notOneReleaseSucceeded) {
@@ -52,9 +58,9 @@ class Releaser(
         }
     }
 
-    private fun triggerCommandsOfProject(project: Project, config: Map<String, String>): Boolean {
+    private fun triggerCommandsOfProject(paramObject: ParamObject): Boolean {
         var notOneReleaseSucceeded = true
-        val commands = project.commands
+        val commands = paramObject.project.commands
         val size = commands.size
         for (i in (size - 1)..0) {
             val command = commands[i]
@@ -65,26 +71,59 @@ class Releaser(
                 //no need to have a look at previous commands if this one is neither ready nor waiting
                 break
             }
-            trigger(project, command, config)
+            trigger(paramObject, command)
 
         }
         return notOneReleaseSucceeded
     }
 
-    private fun trigger(project: Project, command: Command, config: Map<String, String>) {
+    private fun trigger(paramObject: ParamObject, command: Command) {
         when (command) {
-            is JenkinsUpdateDependency -> triggerUpdateDependency(project, command, config)
-            is M2ReleaseCommand -> triggerRelease(project, command, config)
+            is JenkinsUpdateDependency -> triggerUpdateDependency(paramObject, command)
+            is M2ReleaseCommand -> triggerRelease(paramObject, command)
             else -> throw UnsupportedOperationException("We do not (yet) support the command: $command")
         }
     }
 
-    private fun triggerUpdateDependency(project: Project, command: JenkinsUpdateDependency, config: Map<String, String>) {
-        showInfo("Update dependency triggering not yet implemented, but would trigger: ${project.id.identifier}")
+    private fun triggerUpdateDependency(paramObject: ParamObject, command: JenkinsUpdateDependency) {
+        changeCursorToProgress()
+        val identifier = paramObject.project.id.identifier
+        elementById(identifier)
+        val jobUrl = "$jenkinsUrl/${paramObject.config[Config.UPDATE_DEPENDENCY_JOB]}"
+        val jobName = "update dependency of $identifier"
+        val params = createUpdateDependencyParams(paramObject, command)
+        jobExecutor.trigger(jobUrl, jobName, params, { buildNumber ->
+            //TODO we need to update the release json via publisher
+
+        }).finally { it: Any? ->
+            changeCursorBackToNormal()
+            it != null
+        }
     }
 
-    private fun triggerRelease(project: Project, command: M2ReleaseCommand, config: Map<String, String>) {
-        showInfo("Release triggering not yet implemented, but would trigger: ${project.id.identifier}")
+    private fun createUpdateDependencyParams(
+        paramObject: ParamObject,
+        command: JenkinsUpdateDependency
+    ): String {
+        val dependency = paramObject.releasePlan.getProject(command.projectId)
+        val dependencyMavenProjectId = dependency.id as MavenProjectId
+        return "pathToProject=${paramObject.project.relativePath}" +
+            "&groupId=${dependencyMavenProjectId.groupId}" +
+            "&artifactId=${dependencyMavenProjectId.artifactId}" +
+            "&newVersion=${dependency.releaseVersion}"
+    }
 
+    private fun triggerRelease(paramObject: ParamObject, command: M2ReleaseCommand) {
+        showInfo("Release triggering not yet implemented, but would trigger: ${paramObject.project.id.identifier}")
+
+    }
+
+    data class ParamObject(
+        val releasePlan: ReleasePlan,
+        val config: Map<String, String>,
+        val project: Project
+    ) {
+        constructor(paramObject: ParamObject, newProject: Project)
+            : this(paramObject.releasePlan, paramObject.config, newProject)
     }
 }
