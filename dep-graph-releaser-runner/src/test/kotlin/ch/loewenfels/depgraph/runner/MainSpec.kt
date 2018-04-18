@@ -50,6 +50,9 @@ object MainSpec : Spek({
                     "json", "com.example", "b",
                     getTestDirectory("errorCases/parentNotInAnalysis").absolutePath,
                     jsonFile.absolutePath,
+                    "dgr-updater",
+                    ".*",
+                    "dgr-remote-releaser",
                     MAVEN_PARENT_ANALYSIS_OFF
                 )
                 it("creates a corresponding json file") {
@@ -91,63 +94,6 @@ object MainSpec : Spek({
             }
         }
     }
-
-    describe("pipeline") {
-        given("project A with dependent B, remoteRegex=.* (happy case)") {
-            on("calling main") {
-                val jsonFile = callJson(tempFolder)
-                assert(jsonFile).returnValueOf(jsonFile::exists).isTrue()
-
-                val jenkinsfile = File(tempFolder.tmpDir, "jenkinsfile")
-                Main.main(
-                    "pipeline",
-                    jsonFile.absolutePath,
-                    "dep-graph-releaser-updater",
-                    "^.*",
-                    "dep-graph-releaser-remote",
-                    "-jenkinsfile=${jenkinsfile.absolutePath}"
-                )
-                it("creates a corresponding jenkinsfile") {
-                    assert(jenkinsfile).returnValueOf(jenkinsfile::exists).isTrue()
-                }
-
-                it("contains remote release command for both a and b") {
-                    val content = jenkinsfile.readText()
-                    assert(content).containsRegex(
-                        "build job: 'dep-graph-releaser-remote'[\\S\\s]*?name: 'jobName', value: '${exampleA.id.artifactId}'",
-                        "build job: 'dep-graph-releaser-remote'[\\S\\s]*?name: 'jobName', value: '${exampleB.id.artifactId}'"
-                    )
-                }
-            }
-        }
-
-        val parameters = "branch.name=master"
-        given("project A with dependent B, remoteRegex=.* and regexParams=.*#$parameters )") {
-            on("calling main") {
-                val jsonFile = callJson(tempFolder)
-                assert(jsonFile).returnValueOf(jsonFile::exists).isTrue()
-
-                val jenkinsfile = File(tempFolder.tmpDir, "jenkinsfile")
-                Main.main(
-                    "pipeline",
-                    jsonFile.absolutePath,
-                    "dep-graph-releaser-updater",
-                    "^.*",
-                    "dep-graph-releaser-remote",
-                    "-jenkinsfile=${jenkinsfile.absolutePath}",
-                    "-regexParams=.*#$parameters"
-                )
-                it("creates a corresponding jenkinsfile") {
-                    assert(jenkinsfile).returnValueOf(jenkinsfile::exists).isTrue()
-                }
-
-                it("contains twice the parameters $parameters") {
-                    val content = jenkinsfile.readText()
-                    assert(content).contains.exactly(2).value("'parameters', value: '$parameters'")
-                }
-            }
-        }
-    }
 })
 
 private fun callJson(tempFolder: TempFolder): File {
@@ -155,7 +101,10 @@ private fun callJson(tempFolder: TempFolder): File {
     Main.main(
         "json", "com.example", "a",
         getTestDirectory("managingVersions/inDependency").absolutePath,
-        jsonFile.absolutePath
+        jsonFile.absolutePath,
+        "dgr-updater",
+        ".*",
+        "dgr-remote-releaser"
     )
     return jsonFile
 }

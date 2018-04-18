@@ -4,7 +4,6 @@ import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.jenkins.RemoteJenkinsM2Releaser
 import ch.loewenfels.depgraph.manipulation.RegexBasedVersionUpdater
 import ch.loewenfels.depgraph.maven.Analyser
-import ch.loewenfels.depgraph.maven.JenkinsPipelineCreator
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
 import ch.loewenfels.depgraph.maven.VersionDeterminer
 import ch.loewenfels.depgraph.serialization.Serializer
@@ -131,35 +130,5 @@ object Orchestrator {
         })
         releaser.release(jobName, releaseVersion, nextDevVersion)
         logger.info("released $jobName with release version $releaseVersion and next dev version $nextDevVersion")
-    }
-
-    fun jenkinsPipeline(
-        json: File,
-        updateDependencyJobName: String,
-        remoteProjectRegex: Regex,
-        remoteReleaseJobName: String,
-        regexParametersList: List<Pair<Regex, String>>,
-        jenkinsfile: File?
-    ) {
-        logger.info({ "Going to deserialize json: ${json.absolutePath}" })
-        val releasePlan = serializer.deserialize(json.readText())
-        logger.info( "Json deserialized" )
-
-        val creator = JenkinsPipelineCreator(
-            updateDependencyJobName,
-            remoteProjectRegex,
-            remoteReleaseJobName,
-            regexParametersList
-        )
-
-        logger.info("Going to generate the jenkinsfile")
-        val pipeline = creator.create(releasePlan)
-        if (jenkinsfile != null) {
-            logIfFileExists(jenkinsfile, "resulting jenkinsfile")
-            jenkinsfile.writeText(pipeline.toString())
-            logger.info({"Created ${jenkinsfile.absolutePath}"})
-        } else {
-            println(pipeline)
-        }
     }
 }

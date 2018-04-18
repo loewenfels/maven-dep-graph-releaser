@@ -94,23 +94,6 @@
                             </arguments>
                         </configuration>
                     </execution>
-                    <execution>
-                        <id>pipeline</id>
-                        <goals>
-                            <goal>java</goal>
-                        </goals>
-                        <configuration>
-                            <arguments>
-                                <argument>pipeline</argument>
-                                <argument>${json}</argument>
-                                <argument>${updateDependencyJob}</argument>
-                                <argument>${remoteRegex}</argument>
-                                <argument>${remoteJob}</argument>
-                                <argument>-regexParams=${regexParams}</argument>
-                                <argument>-jenkinsfile=${jenkinsfile}</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
                 </executions>
             </plugin>
         </plugins>

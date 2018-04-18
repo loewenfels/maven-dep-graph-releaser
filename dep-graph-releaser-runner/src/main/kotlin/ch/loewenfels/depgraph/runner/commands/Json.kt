@@ -11,31 +11,50 @@ import ch.loewenfels.depgraph.runner.toVerifiedFile
 
 object Json : ConsoleCommand {
 
+    private const val REGEX_PARAMS = "regexParams"
+    private const val REGEX_PARAMS_ARG = "-$REGEX_PARAMS="
     internal const val MAVEN_PARENT_ANALYSIS_OFF = "-mpoff"
     private const val DISABLE_RELEASE_FOR = "-dr="
+    private const val UPDATE_DEPENDENCY_JOB = "updateDependencyJob"
+    private const val REMOTE_REGEX = "remoteRegex"
+    private const val REMOTE_JOB = "remoteJob"
 
     override val name = "json"
     override val description = "analyse projects, create a release plan and serialize it to json"
-    override val example = "./produce $name com.example example-project ./repo ./release.json -dr=\"ch\\.loewenfels:dist.*\" -mpOff"
+    override val example = "./produce $name com.example example-project ./repo ./release.json " +
+        "dgr-updater \"^.*\" dgr-remote-releaser " +
+        "$REGEX_PARAMS_ARG\".*#branch.name=master\" $DISABLE_RELEASE_FOR\"ch\\.loewenfels:dist.*\" $MAVEN_PARENT_ANALYSIS_OFF"
+
     override val arguments by lazy {
         """
         |$name requires the following arguments in the given order:
-        |groupId     // maven groupId of the project which shall be released
-        |artifactId  // maven artifactId of the project which shall be released
-        |dir         // path to the directory where all projects are
-        |json        // path + file name for the resulting json file
+        |groupId                   // maven groupId of the project which shall be released
+        |artifactId                // maven artifactId of the project which shall be released
+        |dir                       // path to the directory where all projects are
+        |json                      // path + file name for the resulting json file
+        |$UPDATE_DEPENDENCY_JOB       // the name of the update dependency job
+        |$REMOTE_REGEX               // regex which specifies which projects are released remotely
+        |$REMOTE_JOB                 // the job which triggers the remote build
+        |(${REGEX_PARAMS_ARG}spec)       // optionally: parameters of the form regex#a=b;c=d${'$'}.*#e=f where the regex
+        |                          // defines for which job the parameters shall apply. Multiple regex can be
+        |                          // specified. In the above, .* matches all, so every job gets e=f as argument.
         |(${DISABLE_RELEASE_FOR}Regex) // optionally: regex specifying for which projects
         |               the release commands have to be disabled
         |($MAVEN_PARENT_ANALYSIS_OFF)    // optionally: turns missing parent analysis off
         """.trimMargin()
     }
 
-    override fun numOfArgsNotOk(number: Int) = number < 5 || number > 7
+    override fun numOfArgsNotOk(number: Int) = number < 8 || number > 11
 
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
         val (_, groupId, artifactId, unsafeDirectoryToAnalyse, jsonFile) = args
-        val optionalArgs = args.drop(5).toOptionalArgs(errorHandler, DISABLE_RELEASE_FOR, MAVEN_PARENT_ANALYSIS_OFF)
-        val (disableReleaseFor, missingParentAnalysis) = optionalArgs
+        val afterFirst5 = args.drop(5)
+        val (updateDependencyJob, remoteRegex, remoteJob) = afterFirst5
+        val optionalArgs = afterFirst5.drop(3).toOptionalArgs(
+            errorHandler,
+            REGEX_PARAMS_ARG, DISABLE_RELEASE_FOR, MAVEN_PARENT_ANALYSIS_OFF
+        )
+        val (regexParameters, disableReleaseFor, missingParentAnalysis) = optionalArgs
 
         val disableReleaseForRegex = if (disableReleaseFor != null) {
             Regex(disableReleaseFor.substringAfter(DISABLE_RELEASE_FOR))
@@ -67,9 +86,20 @@ object Json : ConsoleCommand {
             )
         }
 
+        val config = listOf(
+            UPDATE_DEPENDENCY_JOB to updateDependencyJob,
+            REMOTE_JOB to remoteJob,
+            REMOTE_REGEX to remoteRegex
+        ) + if (regexParameters != null) {
+            listOf(REGEX_PARAMS to regexParameters)
+        } else {
+            listOf()
+        }
+
+
         val mavenProjectId = MavenProjectId(groupId, artifactId)
         val analyserOptions = Analyser.Options(!turnMissingPartnerAnalysisOff)
-        val releasePlanCreatorOptions = JenkinsReleasePlanCreator.Options(disableReleaseForRegex, listOf())
+        val releasePlanCreatorOptions = JenkinsReleasePlanCreator.Options(disableReleaseForRegex, config)
 
         Orchestrator.analyseAndCreateJson(
             directoryToAnalyse,

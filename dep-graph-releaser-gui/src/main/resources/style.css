@@ -308,7 +308,7 @@ label.fields {
     display: inline-block;
     width: 100px;
     text-align: right;
-    padding-right: 6px;
+    margin-right: 6px;
 }
 
 label.toggle {
@@ -373,13 +373,17 @@ input:checked + .slider:before {
     left: 0;
     right: 0;
     border-bottom: 2px solid #333;
-    padding-bottom: 20px;
+    padding: 20px;
     background-color: #d9eaf7;
-    padding-top: 20px;
     z-index: 1;
     -webkit-transition: top .5s ease;
     transition: top .5s ease;
     overflow-y: auto;
+}
+
+#config label.fields {
+    width: 150px;
+    margin-right: 10px;
 }
 
 #config div > div {
