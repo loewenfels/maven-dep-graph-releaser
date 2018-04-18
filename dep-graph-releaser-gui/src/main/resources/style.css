@@ -18,7 +18,7 @@ body {
     top: 0;
     left: 0;
     right: 0;
-    z-index: 1;
+    z-index: 2;
     color: #FFF;
 }
 
@@ -341,28 +341,52 @@ label.toggle .slider {
 }
 
 label.toggle .slider:before {
-  position: absolute;
-  content: "";
-  height: 12px;
-  width: 12px;
-  left: 4px;
-  bottom: 4px;
-  background-color: white;
-  -webkit-transition: .4s;
-  transition: .4s;
-  border-radius: 50%;
+    position: absolute;
+    content: "";
+    height: 12px;
+    width: 12px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 50%;
 }
 
 label.toggle input:checked + .slider {
-  background-color: #2196F3;
+    background-color: #2196F3;
 }
 label.toggle input:focus + .slider {
-  box-shadow: 0 0 1px #2196F3;
+    box-shadow: 0 0 1px #2196F3;
 }
 
 input:checked + .slider:before {
-  -webkit-transform: translateX(14px);
-  -ms-transform: translateX(14px);
-  transform: translateX(14px);
+    -webkit-transform: translateX(14px);
+    -ms-transform: translateX(14px);
+    transform: translateX(14px);
 }
 
+#config {
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    border-bottom: 2px solid #333;
+    padding-bottom: 20px;
+    background-color: #d9eaf7;
+    padding-top: 20px;
+    z-index: 1;
+    -webkit-transition: top .5s ease;
+    transition: top .5s ease;
+    overflow-y: auto;
+}
+
+#config div > div {
+    margin-bottom: 10px;
+}
+
+#config.active {
+    opacity: 100;
+    top: 44px;
+}

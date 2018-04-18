@@ -16,6 +16,16 @@ class Menu {
     private val downloadButton get() = elementById("download")
     private val dryRunButton get() = elementById("dryRun")
     private val buildButton get() = elementById("build")
+    private val settingsButton get() = elementById("settings")
+
+    init {
+        settingsButton.addClickEventListenerIfNotDeactivatedNorDisabled {
+            elementById("config").addClass("active")
+        }
+        elementById("config_close").addClickEventListener {
+            elementById("config").removeClass("active")
+        }
+    }
 
     fun disableButtonsDueToNoPublishUrl() {
         val titleButtons = "You need to specify publishJob if you want to use other functionality than Download."

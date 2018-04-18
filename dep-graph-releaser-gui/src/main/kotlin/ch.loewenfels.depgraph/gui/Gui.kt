@@ -19,6 +19,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         document.title = "Release " + releasePlan.rootProjectId.identifier
         setUpMessages(releasePlan.warnings, "warnings", { showWarning(it) })
         setUpMessages(releasePlan.infos, "infos", { showInfo(it) })
+        setUpConfig(releasePlan.config)
         setUpProjects()
     }
 
@@ -30,6 +31,16 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 minimized.style.display = "none"
                 messages.forEach(action)
             })
+        }
+    }
+
+    private fun setUpConfig(config: List<Pair<String, String>>) {
+        elementById("config").append {
+            div {
+                config.forEach {
+                    fieldWithLabel("config-${it.first}", it.first, it.second)
+                }
+            }
         }
     }
 
