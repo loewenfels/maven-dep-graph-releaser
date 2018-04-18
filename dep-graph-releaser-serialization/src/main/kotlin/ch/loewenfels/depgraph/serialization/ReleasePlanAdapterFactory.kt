@@ -14,27 +14,42 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
         }
         val projectIdAdapter = moshi.adapter(ProjectId::class.java)
 
-        val mapType = Types.newParameterizedType(Map::class.java,
+        val mapType = Types.newParameterizedType(
+            Map::class.java,
             ProjectId::class.java,
             Types.newParameterizedType(Set::class.java, ProjectId::class.java)
         )
-        val mapProjectIdAndSetProjectId =  moshi.adapter<Map<ProjectId, Set<ProjectId>>>(mapType)
+        val mapProjectIdAndSetProjectId = moshi.adapter<Map<ProjectId, Set<ProjectId>>>(mapType)
 
         val collectionProjectType = Types.newParameterizedType(Collection::class.java, Project::class.java)
-        val projectsAdapter =  moshi.adapter<Collection<Project>>(collectionProjectType)
+        val projectsAdapter = moshi.adapter<Collection<Project>>(collectionProjectType)
 
         val listStringType = Types.newParameterizedType(List::class.java, String::class.java)
         val listStringAdapter = moshi.adapter<List<String>>(listStringType)
 
-        return ReleasePlanAdapter(projectIdAdapter, projectsAdapter, mapProjectIdAndSetProjectId, listStringAdapter)
+        val listPairStringType = Types.newParameterizedType(
+            List::class.java,
+            Types.newParameterizedType(Pair::class.java, String::class.java, String::class.java)
+        )
+        val listPairStringAdapter = moshi.adapter<List<Pair<String, String>>>(listPairStringType)
+
+        return ReleasePlanAdapter(
+            projectIdAdapter,
+            projectsAdapter,
+            mapProjectIdAndSetProjectId,
+            listStringAdapter,
+            listPairStringAdapter
+        )
     }
 
     private class ReleasePlanAdapter(
         private val projectIdAdapter: JsonAdapter<ProjectId>,
         private val projectsAdapter: JsonAdapter<Collection<Project>>,
         private val mapProjectIdAndSetProjectId: JsonAdapter<Map<ProjectId, Set<ProjectId>>>,
-        private val listStringAdapter: JsonAdapter<List<String>>
+        private val listStringAdapter: JsonAdapter<List<String>>,
+        private val listPairStringAdapter: JsonAdapter<List<Pair<String,String>>>
     ) : NonNullJsonAdapter<ReleasePlan>() {
+
         override fun toJsonNonNull(writer: JsonWriter, value: ReleasePlan) {
             writer.writeObject {
                 writeNameAndValue(ID, value.rootProjectId, projectIdAdapter)
@@ -43,6 +58,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
                 writeNameAndValue(DEPENDENTS, value.getAllDependents(), mapProjectIdAndSetProjectId)
                 writeNameAndValue(WARNINGS, value.warnings, listStringAdapter)
                 writeNameAndValue(INFOS, value.infos, listStringAdapter)
+                writeNameAndValue(CONFIG, value.config, listPairStringAdapter)
             }
         }
 
@@ -54,12 +70,13 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
                 val dependents = checkNextNameAndGetValue(DEPENDENTS, mapProjectIdAndSetProjectId)
                 val warnings = checkNextNameAndGetValue(WARNINGS, listStringAdapter)
                 val infos = checkNextNameAndGetValue(INFOS, listStringAdapter)
-                ReleasePlan(projectId, projects.associateBy { it.id }, submodules, dependents, warnings, infos)
+                val config = checkNextNameAndGetValue(CONFIG, listPairStringAdapter)
+                ReleasePlan(projectId, projects.associateBy { it.id }, submodules, dependents, warnings, infos, config)
             }
         }
 
-        private fun <T> JsonReader.checkNextNameAndGetValue(expectedName: String, adapter: JsonAdapter<T>)
-            = checkNextNameAndGetValue(ReleasePlan::class.java.simpleName, expectedName, adapter)
+        private fun <T> JsonReader.checkNextNameAndGetValue(expectedName: String, adapter: JsonAdapter<T>) =
+            checkNextNameAndGetValue(ReleasePlan::class.java.simpleName, expectedName, adapter)
     }
 
     const val ID = "id"
@@ -68,4 +85,5 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
     const val DEPENDENTS = "dependents"
     const val WARNINGS = "warnings"
     const val INFOS = "infos"
+    const val CONFIG = "config"
 }

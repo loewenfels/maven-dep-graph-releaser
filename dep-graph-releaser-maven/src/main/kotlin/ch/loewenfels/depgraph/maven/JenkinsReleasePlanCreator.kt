@@ -46,7 +46,8 @@ class JenkinsReleasePlanCreator(
             paramObject.submodules,
             paramObject.dependents,
             warnings,
-            infos
+            infos,
+            listOf()
         )
         return disableProjectsAsDefinedInOptions(releasePlan)
     }

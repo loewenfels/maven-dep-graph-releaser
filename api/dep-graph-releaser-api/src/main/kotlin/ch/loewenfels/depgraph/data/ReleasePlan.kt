@@ -15,7 +15,8 @@ data class ReleasePlan(
     private val submodules: Map<ProjectId, Set<ProjectId>>,
     private val dependents: Map<ProjectId, Set<ProjectId>>,
     val warnings: List<String>,
-    val infos: List<String>
+    val infos: List<String>,
+    val config: List<Pair<String, String>>
 ) {
 
     /**
@@ -28,11 +29,12 @@ data class ReleasePlan(
             releasePlan.submodules,
             releasePlan.dependents,
             releasePlan.warnings,
-            releasePlan.infos
+            releasePlan.infos,
+            releasePlan.config
         )
 
     /**
-     * Creates a [ReleasePlan] with an empty list of [warnings] and [infos]
+     * Creates a [ReleasePlan] with an empty list for [warnings], [infos], and [config]
      */
     constructor(
         rootProjectId: ProjectId,
@@ -40,7 +42,7 @@ data class ReleasePlan(
         submodulesOfProject: Map<ProjectId, Set<ProjectId>>,
         dependents: Map<ProjectId, Set<ProjectId>>
     ) :
-        this(rootProjectId, projects, submodulesOfProject, dependents, listOf(), listOf())
+        this(rootProjectId, projects, submodulesOfProject, dependents, listOf(), listOf(), listOf())
 
     fun getProject(projectId: ProjectId): Project {
         return projects[projectId] ?: throw IllegalArgumentException("Could not find the project with id $projectId")

@@ -32,6 +32,25 @@ class PolymorphicAdapterFactory<T : Any>(private val abstractType: Class<T>) : J
 
     private class PolymorphicAdapter<T : Any>(private val abstractType: Class<T>, private val moshi: Moshi) : NonNullJsonAdapter<T>() {
 
+        override fun toJsonNonNull(writer: JsonWriter, value: T) {
+            val runtimeClass = value::class.java
+            val adapter: JsonAdapter<T> = getAdapter(runtimeClass)
+            writer.writeObject {
+                //If you make changes here, then you have to make changes in fromJson
+                writeNameAndValue(TYPE, runtimeClass.name)
+                writeNameAndValue(PAYLOAD, value, adapter)
+            }
+        }
+
+        private fun getAdapter(runtimeClass: Class<out T>): JsonAdapter<T> {
+            //TODO change if https://youtrack.jetbrains.com/issue/KT-20372 is solved
+            require(!runtimeClass.name.matches(ANONYMOUS_CLASSNAME_REGEX)) {
+                "Cannot serialize an anonymous class, given: ${runtimeClass.name}"
+            }
+            @Suppress("UNCHECKED_CAST" /* entity is of type T, should be fine, required for toJson */)
+            return moshi.adapter(runtimeClass) as JsonAdapter<T>
+        }
+
         override fun fromJson(reader: JsonReader): T? = reader.readObject {
             //If you make changes here, then you have to make changes in toJson
             checkName(reader, TYPE)
@@ -55,25 +74,6 @@ class PolymorphicAdapterFactory<T : Any>(private val abstractType: Class<T>) : J
             }
             @Suppress("UNCHECKED_CAST" /* we checked it above */)
             return runtimeClass as Class<T>
-        }
-
-        override fun toJsonNonNull(writer: JsonWriter, value: T) {
-            val runtimeClass = value::class.java
-            val adapter: JsonAdapter<T> = getAdapter(runtimeClass)
-            writer.writeObject {
-                //If you make changes here, then you have to make changes in fromJson
-                writeNameAndValue(TYPE, runtimeClass.name)
-                writeNameAndValue(PAYLOAD, value, adapter)
-            }
-        }
-
-        private fun getAdapter(runtimeClass: Class<out T>): JsonAdapter<T> {
-            //TODO change if https://youtrack.jetbrains.com/issue/KT-20372 is solved
-            require(!runtimeClass.name.matches(ANONYMOUS_CLASSNAME_REGEX)) {
-                "Cannot serialize an anonymous class, given: ${runtimeClass.name}"
-            }
-            @Suppress("UNCHECKED_CAST" /* entity is of type T, should be fine, required for toJson */)
-            return moshi.adapter(runtimeClass) as JsonAdapter<T>
         }
     }
 

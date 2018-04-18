@@ -22,7 +22,8 @@ fun deserialize(body: String): ReleasePlan {
     val dependents = deserializeMapOfProjectIdAndSetProjectId(releasePlanJson.dependents)
     val warnings = releasePlanJson.warnings.toList()
     val infos = releasePlanJson.infos.toList()
-    return ReleasePlan(rootProjectId, projects, submodules, dependents, warnings, infos)
+    val config = deserializeConfig(releasePlanJson.config)
+    return ReleasePlan(rootProjectId, projects, submodules, dependents, warnings, infos, config)
 }
 
 fun createProjectId(id: GenericType<ProjectId>): ProjectId {
@@ -30,6 +31,11 @@ fun createProjectId(id: GenericType<ProjectId>): ProjectId {
         MAVEN_PROJECT_ID -> createMavenProjectId(id)
         else -> throw UnsupportedOperationException("${id.t} is not supported.")
     }
+}
+
+private fun createMavenProjectId(genericId: GenericType<ProjectId>): MavenProjectId {
+    val dynamicId = genericId.p.unsafeCast<MavenProjectId>()
+    return MavenProjectId(dynamicId.groupId, dynamicId.artifactId)
 }
 
 fun deserializeProjects(releasePlanJson: ReleasePlanJson): Map<ProjectId, Project> {
@@ -98,10 +104,11 @@ fun deserializeMapOfProjectIdAndSetProjectId(mapJson: Array<GenericMapEntry<Proj
     )
 }
 
-private fun createMavenProjectId(genericId: GenericType<ProjectId>): MavenProjectId {
-    val dynamicId = genericId.p.unsafeCast<MavenProjectId>()
-    return MavenProjectId(dynamicId.groupId, dynamicId.artifactId)
+
+fun deserializeConfig(config: Array<Pair<String, String>>): List<Pair<String, String>> {
+    return config.map { it.first to it.second }
 }
+
 
 external interface ReleasePlanJson {
     val id: GenericType<ProjectId>
@@ -110,6 +117,7 @@ external interface ReleasePlanJson {
     val dependents: Array<GenericMapEntry<ProjectId, Array<GenericType<ProjectId>>>>
     val warnings: Array<String>
     val infos: Array<String>
+    val config: Array<Pair<String, String>>
 }
 
 external interface ProjectJson {

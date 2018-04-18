@@ -56,7 +56,10 @@ object SerializerSpec : Spek({
             mapOf(
                 projectWithCommandsAndDependents.id to setOf(projectWithoutCommandsButDependents.id, projectWithoutCommandsAndDependents.id),
                 projectWithoutCommandsButDependents.id to setOf(projectWithCommandsWithoutDependents.id)
-            )
+            ),
+            listOf("warning 1"),
+            listOf("info 1", "info2"),
+            listOf("config 1" to "value 1", "config 2" to "value 2")
         )
 
         val commands = Project::commands.name

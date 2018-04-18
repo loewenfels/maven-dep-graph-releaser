@@ -15,10 +15,21 @@ class MapAdapterFactory<K : Any>(private val keyType: Class<K>) : JsonAdapter.Fa
         if (Map::class.java != type.rawType || keyType != type.actualTypeArguments[0]) {
             return null
         }
-        return MapAdapterFactory(moshi.adapter(keyType), moshi.adapter(type.actualTypeArguments[1]))
+        return MapAdapter(moshi.adapter(keyType), moshi.adapter(type.actualTypeArguments[1]))
     }
 
-    private class MapAdapterFactory<K : Any>(private val keyAdapter: JsonAdapter<K>, private val valueAdapter: JsonAdapter<Any>) : NonNullJsonAdapter<Map<K, Any>>() {
+    private class MapAdapter<K : Any>(private val keyAdapter: JsonAdapter<K>, private val valueAdapter: JsonAdapter<Any>) : NonNullJsonAdapter<Map<K, Any>>() {
+
+        override fun toJsonNonNull(writer: JsonWriter, value: Map<K, Any>) {
+            writer.writeArray {
+                value.entries.forEach { (k, v) ->
+                    writeObject {
+                        writeNameAndValue(KEY, k, keyAdapter)
+                        writeNameAndValue(VALUE, v, valueAdapter)
+                    }
+                }
+            }
+        }
 
         override fun fromJson(reader: JsonReader): Map<K, Any>? {
             val map = mutableMapOf<K, Any>()
@@ -36,17 +47,6 @@ class MapAdapterFactory<K : Any>(private val keyType: Class<K>) : JsonAdapter.Fa
 
         private fun <T> JsonReader.checkNextNameAndGetValue(name: String, adapter: JsonAdapter<T>)
             = checkNextNameAndGetValue("map with object as key", name, adapter)
-
-        override fun toJsonNonNull(writer: JsonWriter, value: Map<K, Any>) {
-            writer.writeArray {
-                value.entries.forEach { (k, v) ->
-                    writeObject {
-                        writeNameAndValue(KEY, k, keyAdapter)
-                        writeNameAndValue(VALUE, v, valueAdapter)
-                    }
-                }
-            }
-        }
     }
 
     companion object {

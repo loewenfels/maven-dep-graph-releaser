@@ -42,12 +42,13 @@ class Serializer {
 
     private fun setUpMoshi(): Moshi {
         return Moshi.Builder()
-            .add(ReleasePlanAdapterFactory)
             //allow that ProjectId can be used as key in Maps
             .add(MapAdapterFactory(ProjectId::class.java))
             .add(PolymorphicAdapterFactory(ProjectId::class.java))
             .add(PolymorphicAdapterFactory(Command::class.java))
             .add(CommandStateAdapter)
+            .add(PairAdapterFactory)
+            .add(ReleasePlanAdapterFactory)
             .add(KotlinJsonAdapterFactory())
             .build()
     }
