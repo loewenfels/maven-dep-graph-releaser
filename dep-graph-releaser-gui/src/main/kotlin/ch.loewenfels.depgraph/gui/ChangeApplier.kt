@@ -5,7 +5,7 @@ import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
 import ch.loewenfels.depgraph.data.serialization.CommandStateJson
 
-object Serializer {
+object ChangeApplier {
 
     fun createReleasePlanJsonWithChanges(json: String): Pair<Boolean, String> {
         val releasePlanJson = JSON.parse<ReleasePlanJson>(json)

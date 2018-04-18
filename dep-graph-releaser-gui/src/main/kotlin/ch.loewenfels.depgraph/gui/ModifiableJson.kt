@@ -15,7 +15,7 @@ class ModifiableJson(json: String) {
      * @return `true` in case changes were made; `false` otherwise.
      */
     fun applyChanges(): Boolean {
-        val (changed, newJson) = Serializer.createReleasePlanJsonWithChanges(json)
+        val (changed, newJson) = ChangeApplier.createReleasePlanJsonWithChanges(json)
         this.json = newJson
         return changed
     }
@@ -24,7 +24,7 @@ class ModifiableJson(json: String) {
      * Applies the changes made in the GUI to a copy of [json] and returns it.
      */
     fun getJsonWithAppliedChanges(): String {
-        val (_, newJson) = Serializer.createReleasePlanJsonWithChanges(json)
+        val (_, newJson) = ChangeApplier.createReleasePlanJsonWithChanges(json)
         return newJson
     }
 }
