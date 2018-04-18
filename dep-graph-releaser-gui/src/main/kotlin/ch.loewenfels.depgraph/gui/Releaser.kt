@@ -8,8 +8,9 @@ import ch.loewenfels.depgraph.hasNextOnTheSameLevel
 import ch.loewenfels.depgraph.toPeekingIterator
 
 class Releaser(
-    private val modifiableJson: ModifiableJson,
-    private val jenkinsUrl: String
+    private val jenkinsUrl: String,
+    private val usernameToken: UsernameToken,
+    private val modifiableJson: ModifiableJson
 ) {
     fun release() {
         val releasePlan = deserialize(modifiableJson.json)
@@ -84,5 +85,6 @@ class Releaser(
 
     private fun triggerRelease(project: Project, command: M2ReleaseCommand, config: Map<String, String>) {
         showInfo("Release triggering not yet implemented, but would trigger: ${project.id.identifier}")
+
     }
 }
