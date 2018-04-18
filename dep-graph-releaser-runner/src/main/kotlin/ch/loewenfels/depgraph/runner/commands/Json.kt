@@ -89,12 +89,9 @@ object Json : ConsoleCommand {
         val config = listOf(
             UPDATE_DEPENDENCY_JOB to updateDependencyJob,
             REMOTE_JOB to remoteJob,
-            REMOTE_REGEX to remoteRegex
-        ) + if (regexParameters != null) {
-            listOf(REGEX_PARAMS to regexParameters)
-        } else {
-            listOf()
-        }
+            REMOTE_REGEX to remoteRegex,
+            REGEX_PARAMS to (regexParameters ?: "")
+        )
 
 
         val mavenProjectId = MavenProjectId(groupId, artifactId)
