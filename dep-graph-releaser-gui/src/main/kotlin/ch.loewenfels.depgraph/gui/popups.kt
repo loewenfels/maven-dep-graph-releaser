@@ -7,6 +7,7 @@ import kotlinx.html.id
 import kotlinx.html.js.div
 import kotlinx.html.js.i
 import kotlinx.html.js.span
+import org.w3c.dom.HTMLElement
 import kotlin.browser.window
 
 private var msgCounter = 0
@@ -14,23 +15,19 @@ private var msgCounter = 0
 fun showStatus(message: String) {
     elementById("status").innerText = message
 }
-fun showSuccess(message: String, autoCloseAfterMs: Int? = null) {
-    showMessageOfType("success", "check_circle", message, autoCloseAfterMs)
-}
+fun showSuccess(message: String, autoCloseAfterMs: Int? = null)
+    = showMessageOfType("success", "check_circle", message, autoCloseAfterMs)
 
-fun showInfo(message: String, autoCloseAfterMs: Int? = null) {
-    showMessageOfType("info", "info_outline", message, autoCloseAfterMs)
-}
+fun showInfo(message: String, autoCloseAfterMs: Int? = null)
+    = showMessageOfType("info", "info_outline", message, autoCloseAfterMs)
 
-fun showWarning(message: String, autoCloseAfterMs: Int? = null) {
-    showMessageOfType("warning", "warning", message, autoCloseAfterMs)
-}
+fun showWarning(message: String, autoCloseAfterMs: Int? = null)
+    = showMessageOfType("warning", "warning", message, autoCloseAfterMs)
 
-fun showError(message: String) {
-    showMessageOfType("error", "error_outline", message, null)
-}
+fun showError(message: String) = showMessageOfType("error", "error_outline", message, null)
 
-private fun showMessageOfType(type: String, icon: String, message: String, autoCloseAfterMs: Int?) {
+private fun showMessageOfType(type: String, icon: String, message: String, autoCloseAfterMs: Int?): HTMLElement {
+    lateinit var element: HTMLElement
     elementById("messages").append {
         div(type) {
             val msgId = "msg${msgCounter++}"
@@ -48,8 +45,10 @@ private fun showMessageOfType(type: String, icon: String, message: String, autoC
             if (autoCloseAfterMs != null) {
                 window.setTimeout({ closeMessage(msgId) }, autoCloseAfterMs)
             }
+            element = getUnderlyingHtmlElement()
         }
     }
+    return element
 }
 
 private fun closeMessage(msgId: String) {

@@ -6,14 +6,15 @@ import kotlin.js.Promise
 
 class Publisher(
     private val publishJobUrl: String,
-    private val usernameToken: UsernameToken
+    private val usernameToken: UsernameToken,
+    private var modifiableJson: ModifiableJson
 ) {
 
-    fun publish(json: String, fileName: String): Promise<Boolean> {
+    fun publish(fileName: String): Promise<Boolean> {
         val jenkinsUrl = publishJobUrl.substringBefore("/job/")
         changeCursorToProgress()
         return issueCrumb(jenkinsUrl).then { crumbWithId: CrumbWithId? ->
-            post(crumbWithId, publishJobUrl, fileName, json)
+            post(crumbWithId, publishJobUrl, fileName)
                 .then(::checkStatusOk)
                 .catch {
                     throw Error("Could not trigger the publish job", it)
@@ -56,23 +57,14 @@ class Publisher(
             }
     }
 
-    private fun post(
-        crumbWithId: CrumbWithId?,
-        jobUrl: String,
-        fileName: String,
-        newJson: String
-    ): Promise<Response> {
+    private fun post(crumbWithId: CrumbWithId?, jobUrl: String, fileName: String): Promise<Response> {
         val headers = createHeaderWithAuthAndCrumb(crumbWithId, usernameToken)
         headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8"
-        val init = createRequestInit("fileName=$fileName&json=$newJson", RequestVerb.POST, headers)
+        val init = createRequestInit("fileName=$fileName&json=${modifiableJson.json}", RequestVerb.POST, headers)
         return window.fetch("${jobUrl}buildWithParameters", init)
     }
 
-    private fun pollJobForCompletion(
-        crumbWithId: CrumbWithId?,
-        jobUrl: String,
-        buildNumber: Int
-    ): Promise<String> {
+    private fun pollJobForCompletion(crumbWithId: CrumbWithId?, jobUrl: String, buildNumber: Int): Promise<String> {
         return poll(crumbWithId, "$jobUrl$buildNumber/api/xml?xpath=/*/result", 0, { body ->
             val matchResult = resultRegex.matchEntire(body)
             if (matchResult != null) {
@@ -184,25 +176,21 @@ class Publisher(
     class PollException(message: String, val body: String) : RuntimeException(message)
 
 
-    private fun changeUrlAndReloadOrAddHint(
-        jobUrl: String,
-        buildNumber: Int,
-        releaseJsonUrl: String
-    ) {
+    private fun changeUrlAndReloadOrAddHint(jobUrl: String, buildNumber: Int, releaseJsonUrl: String) {
         val prefix = window.location.protocol + "//" + window.location.hostname + "/"
         val isOnSameHost = jobUrl.startsWith(prefix)
         if (isOnSameHost) {
             val pipelineUrl = window.location.href.substringBefore('#')
             val relativeJobUrl = jobUrl.substringAfter(prefix)
             val url = "$pipelineUrl#$releaseJsonUrl${App.PUBLISH_JOB}$relativeJobUrl"
-            showSuccess(
-                "Publishing successful, going to change the location." +
-                    "\nIf this message does not disappear, then it means the reload failed. Please visit the following url manually:" +
+            val successMsg = showSuccess(
+                "Publishing successful, going to change to the new location." +
+                    "\nIf this message does not disappear, then it means the switch failed. Please visit the following url manually:" +
                     "\n$url"
             )
-            sleep(500) {
+            sleep(2000) {
                 window.location.href = url
-                window.location.reload()
+                successMsg.style.display = "none"
             }
         } else {
             showWarning(
@@ -211,6 +199,10 @@ class Publisher(
                     "\nVisit the publish job for further information: $jobUrl$buildNumber"
             )
         }
+    }
+
+    fun applyChanges(): Boolean {
+        return modifiableJson.applyChanges()
     }
 
     companion object {

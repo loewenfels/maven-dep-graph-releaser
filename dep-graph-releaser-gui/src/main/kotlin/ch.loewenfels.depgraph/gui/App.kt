@@ -66,12 +66,13 @@ class App {
                 }
                 .then { body: String ->
                     switchLoader("loaderApiToken", "loaderJson")
+                    val modifiableJson = ModifiableJson(body)
                     val publisher = if (publishJobUrl != null && usernameToken != null) {
-                        Publisher(publishJobUrl, usernameToken)
+                        Publisher(publishJobUrl, usernameToken, modifiableJson)
                     } else {
                         null
                     }
-                    menu.initDownloaderAndPublisher(Downloader(), publisher, body)
+                    menu.initDownloaderAndPublisher(Downloader(modifiableJson), publisher)
                     val releasePlan = deserialize(body)
                     Gui(releasePlan, menu).load()
                     switchLoaderJsonWithPipeline()

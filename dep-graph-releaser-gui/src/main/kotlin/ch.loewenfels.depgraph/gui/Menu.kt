@@ -16,8 +16,6 @@ class Menu {
     private val downloadButton get() = elementById("download")
     private val dryRunButton get() = elementById("dryRun")
     private val buildButton get() = elementById("build")
-    private lateinit var body: String
-
 
     fun disableButtonsDueToNoPublishUrl() {
         val titleButtons = "You need to specify publishJob if you want to use other functionality than Download."
@@ -45,8 +43,7 @@ class Menu {
     }
 
 
-    fun initDownloaderAndPublisher(downloader: Downloader, publisher: Publisher?, body: String) {
-        this.body = body
+    fun initDownloaderAndPublisher(downloader: Downloader, publisher: Publisher?) {
 
         window.onbeforeunload = {
             if (!saveButton.hasClass(DEACTIVATED)) {
@@ -70,7 +67,7 @@ class Menu {
         downloadButton.title = "Download the release.json"
         downloadButton.removeClass(DEACTIVATED)
         downloadButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-            download(downloader)
+            downloader.download()
         }
     }
 
@@ -108,32 +105,27 @@ class Menu {
     }
 
     private fun save(publisher: Publisher?) {
-        val (changed, newJson) = Serializer.createReleasePlanJsonWithChanges(body)
-        if (changed) {
-            if (publisher != null) {
-                val newFileName = "release-${generateUniqueId()}"
-                publisher.publish(newJson, newFileName).then { success: Boolean ->
-                    if (success) {
-                        deactivateSaveButton()
-                    }
-                }
-            } else {
-                deactivateSaveButton()
-                showError(
-                    IllegalStateException(
-                        "Save button should not be activate if no publish job url was specified.\nPlease report a bug."
-                    )
+        if (publisher == null) {
+            deactivateSaveButton()
+            showError(
+                IllegalStateException(
+                    "Save button should not be activate if no publish job url was specified.\nPlease report a bug."
                 )
+            )
+        }
+
+        val changed = publisher.applyChanges()
+        if (changed) {
+            val newFileName = "release-${generateUniqueId()}"
+            publisher.publish(newFileName).then { success: Boolean ->
+                if (success) {
+                    deactivateSaveButton()
+                }
             }
         } else {
             showInfo("Seems like all changes have been reverted manually. Will not save anything.")
             deactivateSaveButton()
         }
-    }
-
-    private fun download(downloader: Downloader) {
-        val (_, json) = Serializer.createReleasePlanJsonWithChanges(body)
-        downloader.download(json)
     }
 
     companion object {
