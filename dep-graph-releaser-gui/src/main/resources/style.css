@@ -368,7 +368,7 @@ input:checked + .slider:before {
 
 #config {
     opacity: 0;
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     right: 0;
@@ -383,6 +383,11 @@ input:checked + .slider:before {
 
 #config label.fields {
     width: 150px;
+    margin-right: 10px;
+}
+
+#config input {
+    width: 200px;
     margin-right: 10px;
 }
 
