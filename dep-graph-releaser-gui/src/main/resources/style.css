@@ -65,6 +65,41 @@ body {
 }
 
 
+
+#config {
+    visibility: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    border-bottom: 2px solid #333;
+    padding: 20px;
+    background-color: #d9eaf7;
+    z-index: 1;
+    -webkit-transition: top .5s ease;
+    transition: top .5s ease;
+    overflow-y: auto;
+}
+
+#config.active {
+    visibility: visible;
+    top: 44px;
+}
+
+#config label.fields {
+    width: 150px;
+    margin-right: 10px;
+}
+
+#config input {
+    width: 200px;
+    margin-right: 10px;
+}
+
+#config div > div {
+    margin-bottom: 10px;
+}
+
 #pipeline {
     display: none;
     height: 100%;
@@ -364,40 +399,6 @@ input:checked + .slider:before {
     -webkit-transform: translateX(14px);
     -ms-transform: translateX(14px);
     transform: translateX(14px);
-}
-
-#config {
-    visibility: hidden;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    border-bottom: 2px solid #333;
-    padding: 20px;
-    background-color: #d9eaf7;
-    z-index: 1;
-    -webkit-transition: top .5s ease;
-    transition: top .5s ease;
-    overflow-y: auto;
-}
-
-#config.active {
-    visibility: visible;
-    top: 44px;
-}
-
-#config label.fields {
-    width: 150px;
-    margin-right: 10px;
-}
-
-#config input {
-    width: 200px;
-    margin-right: 10px;
-}
-
-#config div > div {
-    margin-bottom: 10px;
 }
 
 
