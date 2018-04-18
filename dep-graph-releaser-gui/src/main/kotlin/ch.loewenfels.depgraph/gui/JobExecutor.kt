@@ -10,10 +10,7 @@ class JobExecutor(private val jenkinsUrl: String, private val usernameToken: Use
         return issueCrumb(jenkinsUrl).then { crumbWithId: CrumbWithId? ->
             post(crumbWithId, jobUrl, body)
                 .then { response ->
-                    checkStatusOk(response).then {
-                        console.log(response.headers.has("Location"))
-                        response.headers.get("Location")
-                    }
+                    checkStatusAndExtractQueuedItemUrl(response, jobName)
                 }.catch {
                     throw Error("Could not trigger the publish job", it)
                 }.then { queuedItemUrl: String ->
@@ -32,6 +29,16 @@ class JobExecutor(private val jenkinsUrl: String, private val usernameToken: Use
                 }
         }.catch {
             showError(it)
+        }
+    }
+
+    private fun checkStatusAndExtractQueuedItemUrl(response: Response, jobName: String): Promise<String> {
+        return checkStatusOk(response).then {
+            val queuedItemUrl = response.headers.get("Location") ?: throw IllegalStateException(
+                "Job $jobName queued but Location header not found in response of Jenkins." +
+                    "\nHave you exposed Location with Access-Control-Expose-Headers?"
+            )
+            if (queuedItemUrl.endsWith("/")) queuedItemUrl else "$queuedItemUrl/"
         }
     }
 
@@ -61,7 +68,7 @@ class JobExecutor(private val jenkinsUrl: String, private val usernameToken: Use
     }
 
     private fun extractBuildNumber(crumbWithId: CrumbWithId?, queuedItemUrl: String): Promise<Int> {
-        val xpathUrl = "$queuedItemUrl/api/xml?xpath=//executable/number"
+        val xpathUrl = "${queuedItemUrl}api/xml?xpath=//executable/number"
         return pollAndExtract(crumbWithId, xpathUrl, numberRegex) { e ->
             throw IllegalStateException(
                 "Could not find the build number in the returned body." +
@@ -133,7 +140,7 @@ class JobExecutor(private val jenkinsUrl: String, private val usernameToken: Use
     class PollException(message: String, val body: String) : RuntimeException(message)
 
     companion object {
-        private val numberRegex = Regex("<result>([0-9]+)</result>")
+        private val numberRegex = Regex("<number>([0-9]+)</number>")
         private val resultRegex = Regex("<result>([A-Z]+)</result>")
         private const val SUCCESS = "SUCCESS"
     }
