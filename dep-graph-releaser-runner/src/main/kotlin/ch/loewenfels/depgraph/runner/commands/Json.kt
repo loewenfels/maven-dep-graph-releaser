@@ -69,7 +69,7 @@ object Json : ConsoleCommand {
 
         val mavenProjectId = MavenProjectId(groupId, artifactId)
         val analyserOptions = Analyser.Options(!turnMissingPartnerAnalysisOff)
-        val releasePlanCreatorOptions = JenkinsReleasePlanCreator.Options(disableReleaseForRegex)
+        val releasePlanCreatorOptions = JenkinsReleasePlanCreator.Options(disableReleaseForRegex, listOf())
 
         Orchestrator.analyseAndCreateJson(
             directoryToAnalyse,

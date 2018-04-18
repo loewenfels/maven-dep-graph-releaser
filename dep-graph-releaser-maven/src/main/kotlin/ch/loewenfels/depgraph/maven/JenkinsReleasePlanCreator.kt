@@ -47,7 +47,7 @@ class JenkinsReleasePlanCreator(
             paramObject.dependents,
             warnings,
             infos,
-            listOf()
+            options.config
         )
         return disableProjectsAsDefinedInOptions(releasePlan)
     }
@@ -458,6 +458,9 @@ class JenkinsReleasePlanCreator(
      * Options for the [JenkinsReleasePlanCreator].
      */
     data class Options(
-        val disableReleaseFor: Regex
-    )
+        val disableReleaseFor: Regex,
+        val config: List<Pair<String, String>>
+    ) {
+        constructor(disableReleaseFor: String) : this(Regex(disableReleaseFor), listOf())
+    }
 }

@@ -119,7 +119,7 @@ object IntegrationSpec : Spek({
                     analyseAndCreateReleasePlan(
                         singleProjectIdAndVersions.id,
                         getTestDirectory("singleProject"),
-                        JenkinsReleasePlanCreator.Options(Regex(".*:example"))
+                        JenkinsReleasePlanCreator.Options(".*:example")
                     )
                 }.toThrow<IllegalArgumentException> {
                     message {
@@ -162,7 +162,7 @@ object IntegrationSpec : Spek({
                 val releasePlan = analyseAndCreateReleasePlan(
                     singleProjectIdAndVersions.id,
                     getTestDirectory("singleProject"),
-                    JenkinsReleasePlanCreator.Options(Regex(".*notTheProject"))
+                    JenkinsReleasePlanCreator.Options(".*notTheProject")
                 )
                 assertSingleProject(releasePlan, singleProjectIdAndVersions)
             }
@@ -173,7 +173,7 @@ object IntegrationSpec : Spek({
                 val releasePlan = analyseAndCreateReleasePlan(
                     exampleA.id,
                     getTestDirectory("managingVersions/inDependency"),
-                    JenkinsReleasePlanCreator.Options(Regex("${exampleB.id.groupId}:${exampleB.id.artifactId}"))
+                    JenkinsReleasePlanCreator.Options("${exampleB.id.groupId}:${exampleB.id.artifactId}")
                 )
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
 
@@ -190,7 +190,7 @@ object IntegrationSpec : Spek({
                 val releasePlan = analyseAndCreateReleasePlan(
                     exampleA.id,
                     getTestDirectory("transitive/implicit"),
-                    JenkinsReleasePlanCreator.Options(Regex("${exampleB.id.groupId}:${exampleB.id.artifactId}"))
+                    JenkinsReleasePlanCreator.Options("${exampleB.id.groupId}:${exampleB.id.artifactId}")
                 )
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
 
@@ -215,7 +215,7 @@ object IntegrationSpec : Spek({
                 val releasePlan = analyseAndCreateReleasePlan(
                     exampleA.id,
                     getTestDirectory("transitive/implicit"),
-                    JenkinsReleasePlanCreator.Options(Regex("${exampleB.id.groupId}:(${exampleB.id.artifactId}|${exampleC.id.artifactId})"))
+                    JenkinsReleasePlanCreator.Options("${exampleB.id.groupId}:(${exampleB.id.artifactId}|${exampleC.id.artifactId})")
                 )
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
 
@@ -232,6 +232,31 @@ object IntegrationSpec : Spek({
 
                 assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
                 assertReleasePlanIteratorReturnsRootAndStrictly(releasePlan, exampleB, exampleC)
+            }
+        }
+    }
+
+    describe("config"){
+        given("no configuration") {
+            action("it has an empty config list") {
+                val releasePlan = analyseAndCreateReleasePlan(
+                    singleProjectIdAndVersions.id,
+                    getTestDirectory("singleProject"),
+                    JenkinsReleasePlanCreator.Options(Regex(".*notTheProject"), listOf())
+                )
+                assertSingleProject(releasePlan, singleProjectIdAndVersions)
+                assert(releasePlan.config).isEmpty()
+            }
+        }
+        given("two configurations") {
+            action("it contains both") {
+                val releasePlan = analyseAndCreateReleasePlan(
+                    singleProjectIdAndVersions.id,
+                    getTestDirectory("singleProject"),
+                    JenkinsReleasePlanCreator.Options(Regex(".*notTheProject"), listOf("a" to "b", "c" to "d"))
+                )
+                assertSingleProject(releasePlan, singleProjectIdAndVersions)
+                assert(releasePlan.config).containsStrictly("a" to "b", "c" to "d")
             }
         }
     }
@@ -1033,8 +1058,8 @@ private fun analyseAndCreateReleasePlanWithPomResolverOldVersions(
     return analyseAndCreateReleasePlan(projectToRelease, analyser)
 }
 
-private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, analyser: Analyser): ReleasePlan =
-    analyseAndCreateReleasePlan(projectToRelease, analyser, JenkinsReleasePlanCreator.Options(Regex("^$")))
+private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, analyser: Analyser): ReleasePlan
+    = analyseAndCreateReleasePlan(projectToRelease, analyser, JenkinsReleasePlanCreator.Options("^$"))
 
 private fun analyseAndCreateReleasePlan(
     projectToRelease: ProjectId,
