@@ -367,7 +367,7 @@ input:checked + .slider:before {
 }
 
 #config {
-    opacity: 0;
+    visibility: hidden;
     position: fixed;
     top: 0;
     left: 0;
@@ -379,6 +379,11 @@ input:checked + .slider:before {
     -webkit-transition: top .5s ease;
     transition: top .5s ease;
     overflow-y: auto;
+}
+
+#config.active {
+    visibility: visible;
+    top: 44px;
 }
 
 #config label.fields {
@@ -395,7 +400,4 @@ input:checked + .slider:before {
     margin-bottom: 10px;
 }
 
-#config.active {
-    opacity: 100;
-    top: 44px;
-}
+
