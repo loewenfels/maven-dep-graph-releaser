@@ -18,13 +18,12 @@ object ChangeApplier {
         var changed = false
         releasePlanJson.projects.forEach { project ->
             val mavenProjectId = createProjectId(project.id)
-            val releaseVersionChanged = replaceReleaseVersionIfChanged(project, mavenProjectId)
-            changed = changed || releaseVersionChanged
+            changed = changed or replaceReleaseVersionIfChanged(project, mavenProjectId)
 
             project.commands.forEachIndexed { index, command ->
-                val stateChanged = replaceStateIfChanged(command, mavenProjectId, index)
-                val fieldsChanged = replaceFieldsIfChanged(command, mavenProjectId, index)
-                changed = changed || stateChanged || fieldsChanged
+                changed = changed or
+                    replaceStateIfChanged(command, mavenProjectId, index) or
+                    replaceFieldsIfChanged(command, mavenProjectId, index)
             }
         }
         releasePlanJson.config.forEach { arr ->

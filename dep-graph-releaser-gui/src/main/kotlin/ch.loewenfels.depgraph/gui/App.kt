@@ -67,12 +67,8 @@ class App {
                 .then { body: String ->
                     switchLoader("loaderApiToken", "loaderJson")
                     val modifiableJson = ModifiableJson(body)
-                    val publisher = if (publishJobUrl != null && usernameToken != null) {
-                        Publisher(publishJobUrl, usernameToken, modifiableJson)
-                    } else {
-                        null
-                    }
-                    menu.initDownloaderAndPublisher(Downloader(modifiableJson), publisher)
+                    val (publisher, releaser) = createPublisherAndReleaser(usernameToken, modifiableJson)
+                    menu.initDependencies(Downloader(modifiableJson), publisher, releaser)
                     val releasePlan = deserialize(body)
                     Gui(releasePlan, menu).load()
                     switchLoaderJsonWithPipeline()
@@ -80,6 +76,19 @@ class App {
                 .catch {
                     showError(it)
                 }
+        }
+    }
+
+    private fun createPublisherAndReleaser(
+        usernameToken: UsernameToken?,
+        modifiableJson: ModifiableJson
+    ): Pair<Publisher?, Releaser?> {
+        return if (publishJobUrl != null && usernameToken != null) {
+            val publisher = Publisher(publishJobUrl, usernameToken, modifiableJson)
+            val releaser = Releaser(modifiableJson, jenkinsUrl!!)
+            publisher to releaser
+        } else {
+            null to null
         }
     }
 

@@ -15,7 +15,7 @@ class Menu {
     private val saveButton get() = elementById("save")
     private val downloadButton get() = elementById("download")
     private val dryRunButton get() = elementById("dryRun")
-    private val buildButton get() = elementById("build")
+    private val releaseButton get() = elementById("release")
     private val settingsButton get() = elementById("settings")
 
     init {
@@ -42,7 +42,7 @@ class Menu {
         userButton.addClass(DEACTIVATED)
         userName.innerText = "Anonymous"
         userIcon.innerText = "error"
-        listOf(saveButton, dryRunButton, buildButton).forEach { it.disable(titleButtons) }
+        listOf(saveButton, dryRunButton, releaseButton).forEach { it.disable(titleButtons) }
     }
 
     fun setVerifiedUser(username: String, name: String) {
@@ -53,7 +53,7 @@ class Menu {
     }
 
 
-    fun initDownloaderAndPublisher(downloader: Downloader, publisher: Publisher?) {
+    fun initDependencies(downloader: Downloader, publisher: Publisher?, releaser: Releaser?) {
 
         window.onbeforeunload = {
             if (!saveButton.hasClass(DEACTIVATED)) {
@@ -64,7 +64,7 @@ class Menu {
         }
 
         initSaveAndDownloadButton(downloader, publisher)
-        initDryRunAndBuildButton()
+        initDryRunAndReleaseButton(releaser)
     }
 
     private fun initSaveAndDownloadButton(downloader: Downloader, publisher: Publisher?) {
@@ -81,18 +81,16 @@ class Menu {
         }
     }
 
-    private fun initDryRunAndBuildButton() {
-        dryRunButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-            //TODO implement
+    private fun initDryRunAndReleaseButton(releaser: Releaser?) {
+        if (releaser != null) {
+            activateReleaseButton()
+            dryRunButton.addClickEventListenerIfNotDeactivatedNorDisabled {
+                //TODO implement
+            }
+            releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
+                releaser.release()
+            }
         }
-        buildButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-            //TODO implement
-        }
-    }
-
-    private fun HTMLElement.disable(reason: String) {
-        this.addClass(DISABLED)
-        this.title = reason
     }
 
     private fun HTMLElement.addClickEventListenerIfNotDeactivatedNorDisabled(action: () -> Unit) {
@@ -102,16 +100,39 @@ class Menu {
         }
     }
 
+    private fun HTMLElement.disable(reason: String) {
+        this.addClass(DISABLED)
+        this.title = reason
+    }
+
+    private fun HTMLElement.isDisabled() = hasClass(Menu.DISABLED)
+
+    private fun HTMLElement.deactivate(reason: String) {
+        if (saveButton.isDisabled()) return
+
+        this.addClass(DEACTIVATED)
+        this.title = reason
+    }
+
     private fun deactivateSaveButton() {
-        if (saveButton.hasClass(DISABLED)) return
-        saveButton.addClass(DEACTIVATED)
-        saveButton.title = "Nothing to save, no changes were made"
+        saveButton.deactivate("Nothing to save, no changes were made")
     }
 
     fun activateSaveButton() {
-        if (saveButton.hasClass(DISABLED)) return
+        if (saveButton.isDisabled()) return
+
         saveButton.removeClass(DEACTIVATED)
         saveButton.title = "Publish changed json file and change location"
+        val saveFirst = "You need to save your changes first."
+        dryRunButton.deactivate(saveFirst)
+        releaseButton.deactivate(saveFirst)
+    }
+
+    private fun activateReleaseButton() {
+        if (releaseButton.isDisabled()) return
+
+        releaseButton.removeClass(DEACTIVATED)
+        releaseButton.title = "Start a release based on this release plan."
     }
 
     private fun save(publisher: Publisher?) {

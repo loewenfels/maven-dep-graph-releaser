@@ -1,5 +1,9 @@
 package ch.loewenfels.depgraph.runner.commands
 
+import ch.loewenfels.depgraph.Config.REGEX_PARAMS
+import ch.loewenfels.depgraph.Config.REMOTE_JOB
+import ch.loewenfels.depgraph.Config.REMOTE_REGEX
+import ch.loewenfels.depgraph.Config.UPDATE_DEPENDENCY_JOB
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.maven.Analyser
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
@@ -11,13 +15,9 @@ import ch.loewenfels.depgraph.runner.toVerifiedFile
 
 object Json : ConsoleCommand {
 
-    private const val REGEX_PARAMS = "regexParams"
     private const val REGEX_PARAMS_ARG = "-$REGEX_PARAMS="
     internal const val MAVEN_PARENT_ANALYSIS_OFF = "-mpoff"
     private const val DISABLE_RELEASE_FOR = "-dr="
-    private const val UPDATE_DEPENDENCY_JOB = "updateDependencyJob"
-    private const val REMOTE_REGEX = "remoteRegex"
-    private const val REMOTE_JOB = "remoteJob"
 
     override val name = "json"
     override val description = "analyse projects, create a release plan and serialize it to json"
