@@ -105,8 +105,13 @@ fun deserializeMapOfProjectIdAndSetProjectId(mapJson: Array<GenericMapEntry<Proj
 }
 
 
-fun deserializeConfig(config: Array<Pair<String, String>>): List<Pair<String, String>> {
-    return config.map { it.first to it.second }
+fun deserializeConfig(config: Array<Array<String>>): List<Pair<String, String>> {
+    return config.map {
+        if(it.size != 2){
+            showWarning("corrupt config found, size != 2: $it")
+        }
+        it[0] to it[1]
+    }
 }
 
 
@@ -117,14 +122,14 @@ external interface ReleasePlanJson {
     val dependents: Array<GenericMapEntry<ProjectId, Array<GenericType<ProjectId>>>>
     val warnings: Array<String>
     val infos: Array<String>
-    val config: Array<Pair<String, String>>
+    val config: Array<Array<String>>
 }
 
 external interface ProjectJson {
     val id: GenericType<ProjectId>
     val isSubmodule: Boolean
     val currentVersion: String
-    val releaseVersion: String
+    var releaseVersion: String
     val level: Int
     val commands: Array<GenericType<Command>>
     val relativePath: String

@@ -27,6 +27,15 @@ object ChangeApplier {
                 changed = changed || stateChanged || fieldsChanged
             }
         }
+        releasePlanJson.config.forEach { arr ->
+            if(arr.size != 2) return@forEach
+
+            val input = getTextField("config-${arr[0]}")
+            if(arr[1] != input.value){
+                arr[1] = input.value
+                changed = true
+            }
+        }
         return changed
     }
 
@@ -34,7 +43,7 @@ object ChangeApplier {
     private fun replaceReleaseVersionIfChanged(project: ProjectJson, mavenProjectId: ProjectId): Boolean {
         val input = getTextFieldOrNull("${mavenProjectId.identifier}:releaseVersion")
         if (input != null && project.releaseVersion != input.value) {
-            project.asDynamic().releaseVersion = input.value
+            project.releaseVersion = input.value
             return true
         }
         return false
