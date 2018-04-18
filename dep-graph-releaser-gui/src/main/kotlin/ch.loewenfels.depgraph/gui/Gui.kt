@@ -90,30 +90,29 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 if (releasePlan.hasSubmodules(project.id)) "withSubmodules" else ""
             )
 
-            val id = project.id
-            this.id = id.identifier
-
+            val identifier = project.id.identifier
+            this.id = identifier
             div("title") {
                 if (hasCommands) {
                     toggle(
-                        "${id.identifier}:disableAll",
+                        "$identifier:disableAll",
                         "disable all commands",
                         project.commands.any { it.state !is CommandState.Deactivated },
                         false
                     )
                 }
                 span {
-                    projectId(id)
+                    projectId(project.id)
                 }
             }
             if (!project.isSubmodule) {
                 div("fields") {
                     fieldReadOnlyWithLabel(
-                        "${id.identifier}:currentVersion",
+                        "$identifier:currentVersion",
                         "Current Version",
                         project.currentVersion
                     )
-                    fieldWithLabel("${id.identifier}:releaseVersion", "Release Version", project.releaseVersion)
+                    fieldWithLabel("$identifier:releaseVersion", "Release Version", project.releaseVersion)
                 }
             }
             commands(project)
@@ -146,23 +145,15 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
     private fun DIV.commands(project: Project) {
         project.commands.forEachIndexed { index, command ->
             div {
+                val commandId = getCommandId(project, index)
+                id = commandId
                 classes = setOf("command", stateToCssClass(command.state))
                 div("commandTitle") { +command::class.simpleName!! }
                 div("fields") {
-                    fieldsForCommand("${project.id.identifier}:$index", project.id, command)
+                    fieldsForCommand(commandId, project.id, command)
                 }
             }
         }
-    }
-
-    private fun stateToCssClass(state: CommandState) = when (state) {
-        is CommandState.Waiting -> "waiting"
-        CommandState.Ready -> "ready"
-        CommandState.InProgress -> "inProgress"
-        CommandState.Succeeded -> "succeeded"
-        is CommandState.Failed -> "failed"
-        is CommandState.Deactivated -> "deactivated"
-        CommandState.Disabled -> "disabled"
     }
 
     private fun DIV.fieldWithLabel(id: String, label: String, text: String) {
@@ -188,15 +179,12 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         }
     }
 
-    private fun DIV.fieldsForCommand(
-        idPrefix: String,
-        projectId: ProjectId,
-        command: Command
-    ) {
+    private fun DIV.fieldsForCommand(idPrefix: String, projectId: ProjectId, command: Command) {
         val cssClass = when (command) {
             is ReleaseCommand -> "release"
             else -> ""
         }
+
         toggle(
             "$idPrefix:disable",
             "disable ${command::class.simpleName}",
@@ -204,6 +192,13 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             command.state === CommandState.Disabled,
             cssClass
         )
+        div("state") {
+            id = "$idPrefix:state"
+            i("material-icons") {
+                span()
+                id = "$idPrefix:status.icon"
+            }
+        }
 
         when (command) {
             is JenkinsMavenReleasePlugin ->
@@ -282,6 +277,20 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                     this.title = "disabled, cannot be reactivated"
                 }
             }
+        }
+    }
+
+    companion object {
+        fun getCommandId(project: Project, index: Int) = "${project.id.identifier}:$index"
+
+        fun stateToCssClass(state: CommandState) = when (state) {
+            is CommandState.Waiting -> "waiting"
+            CommandState.Ready -> "ready"
+            CommandState.InProgress -> "inProgress"
+            CommandState.Succeeded -> "succeeded"
+            is CommandState.Failed -> "failed"
+            is CommandState.Deactivated -> "deactivated"
+            CommandState.Disabled -> "disabled"
         }
     }
 }

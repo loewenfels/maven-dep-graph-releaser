@@ -5,8 +5,11 @@ import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
+import ch.loewenfels.depgraph.gui.Gui.Companion.stateToCssClass
 import ch.loewenfels.depgraph.hasNextOnTheSameLevel
 import ch.loewenfels.depgraph.toPeekingIterator
+import kotlin.dom.addClass
+import kotlin.dom.removeClass
 
 class Releaser(
     private val jenkinsUrl: String,
@@ -26,8 +29,7 @@ class Releaser(
         while (itr.hasNext()) {
             notOneReleaseSucceeded = true
             val paramObject = ParamObject(releasePlan, config, itr.next())
-            val project = itr.next()
-            level = project.level
+            level = paramObject.project.level
 
             notOneReleaseSucceeded = notOneReleaseSucceeded or triggerCommandsOfProject(paramObject)
 
@@ -62,49 +64,82 @@ class Releaser(
         var notOneReleaseSucceeded = true
         val commands = paramObject.project.commands
         val size = commands.size
-        for (i in (size - 1)..0) {
-            val command = commands[i]
-            if (command.state != CommandState.Ready && command.state !is CommandState.Waiting) {
+        for (index in (size - 1)..0) {
+            val command = commands[index]
+            val isReady = command.state === CommandState.Ready
+            if (!isReady && command.state !is CommandState.Waiting) {
                 if (command is ReleaseCommand && command.state == CommandState.Succeeded) {
                     notOneReleaseSucceeded = false
                 }
                 //no need to have a look at previous commands if this one is neither ready nor waiting
                 break
+            } else if (isReady) {
+                triggerCommand(paramObject, command, index)
             }
-            trigger(paramObject, command)
-
         }
         return notOneReleaseSucceeded
     }
 
-    private fun trigger(paramObject: ParamObject, command: Command) {
+    private fun triggerCommand(paramObject: ParamObject, command: Command, index: Int) {
         when (command) {
-            is JenkinsUpdateDependency -> triggerUpdateDependency(paramObject, command)
-            is M2ReleaseCommand -> triggerRelease(paramObject, command)
+            is JenkinsUpdateDependency -> triggerUpdateDependency(paramObject, command, index)
+            is M2ReleaseCommand -> triggerRelease(paramObject, command, index)
             else -> throw UnsupportedOperationException("We do not (yet) support the command: $command")
         }
     }
 
-    private fun triggerUpdateDependency(paramObject: ParamObject, command: JenkinsUpdateDependency) {
+    private fun triggerUpdateDependency(paramObject: ParamObject, command: JenkinsUpdateDependency, index: Int) {
         changeCursorToProgress()
-        val identifier = paramObject.project.id.identifier
-        elementById(identifier)
-        val jobUrl = "$jenkinsUrl/${paramObject.config[Config.UPDATE_DEPENDENCY_JOB]}"
-        val jobName = "update dependency of $identifier"
+        val project = paramObject.project
+        val jobUrl = "$jenkinsUrl/job/${paramObject.config[Config.UPDATE_DEPENDENCY_JOB]}"
+        val jobName = "update dependency of $project.id"
         val params = createUpdateDependencyParams(paramObject, command)
-        jobExecutor.trigger(jobUrl, jobName, params, { buildNumber ->
-            //TODO we need to update the release json via publisher
+        triggerJob(jobUrl, jobName, params, project, index)
+    }
 
-        }).finally { it: Any? ->
+    private fun triggerJob(jobUrl: String, jobName: String, params: String, project: Project, index: Int) {
+        displayJobState(project, index, stateToCssClass(CommandState.Ready), "queueing", "Currently queueing the job")
+        //jobExecutor.trigger(jobUrl, jobName, params, { buildNumber ->
+        sleep(1000) {
+            //TODO add a link to the job?
+            displayJobState(project, index, "queueing", stateToCssClass(CommandState.InProgress), "Job is running")
+
+            //TODO we need to update the release json via publisher
+        }.then {
+            sleep(1000) {
+                displayJobState(
+                    project, index, CommandState.InProgress, CommandState.Succeeded, "Job completed successfully"
+                )
+            }
+        }.finally { it: Any? ->
             changeCursorBackToNormal()
             it != null
         }
     }
 
-    private fun createUpdateDependencyParams(
-        paramObject: ParamObject,
-        command: JenkinsUpdateDependency
-    ): String {
+    private fun displayJobState(
+        project: Project,
+        index: Int,
+        currentState: CommandState,
+        newState: CommandState,
+        title: String
+    ) = displayJobState(project, index, stateToCssClass(currentState), stateToCssClass(newState), title)
+
+    private fun displayJobState(
+        project: Project,
+        index: Int,
+        cssClassToRemove: String,
+        cssClassToAdd: String,
+        title: String
+    ) {
+        val commandId = Gui.getCommandId(project, index)
+        val command = elementById(commandId)
+        command.removeClass(cssClassToRemove)
+        command.addClass(cssClassToAdd)
+        elementById("$commandId:state").title = title
+    }
+
+    private fun createUpdateDependencyParams(paramObject: ParamObject, command: JenkinsUpdateDependency): String {
         val dependency = paramObject.releasePlan.getProject(command.projectId)
         val dependencyMavenProjectId = dependency.id as MavenProjectId
         return "pathToProject=${paramObject.project.relativePath}" +
@@ -113,9 +148,22 @@ class Releaser(
             "&newVersion=${dependency.releaseVersion}"
     }
 
-    private fun triggerRelease(paramObject: ParamObject, command: M2ReleaseCommand) {
+    private fun triggerRelease(paramObject: ParamObject, command: M2ReleaseCommand, index: Int) {
+        val regex = Regex(paramObject.config[Config.REMOTE_REGEX]!!)
+        val jobUrl = if (regex.matches(paramObject.project.id.identifier)) {
+            "$jenkinsUrl/job/${paramObject.config[Config.REMOTE_JOB]}"
+        } else {
+            "$jenkinsUrl/job/${paramObject.config[Config.UPDATE_DEPENDENCY_JOB]}"
+        }
+        val jobName = "release ${paramObject.project.id}"
+        val params = createReleaseParams(paramObject, command)
+        triggerJob(jobUrl, jobName, params, paramObject.project, index)
         showInfo("Release triggering not yet implemented, but would trigger: ${paramObject.project.id.identifier}")
+    }
 
+    private fun createReleaseParams(paramObject: Releaser.ParamObject, command: M2ReleaseCommand): String {
+        //TODO create release params
+        return ""
     }
 
     data class ParamObject(

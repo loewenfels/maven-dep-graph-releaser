@@ -122,13 +122,15 @@ div.level{
     width: 300px;
     padding:20px 15px;
     border-radius: 2px 2px 2px 2px;
-    -webkit-box-shadow: 0 1px 4px
-    rgba(0, 0, 0, 0.3), 0 0 40px
-    rgba(0, 0, 0, 0.1) inset;
-    -moz-box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0.1) inset;
-    box-shadow: 0 1px 4px
-    rgba(0, 0, 0, 0.3), 0 0 40px
-    rgba(0, 0, 0, 0.1) inset;
+    -webkit-box-shadow:
+        0 1px 4px rgba(0, 0, 0, 0.3),
+        0 0 40px rgba(0, 0, 0, 0.1) inset;
+    -moz-box-shadow:
+        0 1px 4px rgba(0, 0, 0, 0.3),
+        0 0 40px rgba(0, 0, 0, 0.1) inset;
+    box-shadow:
+        0 1px 4px rgba(0, 0, 0, 0.3),
+        0 0 40px rgba(0, 0, 0, 0.1) inset;
 }
 
 .loader {
@@ -140,7 +142,6 @@ div.level{
 #loaderJs {
     display: block
 }
-
 
 .submodules {
     margin-top: 15px;
@@ -192,7 +193,7 @@ div.title::after, div.command > div.fields::after, #menu::after, .button::after 
     clear:both;
 }
 
-.command{
+.command {
     margin-top:10px;
 }
 
@@ -216,7 +217,7 @@ label.fields {
     margin-right: 6px;
 }
 
-label.toggle {
+label.toggle{
     position: relative;
     display: inline-block;
     width: 35px;
@@ -271,7 +272,87 @@ input:checked + .slider:before {
     transform: translateX(14px);
 }
 
+.command .state {
+    position: relative;
+    display: none;
+    float: right;
+    border: 1px solid;
+    border-color: #888;
+    color:#AAA;
+    background-color: white;
+    border-radius: 6px;
+    cursor: help;
+    margin-top: -3px;
+     -webkit-box-shadow:
+        0 1px 4px rgba(0, 0, 0, 0.2),
+        0 0 4px rgba(0, 1, 0, 0.1) inset;
+    -moz-box-shadow:
+        0 1px 4px rgba(0, 0, 0, 0.2),
+        0 0 4px rgba(0, 1, 0, 0.1) inset;
+    box-shadow:
+        0 1px 4px rgba(0, 0, 0, 0.2),
+        0 0 4px rgba(0, 1, 0, 0.1) inset;
+}
 
+.command.queueing .toggle, .command.inProgress .toggle, .command.succeeded .toggle {
+    display: none;
+}
+
+.command.queueing .state {
+    display: inline-block;
+    animation: queueing 1s infinite alternate linear;
+    -webkit-animation: queueing 1s infinite alternate linear;
+    animation-delay: 0.2s;
+}
+@keyframes queueing {
+    from { border-color: #888; color:#AAA;  }
+    to {   border-color: #d88607; color:#dea64e;  }
+}
+@-webkit-keyframes queueing {
+    from { border-color: #888; color:#AAA;  }
+    to {   border-color: #d88607; color:#dea64e;  }
+}
+.command.queueing .state .material-icons span::after {
+    content: 'playlist_add';
+}
+
+.command.inProgress .state {
+    display: inline-block;
+    animation: inProgress 1.2s infinite alternate ease-out;
+    -webkit-animation: inProgress 1.2s infinite alternate ease-out;
+}
+@keyframes inProgress {
+    from { border-color: #888; color:#AAA; background-color: white;  }
+    to {   border-color: #008000; color:#008000; background-color: #c9fdc9; }
+}
+@-webkit-keyframes inProgress {
+    from { border-color: #888; color:#AAA; background-color: white;  }
+    to {   border-color: #008000; color:#008000; background-color: #c9fdc9; }
+}
+.command.inProgress .state .material-icons span::after {
+    content: 'play_arrow';
+}
+
+
+
+.command.succeeded .state .material-icons span::after {
+    content: 'check';
+}
+.command.succeeded .state {
+    display: inline-block;
+     border-color: #008000;
+     color:#008000;
+     background-color: #c9fdc9;
+    animation: none;
+    -webkit-animation: none;
+}
+
+.command.inProgress .state .material-icons, .command.succeeded .state .material-icons {
+    font-size: 20px;
+    padding: 2px;
+    width: 20px;
+    height: 20px;
+}
 
 #status, #messages {
     position: fixed;
@@ -403,3 +484,4 @@ input:checked + .slider:before {
 .close:after {
     transform: rotate(-45deg);
 }
+
