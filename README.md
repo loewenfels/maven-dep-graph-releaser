@@ -40,18 +40,7 @@ This is necessary since the `pipeline.html` wants to include a javascript file a
 
 ## Release
 
-You can create a jenkinsfile based on the previously generated `release.json` with the `pipeline` command.
-
-Use the `man` command to get to know more about the command (or any other command) 
- as follows:
-```
-gr man -Pcommand=pipeline
-``` 
-
-Following an example, in case you follow our conventions
-```
-gr pipeline -PupdateDependencyJob=dep-graph-releaser-update -PremoteRegex="^.*" -PremoteJob=dep-graph-releaser-remote -PregexParams=".*#branch.name=master" -Pjenkinsfile=build/html/jenkinsfile
- ```
+You can also trigger the release locally as long as the jenkins server is set up to allow CORS accordingly.
 
 See section [Jenkins - Release](#jenkins-release) for how to setup the Jenkins jobs
 
