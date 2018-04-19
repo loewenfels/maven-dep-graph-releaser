@@ -317,6 +317,7 @@ input:checked + .slider:before {
 }
 
 .command.inProgress .state {
+    cursor: pointer;
     display: inline-block;
     animation: inProgress 1.2s infinite alternate ease-out;
     -webkit-animation: inProgress 1.2s infinite alternate ease-out;
@@ -333,16 +334,15 @@ input:checked + .slider:before {
     content: 'play_arrow';
 }
 
-
-
 .command.succeeded .state .material-icons span::after {
     content: 'check';
 }
 .command.succeeded .state {
+    cursor: pointer;
     display: inline-block;
-     border-color: #008000;
-     color:#008000;
-     background-color: #c9fdc9;
+    border-color: #008000;
+    color:#008000;
+    background-color: #c9fdc9;
     animation: none;
     -webkit-animation: none;
 }

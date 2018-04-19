@@ -10,9 +10,12 @@ import ch.loewenfels.depgraph.hasNextOnTheSameLevel
 import ch.loewenfels.depgraph.toPeekingIterator
 import kotlinx.html.*
 import kotlinx.html.dom.append
+import org.w3c.dom.HTMLAnchorElement
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLInputElement
 import kotlin.browser.document
+import kotlin.dom.addClass
+import kotlin.dom.removeClass
 
 class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
     private val toggler = Toggler(releasePlan, menu)
@@ -198,7 +201,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             command.state === CommandState.Disabled,
             cssClass
         )
-        div("state") {
+        a(classes = "state") {
             id = "$idPrefix:state"
             i("material-icons") {
                 span()
@@ -313,7 +316,41 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 input.disabled = input.asDynamic().oldDisabled as Boolean
                 titleElement.title = titleElement.asDynamic().oldTitle as String
             }
+        }
 
+        fun displayJobStateAddLinkToJob(
+            project: Project,
+            index: Int,
+            cssClassToRemove: String,
+            newState: CommandState,
+            title: String,
+            jobUrl : String
+        ) {
+            displayJobState(project, index, cssClassToRemove, stateToCssClass(newState), title)
+            val state = elementById<HTMLAnchorElement>("${getCommandId(project, index)}:state")
+            state.href = jobUrl
+        }
+
+        fun displayJobState(
+            project: Project,
+            index: Int,
+            currentState: CommandState,
+            newState: CommandState,
+            title: String
+        ) = displayJobState(project, index, stateToCssClass(currentState), stateToCssClass(newState), title)
+
+        fun displayJobState(
+            project: Project,
+            index: Int,
+            cssClassToRemove: String,
+            cssClassToAdd: String,
+            title: String
+        ) {
+            val commandId = getCommandId(project, index)
+            val command = elementById(commandId)
+            command.removeClass(cssClassToRemove)
+            command.addClass(cssClassToAdd)
+            elementById("$commandId:state").title = title
         }
     }
 }

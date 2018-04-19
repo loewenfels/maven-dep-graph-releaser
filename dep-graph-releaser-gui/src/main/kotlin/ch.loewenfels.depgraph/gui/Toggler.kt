@@ -128,14 +128,6 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
         }
     }
 
-
-    private fun projectElement(project: Project) = elementById(project.id.identifier)
-
-
-    private fun getDisableAllId(projectId: ProjectId) = "${projectId.identifier}${Gui.DISABLE_ALL_SUFFIX}"
-    private fun getCheckbox(identifier: String, index: Int) = getCheckbox("$identifier:$index${Gui.DISABLE_SUFFIX}")
-
-
     private fun notAllCommandsActive(project: Project, predicate: (HTMLInputElement) -> Boolean): Boolean {
         return project.commands.asSequence()
             .mapIndexed { index, _ -> getCheckbox(project.id.identifier, index) }
@@ -147,10 +139,14 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
         return releasePlan.getSubmodules(project.id).any { submoduleId ->
             val submodulesHasCommands = document.getElementById(getDisableAllId(project.id)) != null
             submodulesHasCommands &&
-                //cannot be the same command, hence we do not filter commands at all => use `{ true }`
+                //cannot be the same command, hence we do not filter commands at all => thus we use `{ true }`
                 notAllCommandsActive(releasePlan.getProject(submoduleId), { true })
         }
     }
+
+    private fun getDisableAllId(projectId: ProjectId) = "${projectId.identifier}${Gui.DISABLE_ALL_SUFFIX}"
+    private fun getCheckbox(identifier: String, index: Int) = getCheckbox("$identifier:$index${Gui.DISABLE_SUFFIX}")
+
 
     private fun dispatchToggleEvent(project: Project, toggle: HTMLInputElement, event: String) {
         projectElement(project).dispatchEvent(CustomEvent(event, CustomEventInit(toggle)))
@@ -159,6 +155,8 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
     private fun registerForProjectEvent(project: Project, event: String, callback: (Event) -> Unit) {
         projectElement(project).addEventListener(event, callback)
     }
+
+    private fun projectElement(project: Project) = elementById(project.id.identifier)
 
     companion object {
         private const val EVENT_TOGGLE_UNCHECKED = "toggle.unchecked"

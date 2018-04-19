@@ -5,11 +5,11 @@ import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
+import ch.loewenfels.depgraph.gui.Gui.Companion.displayJobState
+import ch.loewenfels.depgraph.gui.Gui.Companion.displayJobStateAddLinkToJob
 import ch.loewenfels.depgraph.gui.Gui.Companion.stateToCssClass
 import ch.loewenfels.depgraph.hasNextOnTheSameLevel
 import ch.loewenfels.depgraph.toPeekingIterator
-import kotlin.dom.addClass
-import kotlin.dom.removeClass
 import kotlin.js.Promise
 
 class Releaser(
@@ -116,12 +116,14 @@ class Releaser(
         project: Project,
         index: Int
     ): Promise<Unit> {
+        val jobUrlWithSlash = if (jobUrl.endsWith("/")) jobUrl else "$jobUrl/"
         displayJobState(project, index, stateToCssClass(CommandState.Ready), "queueing", "Currently queueing the job")
-        //jobExecutor.trigger(jobUrl, jobName, params, { buildNumber ->
+        //jobExecutor.trigger(jobUrlWithSlash, jobName, params, { buildNumber ->
         return sleep(1000) {
-            //TODO add a link to the job?
-            displayJobState(project, index, "queueing", stateToCssClass(CommandState.InProgress), "Job is running")
-
+            val builderNumber = 100
+            displayJobStateAddLinkToJob(
+                project, index, "queueing", CommandState.InProgress, "Job is running", "$jobUrlWithSlash$builderNumber/"
+            )
             //TODO we need to update the release json via publisher
         }.then {
             sleep(1000) {
@@ -134,27 +136,6 @@ class Releaser(
         }
     }
 
-    private fun displayJobState(
-        project: Project,
-        index: Int,
-        currentState: CommandState,
-        newState: CommandState,
-        title: String
-    ) = displayJobState(project, index, stateToCssClass(currentState), stateToCssClass(newState), title)
-
-    private fun displayJobState(
-        project: Project,
-        index: Int,
-        cssClassToRemove: String,
-        cssClassToAdd: String,
-        title: String
-    ) {
-        val commandId = Gui.getCommandId(project, index)
-        val command = elementById(commandId)
-        command.removeClass(cssClassToRemove)
-        command.addClass(cssClassToAdd)
-        elementById("$commandId:state").title = title
-    }
 
     private fun createUpdateDependencyParams(paramObject: ParamObject, command: JenkinsUpdateDependency): String {
         val dependency = paramObject.releasePlan.getProject(command.projectId)
