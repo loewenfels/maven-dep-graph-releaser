@@ -89,7 +89,7 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
     private fun registerReleaseUncheckEventForDependentsAndSubmodules(project: Project) {
         if (!project.isSubmodule) {
-            val projectIds = collectDependentsOnNextLevelAndSubmodulesAndTheirDependents(project)
+            val projectIds = collectDependentsOnNextLevelInclDependentsOfAllSubmodules(project)
 
             projectIds.forEach { projectId ->
                 registerForProjectEvent(project, EVENT_RELEASE_TOGGLE_UNCHECKED) {
@@ -99,15 +99,13 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
         }
     }
 
-    private fun collectDependentsOnNextLevelAndSubmodulesAndTheirDependents(project: Project): HashSet<ProjectId> {
+    private fun collectDependentsOnNextLevelInclDependentsOfAllSubmodules(project: Project): HashSet<ProjectId> {
         val projectIds = hashSetOf<ProjectId>()
         val projectsToVisit = mutableListOf(project.id)
         do {
             val projectId = projectsToVisit.removeAt(0)
             projectIds.addAll(getDependentsOnNextLevel(project, projectId))
-            val submodules = releasePlan.getSubmodules(projectId)
-            projectIds.addAll(submodules)
-            projectsToVisit.addAll(submodules)
+            projectsToVisit.addAll(releasePlan.getSubmodules(projectId))
         } while(projectsToVisit.isNotEmpty())
         return projectIds
     }
