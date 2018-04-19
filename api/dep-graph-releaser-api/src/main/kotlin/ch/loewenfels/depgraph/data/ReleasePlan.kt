@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.data
 
+import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.LevelIterator
 
 /**
@@ -16,7 +17,7 @@ data class ReleasePlan(
     private val dependents: Map<ProjectId, Set<ProjectId>>,
     val warnings: List<String>,
     val infos: List<String>,
-    val config: List<Pair<String, String>>
+    val config: Map<ConfigKey, String>
 ) {
 
     /**
@@ -42,7 +43,7 @@ data class ReleasePlan(
         submodulesOfProject: Map<ProjectId, Set<ProjectId>>,
         dependents: Map<ProjectId, Set<ProjectId>>
     ) :
-        this(rootProjectId, projects, submodulesOfProject, dependents, listOf(), listOf(), listOf())
+        this(rootProjectId, projects, submodulesOfProject, dependents, listOf(), listOf(), mapOf())
 
     fun getProject(projectId: ProjectId): Project {
         return projects[projectId] ?: throw IllegalArgumentException("Could not find the project with id $projectId")

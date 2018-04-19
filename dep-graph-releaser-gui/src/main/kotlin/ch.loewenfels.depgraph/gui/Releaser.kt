@@ -1,6 +1,6 @@
 package ch.loewenfels.depgraph.gui
 
-import ch.loewenfels.depgraph.Config
+import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
@@ -20,7 +20,7 @@ class Releaser(
 
     fun release() {
         val releasePlan = deserialize(modifiableJson.json)
-        val config = checkConfig(releasePlan)
+        checkConfig(releasePlan)
 
 
         val itr = releasePlan.iterator().toPeekingIterator()
@@ -28,7 +28,7 @@ class Releaser(
         var notOneReleaseSucceeded: Boolean
         while (itr.hasNext()) {
             notOneReleaseSucceeded = true
-            val paramObject = ParamObject(releasePlan, config, itr.next())
+            val paramObject = ParamObject(releasePlan, itr.next())
             level = paramObject.project.level
 
             notOneReleaseSucceeded = notOneReleaseSucceeded or triggerCommandsOfProject(paramObject)
@@ -45,16 +45,14 @@ class Releaser(
         }
     }
 
-    private fun checkConfig(releasePlan: ReleasePlan): Map<String, String> {
-        val config = releasePlan.config.associateBy({ it.first }, { it.second })
-        requireConfigEntry(config, Config.UPDATE_DEPENDENCY_JOB)
-        requireConfigEntry(config, Config.REMOTE_REGEX)
-        requireConfigEntry(config, Config.REMOTE_JOB)
-        requireConfigEntry(config, Config.REMOTE_JOB)
-        return config
+    private fun checkConfig(releasePlan: ReleasePlan) {
+        val config = releasePlan.config
+        requireConfigEntry(config, ConfigKey.UPDATE_DEPENDENCY_JOB)
+        requireConfigEntry(config, ConfigKey.REMOTE_REGEX)
+        requireConfigEntry(config, ConfigKey.REMOTE_JOB)
     }
 
-    private fun requireConfigEntry(config: Map<String, String>, key: String) {
+    private fun requireConfigEntry(config: Map<ConfigKey, String>, key: ConfigKey) {
         require(config.containsKey(key)) {
             "$key is not defined in settings"
         }
@@ -91,7 +89,7 @@ class Releaser(
     private fun triggerUpdateDependency(paramObject: ParamObject, command: JenkinsUpdateDependency, index: Int) {
         changeCursorToProgress()
         val project = paramObject.project
-        val jobUrl = "$jenkinsUrl/job/${paramObject.config[Config.UPDATE_DEPENDENCY_JOB]}"
+        val jobUrl = "$jenkinsUrl/job/${paramObject.getConfig(ConfigKey.UPDATE_DEPENDENCY_JOB)}"
         val jobName = "update dependency of $project.id"
         val params = createUpdateDependencyParams(paramObject, command)
         triggerJob(jobUrl, jobName, params, project, index)
@@ -149,11 +147,11 @@ class Releaser(
     }
 
     private fun triggerRelease(paramObject: ParamObject, command: M2ReleaseCommand, index: Int) {
-        val regex = Regex(paramObject.config[Config.REMOTE_REGEX]!!)
+        val regex = Regex(paramObject.getConfig(ConfigKey.REMOTE_REGEX))
         val jobUrl = if (regex.matches(paramObject.project.id.identifier)) {
-            "$jenkinsUrl/job/${paramObject.config[Config.REMOTE_JOB]}"
+            "$jenkinsUrl/job/${paramObject.getConfig(ConfigKey.REMOTE_JOB)}"
         } else {
-            "$jenkinsUrl/job/${paramObject.config[Config.UPDATE_DEPENDENCY_JOB]}"
+            "$jenkinsUrl/job/${(paramObject.project.id as MavenProjectId).artifactId}"
         }
         val jobName = "release ${paramObject.project.id}"
         val params = createReleaseParams(paramObject, command)
@@ -168,10 +166,13 @@ class Releaser(
 
     data class ParamObject(
         val releasePlan: ReleasePlan,
-        val config: Map<String, String>,
         val project: Project
     ) {
         constructor(paramObject: ParamObject, newProject: Project)
-            : this(paramObject.releasePlan, paramObject.config, newProject)
+            : this(paramObject.releasePlan, newProject)
+
+        fun getConfig(configKey: ConfigKey): String {
+            return releasePlan.config[configKey] ?: throw IllegalArgumentException("unknown config key: $configKey")
+        }
     }
 }

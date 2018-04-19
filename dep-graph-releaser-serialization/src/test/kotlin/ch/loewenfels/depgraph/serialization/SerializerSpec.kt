@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.serialization
 
+import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.Command
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.Project
@@ -59,7 +60,7 @@ object SerializerSpec : Spek({
             ),
             listOf("warning 1"),
             listOf("info 1", "info2"),
-            listOf("config 1" to "value 1", "config 2" to "value 2")
+            mapOf(ConfigKey.REMOTE_JOB to "value 1", ConfigKey.REGEX_PARAMS to "value 2")
         )
 
         val commands = Project::commands.name

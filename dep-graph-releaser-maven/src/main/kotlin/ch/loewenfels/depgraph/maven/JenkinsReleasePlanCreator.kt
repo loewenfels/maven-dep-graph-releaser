@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.maven
 
+import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.LevelIterator
 import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
@@ -459,8 +460,8 @@ class JenkinsReleasePlanCreator(
      */
     data class Options(
         val disableReleaseFor: Regex,
-        val config: List<Pair<String, String>>
+        val config: Map<ConfigKey, String>
     ) {
-        constructor(disableReleaseFor: String) : this(Regex(disableReleaseFor), listOf())
+        constructor(disableReleaseFor: String) : this(Regex(disableReleaseFor), mapOf())
     }
 }

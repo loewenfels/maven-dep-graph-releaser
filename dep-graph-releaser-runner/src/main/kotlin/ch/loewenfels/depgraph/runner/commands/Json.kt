@@ -1,9 +1,9 @@
 package ch.loewenfels.depgraph.runner.commands
 
-import ch.loewenfels.depgraph.Config.REGEX_PARAMS
-import ch.loewenfels.depgraph.Config.REMOTE_JOB
-import ch.loewenfels.depgraph.Config.REMOTE_REGEX
-import ch.loewenfels.depgraph.Config.UPDATE_DEPENDENCY_JOB
+import ch.loewenfels.depgraph.ConfigKey.REGEX_PARAMS
+import ch.loewenfels.depgraph.ConfigKey.REMOTE_JOB
+import ch.loewenfels.depgraph.ConfigKey.REMOTE_REGEX
+import ch.loewenfels.depgraph.ConfigKey.UPDATE_DEPENDENCY_JOB
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.maven.Analyser
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
@@ -15,7 +15,7 @@ import ch.loewenfels.depgraph.runner.toVerifiedFile
 
 object Json : ConsoleCommand {
 
-    private const val REGEX_PARAMS_ARG = "-$REGEX_PARAMS="
+    private val REGEX_PARAMS_ARG = "-${REGEX_PARAMS.asString()}="
     internal const val MAVEN_PARENT_ANALYSIS_OFF = "-mpoff"
     private const val DISABLE_RELEASE_FOR = "-dr="
 
@@ -32,9 +32,9 @@ object Json : ConsoleCommand {
         |artifactId                // maven artifactId of the project which shall be released
         |dir                       // path to the directory where all projects are
         |json                      // path + file name for the resulting json file
-        |$UPDATE_DEPENDENCY_JOB       // the name of the update dependency job
-        |$REMOTE_REGEX               // regex which specifies which projects are released remotely
-        |$REMOTE_JOB                 // the job which triggers the remote build
+        |${UPDATE_DEPENDENCY_JOB.asString()}       // the name of the update dependency job
+        |${REMOTE_REGEX.asString()}               // regex which specifies which projects are released remotely
+        |${REMOTE_JOB.asString()}                 // the job which triggers the remote build
         |(${REGEX_PARAMS_ARG}spec)       // optionally: parameters of the form regex#a=b;c=d${'$'}.*#e=f where the regex
         |                          // defines for which job the parameters shall apply. Multiple regex can be
         |                          // specified. In the above, .* matches all, so every job gets e=f as argument.
@@ -86,7 +86,7 @@ object Json : ConsoleCommand {
             )
         }
 
-        val config = listOf(
+        val config = mapOf(
             UPDATE_DEPENDENCY_JOB to updateDependencyJob,
             REMOTE_JOB to remoteJob,
             REMOTE_REGEX to remoteRegex,

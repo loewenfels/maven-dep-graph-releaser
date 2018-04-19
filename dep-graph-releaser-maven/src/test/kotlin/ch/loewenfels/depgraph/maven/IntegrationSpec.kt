@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.maven
 
+import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
@@ -236,13 +237,13 @@ object IntegrationSpec : Spek({
         }
     }
 
-    describe("config"){
+    describe("config") {
         given("no configuration") {
             action("it has an empty config list") {
                 val releasePlan = analyseAndCreateReleasePlan(
                     singleProjectIdAndVersions.id,
                     getTestDirectory("singleProject"),
-                    JenkinsReleasePlanCreator.Options(Regex(".*notTheProject"), listOf())
+                    JenkinsReleasePlanCreator.Options(Regex(".*notTheProject"), mapOf())
                 )
                 assertSingleProject(releasePlan, singleProjectIdAndVersions)
                 assert(releasePlan.config).isEmpty()
@@ -253,10 +254,15 @@ object IntegrationSpec : Spek({
                 val releasePlan = analyseAndCreateReleasePlan(
                     singleProjectIdAndVersions.id,
                     getTestDirectory("singleProject"),
-                    JenkinsReleasePlanCreator.Options(Regex(".*notTheProject"), listOf("a" to "b", "c" to "d"))
+                    JenkinsReleasePlanCreator.Options(
+                        Regex(".*notTheProject"),
+                        mapOf(ConfigKey.REMOTE_JOB to "b", ConfigKey.REMOTE_REGEX to "d")
+                    )
                 )
                 assertSingleProject(releasePlan, singleProjectIdAndVersions)
-                assert(releasePlan.config).containsStrictly("a" to "b", "c" to "d")
+                assert(releasePlan.config.entries).containsStrictly(
+                    { keyValue(ConfigKey.REMOTE_JOB, "b") },
+                    { this.keyValue(ConfigKey.REMOTE_REGEX, "d") })
             }
         }
     }
@@ -265,14 +271,19 @@ object IntegrationSpec : Spek({
 
         context("in root folder") {
             action("context Analyser which does not resolve poms") {
-                val releasePlan = analyseAndCreateReleasePlan(singleProjectIdAndVersions.id, getTestDirectory("singleProject"))
+                val releasePlan =
+                    analyseAndCreateReleasePlan(singleProjectIdAndVersions.id, getTestDirectory("singleProject"))
                 assertSingleProject(releasePlan, singleProjectIdAndVersions)
                 assertHasRelativePath(releasePlan, "root", singleProjectIdAndVersions, "./")
             }
         }
         context("in subfolder") {
             action("context Analyser which does not resolve poms") {
-                val releasePlan = analyseAndCreateReleasePlan(singleProjectIdAndVersions.id, getTestDirectory("singleProjectInSubfolder"))
+                val releasePlan =
+                    analyseAndCreateReleasePlan(
+                        singleProjectIdAndVersions.id,
+                        getTestDirectory("singleProjectInSubfolder")
+                    )
                 assertSingleProject(releasePlan, singleProjectIdAndVersions)
                 assertHasRelativePath(releasePlan, "root", singleProjectIdAndVersions, "subfolder/")
             }
@@ -1058,8 +1069,9 @@ private fun analyseAndCreateReleasePlanWithPomResolverOldVersions(
     return analyseAndCreateReleasePlan(projectToRelease, analyser)
 }
 
-private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, analyser: Analyser): ReleasePlan
-    = analyseAndCreateReleasePlan(projectToRelease, analyser, JenkinsReleasePlanCreator.Options("^$"))
+private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, analyser: Analyser): ReleasePlan {
+    return analyseAndCreateReleasePlan(projectToRelease, analyser, JenkinsReleasePlanCreator.Options("^$"))
+}
 
 private fun analyseAndCreateReleasePlan(
     projectToRelease: ProjectId,

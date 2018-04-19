@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.serialization
 
+import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.ReleasePlan
@@ -47,7 +48,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
         private val projectsAdapter: JsonAdapter<Collection<Project>>,
         private val mapProjectIdAndSetProjectId: JsonAdapter<Map<ProjectId, Set<ProjectId>>>,
         private val listStringAdapter: JsonAdapter<List<String>>,
-        private val listPairStringAdapter: JsonAdapter<List<Pair<String,String>>>
+        private val listPairStringAdapter: JsonAdapter<List<Pair<String, String>>>
     ) : NonNullJsonAdapter<ReleasePlan>() {
 
         override fun toJsonNonNull(writer: JsonWriter, value: ReleasePlan) {
@@ -58,7 +59,8 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
                 writeNameAndValue(DEPENDENTS, value.getAllDependents(), mapProjectIdAndSetProjectId)
                 writeNameAndValue(WARNINGS, value.warnings, listStringAdapter)
                 writeNameAndValue(INFOS, value.infos, listStringAdapter)
-                writeNameAndValue(CONFIG, value.config, listPairStringAdapter)
+                val stringConfig = value.config.entries.map({ it.key.asString() to it.value })
+                writeNameAndValue(CONFIG, stringConfig, listPairStringAdapter)
             }
         }
 
@@ -70,7 +72,8 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
                 val dependents = checkNextNameAndGetValue(DEPENDENTS, mapProjectIdAndSetProjectId)
                 val warnings = checkNextNameAndGetValue(WARNINGS, listStringAdapter)
                 val infos = checkNextNameAndGetValue(INFOS, listStringAdapter)
-                val config = checkNextNameAndGetValue(CONFIG, listPairStringAdapter)
+                val stringConfig = checkNextNameAndGetValue(CONFIG, listPairStringAdapter)
+                val config = stringConfig.associate { ConfigKey.fromString(it.first) to it.second }
                 ReleasePlan(projectId, projects.associateBy { it.id }, submodules, dependents, warnings, infos, config)
             }
         }

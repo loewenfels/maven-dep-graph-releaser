@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.gui
 
+import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
@@ -34,11 +35,12 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         }
     }
 
-    private fun setUpConfig(config: List<Pair<String, String>>) {
+    private fun setUpConfig(config: Map<ConfigKey, String>) {
+        //TODO add description for each property
         elementById("config").append {
             div {
-                config.forEach {
-                    fieldWithLabel("config-${it.first}", it.first, it.second)
+                ConfigKey.all().forEach { key ->
+                    fieldWithLabel("config-$key", key.asString(), config[key] ?: "")
                 }
             }
         }
