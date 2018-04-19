@@ -305,12 +305,12 @@ input:checked + .slider:before {
     animation-delay: 0.2s;
 }
 @keyframes queueing {
-    from { border-color: #888; color:#AAA;  }
-    to {   border-color: #d88607; color:#dea64e;  }
+    from { border-color: #888; color:#AAA; background-color: white;   }
+    to {   border-color: #d88607; color:#dea64e; background-color: #fff2dd;   }
 }
 @-webkit-keyframes queueing {
-    from { border-color: #888; color:#AAA;  }
-    to {   border-color: #d88607; color:#dea64e;  }
+    from { border-color: #888; color:#AAA; background-color: white;   }
+    to {   border-color: #d88607; color:#dea64e; background-color: #fff2dd;   }
 }
 .command.queueing .state .material-icons span::after {
     content: 'playlist_add';

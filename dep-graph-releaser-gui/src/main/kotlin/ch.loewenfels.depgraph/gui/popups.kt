@@ -7,6 +7,7 @@ import kotlinx.html.id
 import kotlinx.html.js.div
 import kotlinx.html.js.i
 import kotlinx.html.js.span
+import kotlinx.html.title
 import org.w3c.dom.HTMLElement
 import kotlin.browser.window
 
@@ -33,6 +34,7 @@ private fun showMessageOfType(type: String, icon: String, message: String, autoC
             val msgId = "msg${msgCounter++}"
             this.id = msgId
             span("close") {
+                title = "close this message"
                 val span = getUnderlyingHtmlElement()
                 span.addEventListener("click", { closeMessage(msgId) })
             }
