@@ -11,6 +11,7 @@ import ch.loewenfels.depgraph.toPeekingIterator
 import kotlinx.html.*
 import kotlinx.html.dom.append
 import kotlinx.html.js.div
+import org.w3c.dom.HTMLInputElement
 import kotlin.browser.document
 
 class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
@@ -176,7 +177,9 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 this.id = id
                 value = text
                 inputAct()
-                getUnderlyingHtmlElement().addEventListener("keyup", { menu.activateSaveButton() })
+                val input = getUnderlyingHtmlElement() as HTMLInputElement
+                input.addEventListener("keyup", { menu.activateSaveButton() })
+                disableUnDisableForReleaseStartAndEnd(input, id)
             }
         }
     }
@@ -270,10 +273,12 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 this.id = id
                 this.checked = checked && !disabled
                 this.disabled = disabled
-                val checkbox = getUnderlyingHtmlElement()
+                val checkbox = getUnderlyingHtmlElement() as HTMLInputElement
                 checkbox.addClickEventListener { toggler.toggle(id) }
+                disableUnDisableForReleaseStartAndEnd(checkbox, "$id:slider")
             }
             span("slider") {
+                this.id = "$id:slider"
                 this.title = title
                 if (disabled) {
                     this.title = "disabled, cannot be reactivated"
@@ -282,7 +287,25 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         }
     }
 
+    private fun disableUnDisableForReleaseStartAndEnd(input: HTMLInputElement, idTitleElement: String) {
+        Menu.registerForReleaseStartEvent {
+            input.asDynamic().oldDisabled = input.disabled
+            input.disabled = true
+            val titleElement = elementById(idTitleElement)
+            titleElement.asDynamic().oldTitle = titleElement.title
+            titleElement.title = DISABLED_DUE_TO_RELEASE
+        }
+        Menu.registerForReleaseEndEvent {
+            input.disabled = input.asDynamic().oldDisabled as Boolean
+            val titleElement = elementById(idTitleElement)
+            titleElement.title = titleElement.asDynamic().oldTitle as String
+        }
+
+    }
+
     companion object {
+        private const val DISABLED_DUE_TO_RELEASE = "disabled due to release which is in progress."
+
         fun getCommandId(project: Project, index: Int) = "${project.id.identifier}:$index"
 
         fun stateToCssClass(state: CommandState) = when (state) {

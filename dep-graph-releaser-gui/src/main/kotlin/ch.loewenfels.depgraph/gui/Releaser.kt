@@ -10,6 +10,7 @@ import ch.loewenfels.depgraph.hasNextOnTheSameLevel
 import ch.loewenfels.depgraph.toPeekingIterator
 import kotlin.dom.addClass
 import kotlin.dom.removeClass
+import kotlin.js.Promise
 
 class Releaser(
     private val jenkinsUrl: String,
@@ -18,7 +19,7 @@ class Releaser(
 ) {
     private val jobExecutor = JobExecutor(jenkinsUrl, usernameToken)
 
-    fun release() {
+    fun release(): Promise<Array<out Unit>> {
         val releasePlan = deserialize(modifiableJson.json)
         checkConfig(releasePlan)
 
@@ -26,16 +27,18 @@ class Releaser(
         val itr = releasePlan.iterator().toPeekingIterator()
         var level: Int
         var notOneReleaseSucceeded: Boolean
+        val promises = mutableListOf<Promise<Unit>>()
         while (itr.hasNext()) {
             notOneReleaseSucceeded = true
             val paramObject = ParamObject(releasePlan, itr.next())
             level = paramObject.project.level
-
-            notOneReleaseSucceeded = notOneReleaseSucceeded or triggerCommandsOfProject(paramObject)
+            notOneReleaseSucceeded = notOneReleaseSucceeded or
+                triggerCommandOfProjectAndCollectPromises(paramObject, promises)
 
             while (itr.hasNextOnTheSameLevel(level)) {
                 val nextParamObject = ParamObject(paramObject, itr.next())
-                notOneReleaseSucceeded = notOneReleaseSucceeded or triggerCommandsOfProject(nextParamObject)
+                notOneReleaseSucceeded = notOneReleaseSucceeded or
+                    triggerCommandOfProjectAndCollectPromises(nextParamObject, promises)
             }
 
             if (notOneReleaseSucceeded) {
@@ -43,6 +46,8 @@ class Releaser(
                 break
             }
         }
+        //TODO we don't want to stop if one of the jobs reject, have to handle that within triggerCommandOfProjectAndCollectPromises
+        return Promise.all(promises.toTypedArray())
     }
 
     private fun checkConfig(releasePlan: ReleasePlan) {
@@ -58,47 +63,62 @@ class Releaser(
         }
     }
 
-    private fun triggerCommandsOfProject(paramObject: ParamObject): Boolean {
-        var notOneReleaseSucceeded = true
+    private fun triggerCommandOfProjectAndCollectPromises(
+        nextParamObject: ParamObject,
+        promises: MutableList<Promise<Unit>>
+    ): Boolean {
+        val (notOneReleaseSucceeded, promise) = triggerCommandsOfProject(nextParamObject)
+        promise?.let { promises.add(it) }
+        return notOneReleaseSucceeded
+    }
+
+
+    private fun triggerCommandsOfProject(paramObject: ParamObject): Pair<Boolean, Promise<Unit>?> {
         val commands = paramObject.project.commands
         val size = commands.size
         for (index in (size - 1)..0) {
             val command = commands[index]
             val isReady = command.state === CommandState.Ready
             if (!isReady && command.state !is CommandState.Waiting) {
-                if (command is ReleaseCommand && command.state == CommandState.Succeeded) {
-                    notOneReleaseSucceeded = false
-                }
-                //no need to have a look at previous commands if this one is neither ready nor waiting
-                break
+                return (command is ReleaseCommand && command.state == CommandState.Succeeded) to null
             } else if (isReady) {
-                triggerCommand(paramObject, command, index)
+                return false to triggerCommand(paramObject, command, index)
             }
         }
-        return notOneReleaseSucceeded
+        return false to null
     }
 
-    private fun triggerCommand(paramObject: ParamObject, command: Command, index: Int) {
-        when (command) {
+    private fun triggerCommand(paramObject: ParamObject, command: Command, index: Int): Promise<Unit> {
+        return when (command) {
             is JenkinsUpdateDependency -> triggerUpdateDependency(paramObject, command, index)
             is M2ReleaseCommand -> triggerRelease(paramObject, command, index)
             else -> throw UnsupportedOperationException("We do not (yet) support the command: $command")
         }
     }
 
-    private fun triggerUpdateDependency(paramObject: ParamObject, command: JenkinsUpdateDependency, index: Int) {
+    private fun triggerUpdateDependency(
+        paramObject: ParamObject,
+        command: JenkinsUpdateDependency,
+        index: Int
+    ): Promise<Unit> {
         changeCursorToProgress()
         val project = paramObject.project
         val jobUrl = "$jenkinsUrl/job/${paramObject.getConfig(ConfigKey.UPDATE_DEPENDENCY_JOB)}"
         val jobName = "update dependency of $project.id"
         val params = createUpdateDependencyParams(paramObject, command)
-        triggerJob(jobUrl, jobName, params, project, index)
+        return triggerJob(jobUrl, jobName, params, project, index)
     }
 
-    private fun triggerJob(jobUrl: String, jobName: String, params: String, project: Project, index: Int) {
+    private fun triggerJob(
+        jobUrl: String,
+        jobName: String,
+        params: String,
+        project: Project,
+        index: Int
+    ): Promise<Unit> {
         displayJobState(project, index, stateToCssClass(CommandState.Ready), "queueing", "Currently queueing the job")
         //jobExecutor.trigger(jobUrl, jobName, params, { buildNumber ->
-        sleep(1000) {
+        return sleep(1000) {
             //TODO add a link to the job?
             displayJobState(project, index, "queueing", stateToCssClass(CommandState.InProgress), "Job is running")
 
@@ -109,7 +129,7 @@ class Releaser(
                     project, index, CommandState.InProgress, CommandState.Succeeded, "Job completed successfully"
                 )
             }
-        }.finally { 
+        }.finally {
             changeCursorBackToNormal()
         }
     }
@@ -145,7 +165,7 @@ class Releaser(
             "&newVersion=${dependency.releaseVersion}"
     }
 
-    private fun triggerRelease(paramObject: ParamObject, command: M2ReleaseCommand, index: Int) {
+    private fun triggerRelease(paramObject: ParamObject, command: M2ReleaseCommand, index: Int): Promise<Unit> {
         val regex = Regex(paramObject.getConfig(ConfigKey.REMOTE_REGEX))
         val jobUrl = if (regex.matches(paramObject.project.id.identifier)) {
             "$jenkinsUrl/job/${paramObject.getConfig(ConfigKey.REMOTE_JOB)}"
@@ -154,8 +174,7 @@ class Releaser(
         }
         val jobName = "release ${paramObject.project.id}"
         val params = createReleaseParams(paramObject, command)
-        triggerJob(jobUrl, jobName, params, paramObject.project, index)
-        showInfo("Release triggering not yet implemented, but would trigger: ${paramObject.project.id.identifier}")
+        return triggerJob(jobUrl, jobName, params, paramObject.project, index)
     }
 
     private fun createReleaseParams(paramObject: Releaser.ParamObject, command: M2ReleaseCommand): String {

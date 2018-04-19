@@ -241,11 +241,6 @@ label.toggle .slider {
     border-radius: 34px;
 }
 
-.command.disabled > .fields > label.toggle .slider {
-    background-color: #CDCDCD;
-    cursor: not-allowed;
-}
-
 label.toggle .slider:before {
     position: absolute;
     content: "";
@@ -270,6 +265,11 @@ input:checked + .slider:before {
     -webkit-transform: translateX(14px);
     -ms-transform: translateX(14px);
     transform: translateX(14px);
+}
+
+.command.disabled > .fields > label.toggle .slider, label.toggle input:disabled + .slider {
+    background-color: #CDCDCD;
+    cursor: not-allowed;
 }
 
 .command .state {

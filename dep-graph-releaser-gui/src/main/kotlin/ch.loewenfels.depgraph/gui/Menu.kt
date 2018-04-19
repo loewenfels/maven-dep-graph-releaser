@@ -1,6 +1,7 @@
 package ch.loewenfels.depgraph.gui
 
 import org.w3c.dom.HTMLElement
+import org.w3c.dom.events.Event
 import kotlin.browser.window
 import kotlin.dom.addClass
 import kotlin.dom.hasClass
@@ -88,10 +89,14 @@ class Menu {
                 //TODO implement
             }
             releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                releaser.release()
+                dispatchReleaseStart()
+                releaser.release().then {
+                    dispatchReleaseEnd()
+                }
             }
         }
     }
+
 
     private fun HTMLElement.addClickEventListenerIfNotDeactivatedNorDisabled(action: () -> Unit) {
         addClickEventListener {
@@ -159,5 +164,25 @@ class Menu {
     companion object {
         private const val DEACTIVATED = "deactivated"
         private const val DISABLED = "disabled"
+
+        private const val EVENT_RELEASE_START = "release.start"
+        private const val EVENT_RELEASE_END = "release.end"
+
+        fun registerForReleaseStartEvent(callback: (Event) -> Unit) {
+            elementById("menu").addEventListener(Menu.EVENT_RELEASE_START, callback)
+        }
+
+        fun registerForReleaseEndEvent(callback: (Event) -> Unit) {
+            elementById("menu").addEventListener(Menu.EVENT_RELEASE_END, callback)
+        }
+
+        private fun dispatchReleaseStart() {
+            elementById("menu").dispatchEvent(Event(EVENT_RELEASE_START))
+        }
+
+        private fun dispatchReleaseEnd() {
+            elementById("menu").dispatchEvent(Event(EVENT_RELEASE_END))
+        }
+
     }
 }
