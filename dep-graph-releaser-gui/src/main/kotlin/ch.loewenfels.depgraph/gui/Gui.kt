@@ -10,7 +10,7 @@ import ch.loewenfels.depgraph.hasNextOnTheSameLevel
 import ch.loewenfels.depgraph.toPeekingIterator
 import kotlinx.html.*
 import kotlinx.html.dom.append
-import kotlinx.html.js.div
+import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLInputElement
 import kotlin.browser.document
 
@@ -23,6 +23,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         setUpMessages(releasePlan.infos, "infos", { showInfo(it) })
         setUpConfig(releasePlan.config)
         setUpProjects()
+        toggler.registerToggleEvents()
     }
 
     private fun setUpMessages(messages: List<String>, id: String, action: (String) -> Unit) {
@@ -98,7 +99,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             div("title") {
                 if (hasCommands) {
                     toggle(
-                        "$identifier:disableAll",
+                        "$identifier$DISABLE_ALL_SUFFIX",
                         "disable all commands",
                         project.commands.any { it.state !is CommandState.Deactivated },
                         false
@@ -179,7 +180,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 inputAct()
                 val input = getUnderlyingHtmlElement() as HTMLInputElement
                 input.addEventListener("keyup", { menu.activateSaveButton() })
-                disableUnDisableForReleaseStartAndEnd(input, id)
+                disableUnDisableForReleaseStartAndEnd(input, input)
             }
         }
     }
@@ -191,7 +192,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         }
 
         toggle(
-            "$idPrefix:disable",
+            "$idPrefix$DISABLE_SUFFIX",
             "disable ${command::class.simpleName}",
             command.state !is CommandState.Deactivated,
             command.state === CommandState.Disabled,
@@ -273,9 +274,6 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 this.id = id
                 this.checked = checked && !disabled
                 this.disabled = disabled
-                val checkbox = getUnderlyingHtmlElement() as HTMLInputElement
-                checkbox.addClickEventListener { toggler.toggle(id) }
-                disableUnDisableForReleaseStartAndEnd(checkbox, "$id:slider")
             }
             span("slider") {
                 this.id = "$id:slider"
@@ -287,23 +285,9 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         }
     }
 
-    private fun disableUnDisableForReleaseStartAndEnd(input: HTMLInputElement, idTitleElement: String) {
-        Menu.registerForReleaseStartEvent {
-            input.asDynamic().oldDisabled = input.disabled
-            input.disabled = true
-            val titleElement = elementById(idTitleElement)
-            titleElement.asDynamic().oldTitle = titleElement.title
-            titleElement.title = DISABLED_DUE_TO_RELEASE
-        }
-        Menu.registerForReleaseEndEvent {
-            input.disabled = input.asDynamic().oldDisabled as Boolean
-            val titleElement = elementById(idTitleElement)
-            titleElement.title = titleElement.asDynamic().oldTitle as String
-        }
-
-    }
-
     companion object {
+        const val DISABLE_SUFFIX = ":disable"
+        const val DISABLE_ALL_SUFFIX = ":disableAll"
         private const val DISABLED_DUE_TO_RELEASE = "disabled due to release which is in progress."
 
         fun getCommandId(project: Project, index: Int) = "${project.id.identifier}:$index"
@@ -316,6 +300,20 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             is CommandState.Failed -> "failed"
             is CommandState.Deactivated -> "deactivated"
             CommandState.Disabled -> "disabled"
+        }
+
+        fun disableUnDisableForReleaseStartAndEnd(input: HTMLInputElement, titleElement: HTMLElement) {
+            Menu.registerForReleaseStartEvent {
+                input.asDynamic().oldDisabled = input.disabled
+                input.disabled = true
+                titleElement.asDynamic().oldTitle = titleElement.title
+                titleElement.title = DISABLED_DUE_TO_RELEASE
+            }
+            Menu.registerForReleaseEndEvent {
+                input.disabled = input.asDynamic().oldDisabled as Boolean
+                titleElement.title = titleElement.asDynamic().oldTitle as String
+            }
+
         }
     }
 }

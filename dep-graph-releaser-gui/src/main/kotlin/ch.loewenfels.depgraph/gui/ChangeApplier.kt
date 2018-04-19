@@ -52,7 +52,7 @@ object ChangeApplier {
         val commandStateJson = command.p.state.unsafeCast<CommandStateJson>()
         val state = commandStateJson.state.unsafeCast<String>()
         if (state != CommandStateJson.State.Deactivated.name && state != CommandStateJson.State.Disabled.name) {
-            val checkbox = getCheckbox("${mavenProjectId.identifier}:$index:disable")
+            val checkbox = getCheckbox("${mavenProjectId.identifier}:$index${Gui.DISABLE_SUFFIX}")
             if (!checkbox.checked) {
                 val previous = JSON.parse<CommandStateJson>(JSON.stringify(commandStateJson))
                 commandStateJson.asDynamic().state = CommandStateJson.State.Deactivated.name

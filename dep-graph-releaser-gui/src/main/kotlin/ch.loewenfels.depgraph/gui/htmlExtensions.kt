@@ -2,6 +2,7 @@ package ch.loewenfels.depgraph.gui
 
 import kotlinx.html.HTMLTag
 import org.w3c.dom.HTMLElement
+import org.w3c.dom.events.Event
 
 /**
  * Hack to get the underlying [HTMLElement] of the the given [HTMLTag].
@@ -11,13 +12,18 @@ fun HTMLTag.getUnderlyingHtmlElement(): HTMLElement {
     return arr[arr.size - 1]
 }
 
-fun HTMLElement.addClickEventListener(action: () -> Unit) {
-    this.addEventListener("click", { withErrorHandling { action() } })
+fun HTMLElement.addClickEventListener(action: (Event) -> Unit) {
+    this.addEventListener("click", { withErrorHandling(it, action) })
 }
 
-fun withErrorHandling(action: () -> Unit) {
+fun HTMLElement.addChangeEventListener(action: (Event) -> Unit) {
+    this.addEventListener("change", { withErrorHandling(it, action) })
+}
+
+
+fun withErrorHandling(event: Event, action: (Event) -> Unit) {
     try {
-        action()
+        action(event)
     } catch (t: Throwable) {
         showError(
             RuntimeException("An unexpected error occurred. Please report a bug with the following information.", t)

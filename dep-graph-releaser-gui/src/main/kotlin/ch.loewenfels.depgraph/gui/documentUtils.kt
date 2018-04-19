@@ -1,23 +1,18 @@
 package ch.loewenfels.depgraph.gui
 
-import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLInputElement
 import kotlin.browser.document
-import kotlin.reflect.KClass
 
-fun elementById(id: String) = elementById(id, HTMLElement::class)
+fun elementById(id: String): HTMLElement = elementById<HTMLElement>(id)
 
-fun <T : HTMLElement> elementById(id: String, klass: KClass<T>): T = elementByIdOrNull(
-    id,
-    klass
-)
-    ?: throw IllegalStateException("no element found for id $id (expected type ${klass.js.name})")
+inline fun <reified T : HTMLElement> elementById(id: String): T = elementByIdOrNull(id)
+    ?: throw IllegalStateException("no element found for id $id (expected type ${T::class.js.name})")
 
-fun <T : Element> elementByIdOrNull(id: String, klass: KClass<T>): T? {
+inline fun <reified T : HTMLElement> elementByIdOrNull(id: String): T? {
     val element = document.getElementById(id) ?: return null
-    require(klass.isInstance(element)) {
-        "element with $id found but was wrong type.<br/>Expected type ${klass.js.name}<br/>Found $element"
+    require(element is T) {
+        "element with $id found but was wrong type.<br/>Expected type ${T::class.js.name}<br/>Found $element"
     }
     return element.unsafeCast<T>()
 }
@@ -37,9 +32,9 @@ fun getTextField(id: String): HTMLInputElement
 fun getTextFieldOrNull(id: String) = getInputElementOrNull(id, "text")
 
 fun getInputElementOrNull(id: String, type: String): HTMLInputElement? {
-    val element = document.getElementById(id) ?: return null
-    require(element is HTMLInputElement && element.type == type) {
+    val element = elementByIdOrNull<HTMLInputElement>(id) ?: return null
+    require(element.type == type) {
         "$id was either not an input element or did not have type $type: $element"
     }
-    return element as HTMLInputElement
+    return element
 }
