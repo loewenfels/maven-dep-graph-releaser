@@ -21,6 +21,7 @@ fun changeCursorBackToNormal() {
 }
 
 fun <T, S> Promise<T>.finally(action: (T?) -> S): Promise<S> {
-    return this.then { action(it) }
-        .catch { action(null) }.asDynamic() as Promise<S>
+    return this
+        .then { action(it) }
+        .catch { t -> action(null); throw t }
 }

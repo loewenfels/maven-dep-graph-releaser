@@ -109,9 +109,8 @@ class Releaser(
                     project, index, CommandState.InProgress, CommandState.Succeeded, "Job completed successfully"
                 )
             }
-        }.finally { it: Any? ->
+        }.finally { 
             changeCursorBackToNormal()
-            it != null
         }
     }
 

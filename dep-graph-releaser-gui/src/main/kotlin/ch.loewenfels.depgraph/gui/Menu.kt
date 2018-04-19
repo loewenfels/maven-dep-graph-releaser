@@ -148,11 +148,8 @@ class Menu {
         val changed = publisher.applyChanges()
         if (changed) {
             val newFileName = "release-${generateUniqueId()}"
-            publisher.publish(newFileName).then { success: Boolean ->
-                if (success) {
-                    deactivateSaveButton()
-                }
-            }
+            publisher.publish(newFileName)
+                .then { deactivateSaveButton() }
         } else {
             showInfo("Seems like all changes have been reverted manually. Will not save anything.")
             deactivateSaveButton()

@@ -75,13 +75,16 @@ class JobExecutor(private val jenkinsUrl: String, private val usernameToken: Use
 
     private fun extractBuildNumber(crumbWithId: CrumbWithId?, queuedItemUrl: String): Promise<Int> {
         val xpathUrl = "${queuedItemUrl}api/xml?xpath=//executable/number"
-        return pollAndExtract(crumbWithId, xpathUrl, numberRegex) { e ->
-            throw IllegalStateException(
-                "Could not find the build number in the returned body." +
-                    "\nJob URL: $queuedItemUrl" +
-                    "\nRegex used: ${numberRegex.pattern}" +
-                    "\nContent: ${e.body}"
-            )
+        // wait a bit, if we are too fast we run almost certainly into a 404
+        return sleep(50) {
+            pollAndExtract(crumbWithId, xpathUrl, numberRegex) { e ->
+                throw IllegalStateException(
+                    "Could not find the build number in the returned body." +
+                        "\nJob URL: $queuedItemUrl" +
+                        "\nRegex used: ${numberRegex.pattern}" +
+                        "\nContent: ${e.body}"
+                )
+            }
         }.then { it.toInt() }
     }
 
@@ -98,18 +101,27 @@ class JobExecutor(private val jenkinsUrl: String, private val usernameToken: Use
             } else {
                 false to null
             }
-        }).catch { t -> errorHandler(t as PollException) }
+        }).catch { t ->
+            if (t is PollException) {
+                errorHandler(t)
+            } else {
+                throw t
+            }
+        }
     }
 
     private fun pollJobForCompletion(crumbWithId: CrumbWithId?, jobUrl: String, buildNumber: Int): Promise<String> {
-        return poll(crumbWithId, "$jobUrl$buildNumber/api/xml?xpath=/*/result", 0, { body ->
-            val matchResult = resultRegex.matchEntire(body)
-            if (matchResult != null) {
-                true to matchResult.groupValues[1]
-            } else {
-                false to ""
-            }
-        })
+        // wait a bit, if we are too fast we run almost certainly into a 404
+        return sleep(50) {
+            poll(crumbWithId, "$jobUrl$buildNumber/api/xml?xpath=/*/result", 0, { body ->
+                val matchResult = resultRegex.matchEntire(body)
+                if (matchResult != null) {
+                    true to matchResult.groupValues[1]
+                } else {
+                    false to ""
+                }
+            })
+        }.asDynamic() as Promise<String>
     }
 
     private fun <T : Any> poll(
@@ -122,23 +134,38 @@ class JobExecutor(private val jenkinsUrl: String, private val usernameToken: Use
     ): Promise<T> {
         val headers = createHeaderWithAuthAndCrumb(crumbWithId, usernameToken)
         val init = createRequestInit(null, RequestVerb.GET, headers)
+
+        val rePoll: (String) -> T = { body ->
+            if (numberOfTries >= maxNumberOfTries) {
+                throw PollException("Waited at least ${sleepInSeconds * maxNumberOfTries} seconds", body)
+            }
+            val p = sleep(sleepInSeconds * 1000) {
+                poll(crumbWithId, pollUrl, numberOfTries + 1, action)
+            }
+            // asDynamic is used because javascript resolves the result automatically on return
+            // will not result in Promise<Promise<T>> but T
+            p.asDynamic() as T
+        }
+
         return window.fetch(pollUrl, init)
             .then(::checkStatusOk)
-            .then { body ->
+            .then { body: String ->
                 val (success, result) = action(body)
                 if (success) {
-                    require(result != null) { "Result was null even though success flag was true" }
-                    result!!
+                    if (result == null) {
+                        throw Error(
+                            "Result was null even though success flag during polling was true, please report a bug."
+                        )
+                    }
+                    result
                 } else {
-                    if (numberOfTries >= maxNumberOfTries) {
-                        throw PollException("Waited at least ${sleepInSeconds * maxNumberOfTries} seconds", body)
-                    }
-                    val p = sleep(sleepInSeconds * 1000) {
-                        poll(crumbWithId, pollUrl, numberOfTries + 1, action)
-                    }
-                    // asDynamic is used because javascript resolves the result automatically on return
-                    // will not result in Promise<T> but T
-                    p.asDynamic() as T
+                    rePoll(body)
+                }
+            }.catch { t ->
+                if (t is Exception) {
+                    rePoll("")
+                } else {
+                    throw t
                 }
             }
     }
