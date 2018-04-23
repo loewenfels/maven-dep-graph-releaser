@@ -43,12 +43,14 @@ body {
     padding-left: 4px;
 }
 
-.button.deactivated, .button.deactivated .material-icons {
+.button.deactivated,
+.button.deactivated .material-icons {
     color: #CCC;
     cursor: help;
 }
 
-.button.disabled, .button.disabled .material-icons {
+.button.disabled,
+.button.disabled .material-icons {
     color: #888;
     cursor: not-allowed;
 }
@@ -106,7 +108,7 @@ body {
     height: 100%;
 }
 
-div.level{
+div.level {
     display: table-cell;
     height: 100%;
     padding-right: 45px;
@@ -187,7 +189,9 @@ div.title {
     margin-bottom: 0px;
 }
 
-div.title::after, div.command > div.fields::after, #menu::after, .button::after  {
+div.title::after,
+div.command > div.fields::after,
+#menu::after, .button::after  {
     content: '';
     display: block;
     clear:both;
@@ -217,7 +221,7 @@ label.fields {
     margin-right: 6px;
 }
 
-label.toggle{
+label.toggle {
     position: relative;
     display: inline-block;
     width: 35px;
@@ -267,7 +271,8 @@ input:checked + .slider:before {
     transform: translateX(14px);
 }
 
-.command.disabled > .fields > label.toggle .slider, label.toggle input:disabled + .slider {
+.command.disabled > .fields > label.toggle .slider,
+label.toggle input:disabled + .slider {
     background-color: #CDCDCD;
     cursor: not-allowed;
 }
@@ -294,10 +299,10 @@ input:checked + .slider:before {
         0 0 4px rgba(0, 1, 0, 0.1) inset;
 }
 
-.command.queueing .toggle,
-.command.inProgress .toggle,
-.command.succeeded .toggle,
-.command.failed .toggle {
+.command.queueing > .fields > .toggle,
+.command.inProgress > .fields > .toggle,
+.command.succeeded > .fields > .toggle,
+.command.failed > .fields > .toggle {
     display: none;
 }
 
