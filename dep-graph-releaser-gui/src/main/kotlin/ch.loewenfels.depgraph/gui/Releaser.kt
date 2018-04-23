@@ -9,7 +9,8 @@ import ch.loewenfels.depgraph.gui.Gui.Companion.changeJobStateFromInProgressTo
 import ch.loewenfels.depgraph.gui.Gui.Companion.displayJobState
 import ch.loewenfels.depgraph.gui.Gui.Companion.displayJobStateAddLinkToJob
 import ch.loewenfels.depgraph.gui.Gui.Companion.stateToCssClass
-import kotlin.js.Promise
+import kotlin.collections.set
+import kotlin.js.*
 
 class Releaser(
     private val jenkinsUrl: String,
@@ -170,6 +171,7 @@ class Releaser(
         project: Project,
         index: Int
     ): Promise<*> {
+        console.log("tigger: ${project.id.identifier} / $jobUrl")
         val jobUrlWithSlash = if (jobUrl.endsWith("/")) jobUrl else "$jobUrl/"
         displayJobState(project, index, stateToCssClass(CommandState.Ready), "queueing", "Currently queueing the job")
         //jobExecutor.trigger(jobUrlWithSlash, jobName, params, { buildNumber ->
@@ -180,7 +182,12 @@ class Releaser(
             displayJobStateAddLinkToJob(
                 project, index, "queueing", CommandState.InProgress, "Job is running", buildUrl
             )
-            menu.save(verbose = true)
+            //TODO modify job's state
+            menu.save(verbose = false).then { hadChanges ->
+                if (!hadChanges) {
+                    showWarning("Could not save changes for project ${project.id.identifier}. Please report a bug.")
+                }
+            }
         }.then {
             sleep(500) {
                 true

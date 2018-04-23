@@ -173,7 +173,11 @@ class Menu {
         releaseButton.title = "Start a release based on this release plan."
     }
 
-    fun save(verbose: Boolean): Promise<*> {
+    /**
+     * Applies changes and publishes the new release.json with the help of the [Publisher].
+     * @return `true` if publishing was carried out, `false` in case there were not any changes.
+     */
+    fun save(verbose: Boolean): Promise<Boolean> {
         val publisher = publisher
         if (publisher == null) {
             deactivateSaveButton()
@@ -188,11 +192,11 @@ class Menu {
         return if (changed) {
             val newFileName = "release-${generateUniqueId()}"
             publisher.publish(newFileName, verbose)
-                .then { deactivateSaveButton() }
+                .then { deactivateSaveButton(); true }
         } else {
-            showInfo("Seems like all changes have been reverted manually. Will not save anything.")
+            if(verbose) showInfo("Seems like all changes have been reverted manually. Will not save anything.")
             deactivateSaveButton()
-            Promise.resolve(1)
+            Promise.resolve(false)
         }
     }
 
