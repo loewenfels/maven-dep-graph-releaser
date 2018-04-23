@@ -17,7 +17,7 @@ object ChangeApplier {
     private fun applyChanges(releasePlanJson: ReleasePlanJson): Boolean {
         var changed = false
         releasePlanJson.projects.forEach { project ->
-            val mavenProjectId = createProjectId(project.id)
+            val mavenProjectId = deserializeProjectId(project.id)
             changed = changed or replaceReleaseVersionIfChanged(project, mavenProjectId)
 
             project.commands.forEachIndexed { index, command ->

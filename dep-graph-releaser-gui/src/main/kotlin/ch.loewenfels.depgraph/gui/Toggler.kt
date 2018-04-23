@@ -1,9 +1,6 @@
 package ch.loewenfels.depgraph.gui
 
-import ch.loewenfels.depgraph.data.Project
-import ch.loewenfels.depgraph.data.ProjectId
-import ch.loewenfels.depgraph.data.ReleaseCommand
-import ch.loewenfels.depgraph.data.ReleasePlan
+import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.gui.Gui.Companion.disableUnDisableForReleaseStartAndEnd
 import org.w3c.dom.CustomEvent
 import org.w3c.dom.CustomEventInit
@@ -92,28 +89,32 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
         if (!project.isSubmodule) {
             val projectIds = collectDependentsOnNextLevelInclDependentsOfAllSubmodules(project)
 
-            projectIds.forEach { projectId ->
-                registerForProjectEvent(project, EVENT_RELEASE_TOGGLE_UNCHECKED) {
-                    getAllToggle(projectId)?.uncheck()
-                }
+            projectIds.forEach { (projectId, dependentId) ->
+                releasePlan.getProject(dependentId).commands
+                    .mapIndexed { i, t -> i to t }
+                    .filter { (_, command) -> command !is ReleaseCommand && command.state is CommandState.Waiting }
+                    .forEach { (index, command) ->
+                        val state = command.state as CommandState.Waiting
+                        if (state.dependencies.contains(projectId)) {
+                            registerForProjectEvent(project, EVENT_RELEASE_TOGGLE_UNCHECKED) {
+                                getToggle(releasePlan.getProject(dependentId), index).uncheck()
+                            }
+                        }
+                    }
             }
         }
     }
 
-    private fun collectDependentsOnNextLevelInclDependentsOfAllSubmodules(project: Project): HashSet<ProjectId> {
-        val projectIds = hashSetOf<ProjectId>()
+    private fun collectDependentsOnNextLevelInclDependentsOfAllSubmodules(project: Project): HashSet<Pair<ProjectId, ProjectId>> {
+        val projectIds = hashSetOf<Pair<ProjectId, ProjectId>>()
         val projectsToVisit = mutableListOf(project.id)
         do {
             val projectId = projectsToVisit.removeAt(0)
-            projectIds.addAll(getDependentsOnNextLevel(project, projectId))
+            projectIds.addAll(releasePlan.getDependents(projectId).map { projectId to it })
             projectsToVisit.addAll(releasePlan.getSubmodules(projectId))
-        } while(projectsToVisit.isNotEmpty())
+        } while (projectsToVisit.isNotEmpty())
         return projectIds
     }
-
-    private fun getDependentsOnNextLevel(mainProject: Project, projectId: ProjectId) =
-        releasePlan.getDependents(projectId).filter { mainProject.level + 1 == releasePlan.getProject(it).level }
-
 
     private fun HTMLInputElement.uncheck() = changeChecked(this, false)
     private fun HTMLInputElement.check() = changeChecked(this, true)
@@ -122,7 +123,8 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
         if (toggle.checked == checked) return
 
         toggle.checked = checked
-        Promise.resolve(0).then { //used to avoid stack-overflow
+        Promise.resolve(0).then {
+            //used to avoid stack-overflow
             toggle.dispatchEvent(Event("change"))
         }
     }

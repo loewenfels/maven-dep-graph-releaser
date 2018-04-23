@@ -17,7 +17,7 @@ internal const val JENKINS_UPDATE_DEPENDENCY = "ch.loewenfels.depgraph.data.mave
 
 fun deserialize(body: String): ReleasePlan {
     val releasePlanJson = JSON.parse<ReleasePlanJson>(body)
-    val rootProjectId = createProjectId(releasePlanJson.id)
+    val rootProjectId = deserializeProjectId(releasePlanJson.id)
     val projects = deserializeProjects(releasePlanJson)
     val submodules = deserializeMapOfProjectIdAndSetProjectId(releasePlanJson.submodules)
     val dependents = deserializeMapOfProjectIdAndSetProjectId(releasePlanJson.dependents)
@@ -27,7 +27,7 @@ fun deserialize(body: String): ReleasePlan {
     return ReleasePlan(rootProjectId, projects, submodules, dependents, warnings, infos, config)
 }
 
-fun createProjectId(id: GenericType<ProjectId>): ProjectId {
+fun deserializeProjectId(id: GenericType<ProjectId>): ProjectId {
     return when (id.t) {
         MAVEN_PROJECT_ID -> createMavenProjectId(id)
         else -> throw UnsupportedOperationException("${id.t} is not supported.")
@@ -42,7 +42,7 @@ private fun createMavenProjectId(genericId: GenericType<ProjectId>): MavenProjec
 fun deserializeProjects(releasePlanJson: ReleasePlanJson): Map<ProjectId, Project> {
     val map = hashMapOf<ProjectId, Project>()
     releasePlanJson.projects.forEach {
-        val projectId = createProjectId(it.id)
+        val projectId = deserializeProjectId(it.id)
         map[projectId] = Project(
             projectId, it.isSubmodule, it.currentVersion, it.releaseVersion, it.level,
             deserializeCommands(it.commands),
@@ -81,7 +81,16 @@ fun createJenkinsUpdateDependency(command: Command): JenkinsUpdateDependency {
 private fun deserializeState(it: Command): CommandState {
     val json = it.state.unsafeCast<CommandStateJson>()
     fakeEnumsName(json)
-    return fromJson(json)
+    val state = fromJson(json)
+    if(state is CommandState.Waiting) {
+        @Suppress("UNCHECKED_CAST")
+        val realDependencies = state.dependencies as Array<GenericType<ProjectId>>
+        val deserializedDependencies = realDependencies.map {
+                deserializeProjectId(it)
+            }.toSet()
+        state.asDynamic().dependencies = deserializedDependencies
+    }
+    return state
 }
 
 private fun fakeEnumsName(json: CommandStateJson) {
@@ -99,8 +108,8 @@ private fun fakeEnumsName(json: CommandStateJson) {
 
 fun deserializeMapOfProjectIdAndSetProjectId(mapJson: Array<GenericMapEntry<ProjectId, Array<GenericType<ProjectId>>>>): Map<ProjectId, Set<ProjectId>> {
     return mapJson.associateBy(
-        { createProjectId(it.k) },
-        { it.v.map { createProjectId(it) }.toHashSet() }
+        { deserializeProjectId(it.k) },
+        { it.v.map { deserializeProjectId(it) }.toHashSet() }
     )
 }
 
