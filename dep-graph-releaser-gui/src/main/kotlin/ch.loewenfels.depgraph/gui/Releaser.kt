@@ -9,7 +9,6 @@ import ch.loewenfels.depgraph.gui.Gui.Companion.changeJobStateFromInProgressTo
 import ch.loewenfels.depgraph.gui.Gui.Companion.displayJobState
 import ch.loewenfels.depgraph.gui.Gui.Companion.displayJobStateAddLinkToJob
 import ch.loewenfels.depgraph.gui.Gui.Companion.stateToCssClass
-import kotlin.browser.document
 import kotlin.js.Promise
 
 class Releaser(
@@ -30,21 +29,24 @@ class Releaser(
 
 
     private fun releaseProject(paramObject: ParamObject): Promise<Array<out Unit>> {
-        return triggerNonReleaseCommandsInclSubmoduleCommands(paramObject)
-            .then { arr ->
+        return paramObject.withLockForProject {
+            console.log("release: ${paramObject.project.id.identifier}")
+            triggerNonReleaseCommandsInclSubmoduleCommands(paramObject).then { arr ->
                 //we stop if any command or a command of a submodule was not executed or already succeeded
-                if (arr.any { false }) throw NotReadyState
+                if (arr.any { !it }) throw NotReadyState
 
                 triggerReleaseCommands(paramObject)
             }.then {
                 val releasePlan = paramObject.releasePlan
-                val allDependents = releasePlan.collectDependentsInclDependentsOfAllSubmodules(paramObject.project.id)
+                val allDependents =
+                    releasePlan.collectDependentsInclDependentsOfAllSubmodules(paramObject.project.id)
                 updateStateWaiting(releasePlan, allDependents)
                 releaseDependentProjects(allDependents, releasePlan, paramObject)
             }.catch { t ->
                 if (t !== NotReadyState) throw t
                 arrayOf<Unit>()
             }
+        }
     }
 
     private fun updateStateWaiting(releasePlan: ReleasePlan, allDependents: Set<Pair<ProjectId, ProjectId>>) {
@@ -70,9 +72,7 @@ class Releaser(
             .toSet()
             .map { dependentProject ->
                 releaseProject(ParamObject(paramObject, dependentProject))
-                    .then { arr ->
-                        //TODO should we do something with that?
-                    }
+                    .then { _ -> /* we ignore the resulting array on purpose */ }
             }
         return Promise.all(promises.toTypedArray())
     }
@@ -85,28 +85,25 @@ class Releaser(
             .fold(Promise.resolve(Promise.resolve(mutableListOf<Boolean>()))) { acc, (index, command) ->
                 acc.then { list ->
                     console.log("here with ${paramObject.project.id}")
-                    createCommandPromise(paramObject, command, index).then { result ->
-                        list.add(result)
-                        list
-                    }
+                    createCommandPromise(paramObject, command, index)
+                        .then { result -> list.add(result); list }
                 }.unsafeCast<Promise<MutableList<Boolean>>>()
             }
             .then { arr ->
                 val initial: Promise<MutableList<Boolean>> = Promise.resolve(arr.toMutableList())
                 paramObject.releasePlan.getSubmodules(paramObject.project.id).fold(initial) { acc, submoduleId ->
                     acc.then { list: MutableList<Boolean> ->
-                        triggerNonReleaseCommandsInclSubmoduleCommands(
-                            ParamObject(
-                                paramObject,
-                                submoduleId
-                            )
-                        ).then { result ->
-                            list.addAll(result)
-                            list
-                        }
+                        triggerNonReleaseCommandsInclSubmoduleCommands(ParamObject(paramObject, submoduleId))
+                            .then { result -> list.addAll(result); list }
                     }.unsafeCast<Promise<MutableList<Boolean>>>()
                 }
             }
+    }
+
+    private fun isStateReadyOrEmptyWaiting(command: Command): Boolean {
+        val state = command.state
+        return state === ch.loewenfels.depgraph.data.CommandState.Ready ||
+            (state is CommandState.Waiting && state.dependencies.isEmpty())
     }
 
     private fun triggerReleaseCommands(paramObject: ParamObject): Promise<Boolean> {
@@ -127,12 +124,8 @@ class Releaser(
     private fun createCommandPromise(paramObject: ParamObject, command: Command, index: Int): Promise<Boolean> {
         val state = command.state
         return if (state === CommandState.Ready || state is CommandState.Waiting && state.dependencies.isEmpty()) {
-            paramObject.lock(paramObject.project.id) {
-                triggerCommand(paramObject, command, index)
-                    .then {
-                        true
-                    }
-            }
+            triggerCommand(paramObject, command, index)
+                .then { true }
         } else {
             Promise.resolve(state === CommandState.Succeeded)
         }
@@ -182,13 +175,13 @@ class Releaser(
         val jobUrlWithSlash = if (jobUrl.endsWith("/")) jobUrl else "$jobUrl/"
         displayJobState(project, index, stateToCssClass(CommandState.Ready), "queueing", "Currently queueing the job")
         //jobExecutor.trigger(jobUrlWithSlash, jobName, params, { buildNumber ->
-        return sleep(1000) { 100 }.then { buildNumber ->
+        return sleep(500) { 100 }.then { buildNumber ->
             displayJobStateAddLinkToJob(
                 project, index, "queueing", CommandState.InProgress, "Job is running", "$jobUrlWithSlash$buildNumber/"
             )
             //TODO we need to update the release json via publisher
         }.then {
-            sleep(1000) {
+            sleep(500) {
                 true
             }
         }.then(
@@ -250,7 +243,8 @@ class Releaser(
             return releasePlan.config[configKey] ?: throw IllegalArgumentException("unknown config key: $configKey")
         }
 
-        fun <T> lock(projectId: ProjectId, act: () -> Promise<T>): Promise<T> {
+        fun <T> withLockForProject(act: () -> Promise<T>): Promise<T> {
+            val projectId = project.id
             val lock = locks[projectId]
             return if (lock == null) {
                 val promise = act()
@@ -260,7 +254,7 @@ class Releaser(
                     result
                 }
             } else {
-                lock.then { lock(projectId, act) }.unsafeCast<Promise<T>>()
+                lock.then { withLockForProject(act) }.unsafeCast<Promise<T>>()
             }
         }
     }
