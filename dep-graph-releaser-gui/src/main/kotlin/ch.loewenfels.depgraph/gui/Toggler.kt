@@ -33,6 +33,7 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
             val event = if (allToggle.checked) EVENT_ALL_TOGGLE_CHECKED else EVENT_ALL_TOGGLE_UNCHECKED
             dispatchToggleEvent(project, allToggle, event)
         }
+        Gui.disableUnDisableForReleaseStartAndEnd(allToggle, elementById("${allToggle.id}${Gui.SLIDER_SUFFIX}"))
     }
 
     private fun registerCommandToggleEvents(project: Project) {
@@ -47,7 +48,7 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 toggle.addChangeEventListener { toggleCommand(project, toggle, EVENT_TOGGLE_UNCHECKED) }
             }
 
-            disableUnDisableForReleaseStartAndEnd(toggle, elementById("${toggle.id}:slider"))
+            disableUnDisableForReleaseStartAndEnd(toggle, elementById("${toggle.id}${Gui.SLIDER_SUFFIX}"))
             registerForProjectEvent(project, EVENT_ALL_TOGGLE_CHECKED) {
                 toggle.check()
             }

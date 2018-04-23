@@ -1,5 +1,7 @@
 package ch.loewenfels.depgraph.gui
 
+import org.w3c.dom.CustomEvent
+import org.w3c.dom.CustomEventInit
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.events.Event
 import kotlin.browser.window
@@ -91,7 +93,28 @@ class Menu {
             releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
                 dispatchReleaseStart()
                 releaser.release().then {
-                    dispatchReleaseEnd()
+                    dispatchReleaseEnd(success = true)
+                }.catch {
+                    dispatchReleaseEnd(success = false)
+                }
+            }
+            Menu.registerForReleaseStartEvent {
+                releaseButton.addClass(DISABLED)
+                releaseButton.asDynamic().oldTitle = releaseButton.title
+                releaseButton.title = Gui.DISABLED_RELEASE_IN_PROGRESS
+            }
+            Menu.registerForReleaseEndEvent { success ->
+                if (success) {
+                    releaseButton.title = Gui.DISABLED_RELEASE_SUCCESS
+                    showSuccess(
+                        "Release ended successfully :) you can now close the window." +
+                            "\nUse a new pipeline for a new release." +
+                            "\nPlease report a bug in case some job failed without us noticing it."
+                    )
+                } else {
+                    releaseButton.removeClass(DISABLED)
+                    elementById("release.text").innerText = "Retrigger failed Jobs"
+                    releaseButton.title = releaseButton.asDynamic().oldTitle as String
                 }
             }
         }
@@ -172,17 +195,20 @@ class Menu {
             elementById("menu").addEventListener(Menu.EVENT_RELEASE_START, callback)
         }
 
-        fun registerForReleaseEndEvent(callback: (Event) -> Unit) {
-            elementById("menu").addEventListener(Menu.EVENT_RELEASE_END, callback)
+        fun registerForReleaseEndEvent(callback: (Boolean) -> Unit) {
+            elementById("menu").addEventListener(Menu.EVENT_RELEASE_END, { e ->
+                val customEvent = e as CustomEvent
+                val success = customEvent.detail as Boolean
+                callback(success)
+            })
         }
 
         private fun dispatchReleaseStart() {
             elementById("menu").dispatchEvent(Event(EVENT_RELEASE_START))
         }
 
-        private fun dispatchReleaseEnd() {
-            elementById("menu").dispatchEvent(Event(EVENT_RELEASE_END))
+        private fun dispatchReleaseEnd(success: Boolean) {
+            elementById("menu").dispatchEvent(CustomEvent(EVENT_RELEASE_END, CustomEventInit(detail = success)))
         }
-
     }
 }

@@ -291,7 +291,9 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
     companion object {
         const val DISABLE_SUFFIX = ":disable"
         const val DISABLE_ALL_SUFFIX = ":disableAll"
-        private const val DISABLED_DUE_TO_RELEASE = "disabled due to release which is in progress."
+        const val SLIDER_SUFFIX = ":slider"
+        const val DISABLED_RELEASE_IN_PROGRESS = "disabled due to release which is in progress."
+        const val DISABLED_RELEASE_SUCCESS = "Release successful, use a new pipeline for a new release."
 
         fun getCommandId(project: Project, index: Int) = "${project.id.identifier}:$index"
 
@@ -310,11 +312,15 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 input.asDynamic().oldDisabled = input.disabled
                 input.disabled = true
                 titleElement.asDynamic().oldTitle = titleElement.title
-                titleElement.title = DISABLED_DUE_TO_RELEASE
+                titleElement.title = DISABLED_RELEASE_IN_PROGRESS
             }
-            Menu.registerForReleaseEndEvent {
-                input.disabled = input.asDynamic().oldDisabled as Boolean
-                titleElement.title = titleElement.asDynamic().oldTitle as String
+            Menu.registerForReleaseEndEvent { success ->
+                if (success) {
+                    titleElement.title = DISABLED_RELEASE_SUCCESS
+                } else {
+                    input.disabled = input.asDynamic().oldDisabled as Boolean
+                    titleElement.title = titleElement.asDynamic().oldTitle as String
+                }
             }
         }
 
@@ -324,7 +330,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             cssClassToRemove: String,
             newState: CommandState,
             title: String,
-            jobUrl : String
+            jobUrl: String
         ) {
             displayJobState(project, index, cssClassToRemove, stateToCssClass(newState), title)
             val state = elementById<HTMLAnchorElement>("${getCommandId(project, index)}:state")
