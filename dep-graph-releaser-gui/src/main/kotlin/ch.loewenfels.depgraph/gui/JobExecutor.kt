@@ -10,22 +10,23 @@ class JobExecutor(private val jenkinsUrl: String, private val usernameToken: Use
         jobUrl: String,
         jobName: String,
         body: String,
-        jobStartedHook: (buildNumber: Int) -> Unit
+        verbose: Boolean = true,
+        jobStartedHook: (buildNumber: Int) -> Promise<*>
     ): Promise<Pair<CrumbWithId, Int>> {
         return issueCrumb(jenkinsUrl).then { crumbWithId: CrumbWithId? ->
             post(crumbWithId, jobUrl, body)
                 .then { response ->
                     checkStatusAndExtractQueuedItemUrl(response, jobName)
                 }.catch {
-                    throw Error("Could not trigger the publish job", it)
+                    throw Error("Could not trigger the job $jobName", it)
                 }.then { queuedItemUrl: String ->
-                    showInfo("Queued $jobName successfully, wait for execution...", 2000)
+                    if(verbose) showInfo("Queued $jobName successfully, wait for execution...", 2000)
                     extractBuildNumber(crumbWithId, queuedItemUrl)
                 }.then { buildNumber: Int ->
-                    showInfo("$jobName started with build number $buildNumber, wait for completion...", 2000)
-                    jobStartedHook(buildNumber)
-                    pollJobForCompletion(crumbWithId, jobUrl, buildNumber)
-                        .then { result -> buildNumber to result }
+                    if(verbose) showInfo("$jobName started with build number $buildNumber, wait for completion...", 2000)
+                    jobStartedHook(buildNumber).then {
+                        pollJobForCompletion(crumbWithId, jobUrl, buildNumber)
+                    }.then { result -> buildNumber to result }
                 }.then { (buildNumber, result) ->
                     check(result == SUCCESS) {
                         "$jobName failed, job did not end with status $SUCCESS but $result." +

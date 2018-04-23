@@ -2,6 +2,7 @@ package ch.loewenfels.depgraph.gui
 
 import ch.loewenfels.depgraph.data.Command
 import ch.loewenfels.depgraph.data.ProjectId
+import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsCommand
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
 import ch.loewenfels.depgraph.data.serialization.CommandStateJson
 
@@ -65,20 +66,35 @@ object ChangeApplier {
 
     private fun replaceFieldsIfChanged(command: GenericType<Command>, mavenProjectId: ProjectId, index: Int): Boolean {
         return when (command.t) {
-            JENKINS_MAVEN_RELEASE_PLUGIN, JENKINS_MULTI_MAVEN_RELEASE_PLUGIN ->
-                checkIfNextVersionChanged(command.p, mavenProjectId, index)
-            JENKINS_UPDATE_DEPENDENCY -> false //nothing to do
+            JENKINS_MAVEN_RELEASE_PLUGIN, JENKINS_MULTI_MAVEN_RELEASE_PLUGIN -> {
+                replaceNextVersionIfChanged(command.p, mavenProjectId, index) or
+                replaceBuildUrlIfChanged(command.p, mavenProjectId, index)
+            }
+            JENKINS_UPDATE_DEPENDENCY -> replaceBuildUrlIfChanged(command.p, mavenProjectId, index)
             else -> throw UnsupportedOperationException("${command.t} is not supported.")
         }
     }
 
-    private fun checkIfNextVersionChanged(command: Command, mavenProjectId: ProjectId, index: Int): Boolean {
+    private fun replaceNextVersionIfChanged(command: Command, mavenProjectId: ProjectId, index: Int): Boolean {
         val m2Command = command.unsafeCast<M2ReleaseCommand>()
-        val input = getTextField("${mavenProjectId.identifier}:$index:nextDevVersion")
+        val input = getTextField(Gui.getCommandId(mavenProjectId, index) + Gui.NEXT_DEV_VERSION_SUFFIX)
         if (m2Command.nextDevVersion != input.value) {
             m2Command.asDynamic().nextDevVersion = input.value
             return true
         }
         return false
     }
+
+    private fun replaceBuildUrlIfChanged(command: Command, mavenProjectId: ProjectId, index: Int): Boolean {
+        val jenkinsCommand = command.unsafeCast<JenkinsCommand>()
+        val guiCommand = Gui.getCommand(mavenProjectId, index)
+
+        val newBuildUrl = guiCommand.asDynamic().buildUrl as? String
+        if (newBuildUrl != null && jenkinsCommand.buildUrl != newBuildUrl) {
+            jenkinsCommand.asDynamic().buildUrl = newBuildUrl
+            return true
+        }
+        return false
+    }
+
 }

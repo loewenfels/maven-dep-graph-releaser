@@ -1,6 +1,5 @@
 package ch.loewenfels.depgraph.data.maven.jenkins
 
-import ch.loewenfels.depgraph.data.Command
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 
@@ -9,8 +8,9 @@ import ch.loewenfels.depgraph.data.maven.MavenProjectId
  * The job has to update the dependencies and commit the changes.
  */
 data class JenkinsUpdateDependency(
-    override val state: CommandState,
-    val projectId: MavenProjectId
-) : Command {
-    override fun asNewState(newState: CommandState) = JenkinsUpdateDependency(newState, projectId)
+    override var state: CommandState,
+    val projectId: MavenProjectId,
+    override val buildUrl: String? = null
+) : JenkinsCommand {
+    override fun asNewState(newState: CommandState) = JenkinsUpdateDependency(newState, projectId, buildUrl)
 }

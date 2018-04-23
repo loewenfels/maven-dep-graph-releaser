@@ -65,17 +65,18 @@ fun deserializeCommands(commands: Array<GenericType<Command>>): List<Command> {
 
 fun createJenkinsMavenReleasePlugin(command: Command): JenkinsMavenReleasePlugin {
     val it = command.unsafeCast<JenkinsMavenReleasePlugin>()
-    return JenkinsMavenReleasePlugin(deserializeState(it), it.nextDevVersion)
+    return JenkinsMavenReleasePlugin(deserializeState(it), it.nextDevVersion, it.buildUrl)
 }
 
 fun createJenkinsMultiMavenReleasePlugin(command: Command): Command {
     val it = command.unsafeCast<JenkinsMultiMavenReleasePlugin>()
-    return JenkinsMultiMavenReleasePlugin(deserializeState(it), it.nextDevVersion)
+    return JenkinsMultiMavenReleasePlugin(deserializeState(it), it.nextDevVersion, it.buildUrl)
 }
 
 fun createJenkinsUpdateDependency(command: Command): JenkinsUpdateDependency {
     val it = command.unsafeCast<JenkinsUpdateDependency>()
-    return JenkinsUpdateDependency(deserializeState(it), MavenProjectId(it.projectId.groupId, it.projectId.artifactId))
+    val projectId = MavenProjectId(it.projectId.groupId, it.projectId.artifactId)
+    return JenkinsUpdateDependency(deserializeState(it), projectId, it.buildUrl)
 }
 
 private fun deserializeState(it: Command): CommandState {

@@ -14,7 +14,8 @@ import kotlin.js.Promise
 class Releaser(
     private val jenkinsUrl: String,
     usernameToken: UsernameToken,
-    private val modifiableJson: ModifiableJson
+    private val modifiableJson: ModifiableJson,
+    private val menu: Menu
 ) {
     private val jobExecutor = JobExecutor(jenkinsUrl, usernameToken)
 
@@ -30,7 +31,6 @@ class Releaser(
 
     private fun releaseProject(paramObject: ParamObject): Promise<Array<out Unit>> {
         return paramObject.withLockForProject {
-            console.log("release: ${paramObject.project.id.identifier}")
             triggerNonReleaseCommandsInclSubmoduleCommands(paramObject).then { arr ->
                 //we stop if any command or a command of a submodule was not executed or already succeeded
                 if (arr.any { !it }) throw NotReadyState
@@ -64,8 +64,8 @@ class Releaser(
         allDependents: HashSet<Pair<ProjectId, ProjectId>>,
         releasePlan: ReleasePlan,
         paramObject: ParamObject
-    ): Promise<Array<out Unit>> {
-        val promises: List<Promise<Unit>> = allDependents
+    ): Promise<Array<*>> {
+        val promises: List<Promise<*>> = allDependents
             .asSequence()
             .map { (_, dependentId) -> releasePlan.getProject(dependentId) }
             .filter { !it.isSubmodule }
@@ -84,7 +84,6 @@ class Releaser(
             .filter { it.second !is ReleaseCommand }
             .fold(Promise.resolve(Promise.resolve(mutableListOf<Boolean>()))) { acc, (index, command) ->
                 acc.then { list ->
-                    console.log("here with ${paramObject.project.id}")
                     createCommandPromise(paramObject, command, index)
                         .then { result -> list.add(result); list }
                 }.unsafeCast<Promise<MutableList<Boolean>>>()
@@ -100,8 +99,8 @@ class Releaser(
             }
     }
 
-    private fun isStateReadyOrEmptyWaiting(command: Command): Boolean {
-        val state = command.state
+    private fun Command.hasStateReadyOrEmptyWaiting(): Boolean {
+        val state = state
         return state === ch.loewenfels.depgraph.data.CommandState.Ready ||
             (state is CommandState.Waiting && state.dependencies.isEmpty())
     }
@@ -122,12 +121,11 @@ class Releaser(
     }
 
     private fun createCommandPromise(paramObject: ParamObject, command: Command, index: Int): Promise<Boolean> {
-        val state = command.state
-        return if (state === CommandState.Ready || state is CommandState.Waiting && state.dependencies.isEmpty()) {
+        return if (command.hasStateReadyOrEmptyWaiting()) {
             triggerCommand(paramObject, command, index)
                 .then { true }
         } else {
-            Promise.resolve(state === CommandState.Succeeded)
+            Promise.resolve(command.state === CommandState.Succeeded)
         }
     }
 
@@ -144,7 +142,7 @@ class Releaser(
         }
     }
 
-    private fun triggerCommand(paramObject: ParamObject, command: Command, index: Int): Promise<Unit> {
+    private fun triggerCommand(paramObject: ParamObject, command: Command, index: Int): Promise<*> {
         return when (command) {
             is JenkinsUpdateDependency -> triggerUpdateDependency(paramObject, command, index)
             is M2ReleaseCommand -> triggerRelease(paramObject, command, index)
@@ -156,7 +154,7 @@ class Releaser(
         paramObject: ParamObject,
         command: JenkinsUpdateDependency,
         index: Int
-    ): Promise<Unit> {
+    ): Promise<*> {
         changeCursorToProgress()
         val project = paramObject.project
         val jobUrl = "$jenkinsUrl/job/${paramObject.getConfig(ConfigKey.UPDATE_DEPENDENCY_JOB)}"
@@ -171,15 +169,18 @@ class Releaser(
         params: String,
         project: Project,
         index: Int
-    ): Promise<Unit> {
+    ): Promise<*> {
         val jobUrlWithSlash = if (jobUrl.endsWith("/")) jobUrl else "$jobUrl/"
         displayJobState(project, index, stateToCssClass(CommandState.Ready), "queueing", "Currently queueing the job")
         //jobExecutor.trigger(jobUrlWithSlash, jobName, params, { buildNumber ->
         return sleep(500) { 100 }.then { buildNumber ->
+            val command = Gui.getCommand(project, index)
+            val buildUrl = "$jobUrlWithSlash$buildNumber/"
+            command.asDynamic().buildUrl = buildUrl
             displayJobStateAddLinkToJob(
-                project, index, "queueing", CommandState.InProgress, "Job is running", "$jobUrlWithSlash$buildNumber/"
+                project, index, "queueing", CommandState.InProgress, "Job is running", buildUrl
             )
-            //TODO we need to update the release json via publisher
+            menu.save(verbose = true)
         }.then {
             sleep(500) {
                 true
@@ -211,7 +212,7 @@ class Releaser(
             "&newVersion=${dependency.releaseVersion}"
     }
 
-    private fun triggerRelease(paramObject: ParamObject, command: M2ReleaseCommand, index: Int): Promise<Unit> {
+    private fun triggerRelease(paramObject: ParamObject, command: M2ReleaseCommand, index: Int): Promise<*> {
         val regex = Regex(paramObject.getConfig(ConfigKey.REMOTE_REGEX))
         val jobUrl = if (regex.matches(paramObject.project.id.identifier)) {
             "$jenkinsUrl/job/${paramObject.getConfig(ConfigKey.REMOTE_JOB)}"

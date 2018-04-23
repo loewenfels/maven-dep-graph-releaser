@@ -8,6 +8,7 @@ import kotlin.browser.window
 import kotlin.dom.addClass
 import kotlin.dom.hasClass
 import kotlin.dom.removeClass
+import kotlin.js.Promise
 
 external fun encodeURIComponent(encodedURI: String): String
 
@@ -20,6 +21,8 @@ class Menu {
     private val dryRunButton get() = elementById("dryRun")
     private val releaseButton get() = elementById("release")
     private val settingsButton get() = elementById("settings")
+
+    private var publisher: Publisher? = null
 
     init {
         settingsButton.addClickEventListenerIfNotDeactivatedNorDisabled {
@@ -73,8 +76,9 @@ class Menu {
     private fun initSaveAndDownloadButton(downloader: Downloader, publisher: Publisher?) {
         deactivateSaveButton()
         if (publisher != null) {
+            this.publisher = publisher
             saveButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                save(publisher)
+                save(verbose = true)
             }
         }
         downloadButton.title = "Download the release.json"
@@ -113,9 +117,11 @@ class Menu {
                             "\nPlease report a bug in case some job failed without us noticing it."
                     )
                 } else {
-                    showError("Release ended with failure :(" +
-                        "\nAt least one job failed. Check errors, fix them and then you can re-trigger the failed jobs by clicking on the release button." +
-                        "\n(You might have to delete git tags and remove artifacts if they have already been created).")
+                    showError(
+                        "Release ended with failure :(" +
+                            "\nAt least one job failed. Check errors, fix them and then you can re-trigger the failed jobs by clicking on the release button." +
+                            "\n(You might have to delete git tags and remove artifacts if they have already been created)."
+                    )
                     releaseButton.removeClass(DISABLED)
                     elementById("release.text").innerText = "Retrigger failed Jobs"
                     releaseButton.title = releaseButton.asDynamic().oldTitle as String
@@ -167,7 +173,8 @@ class Menu {
         releaseButton.title = "Start a release based on this release plan."
     }
 
-    private fun save(publisher: Publisher?) {
+    fun save(verbose: Boolean): Promise<*> {
+        val publisher = publisher
         if (publisher == null) {
             deactivateSaveButton()
             showThrowableAndThrow(
@@ -178,13 +185,14 @@ class Menu {
         }
 
         val changed = publisher.applyChanges()
-        if (changed) {
+        return if (changed) {
             val newFileName = "release-${generateUniqueId()}"
-            publisher.publish(newFileName)
+            publisher.publish(newFileName, verbose)
                 .then { deactivateSaveButton() }
         } else {
             showInfo("Seems like all changes have been reverted manually. Will not save anything.")
             deactivateSaveButton()
+            Promise.resolve(1)
         }
     }
 

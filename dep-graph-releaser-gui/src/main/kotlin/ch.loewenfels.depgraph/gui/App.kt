@@ -85,7 +85,7 @@ class App {
     ): Pair<Publisher?, Releaser?> {
         return if (publishJobUrl != null && jenkinsUrl != null && usernameToken != null) {
             val publisher = Publisher(jenkinsUrl, usernameToken, publishJobUrl, modifiableJson)
-            val releaser = Releaser(jenkinsUrl, usernameToken, modifiableJson)
+            val releaser = Releaser(jenkinsUrl, usernameToken, modifiableJson, menu)
             publisher to releaser
         } else {
             null to null

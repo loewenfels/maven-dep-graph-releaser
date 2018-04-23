@@ -11,10 +11,10 @@ class Publisher(
 ) {
     private val jobExecutor = JobExecutor(jenkinsUrl, usernameToken)
 
-    fun publish(fileName: String): Promise<Unit> {
+    fun publish(fileName: String, verbose: Boolean): Promise<*> {
         changeCursorToProgress()
         val body = "fileName=$fileName&json=${modifiableJson.json}"
-        return jobExecutor.trigger(publishJobUrl, "publish release-$fileName.json", body, {})
+        return jobExecutor.trigger(publishJobUrl, "publish release-$fileName.json", body, verbose, { Promise.resolve(1) })
             .then { (crumbWithId, buildNumber) ->
                 extractResultJsonUrl(crumbWithId, publishJobUrl, buildNumber).then {
                     buildNumber to it

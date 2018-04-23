@@ -3,6 +3,7 @@ package ch.loewenfels.depgraph.gui
 import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
+import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsCommand
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
@@ -159,6 +160,9 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 div("fields") {
                     fieldsForCommand(commandId, project.id, command)
                 }
+                if (command is JenkinsCommand) {
+                    getUnderlyingHtmlElement().asDynamic().buildUrl = command.buildUrl
+                }
             }
         }
     }
@@ -230,7 +234,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         command: Command,
         nextDevVersion: String
     ) {
-        fieldWithLabel("$idPrefix:nextDevVersion", "Next Dev Version", nextDevVersion) {
+        fieldWithLabel("$idPrefix${Gui.NEXT_DEV_VERSION_SUFFIX}", "Next Dev Version", nextDevVersion) {
             if (command.state === CommandState.Disabled) {
                 disabled = true
             }
@@ -294,8 +298,12 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         const val SLIDER_SUFFIX = ":slider"
         const val DISABLED_RELEASE_IN_PROGRESS = "disabled due to release which is in progress."
         const val DISABLED_RELEASE_SUCCESS = "Release successful, use a new pipeline for a new release."
+        const val NEXT_DEV_VERSION_SUFFIX = ":nextDevVersion"
 
-        fun getCommandId(project: Project, index: Int) = "${project.id.identifier}:$index"
+        fun getCommandId(project: Project, index: Int) = getCommandId(project.id, index)
+        fun getCommandId(projectId: ProjectId, index: Int) = "${projectId.identifier}:$index"
+        fun getCommand(project: Project, index: Int) = getCommand(project.id, index)
+        fun getCommand(projectId: ProjectId, index: Int): HTMLElement = elementById(getCommandId(projectId, index))
 
         fun stateToCssClass(state: CommandState) = when (state) {
             is CommandState.Waiting -> "waiting"
