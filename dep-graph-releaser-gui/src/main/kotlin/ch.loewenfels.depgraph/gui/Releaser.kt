@@ -9,6 +9,7 @@ import ch.loewenfels.depgraph.gui.Gui.Companion.changeJobStateFromInProgressTo
 import ch.loewenfels.depgraph.gui.Gui.Companion.displayJobState
 import ch.loewenfels.depgraph.gui.Gui.Companion.displayJobStateAddLinkToJob
 import ch.loewenfels.depgraph.gui.Gui.Companion.stateToCssClass
+import kotlin.browser.document
 import kotlin.js.Promise
 
 class Releaser(
@@ -23,29 +24,38 @@ class Releaser(
         checkConfig(releasePlan)
 
         val project = releasePlan.getRootProject()
-        val paramObject = ParamObject(releasePlan, project)
+        val paramObject = ParamObject(releasePlan, project, hashMapOf())
         return releaseProject(paramObject)
     }
 
 
     private fun releaseProject(paramObject: ParamObject): Promise<Array<out Unit>> {
-        val releasePlan = paramObject.releasePlan
-        val project = paramObject.project
         return triggerNonReleaseCommandsInclSubmoduleCommands(paramObject)
             .then { arr ->
                 //we stop if any command or a command of a submodule was not executed or already succeeded
                 if (arr.any { false }) throw NotReadyState
 
                 triggerReleaseCommands(paramObject)
-            }.then { it: Boolean ->
-                console.log("here with ${paramObject.project}")
-                val allDependents = releasePlan.collectDependentsInclDependentsOfAllSubmodules(project.id)
+            }.then {
+                val releasePlan = paramObject.releasePlan
+                val allDependents = releasePlan.collectDependentsInclDependentsOfAllSubmodules(paramObject.project.id)
                 updateStateWaiting(releasePlan, allDependents)
                 releaseDependentProjects(allDependents, releasePlan, paramObject)
             }.catch { t ->
                 if (t !== NotReadyState) throw t
                 arrayOf<Unit>()
             }
+    }
+
+    private fun updateStateWaiting(releasePlan: ReleasePlan, allDependents: Set<Pair<ProjectId, ProjectId>>) {
+        allDependents.forEach { (multiOrSubmoduleId, dependentId) ->
+            releasePlan.getProject(dependentId).commands.forEach { command ->
+                val state = command.state
+                if (state is CommandState.Waiting && state.dependencies.contains(multiOrSubmoduleId)) {
+                    (state.dependencies as MutableSet).remove(multiOrSubmoduleId)
+                }
+            }
+        }
     }
 
     private fun releaseDependentProjects(
@@ -67,17 +77,6 @@ class Releaser(
         return Promise.all(promises.toTypedArray())
     }
 
-    private fun updateStateWaiting(releasePlan: ReleasePlan, allDependents: Set<Pair<ProjectId, ProjectId>>) {
-        allDependents.forEach { (multiOrSubmoduleId, dependentId) ->
-            releasePlan.getProject(dependentId).commands.forEach { command ->
-                val state = command.state
-                if (state is CommandState.Waiting && state.dependencies.contains(multiOrSubmoduleId)) {
-                    (state.dependencies as MutableSet).remove(multiOrSubmoduleId)
-                }
-            }
-        }
-    }
-
     private fun triggerNonReleaseCommandsInclSubmoduleCommands(paramObject: ParamObject): Promise<Promise<List<Boolean>>> {
         return paramObject.project.commands
             .asSequence()
@@ -85,7 +84,8 @@ class Releaser(
             .filter { it.second !is ReleaseCommand }
             .fold(Promise.resolve(Promise.resolve(mutableListOf<Boolean>()))) { acc, (index, command) ->
                 acc.then { list ->
-                    createCommandPromise(command, paramObject, index).then { result ->
+                    console.log("here with ${paramObject.project.id}")
+                    createCommandPromise(paramObject, command, index).then { result ->
                         list.add(result)
                         list
                     }
@@ -115,7 +115,7 @@ class Releaser(
             .filter { it.second is ReleaseCommand }
             .fold(Promise.resolve(true)) { acc, (index, command) ->
                 acc.then {
-                    createCommandPromise(command, paramObject, index)
+                    createCommandPromise(paramObject, command, index)
                         .then { wasReady ->
                             if (!wasReady) throw NotReadyState
                             wasReady
@@ -124,12 +124,15 @@ class Releaser(
             }
     }
 
-
-    private fun createCommandPromise(command: Command, paramObject: ParamObject, index: Int): Promise<Boolean> {
+    private fun createCommandPromise(paramObject: ParamObject, command: Command, index: Int): Promise<Boolean> {
         val state = command.state
         return if (state === CommandState.Ready || state is CommandState.Waiting && state.dependencies.isEmpty()) {
-            triggerCommand(paramObject, command, index)
-                .then { true }
+            paramObject.lock(paramObject.project.id) {
+                triggerCommand(paramObject, command, index)
+                    .then {
+                        true
+                    }
+            }
         } else {
             Promise.resolve(state === CommandState.Succeeded)
         }
@@ -232,18 +235,33 @@ class Releaser(
         return ""
     }
 
-    data class ParamObject(
+    private data class ParamObject(
         val releasePlan: ReleasePlan,
-        val project: Project
+        val project: Project,
+        val locks: HashMap<ProjectId, Promise<*>>
     ) {
-        constructor(paramObject: ParamObject, newProject: Project)
-            : this(paramObject.releasePlan, newProject)
-
         constructor(paramObject: ParamObject, newProjectId: ProjectId)
-            : this(paramObject.releasePlan, paramObject.releasePlan.getProject(newProjectId))
+            : this(paramObject, paramObject.releasePlan.getProject(newProjectId))
+
+        constructor(paramObject: ParamObject, newProject: Project)
+            : this(paramObject.releasePlan, newProject, paramObject.locks)
 
         fun getConfig(configKey: ConfigKey): String {
             return releasePlan.config[configKey] ?: throw IllegalArgumentException("unknown config key: $configKey")
+        }
+
+        fun <T> lock(projectId: ProjectId, act: () -> Promise<T>): Promise<T> {
+            val lock = locks[projectId]
+            return if (lock == null) {
+                val promise = act()
+                locks[projectId] = promise
+                promise.then { result ->
+                    locks.remove(projectId)
+                    result
+                }
+            } else {
+                lock.then { lock(projectId, act) }.unsafeCast<Promise<T>>()
+            }
         }
     }
 
