@@ -3,6 +3,9 @@ package ch.loewenfels.depgraph.gui
 import kotlinx.html.HTMLTag
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.events.Event
+import kotlin.dom.addClass
+import kotlin.dom.hasClass
+import kotlin.dom.removeClass
 
 /**
  * Hack to get the underlying [HTMLElement] of the the given [HTMLTag].
@@ -20,6 +23,13 @@ fun HTMLElement.addChangeEventListener(action: (Event) -> Unit) {
     this.addEventListener("change", { withErrorHandling(it, action) })
 }
 
+fun HTMLElement.toggleClass(cssClass: String) {
+    if (hasClass(cssClass)) {
+        removeClass(cssClass)
+    } else {
+        addClass(cssClass)
+    }
+}
 
 fun withErrorHandling(event: Event, action: (Event) -> Unit) {
     try {
