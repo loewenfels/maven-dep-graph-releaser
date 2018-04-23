@@ -119,19 +119,25 @@ class Releaser(
         val jobUrlWithSlash = if (jobUrl.endsWith("/")) jobUrl else "$jobUrl/"
         displayJobState(project, index, stateToCssClass(CommandState.Ready), "queueing", "Currently queueing the job")
         //jobExecutor.trigger(jobUrlWithSlash, jobName, params, { buildNumber ->
-        return sleep(1000) {
-            val builderNumber = 100
+        return sleep(1000) { 100 }.then { buildNumber ->
             displayJobStateAddLinkToJob(
-                project, index, "queueing", CommandState.InProgress, "Job is running", "$jobUrlWithSlash$builderNumber/"
+                project, index, "queueing", CommandState.InProgress, "Job is running", "$jobUrlWithSlash$buildNumber/"
             )
             //TODO we need to update the release json via publisher
         }.then {
             sleep(1000) {
-                displayJobState(
-                    project, index, CommandState.InProgress, CommandState.Failed, "Job completed successfully"
-                )
+                throw RuntimeException("asdf")
             }
-        }.finally {
+        }.then({
+            displayJobState(
+                project, index, CommandState.InProgress, CommandState.Succeeded, "Job completed successfully."
+            )
+        }, { t ->
+            displayJobState(
+                project, index, CommandState.InProgress, CommandState.Failed, "Job failed, click to navigate to the job."
+            )
+            throw t
+        }).finally {
             changeCursorBackToNormal()
         }
     }

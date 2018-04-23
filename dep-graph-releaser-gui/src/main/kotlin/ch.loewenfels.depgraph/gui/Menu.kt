@@ -92,11 +92,7 @@ class Menu {
             }
             releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
                 dispatchReleaseStart()
-                releaser.release().then {
-                    dispatchReleaseEnd(success = true)
-                }.catch {
-                    dispatchReleaseEnd(success = false)
-                }
+                releaser.release().then({ dispatchReleaseEnd(success = true) }, { dispatchReleaseEnd(success = false) })
             }
             Menu.registerForReleaseStartEvent {
                 releaseButton.addClass(DISABLED)
@@ -112,6 +108,9 @@ class Menu {
                             "\nPlease report a bug in case some job failed without us noticing it."
                     )
                 } else {
+                    showError("Release ended with failure :(" +
+                        "\nAt least one job failed. Check errors, fix them and then you can re-trigger the failed jobs by clicking on the release button." +
+                        "\n(You might have to delete git tags and remove artifacts if they have already been created).")
                     releaseButton.removeClass(DISABLED)
                     elementById("release.text").innerText = "Retrigger failed Jobs"
                     releaseButton.title = releaseButton.asDynamic().oldTitle as String
@@ -166,7 +165,7 @@ class Menu {
     private fun save(publisher: Publisher?) {
         if (publisher == null) {
             deactivateSaveButton()
-            showError(
+            showThrowableAndThrow(
                 IllegalStateException(
                     "Save button should not be activate if no publish job url was specified.\nPlease report a bug."
                 )

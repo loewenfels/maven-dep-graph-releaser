@@ -34,7 +34,7 @@ class JobExecutor(private val jenkinsUrl: String, private val usernameToken: Use
                     crumbWithId to buildNumber
                 }
         }.catch {
-            showError(it)
+            showThrowableAndThrow(it)
         }
     }
 

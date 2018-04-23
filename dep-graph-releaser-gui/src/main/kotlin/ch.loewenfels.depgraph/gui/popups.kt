@@ -57,7 +57,7 @@ private fun closeMessage(msgId: String) {
     elementById(msgId).style.display = "none"
 }
 
-fun showError(t: Throwable): Nothing {
+fun showThrowableAndThrow(t: Throwable): Nothing {
     val sb = StringBuilder()
     var cause = t.cause
     while (cause != null) {

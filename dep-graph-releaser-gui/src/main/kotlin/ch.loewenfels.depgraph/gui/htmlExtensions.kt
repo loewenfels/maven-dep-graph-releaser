@@ -35,7 +35,7 @@ fun withErrorHandling(event: Event, action: (Event) -> Unit) {
     try {
         action(event)
     } catch (t: Throwable) {
-        showError(
+        showThrowableAndThrow(
             RuntimeException("An unexpected error occurred. Please report a bug with the following information.", t)
         )
     }

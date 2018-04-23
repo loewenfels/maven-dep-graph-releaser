@@ -294,7 +294,10 @@ input:checked + .slider:before {
         0 0 4px rgba(0, 1, 0, 0.1) inset;
 }
 
-.command.queueing .toggle, .command.inProgress .toggle, .command.succeeded .toggle {
+.command.queueing .toggle,
+.command.inProgress .toggle,
+.command.succeeded .toggle,
+.command.failed .toggle {
     display: none;
 }
 
@@ -335,19 +338,34 @@ input:checked + .slider:before {
 }
 
 .command.succeeded .state .material-icons span::after {
-    content: 'check';
-}
-.command.succeeded .state {
-    cursor: pointer;
-    display: inline-block;
-    border-color: #008000;
-    color:#008000;
-    background-color: #c9fdc9;
-    animation: none;
-    -webkit-animation: none;
-}
+     content: 'check';
+ }
+ .command.succeeded .state {
+     cursor: pointer;
+     display: inline-block;
+     border-color: #008000;
+     color:#008000;
+     background-color: #c9fdc9;
+     animation: none;
+     -webkit-animation: none;
+ }
 
-.command.inProgress .state .material-icons, .command.succeeded .state .material-icons {
+ .command.failed .state .material-icons span::after {
+     content: 'error';
+ }
+ .command.failed .state {
+     cursor: pointer;
+     display: inline-block;
+     border-color: #a01c1c;
+     color:#a01c1c;
+     background-color: #f7dede;
+     animation: none;
+     -webkit-animation: none;
+ }
+
+.command.inProgress .state .material-icons,
+.command.succeeded .state .material-icons,
+.command.failed .state .material-icons {
     font-size: 20px;
     padding: 2px;
     width: 20px;

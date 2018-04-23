@@ -46,7 +46,7 @@ class App {
         return if (window.location.hash != "") {
             window.location.hash.substring(1).substringBefore("&")
         } else {
-            showError(
+            showThrowableAndThrow(
                 IllegalStateException(
                     "You need to specify a release.json." +
                         "\nAppend the path with preceding # to the url, e.g., ${window.location}#release.json"
@@ -74,7 +74,7 @@ class App {
                     switchLoaderJsonWithPipeline()
                 }
                 .catch {
-                    showError(it)
+                    showThrowableAndThrow(it)
                 }
         }
     }
