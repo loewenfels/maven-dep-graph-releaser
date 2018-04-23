@@ -128,7 +128,7 @@ class Releaser(
         }.then {
             sleep(1000) {
                 displayJobState(
-                    project, index, CommandState.InProgress, CommandState.Succeeded, "Job completed successfully"
+                    project, index, CommandState.InProgress, CommandState.Failed, "Job completed successfully"
                 )
             }
         }.finally {

@@ -38,7 +38,7 @@ sealed class CommandState {
     object Ready : CommandState()
     object InProgress : CommandState()
     object Succeeded : CommandState()
-    data class Failed(val message: String) : CommandState()
+    object Failed : CommandState()
     data class Deactivated(val previous: CommandState) : CommandState()
     /**
      * Such a command cannot be reactivated in contrast to [Deactivated].

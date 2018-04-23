@@ -53,7 +53,6 @@ fun deserializeProjects(releasePlanJson: ReleasePlanJson): Map<ProjectId, Projec
 }
 
 fun deserializeCommands(commands: Array<GenericType<Command>>): List<Command> {
-
     return commands.map {
         when (it.t) {
             JENKINS_MAVEN_RELEASE_PLUGIN -> createJenkinsMavenReleasePlugin(it.p)

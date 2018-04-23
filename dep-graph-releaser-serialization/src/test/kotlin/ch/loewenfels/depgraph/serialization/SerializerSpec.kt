@@ -31,7 +31,7 @@ object SerializerSpec : Spek({
     describe("serialize and deserialize") {
         val aId = DummyProjectId("a")
         val projectWithoutCommandsAndDependents = Project(aId, false,"5.0", "5.1", 1, listOf(), "")
-        val projectWithCommandsWithoutDependents = Project(DummyProjectId("b"), false, "1.2", "2.0", 2, listOf(DummyCommand(CommandState.Failed("oh no"))), "")
+        val projectWithCommandsWithoutDependents = Project(DummyProjectId("b"), false, "1.2", "2.0", 2, listOf(DummyCommand(CommandState.Failed)), "")
         val projectWithoutCommandsButDependents = Project(DummyProjectId("c"), false,"1.5", "3.0", 1, listOf(), "")
         val releasePlanWithoutCommandsButDependents = ReleasePlan(
             projectWithoutCommandsButDependents.id,
@@ -76,7 +76,7 @@ object SerializerSpec : Spek({
             CommandState.Ready,
             CommandState.InProgress,
             CommandState.Succeeded,
-            CommandState.Failed("error"),
+            CommandState.Failed,
             CommandState.Deactivated(CommandState.Waiting(setOf(DummyProjectId("x"), DummyProjectId("z"))))
         ).associateBy(
             { "a Project with a single command in state ${it::class.java.simpleName}" },

@@ -17,7 +17,7 @@ object CommandStateAdapter {
         CommandState.Ready -> CommandStateJson(Ready)
         CommandState.InProgress -> CommandStateJson(InProgress)
         CommandState.Succeeded -> CommandStateJson(Succeeded)
-        is CommandState.Failed -> CommandStateJson(Failed, state.message)
+        is CommandState.Failed -> CommandStateJson(Failed)
         is CommandState.Deactivated -> CommandStateJson(Deactivated, toJson(state.previous))
         CommandState.Disabled -> CommandStateJson(Disabled)
     }
