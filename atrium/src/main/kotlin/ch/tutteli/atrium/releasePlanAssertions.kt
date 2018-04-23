@@ -58,5 +58,3 @@ fun Assert<ReleasePlan>.iteratorReturnsRootAndInOrderGrouped(vararg otherGroups:
     }
 }
 
-private fun ReleasePlan.getRootProject() = getProject(rootProjectId)
-

@@ -45,6 +45,7 @@ data class ReleasePlan(
     ) :
         this(rootProjectId, projects, submodulesOfProject, dependents, listOf(), listOf(), mapOf())
 
+    fun getRootProject() = getProject(rootProjectId)
     fun getProject(projectId: ProjectId): Project {
         return projects[projectId] ?: throw IllegalArgumentException("Could not find the project with id $projectId")
     }
@@ -58,6 +59,24 @@ data class ReleasePlan(
     fun getDependents(projectId: ProjectId): Set<ProjectId> {
         return dependents[projectId]
             ?: throw IllegalArgumentException("Could not find dependents for project with id $projectId")
+    }
+
+    /**
+     * Returns the dependents of the given [multiModuleId] as well as the dependents of submodules and
+     * dependents of nested submodules.
+     *
+     * @return A pair where [Pair.first] is the [ProjectId] id of the multi module or one of the submodules and
+     *   [Pair.second] is the project id of the dependent.
+     */
+    fun collectDependentsInclDependentsOfAllSubmodules(multiModuleId: ProjectId): HashSet<Pair<ProjectId, ProjectId>> {
+        val projectIds = hashSetOf<Pair<ProjectId, ProjectId>>()
+        val projectsToVisit = mutableListOf(multiModuleId)
+        do {
+            val projectId = projectsToVisit.removeAt(0)
+            projectIds.addAll(getDependents(projectId).map { projectId to it })
+            projectsToVisit.addAll(getSubmodules(projectId))
+        } while (projectsToVisit.isNotEmpty())
+        return projectIds
     }
 
     fun iterator(): Iterator<Project> = ReleasePlanIterator(this, rootProjectId)
@@ -90,7 +109,7 @@ data class ReleasePlan(
                 .map { releasePlan.getProject(it) }
                 .filter { it.level == project.level + 1 || (it.isSubmodule && it.level == project.level) }
                 .forEach {
-                    if(it.level == project.level){
+                    if (it.level == project.level) {
                         levelIterator.addToCurrentLevel(it.id to it)
                     } else {
                         levelIterator.addToNextLevel(it.id to it)

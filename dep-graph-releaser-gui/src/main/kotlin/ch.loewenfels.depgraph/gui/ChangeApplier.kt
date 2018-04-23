@@ -27,10 +27,10 @@ object ChangeApplier {
             }
         }
         releasePlanJson.config.forEach { arr ->
-            if(arr.size != 2) return@forEach
+            if (arr.size != 2) return@forEach
 
             val input = getTextField("config-${arr[0]}")
-            if(arr[1] != input.value){
+            if (arr[1] != input.value) {
                 arr[1] = input.value
                 changed = true
             }
@@ -55,8 +55,8 @@ object ChangeApplier {
             val checkbox = getCheckbox("${mavenProjectId.identifier}:$index${Gui.DISABLE_SUFFIX}")
             if (!checkbox.checked) {
                 val previous = JSON.parse<CommandStateJson>(JSON.stringify(commandStateJson))
-                commandStateJson.asDynamic().state = CommandStateJson.State.Deactivated.name
-                commandStateJson.asDynamic().previous = previous
+                commandStateJson.state = CommandStateJson.State.Deactivated.name.unsafeCast<CommandStateJson.State>()
+                commandStateJson.previous = previous
                 return true
             }
         }

@@ -92,7 +92,12 @@ class Menu {
             }
             releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
                 dispatchReleaseStart()
-                releaser.release().then({ dispatchReleaseEnd(success = true) }, { dispatchReleaseEnd(success = false) })
+                releaser.release().then({
+                    dispatchReleaseEnd(success = true)
+                }, { t ->
+                    dispatchReleaseEnd(success = false)
+                    throw t
+                })
             }
             Menu.registerForReleaseStartEvent {
                 releaseButton.addClass(DISABLED)

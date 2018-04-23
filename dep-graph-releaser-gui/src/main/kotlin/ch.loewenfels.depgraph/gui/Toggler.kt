@@ -87,33 +87,24 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
     private fun registerReleaseUncheckEventForDependentsAndSubmodules(project: Project) {
         if (!project.isSubmodule) {
-            val projectIds = collectDependentsOnNextLevelInclDependentsOfAllSubmodules(project)
+            val projectIds = releasePlan.collectDependentsInclDependentsOfAllSubmodules(project.id)
 
             projectIds.forEach { (projectId, dependentId) ->
                 releasePlan.getProject(dependentId).commands
                     .mapIndexed { i, t -> i to t }
-                    .filter { (_, command) -> command !is ReleaseCommand && command.state is CommandState.Waiting }
-                    .forEach { (index, command) ->
-                        val state = command.state as CommandState.Waiting
-                        if (state.dependencies.contains(projectId)) {
-                            registerForProjectEvent(project, EVENT_RELEASE_TOGGLE_UNCHECKED) {
-                                getToggle(releasePlan.getProject(dependentId), index).uncheck()
-                            }
+                    .filter { (_, command) ->
+                        // release command will get deactivated automatically via deactivation dependency update
+                        if (command is ReleaseCommand) return@filter false
+                        val state = command.state
+                        state is CommandState.Waiting && state.dependencies.contains(projectId)
+                    }
+                    .forEach { (index, _) ->
+                        registerForProjectEvent(project, EVENT_RELEASE_TOGGLE_UNCHECKED) {
+                            getToggle(releasePlan.getProject(dependentId), index).uncheck()
                         }
                     }
             }
         }
-    }
-
-    private fun collectDependentsOnNextLevelInclDependentsOfAllSubmodules(project: Project): HashSet<Pair<ProjectId, ProjectId>> {
-        val projectIds = hashSetOf<Pair<ProjectId, ProjectId>>()
-        val projectsToVisit = mutableListOf(project.id)
-        do {
-            val projectId = projectsToVisit.removeAt(0)
-            projectIds.addAll(releasePlan.getDependents(projectId).map { projectId to it })
-            projectsToVisit.addAll(releasePlan.getSubmodules(projectId))
-        } while (projectsToVisit.isNotEmpty())
-        return projectIds
     }
 
     private fun HTMLInputElement.uncheck() = changeChecked(this, false)

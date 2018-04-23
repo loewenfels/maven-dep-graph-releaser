@@ -121,7 +121,7 @@ class JobExecutor(private val jenkinsUrl: String, private val usernameToken: Use
                     false to ""
                 }
             })
-        }.asDynamic() as Promise<String>
+        }.unsafeCast<Promise<String>>()
     }
 
     private fun <T : Any> poll(
@@ -142,9 +142,9 @@ class JobExecutor(private val jenkinsUrl: String, private val usernameToken: Use
             val p = sleep(sleepInSeconds * 1000) {
                 poll(crumbWithId, pollUrl, numberOfTries + 1, action)
             }
-            // asDynamic is used because javascript resolves the result automatically on return
+            // unsafeCast is used because javascript resolves the result automatically on return
             // will not result in Promise<Promise<T>> but T
-            p.asDynamic() as T
+            p.unsafeCast<T>()
         }
 
         return window.fetch(pollUrl, init)

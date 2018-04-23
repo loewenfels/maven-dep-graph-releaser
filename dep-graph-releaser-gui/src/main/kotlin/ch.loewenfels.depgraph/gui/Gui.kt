@@ -337,13 +337,12 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             state.href = jobUrl
         }
 
-        fun displayJobState(
+        fun changeJobStateFromInProgressTo(
             project: Project,
             index: Int,
-            currentState: CommandState,
             newState: CommandState,
             title: String
-        ) = displayJobState(project, index, stateToCssClass(currentState), stateToCssClass(newState), title)
+        ) = displayJobState(project, index, stateToCssClass(CommandState.InProgress), stateToCssClass(newState), title)
 
         fun displayJobState(
             project: Project,

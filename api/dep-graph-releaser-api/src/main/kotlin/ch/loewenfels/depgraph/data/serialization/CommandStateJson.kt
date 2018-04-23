@@ -5,9 +5,9 @@ import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.serialization.CommandStateJson.State.*
 
 data class CommandStateJson(
-    val state: State,
+    var state: State,
     val dependencies: Set<ProjectId>?,
-    val previous: CommandStateJson?
+    var previous: CommandStateJson?
 ) {
     constructor(state: State) : this(state, null, null)
     constructor(state: State, dependencies: Set<ProjectId>) : this(state, dependencies, null)

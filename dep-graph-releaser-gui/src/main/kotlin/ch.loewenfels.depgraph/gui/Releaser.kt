@@ -5,11 +5,10 @@ import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
+import ch.loewenfels.depgraph.gui.Gui.Companion.changeJobStateFromInProgressTo
 import ch.loewenfels.depgraph.gui.Gui.Companion.displayJobState
 import ch.loewenfels.depgraph.gui.Gui.Companion.displayJobStateAddLinkToJob
 import ch.loewenfels.depgraph.gui.Gui.Companion.stateToCssClass
-import ch.loewenfels.depgraph.hasNextOnTheSameLevel
-import ch.loewenfels.depgraph.toPeekingIterator
 import kotlin.js.Promise
 
 class Releaser(
@@ -23,31 +22,117 @@ class Releaser(
         val releasePlan = deserialize(modifiableJson.json)
         checkConfig(releasePlan)
 
+        val project = releasePlan.getRootProject()
+        val paramObject = ParamObject(releasePlan, project)
+        return releaseProject(paramObject)
+    }
 
-        val itr = releasePlan.iterator().toPeekingIterator()
-        var level: Int
-        var notOneReleaseSucceeded: Boolean
-        val promises = mutableListOf<Promise<Unit>>()
-        while (itr.hasNext()) {
-            notOneReleaseSucceeded = true
-            val paramObject = ParamObject(releasePlan, itr.next())
-            level = paramObject.project.level
-            notOneReleaseSucceeded = notOneReleaseSucceeded or
-                triggerCommandOfProjectAndCollectPromises(paramObject, promises)
 
-            while (itr.hasNextOnTheSameLevel(level)) {
-                val nextParamObject = ParamObject(paramObject, itr.next())
-                notOneReleaseSucceeded = notOneReleaseSucceeded or
-                    triggerCommandOfProjectAndCollectPromises(nextParamObject, promises)
+    private fun releaseProject(paramObject: ParamObject): Promise<Array<out Unit>> {
+        val releasePlan = paramObject.releasePlan
+        val project = paramObject.project
+        return triggerNonReleaseCommandsInclSubmoduleCommands(paramObject)
+            .then { arr ->
+                //we stop if any command or a command of a submodule was not executed or already succeeded
+                if (arr.any { false }) throw NotReadyState
+
+                triggerReleaseCommands(paramObject)
+            }.then { it: Boolean ->
+                console.log("here with ${paramObject.project}")
+                val allDependents = releasePlan.collectDependentsInclDependentsOfAllSubmodules(project.id)
+                updateStateWaiting(releasePlan, allDependents)
+                releaseDependentProjects(allDependents, releasePlan, paramObject)
+            }.catch { t ->
+                if (t !== NotReadyState) throw t
+                arrayOf<Unit>()
             }
+    }
 
-            if (notOneReleaseSucceeded) {
-                //we don't have to go on to the next level if there isn't one released project on this level
-                break
+    private fun releaseDependentProjects(
+        allDependents: HashSet<Pair<ProjectId, ProjectId>>,
+        releasePlan: ReleasePlan,
+        paramObject: ParamObject
+    ): Promise<Array<out Unit>> {
+        val promises: List<Promise<Unit>> = allDependents
+            .asSequence()
+            .map { (_, dependentId) -> releasePlan.getProject(dependentId) }
+            .filter { !it.isSubmodule }
+            .toSet()
+            .map { dependentProject ->
+                releaseProject(ParamObject(paramObject, dependentProject))
+                    .then { arr ->
+                        //TODO should we do something with that?
+                    }
+            }
+        return Promise.all(promises.toTypedArray())
+    }
+
+    private fun updateStateWaiting(releasePlan: ReleasePlan, allDependents: Set<Pair<ProjectId, ProjectId>>) {
+        allDependents.forEach { (multiOrSubmoduleId, dependentId) ->
+            releasePlan.getProject(dependentId).commands.forEach { command ->
+                val state = command.state
+                if (state is CommandState.Waiting && state.dependencies.contains(multiOrSubmoduleId)) {
+                    (state.dependencies as MutableSet).remove(multiOrSubmoduleId)
+                }
             }
         }
-        //TODO we don't want to stop if one of the jobs reject, have to handle that within triggerCommandOfProjectAndCollectPromises
-        return Promise.all(promises.toTypedArray())
+    }
+
+    private fun triggerNonReleaseCommandsInclSubmoduleCommands(paramObject: ParamObject): Promise<Promise<List<Boolean>>> {
+        return paramObject.project.commands
+            .asSequence()
+            .mapIndexed { i, t -> i to t }
+            .filter { it.second !is ReleaseCommand }
+            .fold(Promise.resolve(Promise.resolve(mutableListOf<Boolean>()))) { acc, (index, command) ->
+                acc.then { list ->
+                    createCommandPromise(command, paramObject, index).then { result ->
+                        list.add(result)
+                        list
+                    }
+                }.unsafeCast<Promise<MutableList<Boolean>>>()
+            }
+            .then { arr ->
+                val initial: Promise<MutableList<Boolean>> = Promise.resolve(arr.toMutableList())
+                paramObject.releasePlan.getSubmodules(paramObject.project.id).fold(initial) { acc, submoduleId ->
+                    acc.then { list: MutableList<Boolean> ->
+                        triggerNonReleaseCommandsInclSubmoduleCommands(
+                            ParamObject(
+                                paramObject,
+                                submoduleId
+                            )
+                        ).then { result ->
+                            list.addAll(result)
+                            list
+                        }
+                    }.unsafeCast<Promise<MutableList<Boolean>>>()
+                }
+            }
+    }
+
+    private fun triggerReleaseCommands(paramObject: ParamObject): Promise<Boolean> {
+        return paramObject.project.commands
+            .mapIndexed { i, t -> i to t }
+            .filter { it.second is ReleaseCommand }
+            .fold(Promise.resolve(true)) { acc, (index, command) ->
+                acc.then {
+                    createCommandPromise(command, paramObject, index)
+                        .then { wasReady ->
+                            if (!wasReady) throw NotReadyState
+                            wasReady
+                        }
+                }.unsafeCast<Promise<Boolean>>()
+            }
+    }
+
+
+    private fun createCommandPromise(command: Command, paramObject: ParamObject, index: Int): Promise<Boolean> {
+        val state = command.state
+        return if (state === CommandState.Ready || state is CommandState.Waiting && state.dependencies.isEmpty()) {
+            triggerCommand(paramObject, command, index)
+                .then { true }
+        } else {
+            Promise.resolve(state === CommandState.Succeeded)
+        }
     }
 
     private fun checkConfig(releasePlan: ReleasePlan) {
@@ -61,31 +146,6 @@ class Releaser(
         require(config.containsKey(key)) {
             "$key is not defined in settings"
         }
-    }
-
-    private fun triggerCommandOfProjectAndCollectPromises(
-        nextParamObject: ParamObject,
-        promises: MutableList<Promise<Unit>>
-    ): Boolean {
-        val (notOneReleaseSucceeded, promise) = triggerCommandsOfProject(nextParamObject)
-        promise?.let { promises.add(it) }
-        return notOneReleaseSucceeded
-    }
-
-
-    private fun triggerCommandsOfProject(paramObject: ParamObject): Pair<Boolean, Promise<Unit>?> {
-        val commands = paramObject.project.commands
-        val size = commands.size
-        for (index in (size - 1)..0) {
-            val command = commands[index]
-            val isReady = command.state === CommandState.Ready
-            if (!isReady && command.state !is CommandState.Waiting) {
-                return (command is ReleaseCommand && command.state == CommandState.Succeeded) to null
-            } else if (isReady) {
-                return false to triggerCommand(paramObject, command, index)
-            }
-        }
-        return false to null
     }
 
     private fun triggerCommand(paramObject: ParamObject, command: Command, index: Int): Promise<Unit> {
@@ -126,18 +186,21 @@ class Releaser(
             //TODO we need to update the release json via publisher
         }.then {
             sleep(1000) {
-                throw RuntimeException("asdf")
+                true
             }
-        }.then({
-            displayJobState(
-                project, index, CommandState.InProgress, CommandState.Succeeded, "Job completed successfully."
-            )
-        }, { t ->
-            displayJobState(
-                project, index, CommandState.InProgress, CommandState.Failed, "Job failed, click to navigate to the job."
-            )
-            throw t
-        }).finally {
+        }.then(
+            {
+                changeJobStateFromInProgressTo(
+                    project, index, CommandState.Succeeded, "Job completed successfully."
+                )
+            },
+            { t ->
+                changeJobStateFromInProgressTo(
+                    project, index, CommandState.Failed, "Job failed, click to navigate to the job."
+                )
+                throw t
+            }
+        ).finally {
             changeCursorBackToNormal()
         }
     }
@@ -176,8 +239,13 @@ class Releaser(
         constructor(paramObject: ParamObject, newProject: Project)
             : this(paramObject.releasePlan, newProject)
 
+        constructor(paramObject: ParamObject, newProjectId: ProjectId)
+            : this(paramObject.releasePlan, paramObject.releasePlan.getProject(newProjectId))
+
         fun getConfig(configKey: ConfigKey): String {
             return releasePlan.config[configKey] ?: throw IllegalArgumentException("unknown config key: $configKey")
         }
     }
+
+    private object NotReadyState : RuntimeException()
 }
