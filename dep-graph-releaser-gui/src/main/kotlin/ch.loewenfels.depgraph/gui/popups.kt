@@ -59,13 +59,24 @@ private fun closeMessage(msgId: String) {
 
 fun showThrowableAndThrow(t: Throwable): Nothing {
     val sb = StringBuilder()
+    sb.appendThrowable(t)
+
     var cause = t.cause
     while (cause != null) {
-        sb.append("\nCause: ").append(cause)
+        sb.append("\n\nCause: ").appendThrowable(cause)
         cause = cause.cause
     }
-    showError("${t::class.js.name}: ${t.message}$sb")
+    showError(sb.toString())
     throw t //this way it also shows up in console with stacktrace
+}
+
+private fun StringBuilder.appendThrowable(t: Throwable) {
+    val stack: String? = t.asDynamic().stack as? String
+    if (stack != null) {
+        append(stack)
+    } else {
+        append("${t::class.js.name}: ${t.message}")
+    }
 }
 
 private fun HTMLTag.convertNewLinesToBr(message: String) {

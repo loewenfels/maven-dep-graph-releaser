@@ -6,6 +6,7 @@ import org.w3c.dom.events.Event
 import kotlin.dom.addClass
 import kotlin.dom.hasClass
 import kotlin.dom.removeClass
+import kotlin.js.Promise
 
 /**
  * Hack to get the underlying [HTMLElement] of the the given [HTMLTag].
@@ -15,11 +16,11 @@ fun HTMLTag.getUnderlyingHtmlElement(): HTMLElement {
     return arr[arr.size - 1]
 }
 
-fun HTMLElement.addClickEventListener(action: (Event) -> Unit) {
+fun HTMLElement.addClickEventListener(action: (Event) -> Any) {
     this.addEventListener("click", { withErrorHandling(it, action) })
 }
 
-fun HTMLElement.addChangeEventListener(action: (Event) -> Unit) {
+fun HTMLElement.addChangeEventListener(action: (Event) -> Any) {
     this.addEventListener("change", { withErrorHandling(it, action) })
 }
 
@@ -31,12 +32,12 @@ fun HTMLElement.toggleClass(cssClass: String) {
     }
 }
 
-fun withErrorHandling(event: Event, action: (Event) -> Unit) {
-    try {
+fun withErrorHandling(event: Event, action: (Event) -> Any) {
+    Promise.resolve(1).then {
         action(event)
-    } catch (t: Throwable) {
+    }.catch { t ->
         showThrowableAndThrow(
-            RuntimeException("An unexpected error occurred. Please report a bug with the following information.", t)
+            Error("An unexpected error occurred. Please report a bug with the following information.", t)
         )
     }
 }

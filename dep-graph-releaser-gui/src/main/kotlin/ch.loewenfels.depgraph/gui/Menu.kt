@@ -131,9 +131,9 @@ class Menu {
     }
 
 
-    private fun HTMLElement.addClickEventListenerIfNotDeactivatedNorDisabled(action: () -> Unit) {
+    private fun HTMLElement.addClickEventListenerIfNotDeactivatedNorDisabled(action: () -> Any) {
         addClickEventListener {
-            if (hasClass(DEACTIVATED) || hasClass(DISABLED)) return@addClickEventListener
+            if (hasClass(DEACTIVATED) || hasClass(DISABLED)) return@addClickEventListener Unit
             action()
         }
     }
