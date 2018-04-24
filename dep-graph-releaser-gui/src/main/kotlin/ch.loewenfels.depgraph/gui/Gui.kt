@@ -87,9 +87,6 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
     private fun DIV.project(project: Project) {
         div {
-            val div = getUnderlyingHtmlElement()
-            div.asDynamic().project = project
-
             val hasCommands = project.commands.isNotEmpty()
             classes = setOf(
                 "project",
