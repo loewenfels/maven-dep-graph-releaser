@@ -23,11 +23,11 @@ class SimulatingJobExecutor : JobExecutor {
         return sleep(100) {
             jobQueuedHook("${jobUrl}queuingUrl")
         }.then {
-            sleep(500) {
+            sleep(300) {
                 jobStartedHook(100)
             }
         }.then {
-            sleep(500) { true }
+            sleep(300) { true }
         }.then {
             CrumbWithId("Jenkins-Crumb", "onlySimulation") to 100
         }

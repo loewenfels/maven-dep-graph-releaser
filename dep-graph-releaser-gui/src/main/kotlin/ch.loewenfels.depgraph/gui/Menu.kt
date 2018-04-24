@@ -20,6 +20,7 @@ class Menu {
     private val downloadButton get() = elementById("download")
     private val dryRunButton get() = elementById("dryRun")
     private val releaseButton get() = elementById("release")
+    private val simulateButton get() = elementById("simulate")
     private val settingsButton get() = elementById("settings")
 
     private var publisher: Publisher? = null
@@ -92,27 +93,33 @@ class Menu {
 
     private fun initRunButtons(dependencies: Dependencies?) {
         if (dependencies != null) {
-            activateReleaseButton()
+
             dryRunButton.addClickEventListenerIfNotDeactivatedNorDisabled {
                 //TODO implement
             }
+            activateReleaseButton()
             releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                dispatchReleaseStart()
-                dependencies.releaser.release(dependencies.jenkinsJobExecutor).then({
-                    dispatchReleaseEnd(success = true)
-                }, { t ->
-                    dispatchReleaseEnd(success = false)
-                    throw t
-                })
+                triggerRelease(dependencies, dependencies.jenkinsJobExecutor)
+
             }
+
+            activateSimulateButton()
+            simulateButton.addClickEventListenerIfNotDeactivatedNorDisabled {
+                triggerRelease(dependencies, dependencies.simulatingJobExecutor)
+            }
+
             Menu.registerForReleaseStartEvent {
-                releaseButton.addClass(DISABLED)
-                releaseButton.asDynamic().oldTitle = releaseButton.title
-                releaseButton.title = Gui.DISABLED_RELEASE_IN_PROGRESS
+                listOf(dryRunButton, releaseButton, simulateButton).forEach {
+                    it.addClass(DISABLED)
+                    it.asDynamic().oldTitle = it.title
+                    it.title = Gui.DISABLED_RELEASE_IN_PROGRESS
+                }
             }
             Menu.registerForReleaseEndEvent { success ->
                 if (success) {
-                    releaseButton.title = Gui.DISABLED_RELEASE_SUCCESS
+                    listOf(dryRunButton, releaseButton, simulateButton).forEach {
+                        it.title = Gui.DISABLED_RELEASE_SUCCESS
+                    }
                     showSuccess(
                         "Release ended successfully :) you can now close the window." +
                             "\nUse a new pipeline for a new release." +
@@ -124,14 +131,25 @@ class Menu {
                             "\nAt least one job failed. Check errors, fix them and then you can re-trigger the failed jobs by clicking on the release button." +
                             "\n(You might have to delete git tags and remove artifacts if they have already been created)."
                     )
-                    releaseButton.removeClass(DISABLED)
                     elementById("release.text").innerText = "Retrigger failed Jobs"
-                    releaseButton.title = releaseButton.asDynamic().oldTitle as String
+                    listOf(dryRunButton, releaseButton, simulateButton).forEach {
+                        it.removeClass(DISABLED)
+                        it.title = it.asDynamic().oldTitle as String
+                    }
                 }
             }
         }
     }
 
+    private fun triggerRelease(dependencies: Dependencies, jobExecutor: JobExecutor) {
+        dispatchReleaseStart()
+        dependencies.releaser.release(jobExecutor).then({
+            dispatchReleaseEnd(success = true)
+        }, { t ->
+            dispatchReleaseEnd(success = false)
+            throw t
+        })
+    }
 
     private fun HTMLElement.addClickEventListenerIfNotDeactivatedNorDisabled(action: () -> Any) {
         addClickEventListener {
@@ -173,6 +191,14 @@ class Menu {
 
         releaseButton.removeClass(DEACTIVATED)
         releaseButton.title = "Start a release based on this release plan."
+    }
+
+    private fun activateSimulateButton() {
+        if (simulateButton.isDisabled()) return
+
+        simulateButton.removeClass(DEACTIVATED)
+        simulateButton.title =
+            "See in which order the projects are build, actual order may vary due to unequal execution time."
     }
 
     /**
