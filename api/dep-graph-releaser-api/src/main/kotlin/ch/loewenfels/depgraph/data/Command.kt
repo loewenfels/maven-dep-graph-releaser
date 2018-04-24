@@ -53,7 +53,7 @@ sealed class CommandState {
     object Disabled : CommandState()
 
     fun checkTransitionAllowed(newState: CommandState): CommandState {
-        check(this !== Disabled) { "Cannot transition to any state if current state is Disabled." }
+        check(this !== Disabled) { "Cannot transition to any state if current state is ${Disabled::class.simpleName}." }
         check(this::class != newState::class) {
             "Cannot transition to the same state as the current." +
                 //TODO use $this in stead of $getRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed
@@ -65,7 +65,8 @@ sealed class CommandState {
             Ready -> {
                 checkNewState(newState, Waiting::class)
                 check((this as Waiting).dependencies.isEmpty()) {
-                    "Can only change from Waiting to Ready if there are not any dependencies left." +
+                    "Can only change from ${Waiting::class.simpleName} to ${Ready::class.simpleName} " +
+                        "if there are not any dependencies left which we need to wait for." +
                         //TODO use $this in stead of $getRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed
                         "\nState was: ${getRepresentation(this)}"
                 }
