@@ -5,12 +5,8 @@ import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
-import ch.loewenfels.depgraph.gui.Gui.Companion.changeJobStateFromInProgressTo
-import ch.loewenfels.depgraph.gui.Gui.Companion.displayJobState
-import ch.loewenfels.depgraph.gui.Gui.Companion.displayJobStateAddLinkToJob
-import ch.loewenfels.depgraph.gui.Gui.Companion.stateToCssClass
 import kotlin.collections.set
-import kotlin.js.*
+import kotlin.js.Promise
 
 class Releaser(
     private val jenkinsUrl: String,
@@ -52,10 +48,16 @@ class Releaser(
 
     private fun updateStateWaiting(releasePlan: ReleasePlan, allDependents: Set<Pair<ProjectId, ProjectId>>) {
         allDependents.forEach { (multiOrSubmoduleId, dependentId) ->
-            releasePlan.getProject(dependentId).commands.forEach { command ->
-                val state = command.state
+            val dependentProject = releasePlan.getProject(dependentId)
+            dependentProject.commands.forEachIndexed { index, command ->
+                val state = Gui.getCommandState(dependentId, index)
                 if (state is CommandState.Waiting && state.dependencies.contains(multiOrSubmoduleId)) {
                     (state.dependencies as MutableSet).remove(multiOrSubmoduleId)
+                    if (state.dependencies.isEmpty()) {
+                        Gui.changeStateOfCommand(
+                            dependentProject, index, CommandState.Ready, "Ready to be queued for execution."
+                        )
+                    }
                 }
             }
         }
@@ -70,7 +72,7 @@ class Releaser(
             .asSequence()
             .map { (_, dependentId) -> releasePlan.getProject(dependentId) }
             .filter { !it.isSubmodule }
-            .toSet()
+            .toHashSet()
             .map { dependentProject ->
                 releaseProject(ParamObject(paramObject, dependentProject))
                     .then { _ -> /* we ignore the resulting array on purpose */ }
@@ -100,12 +102,6 @@ class Releaser(
             }
     }
 
-    private fun Command.hasStateReadyOrEmptyWaiting(): Boolean {
-        val state = state
-        return state === ch.loewenfels.depgraph.data.CommandState.Ready ||
-            (state is CommandState.Waiting && state.dependencies.isEmpty())
-    }
-
     private fun triggerReleaseCommands(paramObject: ParamObject): Promise<Boolean> {
         return paramObject.project.commands
             .mapIndexed { i, t -> i to t }
@@ -122,11 +118,12 @@ class Releaser(
     }
 
     private fun createCommandPromise(paramObject: ParamObject, command: Command, index: Int): Promise<Boolean> {
-        return if (command.hasStateReadyOrEmptyWaiting()) {
+        val state = Gui.getCommandState(paramObject.project.id, index)
+        return if (state === CommandState.Ready) {
             triggerCommand(paramObject, command, index)
                 .then { true }
         } else {
-            Promise.resolve(command.state === CommandState.Succeeded)
+            Promise.resolve(state === CommandState.Succeeded)
         }
     }
 
@@ -171,40 +168,36 @@ class Releaser(
         project: Project,
         index: Int
     ): Promise<*> {
-        console.log("tigger: ${project.id.identifier} / $jobUrl")
+        console.log("trigger: ${project.id.identifier} / $jobUrl")
         val jobUrlWithSlash = if (jobUrl.endsWith("/")) jobUrl else "$jobUrl/"
-        displayJobState(project, index, stateToCssClass(CommandState.Ready), "queueing", "Currently queueing the job")
         //jobExecutor.trigger(jobUrlWithSlash, jobName, params, { buildNumber ->
-        return sleep(500) { 100 }.then { buildNumber ->
-            val command = Gui.getCommand(project, index)
-            val buildUrl = "$jobUrlWithSlash$buildNumber/"
-            command.asDynamic().buildUrl = buildUrl
-            displayJobStateAddLinkToJob(
-                project, index, "queueing", CommandState.InProgress, "Job is running", buildUrl
+        return sleep(100) { "${jobUrlWithSlash}queuingUrl" }.then { queuedItemUrl ->
+            Gui.changeStateOfCommandAndAddBuildUrl(
+                project, index, CommandState.Queueing, "Currently queueing the job.", queuedItemUrl
             )
-            //TODO modify job's state
+        }.then {
+            sleep(500) { 100 }
+        }.then { buildNumber ->
+            Gui.changeStateOfCommandAndAddBuildUrl(
+                project, index, CommandState.InProgress, "Job is running.", "$jobUrlWithSlash$buildNumber/"
+            )
             menu.save(verbose = false).then { hadChanges ->
                 if (!hadChanges) {
                     showWarning("Could not save changes for project ${project.id.identifier}. Please report a bug.")
                 }
             }
         }.then {
-            sleep(500) {
-                true
-            }
-        }.then(
-            {
-                changeJobStateFromInProgressTo(
-                    project, index, CommandState.Succeeded, "Job completed successfully."
-                )
-            },
-            { t ->
-                changeJobStateFromInProgressTo(
-                    project, index, CommandState.Failed, "Job failed, click to navigate to the job."
-                )
-                throw t
-            }
-        ).finally {
+            sleep(500) { true }
+        }.then {
+            Gui.changeStateOfCommand(
+                project, index, CommandState.Succeeded, "Job completed successfully."
+            )
+        }.catch { t ->
+            Gui.changeStateOfCommand(
+                project, index, CommandState.Failed, "Job failed, click to navigate to the job."
+            )
+            throw t
+        }.finally {
             changeCursorBackToNormal()
         }
     }

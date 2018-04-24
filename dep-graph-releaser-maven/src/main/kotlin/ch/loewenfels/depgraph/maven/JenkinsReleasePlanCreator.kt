@@ -221,7 +221,7 @@ class JenkinsReleasePlanCreator(
         // need a to update anything because the submodules will have the same version after releasing
         //TODO not entirely true, we still need to update the version to the new one
         if (paramObject.isRelationNotInSameMultiModuleCircleAsDependency()) {
-            val state = CommandState.Waiting(setOf(dependencyId))
+            val state = CommandState.Waiting(hashSetOf(dependencyId))
             list.add(0, JenkinsUpdateDependency(state, dependencyId))
         }
     }

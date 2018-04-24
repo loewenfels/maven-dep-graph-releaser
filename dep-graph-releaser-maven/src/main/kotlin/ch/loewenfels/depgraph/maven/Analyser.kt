@@ -244,7 +244,7 @@ class Analyser internal constructor(
         return getInternalAnalysedGavs()
             .map { it.toMavenProjectId() }
             .filter { !isSubmodule(it) }
-            .toSet()
+            .toHashSet()
     }
 
     fun getRelativePath(projectId: MavenProjectId): String = projectsData.getProject(projectId).relativePath

@@ -88,12 +88,20 @@ class ReleasePlanManipulator(private val releasePlan: ReleasePlan) {
             this::transformToDeactivatedCommand,
             this::transformToDeactivatedProject
         ) {
-            require(it.state !is CommandState.Deactivated) {
-                "Cannot deactivate an already deactivated command.\nCommand: $it\nProjectId: $projectId"
-            }
-            require(it.state !== CommandState.Disabled) {
-                "Cannot deactivate an already disabled command.\nCommand: $it\nProjectId: $projectId"
-            }
+            checkTransformationAllowed("deactivate", it, CommandState.Deactivated(it.state), projectId)
+        }
+    }
+
+    private fun checkTransformationAllowed(
+        action: String,
+        command: Command,
+        newState: CommandState,
+        projectId: ProjectId
+    ) {
+        try {
+            command.state.checkTransitionAllowed(newState)
+        } catch (e: IllegalStateException) {
+            throw IllegalArgumentException("cannot $action command:\nCommand: $command\nProjectId: $projectId", e)
         }
     }
 
@@ -110,9 +118,7 @@ class ReleasePlanManipulator(private val releasePlan: ReleasePlan) {
             this::transformToDisabledCommand,
             this::transformToDeactivatedProject
         ) {
-            require(it.state !== CommandState.Disabled) {
-                "Cannot disable an already disabled command.\nCommand: $it\nProjectId: $projectId"
-            }
+            checkTransformationAllowed("disable", it, CommandState.Disabled, projectId)
         }
     }
 

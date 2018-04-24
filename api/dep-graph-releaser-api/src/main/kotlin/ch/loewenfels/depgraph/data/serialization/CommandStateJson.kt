@@ -16,6 +16,7 @@ data class CommandStateJson(
     enum class State {
         Waiting,
         Ready,
+        Queueing,
         InProgress,
         Succeeded,
         Failed,
@@ -27,6 +28,7 @@ data class CommandStateJson(
 fun fromJson(json: CommandStateJson): CommandState = when (json.state) {
     Waiting -> CommandState.Waiting(json.dependencies ?: throwIllegal("dependencies", "Waiting"))
     Ready -> CommandState.Ready
+    Queueing -> CommandState.Queueing
     InProgress -> CommandState.InProgress
     Succeeded -> CommandState.Succeeded
     Failed -> CommandState.Failed

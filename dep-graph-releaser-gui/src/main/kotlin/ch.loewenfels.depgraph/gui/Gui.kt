@@ -156,12 +156,17 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 val commandId = getCommandId(project, index)
                 id = commandId
                 classes = setOf("command", stateToCssClass(command.state))
-                div("commandTitle") { +command::class.simpleName!! }
+                div("commandTitle") {
+                    id = "$commandId$TITLE_SUFFIX"
+                    +command::class.simpleName!!
+                }
                 div("fields") {
                     fieldsForCommand(commandId, project.id, command)
                 }
+                val div = getUnderlyingHtmlElement().asDynamic()
+                div.state = command.state
                 if (command is JenkinsCommand) {
-                    getUnderlyingHtmlElement().asDynamic().buildUrl = command.buildUrl
+                    div.buildUrl = command.buildUrl
                 }
             }
         }
@@ -206,7 +211,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             cssClass
         )
         a(classes = "state") {
-            id = "$idPrefix:state"
+            id = "$idPrefix$STATE_SUFFIX"
             i("material-icons") {
                 span()
                 id = "$idPrefix:status.icon"
@@ -299,20 +304,16 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         const val DISABLED_RELEASE_IN_PROGRESS = "disabled due to release which is in progress."
         const val DISABLED_RELEASE_SUCCESS = "Release successful, use a new pipeline for a new release."
         const val NEXT_DEV_VERSION_SUFFIX = ":nextDevVersion"
+        private const val STATE_SUFFIX = ":state"
+        private const val TITLE_SUFFIX = ":title"
 
         fun getCommandId(project: Project, index: Int) = getCommandId(project.id, index)
         fun getCommandId(projectId: ProjectId, index: Int) = "${projectId.identifier}:$index"
         fun getCommand(project: Project, index: Int) = getCommand(project.id, index)
         fun getCommand(projectId: ProjectId, index: Int): HTMLElement = elementById(getCommandId(projectId, index))
 
-        fun stateToCssClass(state: CommandState) = when (state) {
-            is CommandState.Waiting -> "waiting"
-            CommandState.Ready -> "ready"
-            CommandState.InProgress -> "inProgress"
-            CommandState.Succeeded -> "succeeded"
-            is CommandState.Failed -> "failed"
-            is CommandState.Deactivated -> "deactivated"
-            CommandState.Disabled -> "disabled"
+        fun getCommandState(projectId: ProjectId, index: Int): CommandState {
+            return getCommand(projectId, index).asDynamic().state as CommandState
         }
 
         fun disableUnDisableForReleaseStartAndEnd(input: HTMLInputElement, titleElement: HTMLElement) {
@@ -332,38 +333,49 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             }
         }
 
-        fun displayJobStateAddLinkToJob(
+        fun changeStateOfCommandAndAddBuildUrl(
             project: Project,
             index: Int,
-            cssClassToRemove: String,
             newState: CommandState,
             title: String,
-            jobUrl: String
+            buildUrl: String
         ) {
-            displayJobState(project, index, cssClassToRemove, stateToCssClass(newState), title)
-            val state = elementById<HTMLAnchorElement>("${getCommandId(project, index)}:state")
-            state.href = jobUrl
+            changeStateOfCommand(project, index, newState, title)
+            val commandId = getCommandId(project, index)
+            elementById<HTMLAnchorElement>("$commandId$STATE_SUFFIX").href = buildUrl
+            elementById(commandId).asDynamic().buildUrl = buildUrl
         }
 
-        fun changeJobStateFromInProgressTo(
-            project: Project,
-            index: Int,
-            newState: CommandState,
-            title: String
-        ) = displayJobState(project, index, stateToCssClass(CommandState.InProgress), stateToCssClass(newState), title)
 
-        fun displayJobState(
-            project: Project,
-            index: Int,
-            cssClassToRemove: String,
-            cssClassToAdd: String,
-            title: String
-        ) {
+        fun changeStateOfCommand(project: Project, index: Int, newState: CommandState, title: String) {
             val commandId = getCommandId(project, index)
             val command = elementById(commandId)
-            command.removeClass(cssClassToRemove)
-            command.addClass(cssClassToAdd)
+            val dynCommand = command.asDynamic()
+            val previousState = dynCommand.state as CommandState
+            try {
+                dynCommand.state = previousState.checkTransitionAllowed(newState)
+            } catch (e: IllegalStateException) {
+                val commandTitle = elementById(commandId + TITLE_SUFFIX)
+                throw IllegalStateException(
+                    "Cannot change the state of the command ${commandTitle.innerText} (${index + 1}. command) " +
+                        "of the project ${project.id.identifier}",
+                    e
+                )
+            }
+            command.removeClass(stateToCssClass(previousState))
+            command.addClass(stateToCssClass(newState))
             elementById("$commandId:state").title = title
+        }
+
+        private fun stateToCssClass(state: CommandState) = when (state) {
+            is CommandState.Waiting -> "waiting"
+            CommandState.Ready -> "ready"
+            CommandState.Queueing -> "queueing"
+            CommandState.InProgress -> "inProgress"
+            CommandState.Succeeded -> "succeeded"
+            is CommandState.Failed -> "failed"
+            is CommandState.Deactivated -> "deactivated"
+            CommandState.Disabled -> "disabled"
         }
     }
 }

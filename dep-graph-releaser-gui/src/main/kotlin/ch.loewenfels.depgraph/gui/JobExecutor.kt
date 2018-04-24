@@ -11,6 +11,7 @@ class JobExecutor(private val jenkinsUrl: String, private val usernameToken: Use
         jobName: String,
         body: String,
         verbose: Boolean = true,
+        jobQueuedHook: (queuedItemUrl: String) -> Promise<*>,
         jobStartedHook: (buildNumber: Int) -> Promise<*>
     ): Promise<Pair<CrumbWithId, Int>> {
         return issueCrumb(jenkinsUrl).then { crumbWithId: CrumbWithId? ->
@@ -20,10 +21,16 @@ class JobExecutor(private val jenkinsUrl: String, private val usernameToken: Use
                 }.catch {
                     throw Error("Could not trigger the job $jobName", it)
                 }.then { queuedItemUrl: String ->
-                    if(verbose) showInfo("Queued $jobName successfully, wait for execution...", 2000)
-                    extractBuildNumber(crumbWithId, queuedItemUrl)
+                    if (verbose) {
+                        showInfo("Queued $jobName successfully, wait for execution...", 2000)
+                    }
+                    jobQueuedHook(queuedItemUrl).then {
+                        extractBuildNumber(crumbWithId, queuedItemUrl)
+                    }.then { it }
                 }.then { buildNumber: Int ->
-                    if(verbose) showInfo("$jobName started with build number $buildNumber, wait for completion...", 2000)
+                    if (verbose) {
+                        showInfo("$jobName started with build number $buildNumber, wait for completion...", 2000)
+                    }
                     jobStartedHook(buildNumber).then {
                         pollJobForCompletion(crumbWithId, jobUrl, buildNumber)
                     }.then { result -> buildNumber to result }
@@ -77,7 +84,7 @@ class JobExecutor(private val jenkinsUrl: String, private val usernameToken: Use
     private fun extractBuildNumber(crumbWithId: CrumbWithId?, queuedItemUrl: String): Promise<Int> {
         val xpathUrl = "${queuedItemUrl}api/xml?xpath=//executable/number"
         // wait a bit, if we are too fast we run almost certainly into a 404
-        return sleep(50) {
+        return sleep(400) {
             pollAndExtract(crumbWithId, xpathUrl, numberRegex) { e ->
                 throw IllegalStateException(
                     "Could not find the build number in the returned body." +

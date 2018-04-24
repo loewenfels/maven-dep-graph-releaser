@@ -1,10 +1,11 @@
 package ch.loewenfels.depgraph.gui
 
 import ch.loewenfels.depgraph.data.Command
+import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.ProjectId
+import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsCommand
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
-import ch.loewenfels.depgraph.data.serialization.CommandStateJson
 
 object ChangeApplier {
 
@@ -49,17 +50,53 @@ object ChangeApplier {
         return false
     }
 
-    private fun replaceStateIfChanged(command: GenericType<Command>, mavenProjectId: ProjectId, index: Int): Boolean {
-        val commandStateJson = command.p.state.unsafeCast<CommandStateJson>()
-        val state = commandStateJson.state.unsafeCast<String>()
-        if (state != CommandStateJson.State.Deactivated.name && state != CommandStateJson.State.Disabled.name) {
-            val checkbox = getCheckbox("${mavenProjectId.identifier}:$index${Gui.DISABLE_SUFFIX}")
-            if (!checkbox.checked) {
-                val previous = JSON.parse<CommandStateJson>(JSON.stringify(commandStateJson))
-                commandStateJson.state = CommandStateJson.State.Deactivated.name.unsafeCast<CommandStateJson.State>()
-                commandStateJson.previous = previous
-                return true
+    private fun replaceStateIfChanged(
+        genericCommand: GenericType<Command>,
+        mavenProjectId: ProjectId,
+        index: Int
+    ): Boolean {
+        val command = genericCommand.p
+        val previousState = deserializeState(command)
+        val newState = Gui.getCommandState(mavenProjectId, index)
+        if (previousState::class != newState::class) {
+            val stateObject = js("({})")
+            stateObject.state = newState::class.simpleName
+            if (newState is CommandState.Deactivated) {
+                stateObject.previous = command.state
             }
+            command.asDynamic().state = stateObject
+            return true
+        }
+        if (previousState is CommandState.Waiting && newState is CommandState.Waiting && previousState.dependencies.size != newState.dependencies.size) {
+            /* state has to be put in the following structure
+            "state": {
+                "state": "Waiting",
+                "dependencies": [
+                    {
+                        "t": "ch.loewenfels.depgraph.data.maven.MavenProjectId",
+                        "p": {
+                            "groupId": "com.example",
+                            "artifactId": "artifact"
+                        }
+                    }
+                ]
+            },
+            */
+            val newDependencies = newState.dependencies.map {
+                when (it) {
+                    is MavenProjectId -> {
+                        val entry = js("({})")
+                        entry.t = MAVEN_PROJECT_ID
+                        val p = js("({})")
+                        p.groupId = it.groupId
+                        p.artifactId = it.artifactId
+                        entry.p = p
+                        entry.unsafeCast<GenericMapEntry<String, ProjectId>>()
+                    }
+                    else -> throw UnsupportedOperationException("$it is not supported.")
+                }
+            }
+            command.state.asDynamic().dependencies = newDependencies.toTypedArray()
         }
         return false
     }
@@ -96,5 +133,4 @@ object ChangeApplier {
         }
         return false
     }
-
 }

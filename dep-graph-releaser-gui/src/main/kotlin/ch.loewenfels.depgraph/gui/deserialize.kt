@@ -9,7 +9,7 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.data.serialization.CommandStateJson
 import ch.loewenfels.depgraph.data.serialization.fromJson
 
-private const val MAVEN_PROJECT_ID = "ch.loewenfels.depgraph.data.maven.MavenProjectId"
+internal const val MAVEN_PROJECT_ID = "ch.loewenfels.depgraph.data.maven.MavenProjectId"
 internal const val JENKINS_MAVEN_RELEASE_PLUGIN = "ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin"
 internal const val JENKINS_MULTI_MAVEN_RELEASE_PLUGIN =
     "ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin"
@@ -79,32 +79,34 @@ fun createJenkinsUpdateDependency(command: Command): JenkinsUpdateDependency {
     return JenkinsUpdateDependency(deserializeState(it), projectId, it.buildUrl)
 }
 
-private fun deserializeState(it: Command): CommandState {
+fun deserializeState(it: Command): CommandState {
     val json = it.state.unsafeCast<CommandStateJson>()
-    fakeEnumsName(json)
-    val state = fromJson(json)
+    val fixedState = fakeEnumsName(json)
+    val state = fromJson(fixedState)
     if(state is CommandState.Waiting) {
         @Suppress("UNCHECKED_CAST")
         val realDependencies = state.dependencies as Array<GenericType<ProjectId>>
         val deserializedDependencies = realDependencies.map {
                 deserializeProjectId(it)
-            }.toSet()
+            }.toHashSet()
         state.asDynamic().dependencies = deserializedDependencies
     }
     return state
 }
 
-private fun fakeEnumsName(json: CommandStateJson) {
-    var command: CommandStateJson? = json
-    while (command != null) {
+private fun fakeEnumsName(json: CommandStateJson): CommandStateJson {
+    val state = JSON.parse<CommandStateJson>(JSON.stringify(json))
+    var tmp : CommandStateJson? = state
+    while (tmp != null) {
         //necessary to fake an enum's name attribute (state is actually a json object and not really a CommandStateJson)
-        js("command.state = {name: command.state}")
-        command = if (command.state.name == "Deactivated") {
+        js("tmp.state = {name: tmp.state}")
+        tmp = if (tmp.state.name == "Deactivated") {
             json.previous
         } else {
             null
         }
     }
+    return state
 }
 
 fun deserializeMapOfProjectIdAndSetProjectId(mapJson: Array<GenericMapEntry<ProjectId, Array<GenericType<ProjectId>>>>): Map<ProjectId, Set<ProjectId>> {
