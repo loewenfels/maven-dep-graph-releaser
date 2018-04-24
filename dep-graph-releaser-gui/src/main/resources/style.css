@@ -4,6 +4,14 @@ body {
     margin: 0;
 }
 
+a,
+a:visited {
+    color: #0063b1;
+}
+a:hover {
+    color: #2196F3;
+}
+
 #gui {
     display: none;
     height: 100%;
@@ -19,23 +27,27 @@ body {
     left: 0;
     right: 0;
     z-index: 2;
-    color: #FFF;
+    color: #EEE;
 }
 
 .button {
     cursor: pointer;
     display: inline-block;
     margin-right: 20px;
+    color: #DDD;
 }
-
-#dry {
-    margin-right: 23px;
-}
-
 .button .material-icons {
    float: left;
-   color: #fdf36e;
+   color: #f1eca9;
 }
+
+.button:hover {
+    color: #FFF;
+}
+.button:hover .material-icons {
+    color: #ffed00;
+}
+
 
 .button .text {
     display: inline-block;
@@ -53,6 +65,10 @@ body {
 .button.disabled .material-icons {
     color: #888;
     cursor: not-allowed;
+}
+
+#dry {
+    margin-right: 23px;
 }
 
 #user {
