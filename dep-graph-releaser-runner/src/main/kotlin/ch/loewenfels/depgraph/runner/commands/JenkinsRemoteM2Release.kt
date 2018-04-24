@@ -54,7 +54,8 @@ object JenkinsRemoteM2Release : ConsoleCommand {
             .associateBy({ it.first }, { it.second })
     }
 
-    fun checkParamNameNotEmpty(pair: String, errorHandler: ErrorHandler, parameters: String): Int {
+    //TODO code duplication exists in Releaser
+    private fun checkParamNameNotEmpty(pair: String, errorHandler: ErrorHandler, parameters: String): Int {
         val index = pair.indexOf('=')
         if (index < 1) {
             errorHandler.error("Parameter name requires at least one character.\nParameters: $parameters")

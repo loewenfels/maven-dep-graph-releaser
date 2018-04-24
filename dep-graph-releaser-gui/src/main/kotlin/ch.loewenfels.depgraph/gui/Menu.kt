@@ -59,7 +59,10 @@ class Menu {
     }
 
 
-    fun initDependencies(downloader: Downloader, publisher: Publisher?, releaser: Releaser?) {
+    internal fun initDependencies(downloader: Downloader, dependencies: Dependencies?) {
+        if (dependencies != null) {
+            publisher = dependencies.publisher
+        }
 
         window.onbeforeunload = {
             if (!saveButton.hasClass(DEACTIVATED)) {
@@ -69,16 +72,15 @@ class Menu {
             }
         }
 
-        initSaveAndDownloadButton(downloader, publisher)
-        initDryRunAndReleaseButton(releaser)
+        initSaveAndDownloadButton(downloader, dependencies)
+        initRunButtons(dependencies)
     }
 
-    private fun initSaveAndDownloadButton(downloader: Downloader, publisher: Publisher?) {
+    private fun initSaveAndDownloadButton(downloader: Downloader, dependencies: Dependencies?) {
         deactivateSaveButton()
-        if (publisher != null) {
-            this.publisher = publisher
+        if (dependencies != null) {
             saveButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                save(verbose = true)
+                save(dependencies.jenkinsJobExecutor, verbose = true)
             }
         }
         downloadButton.title = "Download the release.json"
@@ -88,15 +90,15 @@ class Menu {
         }
     }
 
-    private fun initDryRunAndReleaseButton(releaser: Releaser?) {
-        if (releaser != null) {
+    private fun initRunButtons(dependencies: Dependencies?) {
+        if (dependencies != null) {
             activateReleaseButton()
             dryRunButton.addClickEventListenerIfNotDeactivatedNorDisabled {
                 //TODO implement
             }
             releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
                 dispatchReleaseStart()
-                releaser.release().then({
+                dependencies.releaser.release(dependencies.jenkinsJobExecutor).then({
                     dispatchReleaseEnd(success = true)
                 }, { t ->
                     dispatchReleaseEnd(success = false)
@@ -177,7 +179,7 @@ class Menu {
      * Applies changes and publishes the new release.json with the help of the [Publisher].
      * @return `true` if publishing was carried out, `false` in case there were not any changes.
      */
-    fun save(verbose: Boolean): Promise<Boolean> {
+    fun save(jobExecutor: JobExecutor, verbose: Boolean): Promise<Boolean> {
         val publisher = publisher
         if (publisher == null) {
             deactivateSaveButton()
@@ -191,10 +193,10 @@ class Menu {
         val changed = publisher.applyChanges()
         return if (changed) {
             val newFileName = "release-${generateUniqueId()}"
-            publisher.publish(newFileName, verbose)
+            publisher.publish(newFileName, verbose, jobExecutor)
                 .then { deactivateSaveButton(); true }
         } else {
-            if(verbose) showInfo("Seems like all changes have been reverted manually. Will not save anything.")
+            if (verbose) showInfo("Seems like all changes have been reverted manually. Will not save anything.")
             deactivateSaveButton()
             Promise.resolve(false)
         }
@@ -227,4 +229,11 @@ class Menu {
             elementById("menu").dispatchEvent(CustomEvent(EVENT_RELEASE_END, CustomEventInit(detail = success)))
         }
     }
+
+    internal class Dependencies(
+        val publisher: Publisher,
+        val releaser: Releaser,
+        val jenkinsJobExecutor: JenkinsJobExecutor,
+        val simulatingJobExecutor: SimulatingJobExecutor
+    )
 }

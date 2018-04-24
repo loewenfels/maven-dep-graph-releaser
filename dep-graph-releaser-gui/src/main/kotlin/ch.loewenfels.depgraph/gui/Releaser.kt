@@ -8,20 +8,19 @@ import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
 import kotlin.collections.set
 import kotlin.js.Promise
 
+
 class Releaser(
     private val jenkinsUrl: String,
-    usernameToken: UsernameToken,
     private val modifiableJson: ModifiableJson,
     private val menu: Menu
 ) {
-    private val jobExecutor = JobExecutor(jenkinsUrl, usernameToken)
 
-    fun release(): Promise<Array<out Unit>> {
+    fun release(jobExecutor: JobExecutor): Promise<Array<out Unit>> {
         val releasePlan = deserialize(modifiableJson.json)
         checkConfig(releasePlan)
 
         val project = releasePlan.getRootProject()
-        val paramObject = ParamObject(releasePlan, project, hashMapOf())
+        val paramObject = ParamObject(releasePlan, jobExecutor, project, hashMapOf())
         return releaseProject(paramObject)
     }
 
@@ -49,7 +48,7 @@ class Releaser(
     private fun updateStateWaiting(releasePlan: ReleasePlan, allDependents: Set<Pair<ProjectId, ProjectId>>) {
         allDependents.forEach { (multiOrSubmoduleId, dependentId) ->
             val dependentProject = releasePlan.getProject(dependentId)
-            dependentProject.commands.forEachIndexed { index, command ->
+            dependentProject.commands.forEachIndexed { index, _ ->
                 val state = Gui.getCommandState(dependentId, index)
                 if (state is CommandState.Waiting && state.dependencies.contains(multiOrSubmoduleId)) {
                     (state.dependencies as MutableSet).remove(multiOrSubmoduleId)
@@ -153,42 +152,37 @@ class Releaser(
         command: JenkinsUpdateDependency,
         index: Int
     ): Promise<*> {
-        changeCursorToProgress()
-        val project = paramObject.project
         val jobUrl = "$jenkinsUrl/job/${paramObject.getConfig(ConfigKey.UPDATE_DEPENDENCY_JOB)}"
-        val jobName = "update dependency of $project.id"
+        val jobName = "update dependency of ${paramObject.project.id.identifier}"
         val params = createUpdateDependencyParams(paramObject, command)
-        return triggerJob(jobUrl, jobName, params, project, index)
+        return triggerJob(paramObject, jobUrl, jobName, params, index)
     }
 
     private fun triggerJob(
+        paramObject: ParamObject,
         jobUrl: String,
         jobName: String,
         params: String,
-        project: Project,
         index: Int
     ): Promise<*> {
-        console.log("trigger: ${project.id.identifier} / $jobUrl")
+        val project = paramObject.project
+        console.log("trigger: ${project.id.identifier} / $jobUrl / $params")
         val jobUrlWithSlash = if (jobUrl.endsWith("/")) jobUrl else "$jobUrl/"
-        //jobExecutor.trigger(jobUrlWithSlash, jobName, params, { buildNumber ->
-        return sleep(100) { "${jobUrlWithSlash}queuingUrl" }.then { queuedItemUrl ->
-            Gui.changeStateOfCommandAndAddBuildUrl(
-                project, index, CommandState.Queueing, "Currently queueing the job.", queuedItemUrl
-            )
-        }.then {
-            sleep(500) { 100 }
-        }.then { buildNumber ->
-            Gui.changeStateOfCommandAndAddBuildUrl(
-                project, index, CommandState.InProgress, "Job is running.", "$jobUrlWithSlash$buildNumber/"
-            )
-            menu.save(verbose = false).then { hadChanges ->
-                if (!hadChanges) {
-                    showWarning("Could not save changes for project ${project.id.identifier}. Please report a bug.")
-                }
-            }
-        }.then {
-            sleep(500) { true }
-        }.then {
+        changeCursorToProgress()
+        return paramObject.jobExecutor.trigger(jobUrlWithSlash, jobName, params,
+            { queuedItemUrl ->
+                Gui.changeStateOfCommandAndAddBuildUrl(
+                    project, index, CommandState.Queueing, "Currently queueing the job.", queuedItemUrl
+                )
+                save(paramObject)
+            }, { buildNumber ->
+                Gui.changeStateOfCommandAndAddBuildUrl(
+                    project, index, CommandState.InProgress, "Job is running.", "$jobUrlWithSlash$buildNumber/"
+                )
+                save(paramObject)
+            },
+            verbose = false
+        ).then {
             Gui.changeStateOfCommand(
                 project, index, CommandState.Succeeded, "Job completed successfully."
             )
@@ -199,6 +193,14 @@ class Releaser(
             throw t
         }.finally {
             changeCursorBackToNormal()
+        }
+    }
+
+    private fun save(paramObject: ParamObject): Promise<Unit> {
+        return menu.save(paramObject.jobExecutor, verbose = false).then { hadChanges ->
+            if (!hadChanges) {
+                showWarning("Could not save changes for project ${paramObject.project.id.identifier}. Please report a bug.")
+            }
         }
     }
 
@@ -213,24 +215,66 @@ class Releaser(
     }
 
     private fun triggerRelease(paramObject: ParamObject, command: M2ReleaseCommand, index: Int): Promise<*> {
-        val regex = Regex(paramObject.getConfig(ConfigKey.REMOTE_REGEX))
-        val jobUrl = if (regex.matches(paramObject.project.id.identifier)) {
-            "$jenkinsUrl/job/${paramObject.getConfig(ConfigKey.REMOTE_JOB)}"
-        } else {
-            "$jenkinsUrl/job/${(paramObject.project.id as MavenProjectId).artifactId}"
-        }
-        val jobName = "release ${paramObject.project.id}"
-        val params = createReleaseParams(paramObject, command)
-        return triggerJob(jobUrl, jobName, params, paramObject.project, index)
+        val (jobUrl, params) = determineJobUrlAndParams(paramObject, command)
+        return triggerJob(paramObject, jobUrl, "release ${paramObject.project.id}", params, index)
     }
 
-    private fun createReleaseParams(paramObject: Releaser.ParamObject, command: M2ReleaseCommand): String {
-        //TODO create release params
-        return ""
+    private fun determineJobUrlAndParams(paramObject: ParamObject, command: M2ReleaseCommand): Pair<String, String> {
+        val mavenProjectId = paramObject.project.id as MavenProjectId
+        val regex = Regex(paramObject.getConfig(ConfigKey.REMOTE_REGEX))
+
+        val regexParameters = paramObject.getConfig(ConfigKey.REGEX_PARAMS)
+        val regexParametersList = parseRegexParametersList(regexParameters)
+        val relevantParams = regexParametersList.asSequence()
+            .filter { (regex, _) -> regex.matches(mavenProjectId.identifier) }
+            .map { it.second }
+
+        val params = "releaseVersion=${paramObject.project.releaseVersion}" +
+            "&nextDevVersion=${command.nextDevVersion}"
+
+        return if (regex.matches(paramObject.project.id.identifier)) {
+            "$jenkinsUrl/job/${paramObject.getConfig(ConfigKey.REMOTE_JOB)}" to
+                "$params&jobName=${mavenProjectId.artifactId}&parameters=${relevantParams.joinToString(";")}"
+        } else {
+            "$jenkinsUrl/job/$mavenProjectId" to
+                "$params&${relevantParams.joinToString("&")}}"
+        }
+    }
+
+    private fun parseRegexParametersList(regexParameters: String): List<Pair<Regex, String>> {
+        return if (regexParameters.isNotEmpty()) {
+            regexParameters.splitToSequence("$")
+                .map { pair ->
+                    val index = checkRegexNotEmpty(pair, regexParameters)
+                    val parameters = pair.substring(index + 1)
+                    checkParamNameNotEmpty(parameters, regexParameters)
+                    Regex(pair.substring(0, index)) to parameters
+                }
+                .toList()
+        } else {
+            emptyList()
+        }
+    }
+
+    private fun checkRegexNotEmpty(pair: String, regexParameters: String): Int {
+        val index = pair.indexOf('#')
+        check(index > 0) {
+            "regex requires at least one character.\nParameters: $regexParameters"
+        }
+        return index
+    }
+
+    private fun checkParamNameNotEmpty(pair: String, parameters: String): Int {
+        val index = pair.indexOf('=')
+        check(index > 0) {
+            "Parameter name requires at least one character.\nParameters: $parameters"
+        }
+        return index
     }
 
     private data class ParamObject(
         val releasePlan: ReleasePlan,
+        val jobExecutor: JobExecutor,
         val project: Project,
         val locks: HashMap<ProjectId, Promise<*>>
     ) {
@@ -238,7 +282,7 @@ class Releaser(
             : this(paramObject, paramObject.releasePlan.getProject(newProjectId))
 
         constructor(paramObject: ParamObject, newProject: Project)
-            : this(paramObject.releasePlan, newProject, paramObject.locks)
+            : this(paramObject.releasePlan, paramObject.jobExecutor, newProject, paramObject.locks)
 
         fun getConfig(configKey: ConfigKey): String {
             return releasePlan.config[configKey] ?: throw IllegalArgumentException("unknown config key: $configKey")

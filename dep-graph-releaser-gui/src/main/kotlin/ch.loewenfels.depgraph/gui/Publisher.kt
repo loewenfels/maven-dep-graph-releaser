@@ -4,25 +4,22 @@ import kotlin.browser.window
 import kotlin.js.Promise
 
 class Publisher(
-    jenkinsUrl: String,
-    usernameToken: UsernameToken,
     private val publishJobUrl: String,
     private var modifiableJson: ModifiableJson
 ) {
-    private val jobExecutor = JobExecutor(jenkinsUrl, usernameToken)
 
-    fun publish(fileName: String, verbose: Boolean): Promise<*> {
+    fun publish(fileName: String, verbose: Boolean, jobExecutor: JobExecutor): Promise<*> {
         changeCursorToProgress()
         val body = "fileName=$fileName&json=${modifiableJson.json}"
         val doNothingPromise: (Any) -> Promise<*> = { Promise.resolve(1) }
         return jobExecutor.trigger(
             publishJobUrl, "publish release-$fileName.json",
             body,
-            verbose,
             doNothingPromise,
-            doNothingPromise
+            doNothingPromise,
+            verbose
         ).then { (crumbWithId, buildNumber) ->
-            extractResultJsonUrl(crumbWithId, publishJobUrl, buildNumber).then {
+            extractResultJsonUrl(jobExecutor, crumbWithId, publishJobUrl, buildNumber).then {
                 buildNumber to it
             }
         }.then { (buildNumber, releaseJsonUrl) ->
@@ -33,6 +30,7 @@ class Publisher(
     }
 
     private fun extractResultJsonUrl(
+        jobExecutor: JobExecutor,
         crumbWithId: CrumbWithId?,
         jobUrl: String,
         buildNumber: Int
