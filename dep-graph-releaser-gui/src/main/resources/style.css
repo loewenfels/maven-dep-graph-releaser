@@ -396,7 +396,7 @@ label.toggle input:disabled + .slider {
 #status, #messages {
     position: fixed;
     left: 0;
-    right: 45px;
+    right: 0px;
     bottom: 0px;
     max-height: 25%;
     overflow-y: auto;
@@ -459,8 +459,8 @@ label.toggle input:disabled + .slider {
 }
 
 #warningsMinimized {
-    bottom: 50px;
-    right: 5px;
+    top: 50px;
+    left: 5px;
     color: #caa900;
     border-color: #caa900;
 }
@@ -477,8 +477,8 @@ label.toggle input:disabled + .slider {
 }
 
 #infosMinimized {
-    bottom: 7px;
-    right: 5px;
+    top: 93px;
+    left: 5px;
     color: #5454d4;
     border-color: #5454d4;
 }

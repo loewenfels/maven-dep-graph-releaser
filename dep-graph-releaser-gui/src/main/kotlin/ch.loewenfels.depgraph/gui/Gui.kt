@@ -223,7 +223,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             is JenkinsUpdateDependency ->
                 appendJenkinsUpdateDependencyField(idPrefix, command)
             else ->
-                showError("unknown command found, cannot display its fields.\n$command")
+                showError("Unknown command found, cannot display its fields.\n$command")
         }
     }
 
@@ -288,7 +288,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 this.id = "$id$SLIDER_SUFFIX"
                 this.title = title
                 if (disabled) {
-                    this.title = "disabled, cannot be reactivated"
+                    this.title = "Disabled, cannot be reactivated"
                 }
             }
         }

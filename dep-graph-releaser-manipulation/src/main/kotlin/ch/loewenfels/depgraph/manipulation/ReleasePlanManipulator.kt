@@ -101,7 +101,7 @@ class ReleasePlanManipulator(private val releasePlan: ReleasePlan) {
         try {
             command.state.checkTransitionAllowed(newState)
         } catch (e: IllegalStateException) {
-            throw IllegalArgumentException("cannot $action command:\nCommand: $command\nProjectId: $projectId", e)
+            throw IllegalArgumentException("Cannot $action command:\nCommand: $command\nProjectId: $projectId", e)
         }
     }
 

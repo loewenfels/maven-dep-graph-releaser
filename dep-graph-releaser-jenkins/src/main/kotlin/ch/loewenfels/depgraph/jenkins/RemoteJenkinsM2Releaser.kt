@@ -192,7 +192,7 @@ class RemoteJenkinsM2Releaser internal constructor(
     private fun extractBuildNumber(response: Response, jobName: String): Int {
         val body = response.body()
         check(body != null) {
-            "body of the response was null, cannot extract the build number." +
+            "Body of the response was null, cannot extract the build number." +
                 "\nJob: $jobName" +
                 "\nResponse: $response"
         }

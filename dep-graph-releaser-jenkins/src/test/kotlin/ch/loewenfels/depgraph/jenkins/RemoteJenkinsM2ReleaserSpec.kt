@@ -104,7 +104,7 @@ object RemoteJenkinsM2ReleaserSpec : Spek({
                     expect {
                         testee.release(jobName, "1.0.0", "1.2.0")
                     }.toThrow<IllegalStateException> {
-                        message { contains(jobName, "body of the response was null") }
+                        message { contains(jobName, "Body of the response was null") }
                     }
                     verify(httpClient, times(1)).newCall(any())
                 }
