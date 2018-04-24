@@ -14,8 +14,9 @@ class Publisher(
     fun publish(fileName: String, verbose: Boolean): Promise<*> {
         changeCursorToProgress()
         val body = "fileName=$fileName&json=${modifiableJson.json}"
-        val doNothingPromise : (Any) -> Promise<*> = { Promise.resolve(1) }
-        return jobExecutor.trigger(publishJobUrl, "publish release-$fileName.json",
+        val doNothingPromise: (Any) -> Promise<*> = { Promise.resolve(1) }
+        return jobExecutor.trigger(
+            publishJobUrl, "publish release-$fileName.json",
             body,
             verbose,
             doNothingPromise,
@@ -77,10 +78,8 @@ class Publisher(
         } else if (verbose) {
             showWarning(
                 "Remote publish server detected. We currently do not support to consume remote release.json." +
-                    "\nYou can save changes and it gets published on the remote server, but we will not change the url accordingly." +
-                    "\nThus, please do not reload the page after a save because you would load the old state of the release.json" +
-                    "\nAlternatively you can download the published release.json from here: $jobUrl$buildNumber" +
-                    "\nand adjust the url manually."
+                    "\nYou can save changes and it gets published on the remote server, but we will not change the url accordingly. Thus, please do not reload the page after a save because you would load the old state of the release.json" +
+                    "\nAlternatively you can download the published release.json from here: $jobUrl$buildNumber and adjust the url manually."
             )
         }
     }

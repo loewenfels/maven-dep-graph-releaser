@@ -1,13 +1,8 @@
 package ch.loewenfels.depgraph.gui
 
-import kotlinx.html.HTMLTag
-import kotlinx.html.br
+import kotlinx.html.*
 import kotlinx.html.dom.append
-import kotlinx.html.id
 import kotlinx.html.js.div
-import kotlinx.html.js.i
-import kotlinx.html.js.span
-import kotlinx.html.title
 import org.w3c.dom.HTMLElement
 import kotlin.browser.window
 
@@ -42,7 +37,7 @@ private fun showMessageOfType(type: String, icon: String, message: String, autoC
                 +icon
             }
             div("text") {
-                convertNewLinesToBr(message)
+                convertNewLinesToBrAndParseUrls(message)
             }
             if (autoCloseAfterMs != null) {
                 window.setTimeout({ closeMessage(msgId) }, autoCloseAfterMs)
@@ -79,13 +74,34 @@ private fun StringBuilder.appendThrowable(t: Throwable) {
     }
 }
 
-private fun HTMLTag.convertNewLinesToBr(message: String) {
+private fun DIV.convertNewLinesToBrAndParseUrls(message: String) {
     if (message.isEmpty()) return
 
     val messages = message.split("\n")
-    +messages[0]
+    convertUrlToLinks(messages[0])
     for (i in 1 until messages.size) {
         br
-        +messages[i]
+        convertUrlToLinks(messages[i])
     }
 }
+
+private fun DIV.convertUrlToLinks(message: String) {
+    var matchResult = urlRegex.find(message)
+    if (matchResult != null) {
+        var index = 0
+        do {
+            val match = matchResult!!
+            +message.substring(index, match.range.start)
+            a(href = match.value) {
+                +match.value
+            }
+            index = match.range.endInclusive + 1
+            matchResult = match.next()
+        } while (matchResult != null)
+        +message.substring(index, message.length)
+    } else {
+        +message
+    }
+}
+
+private val urlRegex = Regex("http(?:s)://[^ ]+")
