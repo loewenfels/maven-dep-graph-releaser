@@ -38,11 +38,11 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
             val toggle = getToggle(project, index)
 
             if (command is ReleaseCommand) {
-                toggle.addChangeEventListener { toggleCommand(project, toggle, EVENT_RELEASE_TOGGLE_UNCHECKED) }
+                toggle.addChangeEventListener { toggleCommand(project, index, EVENT_RELEASE_TOGGLE_UNCHECKED) }
                 disallowClickIfNotAllCommandsOrSubmodulesActive(project, toggle)
                 registerForProjectEvent(project, EVENT_TOGGLE_UNCHECKED) { toggle.uncheck() }
             } else {
-                toggle.addChangeEventListener { toggleCommand(project, toggle, EVENT_TOGGLE_UNCHECKED) }
+                toggle.addChangeEventListener { toggleCommand(project, index, EVENT_TOGGLE_UNCHECKED) }
             }
 
             disableUnDisableForReleaseStartAndEnd(toggle, elementById("${toggle.id}${Gui.SLIDER_SUFFIX}"))
@@ -58,9 +58,20 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
     private fun getToggle(project: Project, index: Int): HTMLInputElement =
         elementById<HTMLInputElement>(Gui.getCommandId(project, index) + Gui.DISABLE_SUFFIX)
 
-    private fun toggleCommand(project: Project, toggle: HTMLInputElement, event: String) {
+    private fun toggleCommand(project: Project, index: Int, uncheckedEvent: String) {
+        val toggle = getToggle(project, index)
+        val command = Gui.getCommand(project, index).asDynamic()
+        val slider = elementById("${toggle.id}${Gui.SLIDER_SUFFIX}")
+
         if (!toggle.checked) {
-            dispatchToggleEvent(project, toggle, event)
+            dispatchToggleEvent(project, toggle, uncheckedEvent)
+            val previous = command.state as CommandState
+            Gui.changeStateOfCommand(project, index, CommandState.Deactivated(previous), "Deactivated.")
+            slider.title = "Click to activate command."
+        } else {
+            val oldState = command.state as CommandState.Deactivated
+            Gui.changeStateOfCommand(project, index, oldState.previous, "Active.")
+            slider.title = "Click to deactivate command."
         }
         menu.activateSaveButton()
     }

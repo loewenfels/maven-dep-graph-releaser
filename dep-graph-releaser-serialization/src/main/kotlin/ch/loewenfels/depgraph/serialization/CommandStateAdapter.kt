@@ -26,4 +26,3 @@ object CommandStateAdapter {
     @FromJson
     fun fromJson(json: CommandStateJson) = ch.loewenfels.depgraph.data.serialization.fromJson(json)
 }
-

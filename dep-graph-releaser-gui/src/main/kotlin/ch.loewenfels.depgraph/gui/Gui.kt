@@ -101,7 +101,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 if (hasCommands) {
                     toggle(
                         "$identifier$DISABLE_ALL_SUFFIX",
-                        "disable all commands",
+                        "deactivate all commands",
                         project.commands.any { it.state !is CommandState.Deactivated },
                         false
                     )
@@ -202,7 +202,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
         toggle(
             "$idPrefix$DISABLE_SUFFIX",
-            "disable ${command::class.simpleName}",
+            "Click to deactivate command",
             command.state !is CommandState.Deactivated,
             command.state === CommandState.Disabled,
             cssClass
@@ -285,7 +285,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 this.disabled = disabled
             }
             span("slider") {
-                this.id = "$id:slider"
+                this.id = "$id$SLIDER_SUFFIX"
                 this.title = title
                 if (disabled) {
                     this.title = "disabled, cannot be reactivated"
