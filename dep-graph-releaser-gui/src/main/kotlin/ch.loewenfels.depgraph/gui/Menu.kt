@@ -20,7 +20,7 @@ class Menu {
     private val downloadButton get() = elementById("download")
     private val dryRunButton get() = elementById("dryRun")
     private val releaseButton get() = elementById("release")
-    private val simulateButton get() = elementById("simulate")
+    private val exploreButton get() = elementById("explore")
     private val settingsButton get() = elementById("settings")
 
     private var publisher: Publisher? = null
@@ -49,7 +49,7 @@ class Menu {
         userButton.addClass(DEACTIVATED)
         userName.innerText = "Anonymous"
         userIcon.innerText = "error"
-        listOf(saveButton, dryRunButton, releaseButton).forEach { it.disable(titleButtons) }
+        listOf(saveButton, dryRunButton, releaseButton, exploreButton).forEach { it.disable(titleButtons) }
     }
 
     fun setVerifiedUser(username: String, name: String) {
@@ -104,12 +104,12 @@ class Menu {
             }
 
             activateSimulateButton()
-            simulateButton.addClickEventListenerIfNotDeactivatedNorDisabled {
+            exploreButton.addClickEventListenerIfNotDeactivatedNorDisabled {
                 triggerRelease(dependencies, dependencies.simulatingJobExecutor)
             }
 
             Menu.registerForReleaseStartEvent {
-                listOf(dryRunButton, releaseButton, simulateButton).forEach {
+                listOf(dryRunButton, releaseButton, exploreButton).forEach {
                     it.addClass(DISABLED)
                     it.asDynamic().oldTitle = it.title
                     it.title = Gui.DISABLED_RELEASE_IN_PROGRESS
@@ -117,7 +117,7 @@ class Menu {
             }
             Menu.registerForReleaseEndEvent { success ->
                 if (success) {
-                    listOf(dryRunButton, releaseButton, simulateButton).forEach {
+                    listOf(dryRunButton, releaseButton, exploreButton).forEach {
                         it.title = Gui.DISABLED_RELEASE_SUCCESS
                     }
                     showSuccess(
@@ -132,7 +132,7 @@ class Menu {
                             "\n(You might have to delete git tags and remove artifacts if they have already been created)."
                     )
                     elementById("release.text").innerText = "Retrigger failed Jobs"
-                    listOf(dryRunButton, releaseButton, simulateButton).forEach {
+                    listOf(dryRunButton, releaseButton, exploreButton).forEach {
                         it.removeClass(DISABLED)
                         it.title = it.asDynamic().oldTitle as String
                     }
@@ -194,10 +194,10 @@ class Menu {
     }
 
     private fun activateSimulateButton() {
-        if (simulateButton.isDisabled()) return
+        if (exploreButton.isDisabled()) return
 
-        simulateButton.removeClass(DEACTIVATED)
-        simulateButton.title =
+        exploreButton.removeClass(DEACTIVATED)
+        exploreButton.title =
             "See in which order the projects are build, actual order may vary due to unequal execution time."
     }
 
