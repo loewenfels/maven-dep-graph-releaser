@@ -38,6 +38,7 @@ class JenkinsReleasePlanCreator(
         val warnings = mutableListOf<String>()
         reportCyclicDependencies(paramObject, warnings)
         warnings.addAll(analyser.getErroneousPomFiles())
+        warnings.addAll(analyser.getErroneousProjects())
 
         val infos = mutableListOf<String>()
         reportInterModuleCyclicDependencies(paramObject, infos)

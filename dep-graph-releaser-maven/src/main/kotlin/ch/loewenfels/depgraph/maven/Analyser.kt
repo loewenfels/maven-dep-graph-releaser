@@ -192,6 +192,10 @@ class Analyser internal constructor(
         "Error reading pom file.\nFile: ${it.pomFile.absolutePath}\nMessage: ${it.cause!!.message}"
     }
 
+    fun getErroneousProjects(): List<String> = pomAnalysis.erroneousProjects.map {
+        "Project is erroneous and could not be analysed entirely.\nProject ${it.project.gav} \nPom-file: ${it.project.pomFile.absolutePath}\nMessage: ${it.cause!!.message}"
+    }
+
     fun hasSubmodules(projectId: MavenProjectId) = getSubmodules(projectId).isNotEmpty()
 
     /**

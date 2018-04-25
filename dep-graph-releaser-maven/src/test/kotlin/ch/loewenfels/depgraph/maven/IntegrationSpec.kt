@@ -328,13 +328,40 @@ object IntegrationSpec : Spek({
                     analyseAndCreateReleasePlanWithPomResolverOldVersions(exampleA.id, "managingVersions/viaBom")
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
 
-                assertOnlyWaitingReleaseCommand(releasePlan, "indirect dependent", exampleB, exampleA)
-                assertHasNoDependentsAndIsOnLevel(releasePlan, "direct dependent", exampleB, 1)
+                assertOnlyWaitingReleaseCommand(releasePlan, "dependent via bom", exampleB, exampleA)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "dependent via bom", exampleB, 1)
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 2)
                 assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
             }
         }
+
+        given("project with dependent and version in bom and bom has itself in dep. management") {
+            action("context Analyser with a mocked PomFileResolver") {
+                val releasePlan =
+                    analyseAndCreateReleasePlanWithPomResolverOldVersions(exampleA.id, "managingVersions/viaBomSelfDependency")
+                val deps = IdAndVersions(MavenProjectId("com.example", "deps"), "10-SNAPSHOT", "10", "11-SNAPSHOT")
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB, deps)
+
+                assertOneUpdateAndOneReleaseCommand(releasePlan, "bom", deps, exampleA)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "bom", deps, exampleB, 1)
+
+                test("dependent via bom project has one waiting UpdateVersion (1 dep) and one waiting Release command (2 dep)") {
+                    assert(releasePlan.getProject(exampleB.id)) {
+                        idAndVersions(exampleB)
+                        property(subject::commands).containsStrictly(
+                            { isJenkinsUpdateDependencyWaiting(deps) },
+                            { isJenkinsMavenReleaseWaiting(exampleB.nextDevVersion, deps, exampleA) }
+                        )
+                    }
+                }
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "dependent via bom", exampleB, 2)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 3)
+                assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
+            }
+        }
+
 
         given("project with dependent and version in parent dependency management") {
             action("context Analyser with a mocked PomFileResolver") {

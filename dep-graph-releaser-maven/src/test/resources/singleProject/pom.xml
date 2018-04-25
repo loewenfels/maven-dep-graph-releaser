@@ -28,12 +28,12 @@
         <dependency>
             <groupId>test</groupId>
             <version>2.0</version>
-            <type>muss bleiben</type>
+            <type>compile</type>
             <artifactId>test</artifactId>
         </dependency>
         <dependency>
             <artifactId>test</artifactId>
-            <scope>muss bleiben</scope>
+            <scope>provided</scope>
             <groupId>test</groupId>
             <version>2.0</version>
         </dependency>
