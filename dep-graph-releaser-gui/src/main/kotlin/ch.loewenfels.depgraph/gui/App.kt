@@ -101,6 +101,7 @@ class App {
                 .then { body: String? ->
                     if (body == null) {
                         val info = "You need to log in if you want to use other functionality than Download."
+                        showInfo("$info\n$jenkinsUrl/login?from=" + window.location)
                         menu.disableButtonsDueToNoAuth(info, info)
                         null
                     } else {

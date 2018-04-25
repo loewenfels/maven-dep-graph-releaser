@@ -44,7 +44,6 @@ class Menu {
     }
 
     fun disableButtonsDueToNoAuth(titleButtons: String, info: String) {
-        showInfo(info)
         userButton.title = titleButtons
         userButton.addClass(DEACTIVATED)
         userName.innerText = "Anonymous"
