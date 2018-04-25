@@ -3,6 +3,7 @@ package ch.loewenfels.depgraph.maven
 import ch.loewenfels.depgraph.data.Relation
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.tutteli.kbox.appendToStringBuilder
+import ch.tutteli.kbox.mapParents
 import fr.lteconsulting.pomexplorer.*
 import fr.lteconsulting.pomexplorer.graph.relation.DependencyLikeRelation
 import fr.lteconsulting.pomexplorer.graph.relation.ParentRelation
@@ -136,8 +137,8 @@ class Analyser internal constructor(
             sb.append("Found duplicated projects in the given `directoryWithProjects`.\n")
                 .append("directory: ${directoryWithProjects.absolutePath}\n")
                 .append("duplicates:\n\n")
-            duplicates.values.appendToStringBuilder(sb, "\n\n") { projects, _ ->
-                projects.appendToStringBuilder(sb, "\n") { project, _ ->
+            duplicates.values.appendToStringBuilder(sb, "\n\n") { projects ->
+                projects.appendToStringBuilder(sb, "\n") { project ->
                     sb.append(projectToString(project))
                 }
             }
@@ -146,7 +147,7 @@ class Analyser internal constructor(
         if (parentsNotInAnalysis.isNotEmpty()) {
             if (sb.isNotEmpty()) sb.append("\n")
             sb.append("Found projects with parents where the parents are not part of this analysis.\n\n")
-            parentsNotInAnalysis.entries.appendToStringBuilder(sb, "\n\n") { (project, parent), _ ->
+            parentsNotInAnalysis.entries.appendToStringBuilder(sb, "\n\n") { (project, parent) ->
                 sb.append("project: ").append(projectToString(project)).append("\n")
                 sb.append("parent: ").append(parent.groupId).append(":").append(parent.artifactId).append(":")
                     .append(parent.version)
@@ -326,11 +327,7 @@ class Analyser internal constructor(
                 submodules.forEach { submoduleId ->
                     val set = linkedSetOf(multiModuleId)
                     //TODO would go forever if there are multi modules which have one another as modules, should we add a check?
-                    var parentMultiModule = multiModuleOfSubmodule[multiModuleId]
-                    while (parentMultiModule != null) {
-                        set.add(parentMultiModule)
-                        parentMultiModule = multiModuleOfSubmodule[parentMultiModule]
-                    }
+                    set.addAll(multiModuleOfSubmodule.mapParents(multiModuleId))
                     map[submoduleId] = set
                 }
             }

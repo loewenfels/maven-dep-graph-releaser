@@ -9,6 +9,7 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.manipulation.ReleasePlanManipulator
 import ch.tutteli.kbox.appendToStringBuilder
+import ch.tutteli.kbox.mapWithIndex
 import java.util.logging.Logger
 
 class JenkinsReleasePlanCreator(
@@ -333,11 +334,11 @@ class JenkinsReleasePlanCreator(
         dependencies: Collection<List<ProjectId>>
     ) {
         sb.append("-> ")
-        dependencies.appendToStringBuilder(sb, "\n-> ") { list, sb1 ->
-            list.appendToStringBuilder(sb1, " -> ") { it, sb2 ->
-                sb2.append(it.identifier)
+        dependencies.appendToStringBuilder(sb, "\n-> ") { list ->
+            list.appendToStringBuilder(sb, " -> ") { it ->
+                sb.append(it.identifier)
             }
-            sb1.append(" -> ").append(dependency.identifier)
+            sb.append(" -> ").append(dependency.identifier)
         }
     }
 
@@ -350,7 +351,7 @@ class JenkinsReleasePlanCreator(
             if (options.disableReleaseFor.matches(projectId.identifier)) {
                 deactivatedProjects.add(projectId.identifier)
                 project.commands.asSequence()
-                    .mapIndexed { index, it -> index to it }
+                    .mapWithIndex()
                     .filter { (_, command) -> command is ReleaseCommand && command.state !== CommandState.Disabled }
                     .forEach inner@{ (index, _) ->
                         val manipulator = ReleasePlanManipulator(transformedReleasePlan)
