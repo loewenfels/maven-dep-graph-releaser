@@ -26,7 +26,7 @@ class Releaser(
             showWarning(
                 "Remote publish server detected. We currently do not support to consume remote release.json." +
                     "\nThis means that we publish changes during the release process but will not change the location. Thus, please do not reload the page during the release process."
-                , 6000
+                , 7000
             )
         }
 
@@ -40,7 +40,8 @@ class Releaser(
                 showThrowableAndThrow(
                     Error(
                         "Could not save release state (changed to ${ReleaseState.InProgress})." +
-                            "\nAborting release process, please make sure that the publisher works as expected."
+                            "\nAborting release process, please make sure that the publisher works as expected.",
+                        t
                     )
                 )
             }.then { jobResults: Array<out Boolean> ->
@@ -237,7 +238,7 @@ class Releaser(
                     project, index, CommandState.Failed, "Job failed, click to navigate to the job."
                 )
                 save(paramObject)
-                    .catch { t -> logWarnOnConsole(project, index, t) }
+                    .catch { t2 -> logWarnOnConsole(project, index, t2) }
                 showThrowable(Error("Job $jobName failed", t))
                 false
             }
