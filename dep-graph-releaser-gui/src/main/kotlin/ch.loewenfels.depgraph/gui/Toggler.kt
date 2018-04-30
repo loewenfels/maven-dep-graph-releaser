@@ -40,7 +40,12 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
             if (command is ReleaseCommand) {
                 toggle.addChangeEventListener { toggleCommand(project, index, EVENT_RELEASE_TOGGLE_UNCHECKED) }
                 disallowClickIfNotAllCommandsOrSubmodulesActive(project, toggle)
-                registerForProjectEvent(project, EVENT_TOGGLE_UNCHECKED) { toggle.uncheck() }
+                val projectAndSubmodules = sequenceOf(project) +
+                    releasePlan.getSubmodules(project.id).asSequence().map { releasePlan.getProject(it) }
+
+                projectAndSubmodules.forEach {
+                    registerForProjectEvent(it, EVENT_TOGGLE_UNCHECKED) { toggle.uncheck() }
+                }
             } else {
                 toggle.addChangeEventListener { toggleCommand(project, index, EVENT_TOGGLE_UNCHECKED) }
             }
