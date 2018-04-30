@@ -1,10 +1,7 @@
 package ch.loewenfels.depgraph.serialization
 
 import ch.loewenfels.depgraph.ConfigKey
-import ch.loewenfels.depgraph.data.Command
-import ch.loewenfels.depgraph.data.CommandState
-import ch.loewenfels.depgraph.data.Project
-import ch.loewenfels.depgraph.data.ReleasePlan
+import ch.loewenfels.depgraph.data.*
 import ch.tutteli.atrium.api.cc.en_UK.toBe
 import ch.tutteli.atrium.api.cc.en_UK.toThrow
 import ch.tutteli.atrium.assert
@@ -48,6 +45,7 @@ object SerializerSpec : Spek({
         val projectWithCommandsAndDependents = Project(DummyProjectId("d"), false, "1.5", "3.0", 0, listOf(DummyCommand(CommandState.Waiting(setOf(aId)))), "")
         val releasePlanWithCommandsAndDependents = ReleasePlan(
             "publishId",
+            ReleaseState.Ready,
             projectWithCommandsAndDependents.id,
             mapOf(
                 projectWithCommandsAndDependents.id to projectWithCommandsAndDependents,

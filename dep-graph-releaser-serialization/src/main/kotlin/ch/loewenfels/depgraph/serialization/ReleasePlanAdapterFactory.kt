@@ -4,6 +4,7 @@ import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.ReleasePlan
+import ch.loewenfels.depgraph.data.ReleaseState
 import com.squareup.moshi.*
 import java.lang.reflect.Type
 
@@ -13,9 +14,10 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
         if (ReleasePlan::class.java != type) {
             return null
         }
-        val projectIdAdapter = moshi.adapter(ProjectId::class.java)
 
         val stringAdapter = moshi.adapter<String>(String::class.java)
+        val stateAdapter = moshi.adapter<ReleaseState>(ReleaseState::class.java)
+        val projectIdAdapter = moshi.adapter(ProjectId::class.java)
 
         val mapType = Types.newParameterizedType(
             Map::class.java,
@@ -38,6 +40,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
 
         return ReleasePlanAdapter(
             stringAdapter,
+            stateAdapter,
             projectIdAdapter,
             projectsAdapter,
             mapProjectIdAndSetProjectId,
@@ -48,6 +51,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
 
     private class ReleasePlanAdapter(
         private val stringAdapter: JsonAdapter<String>,
+        private val stateAdapter: JsonAdapter<ReleaseState>,
         private val projectIdAdapter: JsonAdapter<ProjectId>,
         private val projectsAdapter: JsonAdapter<Collection<Project>>,
         private val mapProjectIdAndSetProjectId: JsonAdapter<Map<ProjectId, Set<ProjectId>>>,
@@ -58,6 +62,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
         override fun toJsonNonNull(writer: JsonWriter, value: ReleasePlan) {
             writer.writeObject {
                 writeNameAndValue(PUBLISH_ID, value.publishId, stringAdapter)
+                writeNameAndValue(STATE, value.state, stateAdapter)
                 writeNameAndValue(ID, value.rootProjectId, projectIdAdapter)
                 writeNameAndValue(PROJECTS, value.getProjects(), projectsAdapter)
                 writeNameAndValue(SUBMODULES, value.getAllSubmodules(), mapProjectIdAndSetProjectId)
@@ -66,12 +71,14 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
                 writeNameAndValue(INFOS, value.infos, listStringAdapter)
                 val stringConfig = value.config.entries.map({ it.key.asString() to it.value })
                 writeNameAndValue(CONFIG, stringConfig, listPairStringAdapter)
+
             }
         }
 
         override fun fromJson(reader: JsonReader): ReleasePlan? {
             return reader.readObject {
                 val publishId = checkNextNameAndGetValue(PUBLISH_ID, stringAdapter)
+                val state: ReleaseState = checkNextNameAndGetValue(STATE, stateAdapter)
                 val projectId = checkNextNameAndGetValue(ID, projectIdAdapter)
                 val projects = checkNextNameAndGetValue(PROJECTS, projectsAdapter)
                 val submodules = checkNextNameAndGetValue(SUBMODULES, mapProjectIdAndSetProjectId)
@@ -83,6 +90,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
 
                 ReleasePlan(
                     publishId,
+                    state,
                     projectId,
                     projects.associateBy { it.id },
                     submodules,
@@ -99,6 +107,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
     }
 
     const val PUBLISH_ID = "publishId"
+    const val STATE = "state"
     const val ID = "id"
     const val PROJECTS = "projects"
     const val SUBMODULES = "submodules"

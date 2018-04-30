@@ -17,6 +17,7 @@ internal const val JENKINS_UPDATE_DEPENDENCY = "ch.loewenfels.depgraph.data.mave
 
 fun deserialize(body: String): ReleasePlan {
     val releasePlanJson = JSON.parse<ReleasePlanJson>(body)
+    val state = ReleaseState.valueOf(releasePlanJson.state.unsafeCast<String>())
     val rootProjectId = deserializeProjectId(releasePlanJson.id)
     val projects = deserializeProjects(releasePlanJson)
     val submodules = deserializeMapOfProjectIdAndSetProjectId(releasePlanJson.submodules)
@@ -24,7 +25,18 @@ fun deserialize(body: String): ReleasePlan {
     val warnings = releasePlanJson.warnings.toList()
     val infos = releasePlanJson.infos.toList()
     val config = deserializeConfig(releasePlanJson.config)
-    return ReleasePlan(releasePlanJson.publishId, rootProjectId, projects, submodules, dependents, warnings, infos, config)
+
+    return ReleasePlan(
+        releasePlanJson.publishId,
+        state,
+        rootProjectId,
+        projects,
+        submodules,
+        dependents,
+        warnings,
+        infos,
+        config
+    )
 }
 
 fun deserializeProjectId(id: GenericType<ProjectId>): ProjectId {
@@ -83,12 +95,12 @@ fun deserializeState(it: Command): CommandState {
     val json = it.state.unsafeCast<CommandStateJson>()
     val fixedState = fakeEnumsName(json)
     val state = fromJson(fixedState)
-    if(state is CommandState.Waiting) {
+    if (state is CommandState.Waiting) {
         @Suppress("UNCHECKED_CAST")
         val realDependencies = state.dependencies as Array<GenericType<ProjectId>>
         val deserializedDependencies = realDependencies.map {
-                deserializeProjectId(it)
-            }.toHashSet()
+            deserializeProjectId(it)
+        }.toHashSet()
         state.asDynamic().dependencies = deserializedDependencies
     }
     return state
@@ -96,7 +108,7 @@ fun deserializeState(it: Command): CommandState {
 
 private fun fakeEnumsName(json: CommandStateJson): CommandStateJson {
     val state = JSON.parse<CommandStateJson>(JSON.stringify(json))
-    var tmp : CommandStateJson? = state
+    var tmp: CommandStateJson? = state
     while (tmp != null) {
         //necessary to fake an enum's name attribute (state is actually a json object and not really a CommandStateJson)
         js("tmp.state = {name: tmp.state}")
@@ -119,7 +131,7 @@ fun deserializeMapOfProjectIdAndSetProjectId(mapJson: Array<GenericMapEntry<Proj
 
 fun deserializeConfig(config: Array<Array<String>>): Map<ConfigKey, String> {
     return config.associate {
-        if(it.size != 2){
+        if (it.size != 2) {
             showWarning("corrupt config found, size != 2: $it")
         }
         ConfigKey.fromString(it[0]) to it[1]
@@ -129,6 +141,7 @@ fun deserializeConfig(config: Array<Array<String>>): Map<ConfigKey, String> {
 
 external interface ReleasePlanJson {
     var publishId: String
+    var state: ReleaseState
     val id: GenericType<ProjectId>
     val projects: Array<ProjectJson>
     val submodules: Array<GenericMapEntry<ProjectId, Array<GenericType<ProjectId>>>>

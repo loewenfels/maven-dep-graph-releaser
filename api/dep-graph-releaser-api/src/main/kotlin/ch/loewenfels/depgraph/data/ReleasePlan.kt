@@ -12,6 +12,7 @@ import ch.loewenfels.depgraph.LevelIterator
  */
 data class ReleasePlan(
     val publishId: String,
+    val state: ReleaseState,
     val rootProjectId: ProjectId,
     private val projects: Map<ProjectId, Project>,
     private val submodules: Map<ProjectId, Set<ProjectId>>,
@@ -27,6 +28,7 @@ data class ReleasePlan(
     constructor(releasePlan: ReleasePlan, projects: Map<ProjectId, Project>) :
         this(
             releasePlan.publishId,
+            releasePlan.state,
             releasePlan.rootProjectId,
             projects,
             releasePlan.submodules,
@@ -37,7 +39,7 @@ data class ReleasePlan(
         )
 
     /**
-     * Creates a [ReleasePlan] with an empty list for [warnings], [infos], and [config]
+     * Creates a [ReleasePlan] with [state] = [ReleaseState.Ready] and an empty list for [warnings], [infos], and [config].
      */
     constructor(
         publishId: String,
@@ -46,7 +48,17 @@ data class ReleasePlan(
         submodulesOfProject: Map<ProjectId, Set<ProjectId>>,
         dependents: Map<ProjectId, Set<ProjectId>>
     ) :
-        this(publishId, rootProjectId, projects, submodulesOfProject, dependents, listOf(), listOf(), mapOf())
+        this(
+            publishId,
+            ReleaseState.Ready,
+            rootProjectId,
+            projects,
+            submodulesOfProject,
+            dependents,
+            listOf(),
+            listOf(),
+            mapOf()
+        )
 
     fun getRootProject() = getProject(rootProjectId)
     fun getProject(projectId: ProjectId): Project {
