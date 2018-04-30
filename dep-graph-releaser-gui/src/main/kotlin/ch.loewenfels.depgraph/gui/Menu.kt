@@ -122,7 +122,6 @@ class Menu {
             Menu.registerForReleaseStartEvent {
                 listOf(dryRunButton, releaseButton, exploreButton).forEach {
                     it.addClass(DISABLED)
-                    it.asDynamic().oldTitle = it.title
                     it.title = Gui.DISABLED_RELEASE_IN_PROGRESS
                 }
             }
@@ -143,10 +142,8 @@ class Menu {
                             "\n(You might have to delete git tags and remove artifacts if they have already been created)."
                     )
                     elementById("release.text").innerText = "Re-trigger failed Jobs"
-                    listOf(dryRunButton, releaseButton, exploreButton).forEach {
-                        it.removeClass(DISABLED)
-                        it.title = it.asDynamic().oldTitle as String
-                    }
+                    releaseButton.title = "Continue with the release process by re-triggering previously failed jobs."
+                    releaseButton.removeClass(DISABLED)
                 }
             }
         }
