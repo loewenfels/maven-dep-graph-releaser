@@ -63,17 +63,17 @@ class App {
                 .then(::checkStatusOk)
                 .catch {
                     throw Error("Could not load json.", it)
-                }
-                .then { body: String ->
+                }.then { body: String ->
                     switchLoader("loaderApiToken", "loaderJson")
                     val modifiableJson = ModifiableJson(body)
                     val dependencies = createDependencies(usernameToken, modifiableJson)
-                    menu.initDependencies(Downloader(modifiableJson), dependencies)
                     val releasePlan = deserialize(body)
+                    menu.initDependencies(releasePlan, Downloader(modifiableJson), dependencies)
                     Gui(releasePlan, menu).load()
                     switchLoaderJsonWithPipeline()
+                }.catch {
+                    showThrowableAndThrow(it)
                 }
-                .catch { showThrowableAndThrow(it) }
         }
     }
 

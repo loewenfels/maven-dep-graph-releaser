@@ -1,5 +1,7 @@
 package ch.loewenfels.depgraph.gui
 
+import ch.loewenfels.depgraph.data.ReleasePlan
+import ch.loewenfels.depgraph.data.ReleaseState
 import org.w3c.dom.CustomEvent
 import org.w3c.dom.CustomEventInit
 import org.w3c.dom.HTMLElement
@@ -60,7 +62,7 @@ class Menu {
     }
 
 
-    internal fun initDependencies(downloader: Downloader, dependencies: Dependencies?) {
+    internal fun initDependencies(releasePlan: ReleasePlan, downloader: Downloader, dependencies: Dependencies?) {
         if (dependencies != null) {
             publisher = dependencies.publisher
         }
@@ -68,6 +70,8 @@ class Menu {
         window.onbeforeunload = {
             if (!saveButton.hasClass(DEACTIVATED)) {
                 "Your changes will be lost, sure you want to leave the page?"
+            } else if (Gui.getReleaseState() !== ReleaseState.Ready) {
+                "You might lose state changes if you navigate away from this page, sure you want to proceed?"
             } else {
                 null
             }
@@ -75,6 +79,14 @@ class Menu {
 
         initSaveAndDownloadButton(downloader, dependencies)
         initRunButtons(dependencies)
+
+        when (releasePlan.state) {
+            ReleaseState.Ready -> Unit /* nothing to do */
+            ReleaseState.InProgress -> dispatchReleaseStart()
+            ReleaseState.Failed, ReleaseState.Succeeded -> {
+                dispatchReleaseStart(); dispatchReleaseEnd(releasePlan.state == ReleaseState.Succeeded)
+            }
+        }
     }
 
     private fun initSaveAndDownloadButton(downloader: Downloader, dependencies: Dependencies?) {

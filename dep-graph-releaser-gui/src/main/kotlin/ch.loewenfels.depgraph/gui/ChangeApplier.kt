@@ -53,7 +53,7 @@ object ChangeApplier {
 
     private fun replaceReleaseStateIfChanged(releasePlanJson: ReleasePlanJson): Boolean {
         var changed = false
-        val newState = elementById(Gui.PIPELINE_HTML_ID).asDynamic().state as ReleaseState
+        val newState = Gui.getReleaseState()
         val currentState = deserializeReleaseState(releasePlanJson)
         if (currentState != newState) {
             releasePlanJson.state = newState.name.unsafeCast<ReleaseState>()

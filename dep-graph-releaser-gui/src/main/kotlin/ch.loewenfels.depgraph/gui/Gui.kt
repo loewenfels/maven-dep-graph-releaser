@@ -28,6 +28,11 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         setUpConfig(releasePlan)
         setUpProjects()
         toggler.registerToggleEvents()
+
+        //TODO we should check if releasePlant.state is inProgress. In such a case it might be that command states
+        // have changed already and we need to update the state let's say the browser crashes during release and we
+        // have already triggered a job and know it is queued in this case we should check if it is no longer queued
+        // but already started etc.
     }
 
     private fun setUpMessages(messages: List<String>, id: String, action: (String) -> Unit) {
@@ -218,6 +223,9 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 span()
                 id = "$idPrefix:status.icon"
             }
+            if (command is JenkinsCommand) {
+                href = command.buildUrl ?: ""
+            }
         }
 
         when (command) {
@@ -384,10 +392,12 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             CommandState.Disabled -> "disabled"
         }
 
+
+        fun getReleaseState() = elementById(Gui.PIPELINE_HTML_ID).asDynamic().state as ReleaseState
+
         fun changeReleaseState(newState: ReleaseState) {
             val pipeline = elementById(Gui.PIPELINE_HTML_ID).asDynamic()
-            val previousState = pipeline.state as ReleaseState
-            pipeline.state = previousState.checkTransitionAllowed(newState)
+            pipeline.state = getReleaseState().checkTransitionAllowed(newState)
         }
     }
 }
