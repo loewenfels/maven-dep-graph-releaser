@@ -186,8 +186,9 @@ class Menu {
         saveButton.removeClass(DEACTIVATED)
         saveButton.title = "Publish changed json file and change location"
         val saveFirst = "You need to save your changes first."
-        dryRunButton.deactivate(saveFirst)
-        releaseButton.deactivate(saveFirst)
+        listOf(dryRunButton, releaseButton, exploreButton).forEach {
+            it.deactivate(saveFirst)
+        }
     }
 
     private fun activateReleaseButton() {
