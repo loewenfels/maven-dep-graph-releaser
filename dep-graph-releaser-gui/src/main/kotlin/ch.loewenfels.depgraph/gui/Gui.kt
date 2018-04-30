@@ -308,7 +308,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         const val DISABLED_RELEASE_IN_PROGRESS = "disabled due to release which is in progress."
         const val DISABLED_RELEASE_SUCCESS = "Release successful, use a new pipeline for a new release."
         const val NEXT_DEV_VERSION_SUFFIX = ":nextDevVersion"
-        private const val STATE_SUFFIX = ":state"
+        const val STATE_SUFFIX = ":state"
         private const val TITLE_SUFFIX = ":title"
 
 
@@ -369,7 +369,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             }
             command.removeClass(stateToCssClass(previousState))
             command.addClass(stateToCssClass(newState))
-            elementById("$commandId:state").title = title
+            elementById("$commandId$STATE_SUFFIX").title = title
         }
 
         private fun stateToCssClass(state: CommandState) = when (state) {
