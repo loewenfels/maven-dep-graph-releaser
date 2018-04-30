@@ -186,10 +186,12 @@ class Releaser(
             Gui.changeStateOfCommand(
                 project, index, CommandState.Succeeded, "Job completed successfully."
             )
+            save(paramObject)
         }.catch { t ->
             Gui.changeStateOfCommand(
                 project, index, CommandState.Failed, "Job failed, click to navigate to the job."
             )
+            save(paramObject)
             throw t
         }.finally {
             changeCursorBackToNormal()
