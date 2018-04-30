@@ -10,6 +10,8 @@ interface JobExecutor {
         body: String,
         jobQueuedHook: (queuedItemUrl: String) -> Promise<*>,
         jobStartedHook: (buildNumber: Int) -> Promise<*>,
+        pollEverySecond: Int,
+        maxWaitingTimeForCompleteness: Int,
         verbose: Boolean = true
     ): Promise<Pair<CrumbWithId, Int>>
 

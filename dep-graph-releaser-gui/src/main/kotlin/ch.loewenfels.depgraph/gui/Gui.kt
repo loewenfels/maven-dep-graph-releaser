@@ -33,6 +33,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         // have changed already and we need to update the state let's say the browser crashes during release and we
         // have already triggered a job and know it is queued in this case we should check if it is no longer queued
         // but already started etc.
+        //TODO also for state failed, might be that it failed because maxWaitingTime was over
     }
 
     private fun setUpMessages(messages: List<String>, id: String, action: (String) -> Unit) {

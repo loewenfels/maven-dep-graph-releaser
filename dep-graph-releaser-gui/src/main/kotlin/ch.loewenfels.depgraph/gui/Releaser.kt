@@ -247,6 +247,8 @@ class Releaser(
                 )
                 save(paramObject)
             },
+            pollEverySecond = 10,
+            maxWaitingTimeForCompleteness = 60 * 15,
             verbose = false
         ).then(
             { CommandState.Succeeded to "Job completed successfully." },

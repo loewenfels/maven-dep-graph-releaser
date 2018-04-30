@@ -7,7 +7,7 @@ import kotlin.js.Promise
 class JenkinsJobExecutor(
     private val jenkinsUrl: String,
     private val usernameToken: UsernameToken
-): JobExecutor {
+) : JobExecutor {
 
     override fun trigger(
         jobUrl: String,
@@ -15,6 +15,8 @@ class JenkinsJobExecutor(
         body: String,
         jobQueuedHook: (queuedItemUrl: String) -> Promise<*>,
         jobStartedHook: (buildNumber: Int) -> Promise<*>,
+        pollEverySecond: Int,
+        maxWaitingTimeForCompleteness: Int,
         verbose: Boolean
     ): Promise<Pair<CrumbWithId, Int>> {
         return issueCrumb(jenkinsUrl).then { crumbWithId: CrumbWithId? ->
@@ -35,7 +37,9 @@ class JenkinsJobExecutor(
                         showInfo("$jobName started with build number $buildNumber, wait for completion...", 2000)
                     }
                     jobStartedHook(buildNumber).then {
-                        pollJobForCompletion(crumbWithId, jobUrl, buildNumber)
+                        pollJobForCompletion(
+                            crumbWithId, jobUrl, buildNumber, pollEverySecond, maxWaitingTimeForCompleteness
+                        )
                     }.then { result -> buildNumber to result }
                 }.then { (buildNumber, result) ->
                     check(result == SUCCESS) {
@@ -103,7 +107,7 @@ class JenkinsJobExecutor(
         regex: Regex,
         errorHandler: (PollException) -> Nothing
     ): Promise<String> {
-        return poll(crumbWithId, url, 0, { body ->
+        return poll(crumbWithId, url, 0, 2, 20, { body ->
             val matchResult = regex.find(body)
             if (matchResult != null) {
                 true to matchResult.groupValues[1]
@@ -119,17 +123,24 @@ class JenkinsJobExecutor(
         }
     }
 
-    private fun pollJobForCompletion(crumbWithId: CrumbWithId?, jobUrl: String, buildNumber: Int): Promise<String> {
-        // wait a bit, if we are too fast we run almost certainly into a 404
-        return sleep(50) {
-            poll(crumbWithId, "$jobUrl$buildNumber/api/xml?xpath=/*/result", 0, { body ->
+    private fun pollJobForCompletion(
+        crumbWithId: CrumbWithId?,
+        jobUrl: String,
+        buildNumber: Int,
+        pollEverySecond: Int,
+        maxWaitingTime: Int
+    ): Promise<String> {
+        return sleep(pollEverySecond * 500) {
+            poll(
+                crumbWithId, "$jobUrl$buildNumber/api/xml?xpath=/*/result", 0, pollEverySecond, maxWaitingTime
+            ) { body ->
                 val matchResult = resultRegex.matchEntire(body)
                 if (matchResult != null) {
                     true to matchResult.groupValues[1]
                 } else {
                     false to ""
                 }
-            })
+            }
         }.unsafeCast<Promise<String>>()
     }
 
@@ -137,19 +148,19 @@ class JenkinsJobExecutor(
         crumbWithId: CrumbWithId?,
         pollUrl: String,
         numberOfTries: Int,
-        action: (String) -> Pair<Boolean, T?>,
-        maxNumberOfTries: Int = 10,
-        sleepInSeconds: Int = 2
+        pollEverySecond: Int,
+        maxWaitingTime: Int,
+        action: (String) -> Pair<Boolean, T?>
     ): Promise<T> {
         val headers = createHeaderWithAuthAndCrumb(crumbWithId, usernameToken)
         val init = createRequestInit(null, RequestVerb.GET, headers)
 
         val rePoll: (String) -> T = { body ->
-            if (numberOfTries >= maxNumberOfTries) {
-                throw PollException("Waited at least ${sleepInSeconds * maxNumberOfTries} seconds", body)
+            if (numberOfTries * pollEverySecond >= maxWaitingTime) {
+                throw PollException("Waited at least $maxWaitingTime seconds", body)
             }
-            val p = sleep(sleepInSeconds * 1000) {
-                poll(crumbWithId, pollUrl, numberOfTries + 1, action)
+            val p = sleep(pollEverySecond * 1000) {
+                poll(crumbWithId, pollUrl, numberOfTries + 1, pollEverySecond, maxWaitingTime, action)
             }
             // unsafeCast is used because javascript resolves the result automatically on return
             // will not result in Promise<Promise<T>> but T
