@@ -67,11 +67,13 @@ sealed class CommandState {
             ReadyToRetrigger -> checkNewState(newState, Failed::class)
             Ready -> {
                 checkNewState(newState, Waiting::class)
-                check((this as Waiting).dependencies.isEmpty()) {
-                    "Can only change from ${Waiting::class.simpleName} to ${Ready::class.simpleName} " +
-                        "if there are not any dependencies left which we need to wait for." +
-                        //TODO use $this in stead of $getRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed
-                        "\nState was: ${getRepresentation(this)}"
+                if(this is Waiting) { //could also be Deactivated with previous Ready
+                    check(this.dependencies.isEmpty()) {
+                        "Can only change from ${Waiting::class.simpleName} to ${Ready::class.simpleName} " +
+                            "if there are not any dependencies left which we need to wait for." +
+                            //TODO use $this in stead of $getRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed
+                            "\nState was: ${getRepresentation(this)}"
+                    }
                 }
             }
             Queueing -> checkNewState(newState, Ready::class)
