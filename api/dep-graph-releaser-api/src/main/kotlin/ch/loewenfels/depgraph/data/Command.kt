@@ -58,9 +58,9 @@ sealed class CommandState {
         check(this !== Disabled) { "Cannot transition to any state if current state is ${Disabled::class.simpleName}." }
         check(this::class != newState::class) {
             "Cannot transition to the same state as the current." +
-                //TODO use $this in stead of $getRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed
-                "\nCurrent: ${getRepresentation(this)}" +
-                "\nNew: ${getRepresentation(newState)}"
+                //TODO use $this in stead of $getToStringRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed
+                "\nCurrent: ${this.getToStringRepresentation()}" +
+                "\nNew: ${newState.getToStringRepresentation()}"
         }
 
         when (newState) {
@@ -71,9 +71,9 @@ sealed class CommandState {
                     check(this.dependencies.isEmpty()) {
                         "Can only change from ${Waiting::class.simpleName} to ${Ready::class.simpleName} " +
                             "if there are not any dependencies left which we need to wait for." +
-                            //TODO use $this in stead of $getRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed
-                            "\nState was: ${getRepresentation(this)}"
-                    }
+                            //TODO use $this in stead of $getToStringRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed
+                            "\nState was: ${this.getToStringRepresentation()}"
+                }
                 }
             }
             Queueing -> checkNewState(newState, Ready::class)
@@ -83,24 +83,24 @@ sealed class CommandState {
         return newState
     }
 
-    private fun getRepresentation(state: CommandState): String {
-        val representation = this.toString()
-        return if (representation == "[object Object]") state::class.simpleName!! else representation
-    }
-
     private fun checkNewState(newState: CommandState, requiredState: KClass<out CommandState>) {
         if (this is Deactivated) {
             check(newState::class == this.previous::class) {
                 "Cannot transition to ${newState::class.simpleName} because " +
                     "current state is ${Deactivated::class.simpleName}, can only transition to its previous state." +
-                    "\nDeactivated.previous was: ${getRepresentation(this.previous)}"
+                    "\nDeactivated.previous was: ${this.previous.getToStringRepresentation()}"
             }
         } else {
             check(requiredState.isInstance(this)) {
                 "Cannot transition to ${newState::class.simpleName} because state is not ${requiredState.simpleName}." +
-                    //TODO use $this in stead of $getRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed
-                    "\nState was: ${getRepresentation(this)}"
+                    //TODO use $this in stead of $getToStringRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed
+                    "\nState was: ${this.getToStringRepresentation()}"
             }
         }
     }
+}
+
+fun Any.getToStringRepresentation(): String {
+    val representation = this.toString()
+    return if (representation == "[object Object]") this::class.simpleName!! else representation
 }

@@ -3,6 +3,7 @@ package ch.loewenfels.depgraph.gui
 import ch.loewenfels.depgraph.data.Command
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.ProjectId
+import ch.loewenfels.depgraph.data.ReleaseState
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsCommand
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
@@ -20,6 +21,7 @@ object ChangeApplier {
         var changed = false
 
         changed = changed or replacePublishIdIfChanged(releasePlanJson)
+        changed = changed or replaceReleaseStateIfChanged(releasePlanJson)
 
         releasePlanJson.projects.forEach { project ->
             val mavenProjectId = deserializeProjectId(project.id)
@@ -27,7 +29,7 @@ object ChangeApplier {
 
             project.commands.forEachIndexed { index, command ->
                 changed = changed or
-                    replaceStateIfChanged(command, mavenProjectId, index) or
+                    replaceCommandStateIfChanged(command, mavenProjectId, index) or
                     replaceFieldsIfChanged(command, mavenProjectId, index)
             }
         }
@@ -38,12 +40,23 @@ object ChangeApplier {
 
     private fun replacePublishIdIfChanged(releasePlanJson: ReleasePlanJson): Boolean {
         var changed = false
-        val input = getTextField(Gui.PUBLISH_ID)
+        val input = getTextField(Gui.PUBLISH_ID_HTML_ID)
         if (releasePlanJson.publishId != input.value) {
             check(input.value.isNotBlank()) {
                 "An empty or blank PublishId is not allowed"
             }
             releasePlanJson.publishId = input.value
+            changed = true
+        }
+        return changed
+    }
+
+    private fun replaceReleaseStateIfChanged(releasePlanJson: ReleasePlanJson): Boolean {
+        var changed = false
+        val newState = elementById(Gui.PIPELINE_HTML_ID).asDynamic().state as ReleaseState
+        val currentState = deserializeReleaseState(releasePlanJson)
+        if (currentState != newState) {
+            releasePlanJson.state = newState.name.unsafeCast<ReleaseState>()
             changed = true
         }
         return changed
@@ -77,7 +90,7 @@ object ChangeApplier {
         return false
     }
 
-    private fun replaceStateIfChanged(
+    private fun replaceCommandStateIfChanged(
         genericCommand: GenericType<Command>,
         mavenProjectId: ProjectId,
         index: Int

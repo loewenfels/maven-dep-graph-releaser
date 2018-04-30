@@ -21,8 +21,19 @@ class Releaser(
 
         val project = releasePlan.getRootProject()
         val paramObject = ParamObject(releasePlan, jobExecutor, project, hashMapOf())
+        Gui.changeReleaseState(ReleaseState.InProgress)
+        save(paramObject)
         return releaseProject(paramObject)
-            .then { jobResults -> allJobsOk(jobResults) }
+            .then { jobResults ->
+                val result = allJobsOk(jobResults)
+                if (result) {
+                    Gui.changeReleaseState(ReleaseState.Succeeded)
+                } else {
+                    Gui.changeReleaseState(ReleaseState.Failed)
+                }
+                save(paramObject)
+                result
+            }
     }
 
     private fun allJobsOk(jobResults: Array<out Boolean>) = jobResults.all { it }

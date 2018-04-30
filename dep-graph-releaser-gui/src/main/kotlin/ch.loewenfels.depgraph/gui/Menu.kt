@@ -99,7 +99,7 @@ class Menu {
             }
             activateReleaseButton()
             releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                
+
                 triggerRelease(dependencies, dependencies.jenkinsJobExecutor)
             }
 
@@ -222,7 +222,7 @@ class Menu {
 
         val changed = publisher.applyChanges()
         return if (changed) {
-            val publishId = getTextField(Gui.PUBLISH_ID).value
+            val publishId = getTextField(Gui.PUBLISH_ID_HTML_ID).value
             val newFileName = "release-$publishId"
             publisher.publish(newFileName, verbose, jobExecutor)
                 .then { deactivateSaveButton(); true }

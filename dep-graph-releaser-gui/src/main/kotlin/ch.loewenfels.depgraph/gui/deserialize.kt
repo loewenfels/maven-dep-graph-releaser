@@ -17,7 +17,7 @@ internal const val JENKINS_UPDATE_DEPENDENCY = "ch.loewenfels.depgraph.data.mave
 
 fun deserialize(body: String): ReleasePlan {
     val releasePlanJson = JSON.parse<ReleasePlanJson>(body)
-    val state = ReleaseState.valueOf(releasePlanJson.state.unsafeCast<String>())
+    val state = deserializeReleaseState(releasePlanJson)
     val rootProjectId = deserializeProjectId(releasePlanJson.id)
     val projects = deserializeProjects(releasePlanJson)
     val submodules = deserializeMapOfProjectIdAndSetProjectId(releasePlanJson.submodules)
@@ -37,6 +37,10 @@ fun deserialize(body: String): ReleasePlan {
         infos,
         config
     )
+}
+
+fun deserializeReleaseState(releasePlanJson: ReleasePlanJson): ReleaseState {
+    return ReleaseState.valueOf(releasePlanJson.state.unsafeCast<String>())
 }
 
 fun deserializeProjectId(id: GenericType<ProjectId>): ProjectId {

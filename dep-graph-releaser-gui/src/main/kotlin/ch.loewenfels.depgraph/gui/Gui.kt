@@ -45,7 +45,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         //TODO add description for each property
         elementById("config").append {
             div {
-                fieldWithLabel(PUBLISH_ID, "PublishId", releasePlan.publishId)
+                fieldWithLabel(PUBLISH_ID_HTML_ID, "PublishId", releasePlan.publishId)
 
                 val config = releasePlan.config
                 ConfigKey.all().forEach { key ->
@@ -57,7 +57,9 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
     private fun setUpProjects() {
         val set = hashSetOf<ProjectId>()
-        elementById("pipeline").append {
+        val pipeline = elementById(PIPELINE_HTML_ID)
+        pipeline.asDynamic().state = releasePlan.state
+        pipeline.append {
             val itr = releasePlan.iterator().toPeekingIterator()
             var level: Int
             while (itr.hasNext()) {
@@ -298,7 +300,8 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
     }
 
     companion object {
-        const val PUBLISH_ID = "publishId"
+        const val PIPELINE_HTML_ID = "pipeline"
+        const val PUBLISH_ID_HTML_ID = "publishId"
         const val DISABLE_SUFFIX = ":disable"
         const val DISABLE_ALL_SUFFIX = ":disableAll"
         const val SLIDER_SUFFIX = ":slider"
@@ -379,6 +382,13 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             is CommandState.Failed -> "failed"
             is CommandState.Deactivated -> "deactivated"
             CommandState.Disabled -> "disabled"
+        }
+
+        fun changeReleaseState(newState: ReleaseState) {
+            val pipeline = elementById(Gui.PIPELINE_HTML_ID).asDynamic()
+            val previousState = pipeline.state as ReleaseState
+            previousState.checkTransitionAllowed(newState)
+            pipeline.state = newState
         }
     }
 }
