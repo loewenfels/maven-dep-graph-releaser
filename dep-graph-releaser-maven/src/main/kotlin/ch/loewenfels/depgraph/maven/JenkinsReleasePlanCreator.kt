@@ -44,6 +44,7 @@ class JenkinsReleasePlanCreator(
         reportInterModuleCyclicDependencies(paramObject, infos)
 
         val releasePlan = ReleasePlan(
+            options.publishId,
             rootProject.id,
             paramObject.projects,
             paramObject.submodules,
@@ -461,9 +462,10 @@ class JenkinsReleasePlanCreator(
      * Options for the [JenkinsReleasePlanCreator].
      */
     data class Options(
+        val publishId: String,
         val disableReleaseFor: Regex,
         val config: Map<ConfigKey, String>
     ) {
-        constructor(disableReleaseFor: String) : this(Regex(disableReleaseFor), mapOf())
+        constructor(publishId: String, disableReleaseFor: String) : this(publishId, Regex(disableReleaseFor), mapOf())
     }
 }

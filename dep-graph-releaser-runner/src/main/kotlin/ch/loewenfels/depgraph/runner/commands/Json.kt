@@ -12,6 +12,7 @@ import ch.loewenfels.depgraph.runner.console.ErrorHandler
 import ch.loewenfels.depgraph.runner.console.expectedArgsAndGiven
 import ch.loewenfels.depgraph.runner.console.toOptionalArgs
 import ch.loewenfels.depgraph.runner.toVerifiedFile
+import java.util.*
 
 object Json : ConsoleCommand {
 
@@ -96,7 +97,8 @@ object Json : ConsoleCommand {
 
         val mavenProjectId = MavenProjectId(groupId, artifactId)
         val analyserOptions = Analyser.Options(!turnMissingPartnerAnalysisOff)
-        val releasePlanCreatorOptions = JenkinsReleasePlanCreator.Options(disableReleaseForRegex, config)
+        val publishId = UUID.randomUUID().toString().replace("-", "").take(15)
+        val releasePlanCreatorOptions = JenkinsReleasePlanCreator.Options(publishId, disableReleaseForRegex, config)
 
         Orchestrator.analyseAndCreateJson(
             directoryToAnalyse,

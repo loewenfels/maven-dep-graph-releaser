@@ -19,7 +19,7 @@ object SerializerSpec : Spek({
     val testee = Serializer()
 
     fun createReleasePlan(project: Project): ReleasePlan {
-        return ReleasePlan(project.id, mapOf(project.id to project), mapOf(), mapOf())
+        return ReleasePlan("publishId", project.id, mapOf(project.id to project), mapOf(), mapOf())
     }
 
     fun createReleasePlan(state: CommandState): ReleasePlan {
@@ -34,6 +34,7 @@ object SerializerSpec : Spek({
         val projectWithCommandsWithoutDependents = Project(DummyProjectId("b"), false, "1.2", "2.0", 2, listOf(DummyCommand(CommandState.Failed)), "")
         val projectWithoutCommandsButDependents = Project(DummyProjectId("c"), false,"1.5", "3.0", 1, listOf(), "")
         val releasePlanWithoutCommandsButDependents = ReleasePlan(
+            "publishId",
             projectWithoutCommandsButDependents.id,
             mapOf(
                 projectWithoutCommandsButDependents.id to projectWithoutCommandsButDependents,
@@ -46,6 +47,7 @@ object SerializerSpec : Spek({
         )
         val projectWithCommandsAndDependents = Project(DummyProjectId("d"), false, "1.5", "3.0", 0, listOf(DummyCommand(CommandState.Waiting(setOf(aId)))), "")
         val releasePlanWithCommandsAndDependents = ReleasePlan(
+            "publishId",
             projectWithCommandsAndDependents.id,
             mapOf(
                 projectWithCommandsAndDependents.id to projectWithCommandsAndDependents,

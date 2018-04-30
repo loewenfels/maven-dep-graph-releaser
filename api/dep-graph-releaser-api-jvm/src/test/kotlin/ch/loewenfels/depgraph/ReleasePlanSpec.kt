@@ -15,7 +15,6 @@ import org.jetbrains.spek.api.dsl.it
 
 object ReleasePlanSpec : Spek({
 
-
     fun createProject(
         id: ProjectId,
         isSubmodule: Boolean,
@@ -50,6 +49,7 @@ object ReleasePlanSpec : Spek({
                 projectNotifierId to setOf()
             )
             val releasePlan = ReleasePlan(
+                "publishId",
                 rootProjectId,
                 mapOf(
                     rootProjectId to rootProject,
@@ -94,6 +94,7 @@ object ReleasePlanSpec : Spek({
                 submodule2Id to setOf()
             )
             val releasePlan = ReleasePlan(
+                "publishId",
                 multiModuleId,
                 mapOf(
                     multiModuleId to multiModule,
@@ -124,6 +125,7 @@ object ReleasePlanSpec : Spek({
                 dependentId to setOf()
             )
             val releasePlan = ReleasePlan(
+                "publishId",
                 multiModuleId,
                 mapOf(
                     multiModuleId to multiModule,

@@ -120,7 +120,7 @@ object IntegrationSpec : Spek({
                     analyseAndCreateReleasePlan(
                         singleProjectIdAndVersions.id,
                         getTestDirectory("singleProject"),
-                        JenkinsReleasePlanCreator.Options(".*:example")
+                        JenkinsReleasePlanCreator.Options("publishId", ".*:example")
                     )
                 }.toThrow<IllegalArgumentException> {
                     message {
@@ -163,7 +163,7 @@ object IntegrationSpec : Spek({
                 val releasePlan = analyseAndCreateReleasePlan(
                     singleProjectIdAndVersions.id,
                     getTestDirectory("singleProject"),
-                    JenkinsReleasePlanCreator.Options(".*notTheProject")
+                    JenkinsReleasePlanCreator.Options("publishId", ".*notTheProject")
                 )
                 assertSingleProject(releasePlan, singleProjectIdAndVersions)
             }
@@ -174,7 +174,7 @@ object IntegrationSpec : Spek({
                 val releasePlan = analyseAndCreateReleasePlan(
                     exampleA.id,
                     getTestDirectory("managingVersions/inDependency"),
-                    JenkinsReleasePlanCreator.Options("${exampleB.id.groupId}:${exampleB.id.artifactId}")
+                    JenkinsReleasePlanCreator.Options("publishId", "${exampleB.id.groupId}:${exampleB.id.artifactId}")
                 )
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
 
@@ -191,7 +191,7 @@ object IntegrationSpec : Spek({
                 val releasePlan = analyseAndCreateReleasePlan(
                     exampleA.id,
                     getTestDirectory("transitive/implicit"),
-                    JenkinsReleasePlanCreator.Options("${exampleB.id.groupId}:${exampleB.id.artifactId}")
+                    JenkinsReleasePlanCreator.Options("publishId", "${exampleB.id.groupId}:${exampleB.id.artifactId}")
                 )
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
 
@@ -216,7 +216,7 @@ object IntegrationSpec : Spek({
                 val releasePlan = analyseAndCreateReleasePlan(
                     exampleA.id,
                     getTestDirectory("transitive/implicit"),
-                    JenkinsReleasePlanCreator.Options("${exampleB.id.groupId}:(${exampleB.id.artifactId}|${exampleC.id.artifactId})")
+                    JenkinsReleasePlanCreator.Options("publishId", "${exampleB.id.groupId}:(${exampleB.id.artifactId}|${exampleC.id.artifactId})")
                 )
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
 
@@ -243,7 +243,7 @@ object IntegrationSpec : Spek({
                 val releasePlan = analyseAndCreateReleasePlan(
                     singleProjectIdAndVersions.id,
                     getTestDirectory("singleProject"),
-                    JenkinsReleasePlanCreator.Options(Regex(".*notTheProject"), mapOf())
+                    JenkinsReleasePlanCreator.Options("publishId", Regex(".*notTheProject"), mapOf())
                 )
                 assertSingleProject(releasePlan, singleProjectIdAndVersions)
                 assert(releasePlan.config).isEmpty()
@@ -255,6 +255,7 @@ object IntegrationSpec : Spek({
                     singleProjectIdAndVersions.id,
                     getTestDirectory("singleProject"),
                     JenkinsReleasePlanCreator.Options(
+                        "publishId",
                         Regex(".*notTheProject"),
                         mapOf(ConfigKey.REMOTE_JOB to "b", ConfigKey.REMOTE_REGEX to "d")
                     )
@@ -1097,7 +1098,7 @@ private fun analyseAndCreateReleasePlanWithPomResolverOldVersions(
 }
 
 private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, analyser: Analyser): ReleasePlan {
-    return analyseAndCreateReleasePlan(projectToRelease, analyser, JenkinsReleasePlanCreator.Options("^$"))
+    return analyseAndCreateReleasePlan(projectToRelease, analyser, JenkinsReleasePlanCreator.Options("publishId", "^$"))
 }
 
 private fun analyseAndCreateReleasePlan(

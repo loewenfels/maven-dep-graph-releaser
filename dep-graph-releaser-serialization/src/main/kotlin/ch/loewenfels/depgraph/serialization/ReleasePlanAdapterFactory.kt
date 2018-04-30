@@ -15,6 +15,8 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
         }
         val projectIdAdapter = moshi.adapter(ProjectId::class.java)
 
+        val stringAdapter = moshi.adapter<String>(String::class.java)
+
         val mapType = Types.newParameterizedType(
             Map::class.java,
             ProjectId::class.java,
@@ -35,6 +37,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
         val listPairStringAdapter = moshi.adapter<List<Pair<String, String>>>(listPairStringType)
 
         return ReleasePlanAdapter(
+            stringAdapter,
             projectIdAdapter,
             projectsAdapter,
             mapProjectIdAndSetProjectId,
@@ -44,6 +47,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
     }
 
     private class ReleasePlanAdapter(
+        private val stringAdapter: JsonAdapter<String>,
         private val projectIdAdapter: JsonAdapter<ProjectId>,
         private val projectsAdapter: JsonAdapter<Collection<Project>>,
         private val mapProjectIdAndSetProjectId: JsonAdapter<Map<ProjectId, Set<ProjectId>>>,
@@ -53,6 +57,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
 
         override fun toJsonNonNull(writer: JsonWriter, value: ReleasePlan) {
             writer.writeObject {
+                writeNameAndValue(PUBLISH_ID, value.publishId, stringAdapter)
                 writeNameAndValue(ID, value.rootProjectId, projectIdAdapter)
                 writeNameAndValue(PROJECTS, value.getProjects(), projectsAdapter)
                 writeNameAndValue(SUBMODULES, value.getAllSubmodules(), mapProjectIdAndSetProjectId)
@@ -66,6 +71,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
 
         override fun fromJson(reader: JsonReader): ReleasePlan? {
             return reader.readObject {
+                val publishId = checkNextNameAndGetValue(PUBLISH_ID, stringAdapter)
                 val projectId = checkNextNameAndGetValue(ID, projectIdAdapter)
                 val projects = checkNextNameAndGetValue(PROJECTS, projectsAdapter)
                 val submodules = checkNextNameAndGetValue(SUBMODULES, mapProjectIdAndSetProjectId)
@@ -74,7 +80,17 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
                 val infos = checkNextNameAndGetValue(INFOS, listStringAdapter)
                 val stringConfig = checkNextNameAndGetValue(CONFIG, listPairStringAdapter)
                 val config = stringConfig.associate { ConfigKey.fromString(it.first) to it.second }
-                ReleasePlan(projectId, projects.associateBy { it.id }, submodules, dependents, warnings, infos, config)
+
+                ReleasePlan(
+                    publishId,
+                    projectId,
+                    projects.associateBy { it.id },
+                    submodules,
+                    dependents,
+                    warnings,
+                    infos,
+                    config
+                )
             }
         }
 
@@ -82,6 +98,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
             checkNextNameAndGetValue(ReleasePlan::class.java.simpleName, expectedName, adapter)
     }
 
+    const val PUBLISH_ID = "publishId"
     const val ID = "id"
     const val PROJECTS = "projects"
     const val SUBMODULES = "submodules"

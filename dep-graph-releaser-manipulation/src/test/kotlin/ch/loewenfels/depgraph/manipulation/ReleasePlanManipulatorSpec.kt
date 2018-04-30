@@ -57,6 +57,7 @@ object ReleasePlanManipulatorSpec : Spek({
     )
     val testee = ReleasePlanManipulator(
         ReleasePlan(
+            "publishId",
             rootProjectId,
             mapOf(
                 rootProjectId to rootProject,
