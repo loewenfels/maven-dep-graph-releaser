@@ -309,7 +309,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         const val DISABLED_RELEASE_SUCCESS = "Release successful, use a new pipeline for a new release."
         const val NEXT_DEV_VERSION_SUFFIX = ":nextDevVersion"
         const val STATE_SUFFIX = ":state"
-        private const val TITLE_SUFFIX = ":title"
+        const val TITLE_SUFFIX = ":title"
 
 
         fun getCommandId(project: Project, index: Int) = getCommandId(project.id, index)

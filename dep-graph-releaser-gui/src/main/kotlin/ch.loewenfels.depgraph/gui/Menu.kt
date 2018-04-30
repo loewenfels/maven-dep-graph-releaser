@@ -99,7 +99,6 @@ class Menu {
             }
             activateReleaseButton()
             releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-
                 triggerRelease(dependencies, dependencies.jenkinsJobExecutor)
             }
 

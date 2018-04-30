@@ -5,6 +5,7 @@ import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
+import kotlin.browser.window
 import kotlin.collections.set
 import kotlin.js.Promise
 
@@ -19,19 +20,44 @@ class Releaser(
         val releasePlan = deserialize(modifiableJson.json)
         checkConfig(releasePlan)
 
+        val prefix = window.location.protocol + "//" + window.location.hostname + "/"
+        val isOnSameHost = jenkinsUrl.startsWith(prefix)
+        if (!isOnSameHost) {
+            showWarning(
+                "Remote publish server detected. We currently do not support to consume remote release.json." +
+                    "\nThis means that we publish changes during the release process but will not change the location. Thus, please do not reload the page during the release process."
+                , 6000
+            )
+        }
+
         val project = releasePlan.getRootProject()
         val paramObject = ParamObject(releasePlan, jobExecutor, project, hashMapOf())
         Gui.changeReleaseState(ReleaseState.InProgress)
-        save(paramObject)
-        return releaseProject(paramObject)
-            .then { jobResults ->
+        return save(paramObject)
+            .then {
+                releaseProject(paramObject)
+            }.catch { t ->
+                showThrowableAndThrow(
+                    Error(
+                        "Could not save release state (changed to ${ReleaseState.InProgress})." +
+                            "\nAborting release process, please make sure that the publisher works as expected."
+                    )
+                )
+            }.then { jobResults: Array<out Boolean> ->
                 val result = allJobsOk(jobResults)
-                if (result) {
-                    Gui.changeReleaseState(ReleaseState.Succeeded)
-                } else {
-                    Gui.changeReleaseState(ReleaseState.Failed)
-                }
-                save(paramObject)
+                val newState = if (result) ReleaseState.Succeeded else ReleaseState.Failed
+                Gui.changeReleaseState(newState)
+                save(paramObject, verbose = true)
+                    .catch { t ->
+                        showThrowable(
+                            Error(
+                                "Could not save the release state (changed to $newState)." +
+                                    "\nDo not reload if you want to continue using this pipeline and make sure the publisher works as expected." +
+                                    "\nMake a pseudo change (e.g. add a space to a Release Version and remove it again). And try to save the changes.",
+                                t
+                            )
+                        )
+                    }
                 result
             }
     }
@@ -47,7 +73,7 @@ class Releaser(
 
                 triggerReleaseCommands(paramObject)
             }.then { jobResult ->
-                if(!jobResult) throw NotReadyState
+                if (!jobResult) throw NotReadyState
 
                 val releasePlan = paramObject.releasePlan
                 val allDependents =
@@ -203,6 +229,7 @@ class Releaser(
                     project, index, CommandState.Succeeded, "Job completed successfully."
                 )
                 save(paramObject)
+                    .catch { t -> logWarnOnConsole(project, index, t) }
                 true
             },
             { t ->
@@ -210,17 +237,29 @@ class Releaser(
                     project, index, CommandState.Failed, "Job failed, click to navigate to the job."
                 )
                 save(paramObject)
+                    .catch { t -> logWarnOnConsole(project, index, t) }
                 showThrowable(Error("Job $jobName failed", t))
                 false
             }
-        ).then { succ: Boolean ->
+        ).then { jobResult: Boolean ->
             changeCursorBackToNormal()
-            succ
+            jobResult
         }
     }
 
-    private fun save(paramObject: ParamObject): Promise<Unit> {
-        return menu.save(paramObject.jobExecutor, verbose = false)
+    private fun logWarnOnConsole(project: Project, index: Int, t: Throwable) {
+        val commandTitle = elementById(Gui.getCommandId(project, index) + Gui.TITLE_SUFFIX)
+        console.warn(
+            "Could not save the state of the command ${commandTitle.innerText} (${index + 1}. command) " +
+                "of the project ${project.id.identifier}." +
+                "\nWill be saved with the next state change of another command (if there is any)." +
+                "\nProblem was:" +
+                "\n${turnThrowableIntoMessage(t)}"
+        )
+    }
+
+    private fun save(paramObject: ParamObject, verbose: Boolean = false): Promise<Unit> {
+        return menu.save(paramObject.jobExecutor, verbose)
             .then { hadChanges ->
                 if (!hadChanges) {
                     showWarning("Could not save changes for project ${paramObject.project.id.identifier}. Please report a bug.")

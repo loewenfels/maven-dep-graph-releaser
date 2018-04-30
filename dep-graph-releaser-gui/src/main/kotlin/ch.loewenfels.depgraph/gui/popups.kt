@@ -58,6 +58,10 @@ fun showThrowableAndThrow(t: Throwable): Nothing {
 }
 
 fun showThrowable(t: Throwable) {
+    showError(turnThrowableIntoMessage(t))
+}
+
+fun turnThrowableIntoMessage(t: Throwable): String {
     val sb = StringBuilder()
     sb.appendThrowable(t)
 
@@ -66,7 +70,7 @@ fun showThrowable(t: Throwable) {
         sb.append("\n\nCause: ").appendThrowable(cause)
         cause = cause.cause
     }
-    showError(sb.toString())
+    return sb.toString()
 }
 
 private fun StringBuilder.appendThrowable(t: Throwable) {
