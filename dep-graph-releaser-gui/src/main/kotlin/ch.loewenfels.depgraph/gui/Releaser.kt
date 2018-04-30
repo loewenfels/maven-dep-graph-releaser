@@ -15,17 +15,20 @@ class Releaser(
     private val menu: Menu
 ) {
 
-    fun release(jobExecutor: JobExecutor): Promise<Array<out Unit>> {
+    fun release(jobExecutor: JobExecutor): Promise<Boolean> {
         val releasePlan = deserialize(modifiableJson.json)
         checkConfig(releasePlan)
 
         val project = releasePlan.getRootProject()
         val paramObject = ParamObject(releasePlan, jobExecutor, project, hashMapOf())
         return releaseProject(paramObject)
+            .then { jobResults -> allJobsOk(jobResults) }
     }
 
+    private fun allJobsOk(jobResults: Array<out Boolean>) = jobResults.all { it }
 
-    private fun releaseProject(paramObject: ParamObject): Promise<Array<out Unit>> {
+
+    private fun releaseProject(paramObject: ParamObject): Promise<Array<out Boolean>> {
         return paramObject.withLockForProject {
             triggerNonReleaseCommandsInclSubmoduleCommands(paramObject).then { arr ->
                 //we stop if any command or a command of a submodule was not executed or already succeeded
@@ -40,7 +43,7 @@ class Releaser(
                 releaseDependentProjects(allDependents, releasePlan, paramObject)
             }.catch { t ->
                 if (t !== NotReadyState) throw t
-                arrayOf<Unit>()
+                arrayOf(false)
             }
         }
     }
@@ -66,15 +69,15 @@ class Releaser(
         allDependents: HashSet<Pair<ProjectId, ProjectId>>,
         releasePlan: ReleasePlan,
         paramObject: ParamObject
-    ): Promise<Array<*>> {
-        val promises: List<Promise<*>> = allDependents
+    ): Promise<Array<out Boolean>> {
+        val promises: List<Promise<Boolean>> = allDependents
             .asSequence()
             .map { (_, dependentId) -> releasePlan.getProject(dependentId) }
             .filter { !it.isSubmodule }
             .toHashSet()
             .map { dependentProject ->
                 releaseProject(ParamObject(paramObject, dependentProject))
-                    .then { _ -> /* we ignore the resulting array on purpose */ }
+                    .then { allJobsOk(it) }
             }
         return Promise.all(promises.toTypedArray())
     }
@@ -120,7 +123,6 @@ class Releaser(
         val state = Gui.getCommandState(paramObject.project.id, index)
         return if (state === CommandState.Ready) {
             triggerCommand(paramObject, command, index)
-                .then { true }
         } else {
             Promise.resolve(state === CommandState.Succeeded)
         }
@@ -139,7 +141,7 @@ class Releaser(
         }
     }
 
-    private fun triggerCommand(paramObject: ParamObject, command: Command, index: Int): Promise<*> {
+    private fun triggerCommand(paramObject: ParamObject, command: Command, index: Int): Promise<Boolean> {
         return when (command) {
             is JenkinsUpdateDependency -> triggerUpdateDependency(paramObject, command, index)
             is M2ReleaseCommand -> triggerRelease(paramObject, command, index)
@@ -151,7 +153,7 @@ class Releaser(
         paramObject: ParamObject,
         command: JenkinsUpdateDependency,
         index: Int
-    ): Promise<*> {
+    ): Promise<Boolean> {
         val jobUrl = "$jenkinsUrl/job/${paramObject.getConfig(ConfigKey.UPDATE_DEPENDENCY_JOB)}"
         val jobName = "update dependency of ${paramObject.project.id.identifier}"
         val params = createUpdateDependencyParams(paramObject, command)
@@ -164,7 +166,7 @@ class Releaser(
         jobName: String,
         params: String,
         index: Int
-    ): Promise<*> {
+    ): Promise<Boolean> {
         val project = paramObject.project
         console.log("trigger: ${project.id.identifier} / $jobUrl / $params")
         val jobUrlWithSlash = if (jobUrl.endsWith("/")) jobUrl else "$jobUrl/"
@@ -182,28 +184,35 @@ class Releaser(
                 save(paramObject)
             },
             verbose = false
-        ).then {
-            Gui.changeStateOfCommand(
-                project, index, CommandState.Succeeded, "Job completed successfully."
-            )
-            save(paramObject)
-        }.catch { t ->
-            Gui.changeStateOfCommand(
-                project, index, CommandState.Failed, "Job failed, click to navigate to the job."
-            )
-            save(paramObject)
-            throw t
-        }.finally {
+        ).then(
+            {
+                Gui.changeStateOfCommand(
+                    project, index, CommandState.Succeeded, "Job completed successfully."
+                )
+                save(paramObject)
+                true
+            },
+            { t ->
+                Gui.changeStateOfCommand(
+                    project, index, CommandState.Failed, "Job failed, click to navigate to the job."
+                )
+                save(paramObject)
+                showThrowable(Error("Job $jobName failed", t))
+                false
+            }
+        ).then { succ: Boolean ->
             changeCursorBackToNormal()
+            succ
         }
     }
 
     private fun save(paramObject: ParamObject): Promise<Unit> {
-        return menu.save(paramObject.jobExecutor, verbose = false).then { hadChanges ->
-            if (!hadChanges) {
-                showWarning("Could not save changes for project ${paramObject.project.id.identifier}. Please report a bug.")
+        return menu.save(paramObject.jobExecutor, verbose = false)
+            .then { hadChanges ->
+                if (!hadChanges) {
+                    showWarning("Could not save changes for project ${paramObject.project.id.identifier}. Please report a bug.")
+                }
             }
-        }
     }
 
 
@@ -216,9 +225,9 @@ class Releaser(
             "&newVersion=${dependency.releaseVersion}"
     }
 
-    private fun triggerRelease(paramObject: ParamObject, command: M2ReleaseCommand, index: Int): Promise<*> {
+    private fun triggerRelease(paramObject: ParamObject, command: M2ReleaseCommand, index: Int): Promise<Boolean> {
         val (jobUrl, params) = determineJobUrlAndParams(paramObject, command)
-        return triggerJob(paramObject, jobUrl, "release ${paramObject.project.id}", params, index)
+        return triggerJob(paramObject, jobUrl, "release ${paramObject.project.id.identifier}", params, index)
     }
 
     private fun determineJobUrlAndParams(paramObject: ParamObject, command: M2ReleaseCommand): Pair<String, String> {

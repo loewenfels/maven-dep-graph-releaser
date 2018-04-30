@@ -44,9 +44,7 @@ class JenkinsJobExecutor(
                     }
                     crumbWithId to buildNumber
                 }
-        }.catch {
-            showThrowableAndThrow(it)
-        }
+        }.unsafeCast<Promise<Pair<CrumbWithId, Int>>>()
     }
 
     private fun checkStatusAndExtractQueuedItemUrl(response: Response, jobName: String): Promise<String> {

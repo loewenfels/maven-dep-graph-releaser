@@ -128,10 +128,10 @@ class Menu {
                 } else {
                     showError(
                         "Release ended with failure :(" +
-                            "\nAt least one job failed. Check errors, fix them and then you can re-trigger the failed jobs by clicking on the release button." +
+                            "\nAt least one job failed. Check errors, fix them and then you can re-trigger the failed jobs, the pipeline respectively, by clicking on the release button." +
                             "\n(You might have to delete git tags and remove artifacts if they have already been created)."
                     )
-                    elementById("release.text").innerText = "Retrigger failed Jobs"
+                    elementById("release.text").innerText = "Re-trigger failed Jobs"
                     listOf(dryRunButton, releaseButton, exploreButton).forEach {
                         it.removeClass(DISABLED)
                         it.title = it.asDynamic().oldTitle as String
@@ -141,14 +141,17 @@ class Menu {
         }
     }
 
-    private fun triggerRelease(dependencies: Dependencies, jobExecutor: JobExecutor) {
+    private fun triggerRelease(dependencies: Dependencies, jobExecutor: JobExecutor): Promise<*> {
         dispatchReleaseStart()
-        dependencies.releaser.release(jobExecutor).then({
-            dispatchReleaseEnd(success = true)
-        }, { t ->
-            dispatchReleaseEnd(success = false)
-            throw t
-        })
+        return dependencies.releaser.release(jobExecutor).then(
+            { result ->
+                dispatchReleaseEnd(success = result)
+            },
+            { t ->
+                dispatchReleaseEnd(success = false)
+                throw t
+            }
+        )
     }
 
     private fun HTMLElement.addClickEventListenerIfNotDeactivatedNorDisabled(action: () -> Any) {

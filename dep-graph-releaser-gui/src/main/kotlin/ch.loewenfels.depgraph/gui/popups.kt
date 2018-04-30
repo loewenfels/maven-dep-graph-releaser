@@ -53,6 +53,11 @@ private fun closeMessage(msgId: String) {
 }
 
 fun showThrowableAndThrow(t: Throwable): Nothing {
+    showThrowable(t)
+    throw t
+}
+
+fun showThrowable(t: Throwable) {
     val sb = StringBuilder()
     sb.appendThrowable(t)
 
@@ -62,7 +67,6 @@ fun showThrowableAndThrow(t: Throwable): Nothing {
         cause = cause.cause
     }
     showError(sb.toString())
-    throw t //this way it also shows up in console with stacktrace
 }
 
 private fun StringBuilder.appendThrowable(t: Throwable) {

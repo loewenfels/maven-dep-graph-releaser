@@ -73,9 +73,7 @@ class App {
                     Gui(releasePlan, menu).load()
                     switchLoaderJsonWithPipeline()
                 }
-                .catch {
-                    showThrowableAndThrow(it)
-                }
+                .catch { showThrowableAndThrow(it) }
         }
     }
 
