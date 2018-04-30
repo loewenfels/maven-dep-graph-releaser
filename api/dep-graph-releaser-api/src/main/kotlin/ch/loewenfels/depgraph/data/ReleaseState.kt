@@ -7,7 +7,7 @@ enum class ReleaseState {
     Failed,
     ;
 
-    fun checkTransitionAllowed(newState: ReleaseState) {
+    fun checkTransitionAllowed(newState: ReleaseState): ReleaseState {
         when (newState) {
             ReleaseState.Ready -> check(false) {
                 getErrorMessage(newState, "there is no way to transition to ${Ready::class.simpleName}")
@@ -20,6 +20,7 @@ enum class ReleaseState {
             ReleaseState.Succeeded -> checkNewState(newState, InProgress)
             ReleaseState.Failed -> checkNewState(newState, InProgress)
         }
+        return newState
     }
 
     private fun checkNewState(newState: ReleaseState, expectedState: ReleaseState) {

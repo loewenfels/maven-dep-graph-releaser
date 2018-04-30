@@ -387,8 +387,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         fun changeReleaseState(newState: ReleaseState) {
             val pipeline = elementById(Gui.PIPELINE_HTML_ID).asDynamic()
             val previousState = pipeline.state as ReleaseState
-            previousState.checkTransitionAllowed(newState)
-            pipeline.state = newState
+            pipeline.state = previousState.checkTransitionAllowed(newState)
         }
     }
 }

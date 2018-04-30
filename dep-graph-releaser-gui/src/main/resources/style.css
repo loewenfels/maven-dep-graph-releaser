@@ -322,7 +322,7 @@ label.toggle input:disabled + .slider {
     display: none;
 }
 
-.command.queueing .state {
+.command.queueing > .fields > .state {
     display: inline-block;
     animation: queueing 1s infinite alternate linear;
     -webkit-animation: queueing 1s infinite alternate linear;
@@ -336,11 +336,11 @@ label.toggle input:disabled + .slider {
     from { border-color: #888; color:#AAA; background-color: white;   }
     to {   border-color: #d88607; color:#dea64e; background-color: #fff2dd;   }
 }
-.command.queueing .state .material-icons span::after {
+.command.queueing > .fields > .state .material-icons span::after {
     content: 'playlist_add';
 }
 
-.command.inProgress .state {
+.command.inProgress > .fields > .state {
     cursor: pointer;
     display: inline-block;
     animation: inProgress 1.2s infinite alternate ease-out;
@@ -354,14 +354,14 @@ label.toggle input:disabled + .slider {
     from { border-color: #888; color:#AAA; background-color: white;  }
     to {   border-color: #008000; color:#008000; background-color: #c9fdc9; }
 }
-.command.inProgress .state .material-icons span::after {
+.command.inProgress > .fields > .state .material-icons span::after {
     content: 'play_arrow';
 }
 
-.command.succeeded .state .material-icons span::after {
+.command.succeeded > .fields > .state .material-icons span::after {
      content: 'check';
  }
- .command.succeeded .state {
+ .command.succeeded > .fields > .state {
      cursor: pointer;
      display: inline-block;
      border-color: #008000;
@@ -371,10 +371,10 @@ label.toggle input:disabled + .slider {
      -webkit-animation: none;
  }
 
- .command.failed .state .material-icons span::after {
+ .command.failed > .fields > .state .material-icons span::after {
      content: 'error';
  }
- .command.failed .state {
+ .command.failed > .fields > .state {
      cursor: pointer;
      display: inline-block;
      border-color: #a01c1c;
@@ -384,9 +384,9 @@ label.toggle input:disabled + .slider {
      -webkit-animation: none;
  }
 
-.command.inProgress .state .material-icons,
-.command.succeeded .state .material-icons,
-.command.failed .state .material-icons {
+.command.inProgress > .fields > .state .material-icons,
+.command.succeeded > .fields > .state .material-icons,
+.command.failed > .fields > .state .material-icons {
     font-size: 20px;
     padding: 2px;
     width: 20px;

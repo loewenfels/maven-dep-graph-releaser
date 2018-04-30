@@ -30,7 +30,7 @@ class SimulatingJobExecutor : JobExecutor {
         }.then {
             sleep(300) {
                 ++count
-                if(count > 5) check(false) { "not SUCCESS but FAILURE" }
+                if(count > 12) check(false) { "not SUCCESS but FAILURE" }
                 true
             }
         }.then {
