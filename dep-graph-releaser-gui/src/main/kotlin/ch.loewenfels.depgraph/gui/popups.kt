@@ -2,8 +2,10 @@ package ch.loewenfels.depgraph.gui
 
 import kotlinx.html.*
 import kotlinx.html.dom.append
+import kotlinx.html.dom.create
 import kotlinx.html.js.div
 import org.w3c.dom.HTMLElement
+import kotlin.browser.document
 import kotlin.browser.window
 
 private var msgCounter = 0
@@ -23,29 +25,27 @@ fun showWarning(message: String, autoCloseAfterMs: Int? = null)
 fun showError(message: String) = showMessageOfType("error", "error_outline", message, null)
 
 private fun showMessageOfType(type: String, icon: String, message: String, autoCloseAfterMs: Int?): HTMLElement {
-    lateinit var element: HTMLElement
-    elementById("messages").append {
-        div(type) {
-            val msgId = "msg${msgCounter++}"
-            this.id = msgId
-            span("close") {
-                title = "close this message"
-                val span = getUnderlyingHtmlElement()
-                span.addEventListener("click", { closeMessage(msgId) })
-            }
-            i("material-icons") {
-                +icon
-            }
-            div("text") {
-                convertNewLinesToBrAndParseUrls(message)
-            }
-            if (autoCloseAfterMs != null) {
-                window.setTimeout({ closeMessage(msgId) }, autoCloseAfterMs)
-            }
-            element = getUnderlyingHtmlElement()
+    val messages = elementById("messages")
+    val div = document.create.div(type){
+        val msgId = "msg${msgCounter++}"
+        this.id = msgId
+        span("close") {
+            title = "close this message"
+            val span = getUnderlyingHtmlElement()
+            span.addEventListener("click", { closeMessage(msgId) })
+        }
+        i("material-icons") {
+            +icon
+        }
+        div("text") {
+            convertNewLinesToBrAndParseUrls(message)
+        }
+        if (autoCloseAfterMs != null) {
+            window.setTimeout({ closeMessage(msgId) }, autoCloseAfterMs)
         }
     }
-    return element
+    messages.insertBefore(div, messages.firstChild)
+    return div
 }
 
 private fun closeMessage(msgId: String) {

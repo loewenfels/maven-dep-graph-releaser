@@ -12,7 +12,11 @@ import kotlin.js.Promise
  * Hack to get the underlying [HTMLElement] of the the given [HTMLTag].
  */
 fun HTMLTag.getUnderlyingHtmlElement(): HTMLElement {
-    val arr = this.consumer.asDynamic().downstream.path_0.toArray() as Array<HTMLElement>
+    var d = this.consumer.asDynamic()
+    if(d.downstream != null) {
+       d =  d.downstream
+    }
+    val arr = d.path_0.toArray() as Array<HTMLElement>
     return arr[arr.size - 1]
 }
 
