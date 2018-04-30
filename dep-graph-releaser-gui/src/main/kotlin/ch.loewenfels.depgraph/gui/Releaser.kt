@@ -41,12 +41,14 @@ class Releaser(
 
     private fun releaseProject(paramObject: ParamObject): Promise<Array<out Boolean>> {
         return paramObject.withLockForProject {
-            triggerNonReleaseCommandsInclSubmoduleCommands(paramObject).then { arr ->
+            triggerNonReleaseCommandsInclSubmoduleCommands(paramObject).then { jobResults ->
                 //we stop if any command or a command of a submodule was not executed or already succeeded
-                if (arr.any { !it }) throw NotReadyState
+                if (jobResults.any { !it }) throw NotReadyState
 
                 triggerReleaseCommands(paramObject)
-            }.then {
+            }.then { jobResult ->
+                if(!jobResult) throw NotReadyState
+
                 val releasePlan = paramObject.releasePlan
                 val allDependents =
                     releasePlan.collectDependentsInclDependentsOfAllSubmodules(paramObject.project.id)
