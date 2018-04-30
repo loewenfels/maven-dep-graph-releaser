@@ -53,7 +53,7 @@ class Releaser(
                             Error(
                                 "Could not save the release state (changed to $newState)." +
                                     "\nDo not reload if you want to continue using this pipeline and make sure the publisher works as expected." +
-                                    "\nMake a pseudo change (e.g. add a space to a Release Version and remove it again). And try to save the changes.",
+                                    "\nMake a change (e.g. change a Release Version) and try to save (will save the changed release state as well) -- do not forget to revert your change and save again.",
                                 t
                             )
                         )
