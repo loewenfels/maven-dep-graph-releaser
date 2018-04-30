@@ -372,6 +372,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         private fun stateToCssClass(state: CommandState) = when (state) {
             is CommandState.Waiting -> "waiting"
             CommandState.Ready -> "ready"
+            CommandState.ReadyToRetrigger -> "readyToRetrigger"
             CommandState.Queueing -> "queueing"
             CommandState.InProgress -> "inProgress"
             CommandState.Succeeded -> "succeeded"

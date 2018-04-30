@@ -38,6 +38,7 @@ interface Command {
 sealed class CommandState {
     data class Waiting(val dependencies: Set<ProjectId>) : CommandState()
     object Ready : CommandState()
+    object ReadyToRetrigger: CommandState()
     /**
      * Command is queued to be executed.
      */
@@ -52,6 +53,7 @@ sealed class CommandState {
      */
     object Disabled : CommandState()
 
+
     fun checkTransitionAllowed(newState: CommandState): CommandState {
         check(this !== Disabled) { "Cannot transition to any state if current state is ${Disabled::class.simpleName}." }
         check(this::class != newState::class) {
@@ -62,6 +64,7 @@ sealed class CommandState {
         }
 
         when (newState) {
+            ReadyToRetrigger -> checkNewState(newState, Failed::class)
             Ready -> {
                 checkNewState(newState, Waiting::class)
                 check((this as Waiting).dependencies.isEmpty()) {
