@@ -38,7 +38,7 @@ interface Command {
 sealed class CommandState {
     data class Waiting(val dependencies: Set<ProjectId>) : CommandState()
     object Ready : CommandState()
-    object ReadyToRetrigger: CommandState()
+    object ReadyToRetrigger : CommandState()
     /**
      * Command is queued to be executed.
      */
@@ -87,11 +87,18 @@ sealed class CommandState {
     }
 
     private fun checkNewState(newState: CommandState, requiredState: KClass<out CommandState>) {
-        check(requiredState.isInstance(this)) {
-
-            "Cannot transition to ${newState::class.simpleName} because state is not ${requiredState.simpleName}." +
-                //TODO use $this in stead of $getRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed
-                "\nState was: ${getRepresentation(this)}"
+        if (this is Deactivated) {
+            check(newState::class == this.previous::class) {
+                "Cannot transition to ${newState::class.simpleName} because " +
+                    "current state is ${Deactivated::class.simpleName}, can only transition to its previous state." +
+                    "\nDeactivated.previous was: ${getRepresentation(this.previous)}"
+            }
+        } else {
+            check(requiredState.isInstance(this)) {
+                "Cannot transition to ${newState::class.simpleName} because state is not ${requiredState.simpleName}." +
+                    //TODO use $this in stead of $getRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed
+                    "\nState was: ${getRepresentation(this)}"
+            }
         }
     }
 }

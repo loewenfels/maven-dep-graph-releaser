@@ -99,8 +99,8 @@ class Menu {
             }
             activateReleaseButton()
             releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                triggerRelease(dependencies, dependencies.jenkinsJobExecutor)
 
+                triggerRelease(dependencies, dependencies.jenkinsJobExecutor)
             }
 
             activateSimulateButton()
@@ -156,6 +156,7 @@ class Menu {
 
     private fun HTMLElement.addClickEventListenerIfNotDeactivatedNorDisabled(action: () -> Any) {
         addClickEventListener {
+            @Suppress("RedundantUnitExpression")
             if (hasClass(DEACTIVATED) || hasClass(DISABLED)) return@addClickEventListener Unit
             action()
         }

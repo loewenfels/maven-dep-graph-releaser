@@ -3,6 +3,7 @@ package ch.loewenfels.depgraph.gui
 import kotlin.js.Promise
 
 class SimulatingJobExecutor : JobExecutor {
+    private var count = 0
     override fun pollAndExtract(
         crumbWithId: CrumbWithId?,
         url: String,
@@ -27,7 +28,11 @@ class SimulatingJobExecutor : JobExecutor {
                 jobStartedHook(100)
             }
         }.then {
-            sleep(300) { true }
+            sleep(300) {
+                ++count
+                if(count > 5) check(false) { "not SUCCESS but FAILURE" }
+                true
+            }
         }.then {
             CrumbWithId("Jenkins-Crumb", "onlySimulation") to 100
         }
