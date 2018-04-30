@@ -18,6 +18,9 @@ object ChangeApplier {
 
     private fun applyChanges(releasePlanJson: ReleasePlanJson): Boolean {
         var changed = false
+
+        changed = changed or replacePublishIdIfChanged(releasePlanJson)
+
         releasePlanJson.projects.forEach { project ->
             val mavenProjectId = deserializeProjectId(project.id)
             changed = changed or replaceReleaseVersionIfChanged(project, mavenProjectId)
@@ -28,6 +31,27 @@ object ChangeApplier {
                     replaceFieldsIfChanged(command, mavenProjectId, index)
             }
         }
+
+        changed = changed or replaceConfigEntriesIfChanged(releasePlanJson)
+        return changed
+    }
+
+    private fun replacePublishIdIfChanged(releasePlanJson: ReleasePlanJson): Boolean {
+        var changed = false
+        val input = getTextField(Gui.PUBLISH_ID)
+        if (releasePlanJson.publishId != input.value) {
+            check(input.value.isNotBlank()) {
+                "An empty or blank PublishId is not allowed"
+            }
+            releasePlanJson.publishId = input.value
+            changed = true
+        }
+        return changed
+    }
+
+
+    private fun replaceConfigEntriesIfChanged(releasePlanJson: ReleasePlanJson): Boolean {
+        var changed = false
         releasePlanJson.config.forEach { arr ->
             if (arr.size != 2) return@forEach
 
@@ -44,6 +68,9 @@ object ChangeApplier {
     private fun replaceReleaseVersionIfChanged(project: ProjectJson, mavenProjectId: ProjectId): Boolean {
         val input = getTextFieldOrNull("${mavenProjectId.identifier}:releaseVersion")
         if (input != null && project.releaseVersion != input.value) {
+            check(input.value.isNotBlank()) {
+                "An empty or blank Release Version is not allowed"
+            }
             project.releaseVersion = input.value
             return true
         }
@@ -105,7 +132,7 @@ object ChangeApplier {
         return when (command.t) {
             JENKINS_MAVEN_RELEASE_PLUGIN, JENKINS_MULTI_MAVEN_RELEASE_PLUGIN -> {
                 replaceNextVersionIfChanged(command.p, mavenProjectId, index) or
-                replaceBuildUrlIfChanged(command.p, mavenProjectId, index)
+                    replaceBuildUrlIfChanged(command.p, mavenProjectId, index)
             }
             JENKINS_UPDATE_DEPENDENCY -> replaceBuildUrlIfChanged(command.p, mavenProjectId, index)
             else -> throw UnsupportedOperationException("${command.t} is not supported.")
@@ -116,6 +143,9 @@ object ChangeApplier {
         val m2Command = command.unsafeCast<M2ReleaseCommand>()
         val input = getTextField(Gui.getCommandId(mavenProjectId, index) + Gui.NEXT_DEV_VERSION_SUFFIX)
         if (m2Command.nextDevVersion != input.value) {
+            check(input.value.isNotBlank()) {
+                "An empty or blank Next Dev Version is not allowed"
+            }
             m2Command.asDynamic().nextDevVersion = input.value
             return true
         }

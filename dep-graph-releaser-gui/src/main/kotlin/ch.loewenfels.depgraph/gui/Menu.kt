@@ -44,6 +44,7 @@ class Menu {
     }
 
     fun disableButtonsDueToNoAuth(titleButtons: String, info: String) {
+        showInfo(info)
         userButton.title = titleButtons
         userButton.addClass(DEACTIVATED)
         userName.innerText = "Anonymous"
@@ -217,7 +218,8 @@ class Menu {
 
         val changed = publisher.applyChanges()
         return if (changed) {
-            val newFileName = "release-${generateUniqueId()}"
+            val publishId = getTextField(Gui.PUBLISH_ID).value
+            val newFileName = "release-$publishId"
             publisher.publish(newFileName, verbose, jobExecutor)
                 .then { deactivateSaveButton(); true }
         } else {

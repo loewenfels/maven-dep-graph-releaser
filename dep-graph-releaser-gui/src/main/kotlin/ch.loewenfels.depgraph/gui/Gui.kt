@@ -25,7 +25,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         document.title = "Release " + releasePlan.rootProjectId.identifier
         setUpMessages(releasePlan.warnings, "warnings", { showWarning(it) })
         setUpMessages(releasePlan.infos, "infos", { showInfo(it) })
-        setUpConfig(releasePlan.config)
+        setUpConfig(releasePlan)
         setUpProjects()
         toggler.registerToggleEvents()
     }
@@ -41,10 +41,13 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         }
     }
 
-    private fun setUpConfig(config: Map<ConfigKey, String>) {
+    private fun setUpConfig(releasePlan: ReleasePlan) {
         //TODO add description for each property
         elementById("config").append {
             div {
+                fieldWithLabel(PUBLISH_ID, "PublishId", releasePlan.publishId)
+
+                val config = releasePlan.config
                 ConfigKey.all().forEach { key ->
                     fieldWithLabel("config-$key", key.asString(), config[key] ?: "")
                 }
@@ -295,6 +298,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
     }
 
     companion object {
+        const val PUBLISH_ID = "publishId"
         const val DISABLE_SUFFIX = ":disable"
         const val DISABLE_ALL_SUFFIX = ":disableAll"
         const val SLIDER_SUFFIX = ":slider"
@@ -303,6 +307,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         const val NEXT_DEV_VERSION_SUFFIX = ":nextDevVersion"
         private const val STATE_SUFFIX = ":state"
         private const val TITLE_SUFFIX = ":title"
+
 
         fun getCommandId(project: Project, index: Int) = getCommandId(project.id, index)
         fun getCommandId(projectId: ProjectId, index: Int) = "${projectId.identifier}:$index"
