@@ -34,9 +34,8 @@ class Releaser(
         val paramObject = ParamObject(releasePlan, jobExecutor, project, hashMapOf(), hashMapOf())
         Gui.changeReleaseState(ReleaseState.InProgress)
         return save(paramObject)
-            .then {
-                releaseProject(paramObject)
-            }.catch { t ->
+            .catch { t ->
+                Gui.changeReleaseState(ReleaseState.Failed)
                 showThrowableAndThrow(
                     Error(
                         "Could not save release state (changed to ${ReleaseState.InProgress})." +
@@ -45,6 +44,8 @@ class Releaser(
                     )
                 )
             }.then { _: Nothing ->
+                releaseProject(paramObject)
+            }.then {
                 val (result, newState) = checkProjectStates(paramObject)
                 Gui.changeReleaseState(newState)
                 save(paramObject, verbose = true)
