@@ -117,7 +117,7 @@ class Menu {
                 triggerRelease(releasePlan, dependencies, dependencies.jenkinsJobExecutor)
             }
 
-            activateSimulateButton()
+            activateExploreButton()
             exploreButton.addClickEventListenerIfNotDeactivatedNorDisabled {
                 simulation = true
                 triggerRelease(releasePlan, dependencies, dependencies.simulatingJobExecutor)
@@ -218,6 +218,10 @@ class Menu {
 
     private fun deactivateSaveButton() {
         saveButton.deactivate("Nothing to save, no changes were made")
+        listOf(dryRunButton, releaseButton, exploreButton).forEach {
+            it.title = it.asDynamic().oldTitle as? String ?: ""
+            it.removeClass(DEACTIVATED)
+        }
     }
 
     fun activateSaveButton() {
@@ -227,6 +231,7 @@ class Menu {
         saveButton.title = "Publish changed json file and change location"
         val saveFirst = "You need to save your changes first."
         listOf(dryRunButton, releaseButton, exploreButton).forEach {
+            it.asDynamic().oldTitle = it.title
             it.deactivate(saveFirst)
         }
     }
@@ -238,7 +243,7 @@ class Menu {
         releaseButton.title = "Start a release based on this release plan."
     }
 
-    private fun activateSimulateButton() {
+    private fun activateExploreButton() {
         if (exploreButton.isDisabled()) return
 
         exploreButton.removeClass(DEACTIVATED)
