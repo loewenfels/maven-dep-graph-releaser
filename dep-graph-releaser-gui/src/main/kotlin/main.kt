@@ -8,3 +8,6 @@ fun main() {
 
 @Suppress("unused")
 val onlyUsedToCallMain = main()
+
+@JsName("failAfter")
+var failAfter = 1000
