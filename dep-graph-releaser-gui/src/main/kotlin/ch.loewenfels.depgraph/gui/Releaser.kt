@@ -113,7 +113,7 @@ class Releaser(
                     (state.dependencies as MutableSet).remove(multiOrSubmoduleId)
                     if (state.dependencies.isEmpty()) {
                         Gui.changeStateOfCommand(
-                            dependentProject, index, CommandState.Ready, "Ready to be queued for execution."
+                            dependentProject, index, CommandState.Ready, Gui.STATE_READY
                         )
                     }
                 }
@@ -239,12 +239,12 @@ class Releaser(
         return paramObject.jobExecutor.trigger(jobUrlWithSlash, jobName, params,
             { queuedItemUrl ->
                 Gui.changeStateOfCommandAndAddBuildUrl(
-                    project, index, CommandState.Queueing, "Currently queueing the job.", queuedItemUrl
+                    project, index, CommandState.Queueing, Gui.STATE_QUEUEING, queuedItemUrl
                 )
                 save(paramObject)
             }, { buildNumber ->
                 Gui.changeStateOfCommandAndAddBuildUrl(
-                    project, index, CommandState.InProgress, "Job is running.", "$jobUrlWithSlash$buildNumber/"
+                    project, index, CommandState.InProgress, Gui.STATE_IN_PROGRESS, "$jobUrlWithSlash$buildNumber/"
                 )
                 save(paramObject)
             },
@@ -252,10 +252,10 @@ class Releaser(
             maxWaitingTimeForCompleteness = 60 * 15,
             verbose = false
         ).then(
-            { CommandState.Succeeded to "Job completed successfully." },
+            { CommandState.Succeeded to Gui.STATE_SUCCEEDED },
             { t ->
                 showThrowable(Error("Job $jobName failed", t))
-                CommandState.Failed to "Job failed, click to navigate to the job."
+                CommandState.Failed to Gui.STATE_FAILED
             }
         ).then { (state, message) ->
             Gui.changeStateOfCommand(project, index, state, message)

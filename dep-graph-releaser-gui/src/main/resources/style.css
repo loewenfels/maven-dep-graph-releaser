@@ -315,13 +315,18 @@ label.toggle input:disabled + .slider {
         0 0 4px rgba(0, 1, 0, 0.1) inset;
 }
 
+.command.ready > .fields > .toggle,
 .command.queueing > .fields > .toggle,
 .command.inProgress > .fields > .toggle,
 .command.succeeded > .fields > .toggle,
-.command.failed > .fields > .toggle {
+.command.failed > .fields > .toggle,
+.command.disabled > .fields > .toggle {
     display: none;
 }
 
+.command.ready > .fields > .state {
+    display: inline-block;
+}
 .command.queueing > .fields > .state {
     display: inline-block;
     animation: queueing 1s infinite alternate linear;
@@ -336,7 +341,8 @@ label.toggle input:disabled + .slider {
     from { border-color: #888; color:#AAA; background-color: white;   }
     to {   border-color: #d88607; color:#dea64e; background-color: #fff2dd;   }
 }
-.command.queueing > .fields > .state .material-icons span::after {
+.command.queueing > .fields > .state .material-icons span::after,
+.command.ready > .fields > .state .material-icons span::after {
     content: 'playlist_add';
 }
 
@@ -359,34 +365,52 @@ label.toggle input:disabled + .slider {
 }
 
 .command.succeeded > .fields > .state .material-icons span::after {
-     content: 'check';
- }
- .command.succeeded > .fields > .state {
-     cursor: pointer;
-     display: inline-block;
-     border-color: #008000;
-     color:#008000;
-     background-color: #c9fdc9;
-     animation: none;
-     -webkit-animation: none;
- }
+    content: 'check';
+}
+.command.succeeded > .fields > .state {
+    cursor: pointer;
+    display: inline-block;
+    border-color: #008000;
+    color:#008000;
+    background-color: #c9fdc9;
+    animation: none;
+    -webkit-animation: none;
+}
 
- .command.failed > .fields > .state .material-icons span::after {
-     content: 'error';
- }
- .command.failed > .fields > .state {
-     cursor: pointer;
-     display: inline-block;
-     border-color: #a01c1c;
-     color:#a01c1c;
-     background-color: #f7dede;
-     animation: none;
-     -webkit-animation: none;
- }
+.command.failed > .fields > .state .material-icons span::after {
+    content: 'error';
+}
+.command.failed > .fields > .state {
+    cursor: pointer;
+    display: inline-block;
+    border-color: #a01c1c;
+    color:#a01c1c;
+    background-color: #f7dede;
+    animation: none;
+    -webkit-animation: none;
+}
+.command.failed > .fields > .state {
+    display: inline-block;
+}
+
+.command.disabled > .fields > .state .material-icons span::after {
+    content: 'do_not_disturb';
+    color: #a01c1c;
+}
+.command.disabled > .fields > .state {
+    display: inline-block;
+}
+.command.disabled > .fields > .state .material-icons {
+    font-size: 21px;
+    padding: 1px;
+    width: 21px;
+    height: 21px;
+}
+
 
 .command.inProgress > .fields > .state .material-icons,
 .command.succeeded > .fields > .state .material-icons,
-.command.failed > .fields > .state .material-icons {
+.command.failed > .fields > .state .material-icons{
     font-size: 20px;
     padding: 2px;
     width: 20px;

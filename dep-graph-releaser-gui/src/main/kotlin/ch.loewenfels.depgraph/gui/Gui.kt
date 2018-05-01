@@ -227,6 +227,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             if (command is JenkinsCommand) {
                 href = command.buildUrl ?: ""
             }
+            title = stateToTitle(command.state)
         }
 
         when (command) {
@@ -302,7 +303,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 this.id = "$id$SLIDER_SUFFIX"
                 this.title = title
                 if (disabled) {
-                    this.title = "Disabled, cannot be reactivated"
+                    this.title = STATE_DISABLED
                 }
             }
         }
@@ -320,6 +321,15 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         const val STATE_SUFFIX = ":state"
         const val TITLE_SUFFIX = ":title"
 
+        private const val STATE_WAITING = "Wait for dependent projects to complete."
+        const val STATE_READY = "Ready to be queued for execution."
+        private const val STATE_READY_TO_RETRIGGER = "Ready to be re-scheduled"
+        const val STATE_QUEUEING = "Currently queueing the job."
+        const val STATE_IN_PROGRESS = "Job is running."
+        const val STATE_SUCCEEDED = "Job completed successfully."
+        const val STATE_FAILED = "Job completed successfully."
+        private const val STATE_DEACTIVATED = "Currently deactivated, click to activate"
+        const val STATE_DISABLED = "Command disabled, cannot be reactivated."
 
         fun getCommandId(project: Project, index: Int) = getCommandId(project.id, index)
         fun getCommandId(projectId: ProjectId, index: Int) = "${projectId.identifier}:$index"
@@ -399,6 +409,18 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         fun changeReleaseState(newState: ReleaseState) {
             val pipeline = elementById(Gui.PIPELINE_HTML_ID).asDynamic()
             pipeline.state = getReleaseState().checkTransitionAllowed(newState)
+        }
+
+        private fun stateToTitle(state: CommandState) = when (state) {
+            is CommandState.Waiting -> STATE_WAITING
+            CommandState.Ready -> STATE_READY
+            CommandState.ReadyToRetrigger -> STATE_READY_TO_RETRIGGER
+            CommandState.Queueing -> STATE_QUEUEING
+            CommandState.InProgress -> STATE_IN_PROGRESS
+            CommandState.Succeeded -> STATE_SUCCEEDED
+            CommandState.Failed -> STATE_FAILED
+            is CommandState.Deactivated -> STATE_DEACTIVATED
+            CommandState.Disabled -> STATE_DISABLED
         }
     }
 }
