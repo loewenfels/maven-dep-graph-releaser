@@ -32,7 +32,7 @@ class SimulatingJobExecutor : JobExecutor {
         }.then {
             sleep(300) {
                 ++count
-                if (count > 6) check(false) { count = -5; "simulating a failure for $jobName" }
+//                if (count > 6) check(false) { count = -5; "simulating a failure for $jobName" }
                 true
             }
         }.then {
