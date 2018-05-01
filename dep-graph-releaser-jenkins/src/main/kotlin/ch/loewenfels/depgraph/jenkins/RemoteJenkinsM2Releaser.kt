@@ -229,7 +229,7 @@ class RemoteJenkinsM2Releaser internal constructor(
             result = extractResult(response, response.body())
             ++count
             if (count % minuteInterval == 0) {
-                logger.info("$jobName did not complete after at least ${count * pollEverySecond} seconds")
+                logger.info("$jobName not yet complete after at least ${count * pollEverySecond} seconds, we are still polling")
             }
         } while (result == null)
         return result
