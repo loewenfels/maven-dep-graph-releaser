@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.runner.commands
 
+import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.ConfigKey.REGEX_PARAMS
 import ch.loewenfels.depgraph.ConfigKey.REMOTE_JOB
 import ch.loewenfels.depgraph.ConfigKey.REMOTE_REGEX
@@ -88,10 +89,11 @@ object Json : ConsoleCommand {
         }
 
         val config = mapOf(
-            UPDATE_DEPENDENCY_JOB to updateDependencyJob,
-            REMOTE_JOB to remoteJob,
-            REMOTE_REGEX to remoteRegex,
-            REGEX_PARAMS to (regexParameters ?: "")
+            ConfigKey.COMMIT_PREFIX to "[DGR]",
+            ConfigKey.UPDATE_DEPENDENCY_JOB to updateDependencyJob,
+            ConfigKey.REMOTE_JOB to remoteJob,
+            ConfigKey.REMOTE_REGEX to remoteRegex,
+            ConfigKey.REGEX_PARAMS to (regexParameters ?: "")
         )
 
 

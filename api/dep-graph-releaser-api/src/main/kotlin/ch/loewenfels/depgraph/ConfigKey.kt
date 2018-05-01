@@ -1,10 +1,11 @@
 package ch.loewenfels.depgraph
 
 enum class ConfigKey(private val key: kotlin.String) {
+    COMMIT_PREFIX("commitPrefix"),
     UPDATE_DEPENDENCY_JOB("updateDependencyJob"),
     REMOTE_REGEX("remoteRegex"),
     REMOTE_JOB("remoteJob"),
-    REGEX_PARAMS("regexParams")
+    REGEX_PARAMS("regexParams"),
     ;
 
     override fun toString(): String = key
@@ -16,6 +17,6 @@ enum class ConfigKey(private val key: kotlin.String) {
             return values().first { it.asString() == key  }
         }
 
-        fun all() = listOf(UPDATE_DEPENDENCY_JOB, REMOTE_REGEX, REMOTE_JOB, REGEX_PARAMS)
+        fun all() = listOf(COMMIT_PREFIX, UPDATE_DEPENDENCY_JOB, REMOTE_REGEX, REMOTE_JOB, REGEX_PARAMS)
     }
 }

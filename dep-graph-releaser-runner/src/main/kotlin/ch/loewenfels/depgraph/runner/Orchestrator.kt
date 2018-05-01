@@ -27,12 +27,12 @@ object Orchestrator {
 
         logger.info("Going to create the release plan with $projectToRelease as root.")
         val releasePlaner = JenkinsReleasePlanCreator(VersionDeterminer(), releasePlanCreatorOptions)
-        val rootProject = releasePlaner.create(projectToRelease, analyser)
+        val releasePlan = releasePlaner.create(projectToRelease, analyser)
         logger.info("Release plan created.")
 
         logger.info("Going to serialize the release plan to a json file.")
         logIfFileExists(outputFile, "resulting json file")
-        val json = serializer.serialize(rootProject)
+        val json = serializer.serialize(releasePlan)
         outputFile.writeText(json)
         logger.info({ "Created json file at: ${outputFile.absolutePath}" })
     }

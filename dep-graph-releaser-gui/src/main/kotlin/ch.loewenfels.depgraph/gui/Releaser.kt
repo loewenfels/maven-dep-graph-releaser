@@ -20,7 +20,26 @@ class Releaser(
     fun release(jobExecutor: JobExecutor): Promise<Boolean> {
         val releasePlan = deserialize(modifiableJson.json)
         checkConfig(releasePlan)
+        warnIfNotOnSameHost()
 
+        return release(jobExecutor, releasePlan)
+    }
+
+    private fun checkConfig(releasePlan: ReleasePlan) {
+        val config = releasePlan.config
+        requireConfigEntry(config, ConfigKey.UPDATE_DEPENDENCY_JOB)
+        requireConfigEntry(config, ConfigKey.REMOTE_REGEX)
+        requireConfigEntry(config, ConfigKey.REMOTE_JOB)
+        requireConfigEntry(config, ConfigKey.COMMIT_PREFIX)
+    }
+
+    private fun requireConfigEntry(config: Map<ConfigKey, String>, key: ConfigKey) {
+        require(config.containsKey(key)) {
+            "$key is not defined in settings"
+        }
+    }
+
+    private fun warnIfNotOnSameHost() {
         val prefix = window.location.protocol + "//" + window.location.hostname + "/"
         val isOnSameHost = jenkinsUrl.startsWith(prefix)
         if (!isOnSameHost) {
@@ -30,7 +49,9 @@ class Releaser(
                 , 8000
             )
         }
+    }
 
+    private fun release(jobExecutor: JobExecutor, releasePlan: ReleasePlan): Promise<Boolean> {
         val project = releasePlan.getRootProject()
         val paramObject = ParamObject(releasePlan, jobExecutor, project, hashMapOf(), hashMapOf())
         Gui.changeReleaseState(ReleaseState.InProgress)
@@ -199,19 +220,6 @@ class Releaser(
         }
     }
 
-    private fun checkConfig(releasePlan: ReleasePlan) {
-        val config = releasePlan.config
-        requireConfigEntry(config, ConfigKey.UPDATE_DEPENDENCY_JOB)
-        requireConfigEntry(config, ConfigKey.REMOTE_REGEX)
-        requireConfigEntry(config, ConfigKey.REMOTE_JOB)
-    }
-
-    private fun requireConfigEntry(config: Map<ConfigKey, String>, key: ConfigKey) {
-        require(config.containsKey(key)) {
-            "$key is not defined in settings"
-        }
-    }
-
     private fun triggerCommand(paramObject: ParamObject, command: Command, index: Int): Promise<CommandState> {
         return when (command) {
             is JenkinsUpdateDependency -> triggerUpdateDependency(paramObject, command, index)
@@ -229,6 +237,74 @@ class Releaser(
         val jobName = "update dependency of ${paramObject.project.id.identifier}"
         val params = createUpdateDependencyParams(paramObject, command)
         return triggerJob(paramObject, jobUrl, jobName, params, index)
+    }
+
+    private fun createUpdateDependencyParams(paramObject: ParamObject, command: JenkinsUpdateDependency): String {
+        val dependency = paramObject.releasePlan.getProject(command.projectId)
+        val dependencyMavenProjectId = dependency.id as MavenProjectId
+        return "pathToProject=${paramObject.project.relativePath}" +
+            "&groupId=${dependencyMavenProjectId.groupId}" +
+            "&artifactId=${dependencyMavenProjectId.artifactId}" +
+            "&newVersion=${dependency.releaseVersion}" +
+            "&commitPrefix=${paramObject.getConfig(ConfigKey.COMMIT_PREFIX)}"
+    }
+
+    private fun triggerRelease(paramObject: ParamObject, command: M2ReleaseCommand, index: Int): Promise<CommandState> {
+        val (jobUrl, params) = determineJobUrlAndParams(paramObject, command)
+        return triggerJob(paramObject, jobUrl, "release ${paramObject.project.id.identifier}", params, index)
+    }
+
+    private fun determineJobUrlAndParams(paramObject: ParamObject, command: M2ReleaseCommand): Pair<String, String> {
+        val mavenProjectId = paramObject.project.id as MavenProjectId
+        val regex = Regex(paramObject.getConfig(ConfigKey.REMOTE_REGEX))
+
+        val regexParameters = paramObject.getConfig(ConfigKey.REGEX_PARAMS)
+        val regexParametersList = parseRegexParametersList(regexParameters)
+        val relevantParams = regexParametersList.asSequence()
+            .filter { (regex, _) -> regex.matches(mavenProjectId.identifier) }
+            .map { it.second }
+
+        val params = "releaseVersion=${paramObject.project.releaseVersion}" +
+            "&nextDevVersion=${command.nextDevVersion}"
+
+        return if (regex.matches(paramObject.project.id.identifier)) {
+            "$jenkinsUrl/job/${paramObject.getConfig(ConfigKey.REMOTE_JOB)}" to
+                "$params&jobName=${mavenProjectId.artifactId}&parameters=${relevantParams.joinToString(";")}"
+        } else {
+            "$jenkinsUrl/job/$mavenProjectId" to
+                "$params&${relevantParams.joinToString("&")}}"
+        }
+    }
+
+    private fun parseRegexParametersList(regexParameters: String): List<Pair<Regex, String>> {
+        return if (regexParameters.isNotEmpty()) {
+            regexParameters.splitToSequence("$")
+                .map { pair ->
+                    val index = checkRegexNotEmpty(pair, regexParameters)
+                    val parameters = pair.substring(index + 1)
+                    checkParamNameNotEmpty(parameters, regexParameters)
+                    Regex(pair.substring(0, index)) to parameters
+                }
+                .toList()
+        } else {
+            emptyList()
+        }
+    }
+
+    private fun checkRegexNotEmpty(pair: String, regexParameters: String): Int {
+        val index = pair.indexOf('#')
+        check(index > 0) {
+            "regex requires at least one character.\nParameters: $regexParameters"
+        }
+        return index
+    }
+
+    private fun checkParamNameNotEmpty(pair: String, parameters: String): Int {
+        val index = pair.indexOf('=')
+        check(index > 0) {
+            "Parameter name requires at least one character.\nParameters: $parameters"
+        }
+        return index
     }
 
     private fun triggerJob(
@@ -295,74 +371,6 @@ class Releaser(
                     showWarning("Could not save changes for project ${paramObject.project.id.identifier}. Please report a bug.")
                 }
             }
-    }
-
-
-    private fun createUpdateDependencyParams(paramObject: ParamObject, command: JenkinsUpdateDependency): String {
-        val dependency = paramObject.releasePlan.getProject(command.projectId)
-        val dependencyMavenProjectId = dependency.id as MavenProjectId
-        return "pathToProject=${paramObject.project.relativePath}" +
-            "&groupId=${dependencyMavenProjectId.groupId}" +
-            "&artifactId=${dependencyMavenProjectId.artifactId}" +
-            "&newVersion=${dependency.releaseVersion}"
-    }
-
-    private fun triggerRelease(paramObject: ParamObject, command: M2ReleaseCommand, index: Int): Promise<CommandState> {
-        val (jobUrl, params) = determineJobUrlAndParams(paramObject, command)
-        return triggerJob(paramObject, jobUrl, "release ${paramObject.project.id.identifier}", params, index)
-    }
-
-    private fun determineJobUrlAndParams(paramObject: ParamObject, command: M2ReleaseCommand): Pair<String, String> {
-        val mavenProjectId = paramObject.project.id as MavenProjectId
-        val regex = Regex(paramObject.getConfig(ConfigKey.REMOTE_REGEX))
-
-        val regexParameters = paramObject.getConfig(ConfigKey.REGEX_PARAMS)
-        val regexParametersList = parseRegexParametersList(regexParameters)
-        val relevantParams = regexParametersList.asSequence()
-            .filter { (regex, _) -> regex.matches(mavenProjectId.identifier) }
-            .map { it.second }
-
-        val params = "releaseVersion=${paramObject.project.releaseVersion}" +
-            "&nextDevVersion=${command.nextDevVersion}"
-
-        return if (regex.matches(paramObject.project.id.identifier)) {
-            "$jenkinsUrl/job/${paramObject.getConfig(ConfigKey.REMOTE_JOB)}" to
-                "$params&jobName=${mavenProjectId.artifactId}&parameters=${relevantParams.joinToString(";")}"
-        } else {
-            "$jenkinsUrl/job/$mavenProjectId" to
-                "$params&${relevantParams.joinToString("&")}}"
-        }
-    }
-
-    private fun parseRegexParametersList(regexParameters: String): List<Pair<Regex, String>> {
-        return if (regexParameters.isNotEmpty()) {
-            regexParameters.splitToSequence("$")
-                .map { pair ->
-                    val index = checkRegexNotEmpty(pair, regexParameters)
-                    val parameters = pair.substring(index + 1)
-                    checkParamNameNotEmpty(parameters, regexParameters)
-                    Regex(pair.substring(0, index)) to parameters
-                }
-                .toList()
-        } else {
-            emptyList()
-        }
-    }
-
-    private fun checkRegexNotEmpty(pair: String, regexParameters: String): Int {
-        val index = pair.indexOf('#')
-        check(index > 0) {
-            "regex requires at least one character.\nParameters: $regexParameters"
-        }
-        return index
-    }
-
-    private fun checkParamNameNotEmpty(pair: String, parameters: String): Int {
-        val index = pair.indexOf('=')
-        check(index > 0) {
-            "Parameter name requires at least one character.\nParameters: $parameters"
-        }
-        return index
     }
 
     private data class ParamObject(
