@@ -97,6 +97,7 @@ Explanation will follow
 # Known Limitations
 
 The project does currently not support (pull requests are more than welcome):
+- recovery from ongoing processes. If you navigate away from the pipeline in the middle of the process, then the state is likely to be wrong if you return.
 - exclusions are not yet taken into account. As consequence, it might detect cycles where there are not any.
 - version managed in a property which itself refers to a property: `<properties><a>${b}</a><b>1.0.0</b></properties>`.
 - version which is partly static and partly a property: `<version>1.0.0-${BUILD_NUMBER}</version>`.
