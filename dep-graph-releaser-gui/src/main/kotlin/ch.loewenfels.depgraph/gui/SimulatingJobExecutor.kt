@@ -11,7 +11,7 @@ class SimulatingJobExecutor : JobExecutor {
         regex: Regex,
         errorHandler: (JenkinsJobExecutor.PollException) -> Nothing
     ): Promise<String> {
-        return Promise.resolve("<filename>simulation-only.json</filename>")
+        return Promise.resolve("simulation-only.json")
     }
 
     override fun trigger(

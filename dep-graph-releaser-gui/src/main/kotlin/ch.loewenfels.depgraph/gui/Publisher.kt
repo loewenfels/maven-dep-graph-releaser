@@ -61,7 +61,9 @@ class Publisher(
         if (isOnSameHost) {
             val pipelineUrl = window.location.href.substringBefore('#')
             val relativeJobUrl = jobUrl.substringAfter(prefix)
-            val url = "$pipelineUrl#$releaseJsonUrl${App.PUBLISH_JOB}$relativeJobUrl"
+            val numOfChars = pipelineUrl.substringAfter(prefix).count { it == '/' }
+            val relativeJsonUrl = "../".repeat(numOfChars) + releaseJsonUrl.substringAfter(prefix)
+            val url = "$pipelineUrl#$relativeJsonUrl${App.PUBLISH_JOB}$relativeJobUrl"
             if (verbose) {
                 val successMsg = showSuccess(
                     "Publishing successful, going to change to the new location." +
