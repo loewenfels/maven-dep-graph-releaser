@@ -81,21 +81,21 @@ fun deserializeCommands(commands: Array<GenericType<Command>>): List<Command> {
 
 fun createJenkinsMavenReleasePlugin(command: Command): JenkinsMavenReleasePlugin {
     val it = command.unsafeCast<JenkinsMavenReleasePlugin>()
-    return JenkinsMavenReleasePlugin(deserializeState(it), it.nextDevVersion, it.buildUrl)
+    return JenkinsMavenReleasePlugin(deserializeCommandState(it), it.nextDevVersion, it.buildUrl)
 }
 
 fun createJenkinsMultiMavenReleasePlugin(command: Command): Command {
     val it = command.unsafeCast<JenkinsMultiMavenReleasePlugin>()
-    return JenkinsMultiMavenReleasePlugin(deserializeState(it), it.nextDevVersion, it.buildUrl)
+    return JenkinsMultiMavenReleasePlugin(deserializeCommandState(it), it.nextDevVersion, it.buildUrl)
 }
 
 fun createJenkinsUpdateDependency(command: Command): JenkinsUpdateDependency {
     val it = command.unsafeCast<JenkinsUpdateDependency>()
     val projectId = MavenProjectId(it.projectId.groupId, it.projectId.artifactId)
-    return JenkinsUpdateDependency(deserializeState(it), projectId, it.buildUrl)
+    return JenkinsUpdateDependency(deserializeCommandState(it), projectId, it.buildUrl)
 }
 
-fun deserializeState(it: Command): CommandState {
+fun deserializeCommandState(it: Command): CommandState {
     val json = it.state.unsafeCast<CommandStateJson>()
     val fixedState = fakeEnumsName(json)
     val state = fromJson(fixedState)
@@ -117,7 +117,7 @@ private fun fakeEnumsName(json: CommandStateJson): CommandStateJson {
         //necessary to fake an enum's name attribute (state is actually a json object and not really a CommandStateJson)
         js("tmp.state = {name: tmp.state}")
         tmp = if (tmp.state.name == "Deactivated") {
-            json.previous
+            tmp.previous
         } else {
             null
         }

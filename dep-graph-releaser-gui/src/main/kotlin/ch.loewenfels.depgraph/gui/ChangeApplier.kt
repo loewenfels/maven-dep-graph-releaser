@@ -96,7 +96,7 @@ object ChangeApplier {
         index: Int
     ): Boolean {
         val command = genericCommand.p
-        val previousState = deserializeState(command)
+        val previousState = deserializeCommandState(command)
         val newState = Gui.getCommandState(mavenProjectId, index)
         if (previousState::class != newState::class) {
             val stateObject = js("({})")
