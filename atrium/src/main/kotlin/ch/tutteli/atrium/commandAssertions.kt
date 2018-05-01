@@ -89,7 +89,7 @@ fun Assert<Command>.isJenkinsMavenReleaseDisabled(nextDevVersion: String) {
 fun Assert<Command>.isJenkinsMultiMavenReleaseWaiting(
     nextDevVersion: String,
     dependency: IdAndVersions,
-    otherDependencies: Array<out IdAndVersions>
+    vararg otherDependencies: IdAndVersions
 ) {
     isA<JenkinsMultiMavenReleasePlugin> {
         withStateWaitingWithDependencies(dependency.id, *otherDependencies.mapToProjectIds())

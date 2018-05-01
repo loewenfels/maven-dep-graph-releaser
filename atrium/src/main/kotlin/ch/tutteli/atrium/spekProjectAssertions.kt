@@ -385,7 +385,7 @@ fun TestContainer.assertOneUpdateAndOneMultiReleaseCommand(
             idAndVersions(project)
             property(subject::commands).containsStrictly(
                 { isJenkinsUpdateDependencyWaiting(dependency) },
-                { isJenkinsMultiMavenReleaseWaiting(project.nextDevVersion, dependency, arrayOf()) }
+                { isJenkinsMultiMavenReleaseWaiting(project.nextDevVersion, dependency) }
             )
         }
     }
@@ -404,7 +404,26 @@ fun TestContainer.assertTwoUpdateAndOneReleaseCommand(
             property(subject::commands).containsStrictly(
                 { isJenkinsUpdateDependencyWaiting(dependency1) },
                 { isJenkinsUpdateDependencyWaiting(dependency2) },
-                { isJenkinsMavenReleaseWaiting(project.nextDevVersion, dependency2, dependency1) }
+                { isJenkinsMavenReleaseWaiting(project.nextDevVersion, dependency1, dependency2) }
+            )
+        }
+    }
+}
+
+fun TestContainer.assertTwoUpdateAndOneMultiReleaseCommand(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    dependency1: IdAndVersions,
+    dependency2: IdAndVersions
+) {
+    test("$name project has two waiting UpdateVersion and one waiting Release command") {
+        assert(releasePlan.getProject(project.id)) {
+            idAndVersions(project)
+            property(subject::commands).containsStrictly(
+                { isJenkinsUpdateDependencyWaiting(dependency1) },
+                { isJenkinsUpdateDependencyWaiting(dependency2) },
+                { isJenkinsMultiMavenReleaseWaiting(project.nextDevVersion, dependency1, dependency2) }
             )
         }
     }

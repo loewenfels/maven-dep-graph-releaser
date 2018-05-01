@@ -182,25 +182,23 @@ class JenkinsReleasePlanCreator(
         addAndUpdateCommandsOfDependent(paramObject, dependent)
         addDependentToDependentsOfDependency(paramObject, dependent)
         paramObject.projects[dependent.id] = dependent
-        updateMultiModuleIfNecessary(dependent, paramObject)
+        updateMultiModuleIfNecessary(paramObject, dependent)
     }
 
-    private fun updateMultiModuleIfNecessary(dependent: Project, paramObject: ParamObject) {
+    private fun updateMultiModuleIfNecessary(paramObject: ParamObject, dependent: Project) {
         if (dependent.isSubmodule) {
             val multiModules = paramObject.analyser.getMultiModules(paramObject.relation.id)
-            if (multiModules.isNotEmpty()) {
-                val topMultiModuleId = multiModules.last()
-                val topMultiModule = paramObject.projects[topMultiModuleId]
-                if (topMultiModule != null && topMultiModule.level < dependent.level) {
-                    val tmpRelation = paramObject.relation
-                    paramObject.relation = Relation(topMultiModuleId, topMultiModule.currentVersion, false)
-                    val wouldHaveCycles = !checkForCyclicAndUpdateIfOk(paramObject, topMultiModule)
-                    if (wouldHaveCycles) {
-                        paramObject.initDependency(topMultiModule)
-                        paramObject.relation = tmpRelation
-                        //updating the multi module would introduce a cycle, thus we need to adjust the submodule instead
-                        updateLevelIfNecessaryAndRevisitInCase(paramObject, dependent)
-                    }
+            val topMultiModuleId = multiModules.last()
+            val topMultiModule = paramObject.projects[topMultiModuleId]
+            if (topMultiModule != null && topMultiModule.level < dependent.level) {
+                val tmpRelation = paramObject.relation
+                paramObject.relation = Relation(topMultiModuleId, topMultiModule.currentVersion, false)
+                val wouldHaveCycles = !checkForCyclicAndUpdateIfOk(paramObject, topMultiModule)
+                if (wouldHaveCycles) {
+                    paramObject.initDependency(topMultiModule)
+                    paramObject.relation = tmpRelation
+                    //updating the multi module would introduce a cycle, thus we need to adjust the submodule instead
+                    updateLevelIfNecessaryAndRevisitInCase(paramObject, dependent)
                 }
             }
         }
@@ -211,8 +209,8 @@ class JenkinsReleasePlanCreator(
         // which manages this version for us, we do not need to do anything here.
         if (paramObject.isRelationDependencyVersionNotSelfManaged()) return
 
-        // we do not have to update the commands if only the level changed
-        if (paramObject.isRelationAlreadyDependentOfDependency()) return
+        // we do not have to update the commands because we already have the dependency (only the level changed)
+        if (paramObject.isRelationAlreadyDependentOfDependencyAndWaitsInCommand()) return
 
         val dependencyId = paramObject.dependencyId
         val list = dependent.commands as MutableList
@@ -222,8 +220,8 @@ class JenkinsReleasePlanCreator(
 
         // submodule -> multi module relation is updated by M2 Release Plugin
         // if relation is a submodule and dependency as well and they share a common multi module, then we do not
-        // need a to update anything because the submodules will have the same version after releasing
-        //TODO not entirely true, we still need to update the version to the new one
+        // need to update anything because the submodules will have the same version after releasing
+        //TODO is this not entirely true, don't we still need to update the version to the new one?
         if (paramObject.isRelationNotInSameMultiModuleCircleAsDependency()) {
             val state = CommandState.Waiting(hashSetOf(dependencyId))
             list.add(0, JenkinsUpdateDependency(state, dependencyId))
@@ -287,7 +285,7 @@ class JenkinsReleasePlanCreator(
             val (dependentId, dependentBranch) = projectsToVisit.iterator().next()
             projectsToVisit.remove(dependentId)
             visitedProjects.add(dependentId)
-            paramObject.getDependent(dependentId).forEach {
+            paramObject.getDependents(dependentId).forEach {
                 if (it == dependencyId) {
                     if (paramObject.isRelationNotInSameMultiModuleCircleAsDependency()) {
                         val map = paramObject.cyclicDependents.getOrPut(existingDependent.id, { linkedMapOf() })
@@ -440,7 +438,16 @@ class JenkinsReleasePlanCreator(
         }
 
         fun isRelationDependencyVersionNotSelfManaged() = !relation.isDependencyVersionSelfManaged
-        fun isRelationAlreadyDependentOfDependency() = getDependentsOfDependency().contains(relation.id)
+        fun isRelationAlreadyDependentOfDependencyAndWaitsInCommand(): Boolean {
+            if (getDependentsOfDependency().contains(relation.id)) {
+                return getProject(relation.id).commands.any {
+                    val state = it.state
+                    state is CommandState.Waiting && state.dependencies.contains(dependencyId)
+                }
+            }
+            return false
+        }
+
         fun hasRelationNoCycleToDependency(): Boolean {
             return when {
                 cyclicDependents[relation.id]?.containsKey(dependencyId) == true -> false
@@ -452,10 +459,10 @@ class JenkinsReleasePlanCreator(
         fun getProject(projectId: ProjectId)
             = projects[projectId] ?: throw IllegalStateException("$projectId was not found in projects")
 
-        fun getDependent(projectId: ProjectId)
+        fun getDependents(projectId: ProjectId)
             = dependents[projectId] ?: throw IllegalStateException("$projectId was not found in dependents")
 
-        fun getDependentsOfDependency() = getDependent(dependencyId)
+        fun getDependentsOfDependency() = getDependents(dependencyId)
     }
 
 
