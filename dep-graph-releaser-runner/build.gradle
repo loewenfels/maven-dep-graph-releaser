@@ -80,13 +80,14 @@ task json {
     def defaultRemoteJob = "dgr-remote-releaser"
     def paramsArg = 'regexParams'
     def defaultParamsArg = ".*#branch.name=master"
+    def disableRegexArg = 'disableRegex'
     inputs.property(groupIdArg, findProperty(groupIdArg))
     inputs.property(artifactIdArg, findProperty(artifactIdArg))
     inputs.property(updateDependencyJobArg, findProperty(updateDependencyJobArg) ?: defaultUpdateJob)
     inputs.property(remoteRegexArg, findProperty(remoteRegexArg) ?: defaultRemoteRegex)
     inputs.property(remoteJobArg, findProperty(remoteJobArg) ?: defaultRemoteJob)
     inputs.property(paramsArg, findProperty(paramsArg) ?: defaultParamsArg)
-    inputs.property('dr', findProperty('dr') ?: '^$')
+    inputs.property(disableRegexArg, findProperty(disableRegexArg) ?: '^$')
     inputs.property('mpoff', findProperty('mpoff') ?: 'on')
     inputs.files dist
     outputs.file jsonFile
@@ -97,14 +98,14 @@ task json {
         def remoteRegex = findProperty(remoteRegexArg) ?: defaultRemoteRegex
         def remoteJob = findProperty(remoteJobArg) ?: defaultRemoteJob
         def params = "-$paramsArg=${findProperty(paramsArg) ?: defaultParamsArg}"
-        def dr = findProperty('dr') != null ? ["-dr=${findProperty('dr')}"] : []
+        def disableRegex = findProperty(disableRegexArg) != null ? ["-$disableRegexArg=${findProperty(disableRegexArg)}"] : []
         def mpOff = findProperty('mpoff') != null ? ['-mpoff'] : []
 
         javaexec {
             workingDir = rootProject.projectDir
             classpath = fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.Main'
-            args = ['json', groupId, artifactId, "${rootProject.projectDir}/repos", jsonFile.absolutePath, updateDependencyJob, remoteRegex, remoteJob, params] + dr + mpOff
+            args = ['json', groupId, artifactId, "${rootProject.projectDir}/repos", jsonFile.absolutePath, updateDependencyJob, remoteRegex, remoteJob, params] + disableRegex + mpOff
         }
     }
 }

@@ -19,7 +19,7 @@ object Json : ConsoleCommand {
 
     private val REGEX_PARAMS_ARG = "-${REGEX_PARAMS.asString()}="
     internal const val MAVEN_PARENT_ANALYSIS_OFF = "-mpoff"
-    private const val DISABLE_RELEASE_FOR = "-dr="
+    private const val DISABLE_RELEASE_FOR = "-disableRegex="
 
     override val name = "json"
     override val description = "analyse projects, create a release plan and serialize it to json"

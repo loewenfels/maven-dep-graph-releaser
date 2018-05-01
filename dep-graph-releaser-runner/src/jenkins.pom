@@ -46,7 +46,7 @@
                                 <argument>${remoteRegex}</argument>
                                 <argument>${remoteJob}</argument>
                                 <argument>-regexParams=${regexParams}</argument>
-                                <argument>-dr=${disableRelease}</argument>
+                                <argument>-disableRegex=${disableRegex}</argument>
                             </arguments>
                         </configuration>
                     </execution>
