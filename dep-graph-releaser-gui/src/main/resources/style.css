@@ -292,6 +292,9 @@ label.toggle input:disabled + .slider {
     background-color: #CDCDCD;
     cursor: not-allowed;
 }
+input:disabled {
+    cursor: not-allowed;
+}
 
 .command .state {
     position: relative;

@@ -55,19 +55,8 @@ class Releaser(
         val project = releasePlan.getRootProject()
         val paramObject = ParamObject(releasePlan, jobExecutor, project, hashMapOf(), hashMapOf())
         Gui.changeReleaseState(ReleaseState.InProgress)
-        return save(paramObject)
-            .catch { t ->
-                Gui.changeReleaseState(ReleaseState.Failed)
-                showThrowableAndThrow(
-                    Error(
-                        "Could not save release state (changed to ${ReleaseState.InProgress})." +
-                            "\nAborting release process, please make sure that the publisher works as expected and try again.",
-                        t
-                    )
-                )
-            }.then { _: Nothing ->
-                releaseProject(paramObject)
-            }.then {
+        return releaseProject(paramObject)
+            .then {
                 val (result, newState) = checkProjectStates(paramObject)
                 Gui.changeReleaseState(newState)
                 save(paramObject, verbose = true)
@@ -330,7 +319,7 @@ class Releaser(
                 Gui.changeStateOfCommandAndAddBuildUrl(
                     project, index, CommandState.InProgress, Gui.STATE_IN_PROGRESS, "$jobUrlWithSlash$buildNumber/"
                 )
-                save(paramObject)
+                Promise.resolve(1)
             },
             pollEverySecond = 10,
             maxWaitingTimeForCompleteness = 60 * 15,
@@ -348,22 +337,9 @@ class Releaser(
             }
         ).then { (state, message) ->
             Gui.changeStateOfCommand(project, index, state, message)
-            save(paramObject)
-                .catch { t2 -> logWarnOnConsole(project, index, t2) }
             changeCursorBackToNormal()
             state
         }
-    }
-
-    private fun logWarnOnConsole(project: Project, index: Int, t: Throwable) {
-        val commandTitle = elementById(Gui.getCommandId(project, index) + Gui.TITLE_SUFFIX)
-        console.warn(
-            "Could not save the state of the command ${commandTitle.innerText} (${index + 1}. command) " +
-                "of the project ${project.id.identifier}." +
-                "\nWill be saved with the next state change of another command (if there is any)." +
-                "\nProblem was:" +
-                "\n${turnThrowableIntoMessage(t)}"
-        )
     }
 
     private fun save(paramObject: ParamObject, verbose: Boolean = false): Promise<Unit> {
