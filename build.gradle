@@ -1,4 +1,4 @@
-version = "0.1.8-SNAPSHOT"
+version = "0.1.8"
 
 buildscript {
     ext {
@@ -206,7 +206,7 @@ Release & deploy a commit
     a) point to the tag
         1) search for `branch=master` and replace it with `tag=vX.Y.Z` (build status and coverage in README.md)
         2) search for `tree/master` and replace it with `tree/vX.Y.Z` (README.md)
-    b) commit (modified build.gradle, README.md)
+    b) commit (modified build.gradle, README.md, pipeline.html, jenkins.pom)
     c) git tag vX.Y.Z
     d) git push origin vX.Y.Z
 3. deploy to bintray:
