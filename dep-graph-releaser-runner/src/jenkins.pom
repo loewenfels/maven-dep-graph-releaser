@@ -42,6 +42,10 @@
                                 <argument>${aId}</argument>
                                 <argument>${dir}</argument>
                                 <argument>${json}</argument>
+                                <argument>${updateDependencyJob}</argument>
+                                <argument>${remoteRegex}</argument>
+                                <argument>${remoteJob}</argument>
+                                <argument>-regexParams=${regexParams}</argument>
                                 <argument>-dr=${disableRelease}</argument>
                             </arguments>
                         </configuration>
