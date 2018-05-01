@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.gui
 
+import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.ReleaseState
 import org.w3c.dom.CustomEvent
@@ -26,6 +27,7 @@ class Menu {
     private val settingsButton get() = elementById("settings")
 
     private var publisher: Publisher? = null
+    private var simulation = false
 
     init {
         settingsButton.addClickEventListenerIfNotDeactivatedNorDisabled {
@@ -78,7 +80,7 @@ class Menu {
         }
 
         initSaveAndDownloadButton(downloader, dependencies)
-        initRunButtons(dependencies)
+        initRunButtons(releasePlan, dependencies)
 
         when (releasePlan.state) {
             ReleaseState.Ready -> Unit /* nothing to do */
@@ -103,7 +105,7 @@ class Menu {
         }
     }
 
-    private fun initRunButtons(dependencies: Dependencies?) {
+    private fun initRunButtons(releasePlan: ReleasePlan, dependencies: Dependencies?) {
         if (dependencies != null) {
 
             dryRunButton.addClickEventListenerIfNotDeactivatedNorDisabled {
@@ -111,12 +113,14 @@ class Menu {
             }
             activateReleaseButton()
             releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                triggerRelease(dependencies, dependencies.jenkinsJobExecutor)
+                simulation = false
+                triggerRelease(releasePlan, dependencies, dependencies.jenkinsJobExecutor)
             }
 
             activateSimulateButton()
             exploreButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                triggerRelease(dependencies, dependencies.simulatingJobExecutor)
+                simulation = true
+                triggerRelease(releasePlan, dependencies, dependencies.simulatingJobExecutor)
             }
 
             Menu.registerForReleaseStartEvent {
@@ -141,15 +145,27 @@ class Menu {
                             "\nAt least one job failed. Check errors, fix them and then you can re-trigger the failed jobs, the pipeline respectively, by clicking on the release button." +
                             "\n(You might have to delete git tags and remove artifacts if they have already been created)."
                     )
-                    elementById("release.text").innerText = "Re-trigger failed Jobs"
-                    releaseButton.title = "Continue with the release process by re-triggering previously failed jobs."
-                    releaseButton.removeClass(DISABLED)
+                    val (button, buttonText) = if (simulation) {
+                        exploreButton to elementById("explore.text")
+                    } else {
+                        releaseButton to elementById("release.text")
+                    }
+                    buttonText.innerText = "Re-trigger failed Jobs"
+                    button.title = "Continue with the release process by re-triggering previously failed jobs."
+                    button.removeClass(DISABLED)
                 }
             }
         }
     }
 
-    private fun triggerRelease(dependencies: Dependencies, jobExecutor: JobExecutor): Promise<*> {
+    private fun triggerRelease(
+        releasePlan: ReleasePlan,
+        dependencies: Dependencies,
+        jobExecutor: JobExecutor
+    ): Promise<*> {
+        if (Gui.getReleaseState() === ReleaseState.Failed) {
+            turnFailedIntoRetrigger(releasePlan)
+        }
         dispatchReleaseStart()
         return dependencies.releaser.release(jobExecutor).then(
             { result ->
@@ -160,6 +176,22 @@ class Menu {
                 throw t
             }
         )
+    }
+
+    private fun turnFailedIntoRetrigger(releasePlan: ReleasePlan) {
+        releasePlan.iterator().forEach { project ->
+            project.commands.forEachIndexed { index, _ ->
+                val commandState = Gui.getCommandState(project.id, index)
+                if (commandState === CommandState.Failed) {
+                    Gui.changeStateOfCommand(
+                        project,
+                        index,
+                        CommandState.ReadyToRetrigger,
+                        Gui.STATE_READY_TO_RETRIGGER
+                    )
+                }
+            }
+        }
     }
 
     private fun HTMLElement.addClickEventListenerIfNotDeactivatedNorDisabled(action: () -> Any) {

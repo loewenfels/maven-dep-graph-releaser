@@ -67,23 +67,23 @@ sealed class CommandState {
             ReadyToRetrigger -> checkNewState(newState, Failed::class)
             Ready -> {
                 checkNewState(newState, Waiting::class)
-                if(this is Waiting) { //could also be Deactivated with previous Ready
+                if (this is Waiting) { //could also be Deactivated with previous Ready
                     check(this.dependencies.isEmpty()) {
                         "Can only change from ${Waiting::class.simpleName} to ${Ready::class.simpleName} " +
                             "if there are not any dependencies left which we need to wait for." +
                             //TODO use $this in stead of $getToStringRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed
                             "\nState was: ${this.getToStringRepresentation()}"
-                }
+                    }
                 }
             }
-            Queueing -> checkNewState(newState, Ready::class)
+            Queueing -> checkNewState(newState, Ready::class, ReadyToRetrigger::class)
             InProgress -> checkNewState(newState, Queueing::class)
             Succeeded -> checkNewState(newState, InProgress::class)
         }
         return newState
     }
 
-    private fun checkNewState(newState: CommandState, requiredState: KClass<out CommandState>) {
+    private fun checkNewState(newState: CommandState, vararg requiredState: KClass<out CommandState>) {
         if (this is Deactivated) {
             check(newState::class == this.previous::class) {
                 "Cannot transition to ${newState::class.simpleName} because " +
@@ -91,8 +91,13 @@ sealed class CommandState {
                     "\nDeactivated.previous was: ${this.previous.getToStringRepresentation()}"
             }
         } else {
-            check(requiredState.isInstance(this)) {
-                "Cannot transition to ${newState::class.simpleName} because state is not ${requiredState.simpleName}." +
+            check(requiredState.any { it.isInstance(this) }) {
+                val states = if (requiredState.size == 1) {
+                    requiredState[0]::class.simpleName
+                } else {
+                    "one of: ${requiredState.joinToString { it::class.simpleName!! }}"
+                }
+                "Cannot transition to ${newState::class.simpleName} because state is not $states." +
                     //TODO use $this in stead of $getToStringRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed
                     "\nState was: ${this.getToStringRepresentation()}"
             }

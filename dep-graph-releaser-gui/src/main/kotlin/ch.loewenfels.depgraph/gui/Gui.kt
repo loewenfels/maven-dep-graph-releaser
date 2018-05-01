@@ -310,7 +310,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
     }
 
     companion object {
-        const val PIPELINE_HTML_ID = "pipeline"
+        private const val PIPELINE_HTML_ID = "pipeline"
         const val PUBLISH_ID_HTML_ID = "publishId"
         const val DEACTIVATE_SUFFIX = ":deactivate"
         const val DEACTIVATE_ALL_SUFFIX = ":deactivateAll"
@@ -323,7 +323,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
         private const val STATE_WAITING = "Wait for dependent projects to complete."
         const val STATE_READY = "Ready to be queued for execution."
-        private const val STATE_READY_TO_RETRIGGER = "Ready to be re-scheduled"
+        const val STATE_READY_TO_RETRIGGER = "Ready to be re-scheduled"
         const val STATE_QUEUEING = "Currently queueing the job."
         const val STATE_IN_PROGRESS = "Job is running."
         const val STATE_SUCCEEDED = "Job completed successfully."

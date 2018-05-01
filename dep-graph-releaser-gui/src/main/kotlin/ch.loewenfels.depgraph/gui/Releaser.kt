@@ -68,19 +68,24 @@ class Releaser(
         val newState = if (result) {
             ReleaseState.Succeeded
         } else {
-            val erroneousProjects =
-                paramObject.projectResults.entries.filter { it.value !== CommandState.Failed && it.value !== CommandState.Succeeded }
-            if (erroneousProjects.isNotEmpty()) {
-                showError(
-                    "Seems like there is a bug since some commands are neither in state ${CommandState.Failed::class.simpleName} nor in state ${CommandState.Succeeded::class.simpleName}" +
-                        "\nPlease report a bug, the following projects where affected:\n${erroneousProjects.joinToString(
-                            "\n"
-                        ) { it.key.identifier }}"
-                )
-            }
+            checkForNoneFailedBug(paramObject)
             ReleaseState.Failed
         }
         return result to newState
+    }
+
+    private fun checkForNoneFailedBug(paramObject: ParamObject) {
+        if (paramObject.projectResults.values.none { it === CommandState.Failed }) {
+            val erroneousProjects = paramObject.projectResults.entries
+                .filter { it.value !== CommandState.Failed && it.value !== CommandState.Succeeded }
+            if (erroneousProjects.isNotEmpty()) {
+                showError(
+                    "Seems like there is a bug since no command failed but not all are succeeded." +
+                        "\nPlease report a bug, the following projects where affected:" +
+                        "\n${erroneousProjects.joinToString("\n") { it.key.identifier }}"
+                )
+            }
+        }
     }
 
     private fun releaseProject(paramObject: ParamObject): Promise<*> {
@@ -186,7 +191,7 @@ class Releaser(
 
     private fun createCommandPromise(paramObject: ParamObject, command: Command, index: Int): Promise<CommandState> {
         val state = Gui.getCommandState(paramObject.project.id, index)
-        return if (state === CommandState.Ready) {
+        return if (state === CommandState.Ready || state === CommandState.ReadyToRetrigger) {
             triggerCommand(paramObject, command, index)
         } else {
             Promise.resolve(state)

@@ -316,6 +316,7 @@ label.toggle input:disabled + .slider {
 }
 
 .command.ready > .fields > .toggle,
+.command.readyToRetrigger > .fields > .toggle,
 .command.queueing > .fields > .toggle,
 .command.inProgress > .fields > .toggle,
 .command.succeeded > .fields > .toggle,
@@ -324,9 +325,15 @@ label.toggle input:disabled + .slider {
     display: none;
 }
 
-.command.ready > .fields > .state {
+.command.ready > .fields > .state,
+.command.readyToRetrigger > .fields > .state {
     display: inline-block;
 }
+
+.command.readyToRetrigger > .fields > .state .material-icons span::after {
+    content: 'playlist_play';
+}
+
 .command.queueing > .fields > .state {
     display: inline-block;
     animation: queueing 1s infinite alternate linear;
