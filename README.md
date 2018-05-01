@@ -1,7 +1,7 @@
 [![Download](https://api.bintray.com/packages/loewenfels/oss/dep-graph-releaser/images/download.svg) ](https://bintray.com/loewenfels/oss/dep-graph-releaser/_latestVersion)
 [![Apache license](https://img.shields.io/badge/license-Apache%202.0-brightgreen.svg)](http://opensource.org/licenses/Apache2.0)
-[![Build Status](https://travis-ci.org/loewenfels/dep-graph-releaser.svg?branch=master)](https://travis-ci.org/loewenfels/dep-graph-releaser/branches)
-[![Coverage](https://codecov.io/github/loewenfels/dep-graph-releaser/coverage.svg?branch=master)](https://codecov.io/github/loewenfels/dep-graph-releaser?branch=master)
+[![Build Status](https://travis-ci.org/loewenfels/dep-graph-releaser.svg?tag=0.2.0)](https://travis-ci.org/loewenfels/dep-graph-releaser/branches)
+[![Coverage](https://codecov.io/github/loewenfels/dep-graph-releaser/coverage.svg?tag=0.2.0)](https://codecov.io/github/loewenfels/dep-graph-releaser?tag=0.2.0)
 
 # Dependent Graph Releaser
 Dependent Graph Releaser is a tool which helps you with releasing a project and its dependent projects.
@@ -80,7 +80,7 @@ The following guide shows how you can integrate dep-graph-releaser with Jenkins.
       ```
 5. Create a job which runs the Main with command json
     - an example will follow using maven. 
-      In short, you can use the [jenkins.pom](https://github.com/loewenfels/dep-graph-releaser/tree/master/dep-graph-releaser-runner/src/jenkins.pom)
+      In short, you can use the [jenkins.pom](https://github.com/loewenfels/dep-graph-releaser/tree/0.2.0/dep-graph-releaser-runner/src/jenkins.pom)
       if you use mvn (to retrieve dependencies).
     - if you want to run Main directly then you can use the [zip](https://dl.bintray.com/loewenfels/oss/ch/loewenfels/dep-graph-releaser-runner/) (chose version and then *.zip)
       containing all necessary libraries as well as a `.bat`
