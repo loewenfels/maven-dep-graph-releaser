@@ -86,7 +86,9 @@ class Releaser(
     }
 
     private fun checkProjectStates(paramObject: ParamObject): Pair<Boolean, ReleaseState> {
-        val result = paramObject.projectResults.values.all { it === CommandState.Succeeded }
+        val result = paramObject.projectResults.values.all {
+            it === CommandState.Succeeded || it is CommandState.Deactivated || it === CommandState.Disabled
+        }
         val newState = if (result) {
             ReleaseState.Succeeded
         } else {
