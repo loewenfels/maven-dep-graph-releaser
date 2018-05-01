@@ -5,6 +5,7 @@ import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
+import org.w3c.dom.HTMLAnchorElement
 import kotlin.browser.window
 import kotlin.collections.set
 import kotlin.js.Promise
@@ -260,6 +261,11 @@ class Releaser(
             { CommandState.Succeeded to Gui.STATE_SUCCEEDED },
             { t ->
                 showThrowable(Error("Job $jobName failed", t))
+                val state = elementById<HTMLAnchorElement>("${Gui.getCommandId(project, index)}${Gui.STATE_SUFFIX}")
+                val suffix = "console#footer"
+                if (!state.href.endsWith(suffix)) {
+                    state.href = state.href + suffix
+                }
                 CommandState.Failed to Gui.STATE_FAILED
             }
         ).then { (state, message) ->
