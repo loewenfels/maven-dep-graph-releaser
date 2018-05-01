@@ -59,7 +59,7 @@ class Releaser(
             .then {
                 val (result, newState) = checkProjectStates(paramObject)
                 Gui.changeReleaseState(newState)
-                save(paramObject, verbose = true)
+                save(paramObject, verbose = false)
                     .catch { t ->
                         showThrowable(
                             Error(
