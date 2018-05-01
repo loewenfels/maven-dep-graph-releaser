@@ -164,7 +164,7 @@ class Menu {
         jobExecutor: JobExecutor
     ): Promise<*> {
         if (Gui.getReleaseState() === ReleaseState.Failed) {
-            turnFailedIntoRetrigger(releasePlan)
+            turnFailedIntoReTrigger(releasePlan)
         }
         dispatchReleaseStart()
         return dependencies.releaser.release(jobExecutor).then(
@@ -178,7 +178,7 @@ class Menu {
         )
     }
 
-    private fun turnFailedIntoRetrigger(releasePlan: ReleasePlan) {
+    private fun turnFailedIntoReTrigger(releasePlan: ReleasePlan) {
         releasePlan.iterator().forEach { project ->
             project.commands.forEachIndexed { index, _ ->
                 val commandState = Gui.getCommandState(project.id, index)
@@ -187,7 +187,7 @@ class Menu {
                         project,
                         index,
                         CommandState.ReadyToRetrigger,
-                        Gui.STATE_READY_TO_RETRIGGER
+                        Gui.STATE_READY_TO_RE_TRIGGER
                     )
                 }
             }
