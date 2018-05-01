@@ -40,7 +40,7 @@ class Releaser(
     }
 
     private fun warnIfNotOnSameHost() {
-        val prefix = window.location.protocol + "//" + window.location.hostname + "/"
+        val prefix = window.location.protocol + "//" + window.location.hostname
         val isOnSameHost = jenkinsUrl.startsWith(prefix)
         if (!isOnSameHost) {
             showWarning(
