@@ -72,7 +72,7 @@ class Menu {
         window.onbeforeunload = {
             if (!saveButton.hasClass(DEACTIVATED)) {
                 "Your changes will be lost, sure you want to leave the page?"
-            } else if (Gui.getReleaseState() !== ReleaseState.Ready) {
+            } else if (Gui.getReleaseState() === ReleaseState.InProgress) {
                 "You might lose state changes if you navigate away from this page, sure you want to proceed?"
             } else {
                 null
