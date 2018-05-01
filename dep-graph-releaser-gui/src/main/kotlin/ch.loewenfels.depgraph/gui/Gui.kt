@@ -111,7 +111,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             div("title") {
                 if (hasCommands) {
                     toggle(
-                        "$identifier$DISABLE_ALL_SUFFIX",
+                        "$identifier$DEACTIVATE_ALL_SUFFIX",
                         "deactivate all commands",
                         project.commands.any { it.state !is CommandState.Deactivated },
                         false
@@ -212,7 +212,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         }
 
         toggle(
-            "$idPrefix$DISABLE_SUFFIX",
+            "$idPrefix$DEACTIVATE_SUFFIX",
             "Click to deactivate command",
             command.state !is CommandState.Deactivated,
             command.state === CommandState.Disabled,
@@ -311,8 +311,8 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
     companion object {
         const val PIPELINE_HTML_ID = "pipeline"
         const val PUBLISH_ID_HTML_ID = "publishId"
-        const val DISABLE_SUFFIX = ":disable"
-        const val DISABLE_ALL_SUFFIX = ":disableAll"
+        const val DEACTIVATE_SUFFIX = ":deactivate"
+        const val DEACTIVATE_ALL_SUFFIX = ":deactivateAll"
         const val SLIDER_SUFFIX = ":slider"
         const val DISABLED_RELEASE_IN_PROGRESS = "disabled due to release which is in progress."
         const val DISABLED_RELEASE_SUCCESS = "Release successful, use a new pipeline for a new release."

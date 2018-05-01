@@ -23,7 +23,7 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
     private fun getAllToggle(project: Project): HTMLInputElement? = getAllToggle(project.id)
     private fun getAllToggle(projectId: ProjectId): HTMLInputElement? =
-        elementByIdOrNull(projectId.identifier + Gui.DISABLE_ALL_SUFFIX)
+        elementByIdOrNull(projectId.identifier + Gui.DEACTIVATE_ALL_SUFFIX)
 
     private fun registerAllToggleEvents(allToggle: HTMLInputElement, project: Project) {
         allToggle.addChangeEventListener {
@@ -73,7 +73,7 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
     }
 
     private fun getToggle(project: Project, index: Int): HTMLInputElement =
-        elementById<HTMLInputElement>(Gui.getCommandId(project, index) + Gui.DISABLE_SUFFIX)
+        elementById<HTMLInputElement>(Gui.getCommandId(project, index) + Gui.DEACTIVATE_SUFFIX)
 
     private fun toggleCommand(project: Project, index: Int, uncheckedEvent: String) {
         val toggle = getToggle(project, index)
@@ -157,15 +157,15 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
     private fun notAllSubmodulesActive(project: Project): Boolean {
         return releasePlan.getSubmodules(project.id).any { submoduleId ->
-            val submodulesHasCommands = document.getElementById(getDisableAllId(project.id)) != null
+            val submodulesHasCommands = document.getElementById(getDeactivateAllId(project.id)) != null
             submodulesHasCommands &&
                 //cannot be the same command, hence we do not filter commands at all => thus we use `{ true }`
                 notAllCommandsActive(releasePlan.getProject(submoduleId), { true })
         }
     }
 
-    private fun getDisableAllId(projectId: ProjectId) = "${projectId.identifier}${Gui.DISABLE_ALL_SUFFIX}"
-    private fun getCheckbox(identifier: String, index: Int) = getCheckbox("$identifier:$index${Gui.DISABLE_SUFFIX}")
+    private fun getDeactivateAllId(projectId: ProjectId) = "${projectId.identifier}${Gui.DEACTIVATE_ALL_SUFFIX}"
+    private fun getCheckbox(identifier: String, index: Int) = getCheckbox("$identifier:$index${Gui.DEACTIVATE_SUFFIX}")
 
 
     private fun dispatchToggleEvent(project: Project, toggle: HTMLInputElement, event: String) {
