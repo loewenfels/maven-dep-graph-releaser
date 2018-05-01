@@ -354,15 +354,14 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             Menu.registerForReleaseStartEvent {
                 input.asDynamic().oldDisabled = input.disabled
                 input.disabled = true
-                titleElement.asDynamic().oldTitle = titleElement.title
-                titleElement.title = DISABLED_RELEASE_IN_PROGRESS
+                titleElement.setTitleSaveOld(DISABLED_RELEASE_IN_PROGRESS)
             }
             Menu.registerForReleaseEndEvent { success ->
                 if (success) {
                     titleElement.title = DISABLED_RELEASE_SUCCESS
                 } else {
                     input.disabled = input.asDynamic().oldDisabled as Boolean
-                    titleElement.title = titleElement.asDynamic().oldTitle as String
+                    titleElement.title = titleElement.getOldTitle()
                 }
             }
         }

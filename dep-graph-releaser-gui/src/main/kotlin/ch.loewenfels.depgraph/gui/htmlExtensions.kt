@@ -13,8 +13,8 @@ import kotlin.js.Promise
  */
 fun HTMLTag.getUnderlyingHtmlElement(): HTMLElement {
     var d = this.consumer.asDynamic()
-    if(d.downstream != null) {
-       d =  d.downstream
+    if (d.downstream != null) {
+        d = d.downstream
     }
     val arr = d.path_0.toArray() as Array<HTMLElement>
     return arr[arr.size - 1]
@@ -44,4 +44,13 @@ fun withErrorHandling(event: Event, action: (Event) -> Any) {
             Error("An unexpected error occurred. Please report a bug with the following information.", t)
         )
     }
+}
+
+fun HTMLElement.getOldTitle() = this.asDynamic().oldTitle as String
+fun HTMLElement.getOldTitleOrNull() = this.asDynamic().oldTitle as? String
+fun HTMLElement.setTitleSaveOld(newTitle: String) {
+    if (this.title != newTitle) {
+        this.asDynamic().oldTitle = this.title
+    }
+    this.title = newTitle
 }

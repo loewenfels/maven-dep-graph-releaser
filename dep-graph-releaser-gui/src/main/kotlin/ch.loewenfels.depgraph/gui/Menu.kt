@@ -95,7 +95,9 @@ class Menu {
         deactivateSaveButton()
         if (dependencies != null) {
             saveButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                save(dependencies.jenkinsJobExecutor, verbose = true)
+                save(dependencies.jenkinsJobExecutor, verbose = true).then {
+                    deactivateSaveButton()
+                }
             }
         }
         downloadButton.title = "Download the release.json"
@@ -213,14 +215,17 @@ class Menu {
         if (saveButton.isDisabled()) return
 
         this.addClass(DEACTIVATED)
-        this.title = reason
+        this.setTitleSaveOld(reason)
     }
 
     private fun deactivateSaveButton() {
         saveButton.deactivate("Nothing to save, no changes were made")
         listOf(dryRunButton, releaseButton, exploreButton).forEach {
-            it.title = it.asDynamic().oldTitle as? String ?: ""
-            it.removeClass(DEACTIVATED)
+            val oldTitle = it.getOldTitleOrNull()
+            if (oldTitle != null) {
+                it.title = oldTitle
+                it.removeClass(DEACTIVATED)
+            }
         }
     }
 
@@ -231,7 +236,6 @@ class Menu {
         saveButton.title = "Publish changed json file and change location"
         val saveFirst = "You need to save your changes first."
         listOf(dryRunButton, releaseButton, exploreButton).forEach {
-            it.asDynamic().oldTitle = it.title
             it.deactivate(saveFirst)
         }
     }
@@ -271,7 +275,7 @@ class Menu {
             val publishId = getTextField(Gui.PUBLISH_ID_HTML_ID).value
             val newFileName = "release-$publishId"
             publisher.publish(newFileName, verbose, jobExecutor)
-                .then { deactivateSaveButton(); true }
+                .then { true }
         } else {
             if (verbose) showInfo("Seems like all changes have been reverted manually. Will not save anything.")
             deactivateSaveButton()

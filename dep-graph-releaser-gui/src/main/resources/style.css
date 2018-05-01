@@ -429,7 +429,7 @@ label.toggle input:disabled + .slider {
     left: 0;
     right: 0px;
     bottom: 0px;
-    max-height: 30%;
+    max-height: 40%;
     overflow-y: auto;
     padding-left: 15px;
     padding-right: 15px;
