@@ -101,7 +101,8 @@ The project does currently not support (pull requests are more than welcome):
 - version managed in a property which itself refers to a property: `<properties><a>${b}</a><b>1.0.0</b></properties>`.
 - version which is partly static and partly a property: `<version>1.0.0-${BUILD_NUMBER}</version>`.
 - dependencies only defined in profiles (not yet tested, might be that it already works).
-- simple regex replacement is used to update dependencies: if you have files containing malformed xml in comments, then updating dependencies might be erroneous.                
+- simple regex replacement is used to update dependencies: if you have files containing malformed xml in comments, then updating dependencies might be erroneous.
+- disabling a submodule does not work with the `-dr` option, you have to disable the multi-module instead                
 
 # License
 Dependent Graph Releaser is published under [Apache 2.0](http://opensource.org/licenses/Apache2.0). 
