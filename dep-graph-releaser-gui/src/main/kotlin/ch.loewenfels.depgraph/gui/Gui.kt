@@ -14,6 +14,7 @@ import kotlinx.html.dom.append
 import org.w3c.dom.HTMLAnchorElement
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLInputElement
+import org.w3c.dom.get
 import kotlin.browser.document
 import kotlin.dom.addClass
 import kotlin.dom.removeClass
@@ -44,6 +45,13 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 minimized.style.display = "none"
                 messages.forEach(action)
             })
+        }
+        val messagesDiv = elementById("messages")
+        elementById(HIDE_MESSAGES_HTML_ID).addClickEventListener {
+            val elements = document.querySelectorAll("#messages > div")
+            for (i in 0 until elements.length) {
+                elements[i]?.let { messagesDiv.removeChild(it) }
+            }
         }
     }
 
@@ -312,6 +320,8 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
     companion object {
         private const val PIPELINE_HTML_ID = "pipeline"
         const val PUBLISH_ID_HTML_ID = "publishId"
+        const val HIDE_MESSAGES_HTML_ID = "hideMessages"
+
         const val DEACTIVATE_SUFFIX = ":deactivate"
         const val DEACTIVATE_ALL_SUFFIX = ":deactivateAll"
         const val SLIDER_SUFFIX = ":slider"

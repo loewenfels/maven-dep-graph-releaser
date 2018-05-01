@@ -42,7 +42,7 @@ This is necessary since the `pipeline.html` wants to include a javascript file a
 
 You can also trigger the release locally as long as the jenkins server is set up to allow CORS accordingly.
 
-See section [Jenkins - Release](#jenkins-release) for how to setup the Jenkins jobs
+See section [Jenkins - Release](#jenkins-release) for how to setup the Jenkins jobs.
 
 
 # Jenkins

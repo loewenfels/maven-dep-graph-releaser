@@ -429,7 +429,7 @@ label.toggle input:disabled + .slider {
     left: 0;
     right: 0px;
     bottom: 0px;
-    max-height: 25%;
+    max-height: 30%;
     overflow-y: auto;
     padding-left: 15px;
     padding-right: 15px;
@@ -555,3 +555,29 @@ label.toggle input:disabled + .slider {
     transform: rotate(-45deg);
 }
 
+
+#hideMessages {
+    float: right;
+    margin-right: 10px;
+}
+
+#hideMessages .material-icons {
+    font-size: 20px;
+    color: #AAA;
+}
+#hideMessages .text {
+    color: #AAA;
+    padding-top: 0;
+    padding-left: 25px;
+}
+
+#hideMessages:hover .material-icons {
+    color: #2196f3
+}
+#hideMessages:hover .text {
+    color: #000;
+}
+
+#hideMessages:only-child {
+    display: none;
+}

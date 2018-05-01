@@ -1,7 +1,6 @@
 package ch.loewenfels.depgraph.gui
 
 import kotlinx.html.*
-import kotlinx.html.dom.append
 import kotlinx.html.dom.create
 import kotlinx.html.js.div
 import org.w3c.dom.HTMLElement
@@ -13,6 +12,7 @@ private var msgCounter = 0
 fun showStatus(message: String) {
     elementById("status").innerText = message
 }
+
 fun showSuccess(message: String, autoCloseAfterMs: Int? = null)
     = showMessageOfType("success", "check_circle", message, autoCloseAfterMs)
 
@@ -26,7 +26,7 @@ fun showError(message: String) = showMessageOfType("error", "error_outline", mes
 
 private fun showMessageOfType(type: String, icon: String, message: String, autoCloseAfterMs: Int?): HTMLElement {
     val messages = elementById("messages")
-    val div = document.create.div(type){
+    val div = document.create.div(type) {
         val msgId = "msg${msgCounter++}"
         this.id = msgId
         span("close") {
@@ -44,12 +44,13 @@ private fun showMessageOfType(type: String, icon: String, message: String, autoC
             window.setTimeout({ closeMessage(msgId) }, autoCloseAfterMs)
         }
     }
-    messages.insertBefore(div, messages.firstChild)
+    val hideMessagesButton = elementById(Gui.HIDE_MESSAGES_HTML_ID)
+    messages.insertBefore(div, hideMessagesButton.nextSibling)
     return div
 }
 
 private fun closeMessage(msgId: String) {
-    elementById(msgId).style.display = "none"
+    elementById(msgId).remove()
 }
 
 fun showThrowableAndThrow(t: Throwable): Nothing {
