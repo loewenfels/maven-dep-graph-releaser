@@ -120,7 +120,7 @@ object IntegrationSpec : Spek({
                     analyseAndCreateReleasePlan(
                         singleProjectIdAndVersions.id,
                         getTestDirectory("singleProject"),
-                        JenkinsReleasePlanCreator.Options("publishId", ".*:example")
+                        JenkinsReleasePlanCreator.Options("releaseId", ".*:example")
                     )
                 }.toThrow<IllegalArgumentException> {
                     message {
@@ -163,7 +163,7 @@ object IntegrationSpec : Spek({
                 val releasePlan = analyseAndCreateReleasePlan(
                     singleProjectIdAndVersions.id,
                     getTestDirectory("singleProject"),
-                    JenkinsReleasePlanCreator.Options("publishId", ".*notTheProject")
+                    JenkinsReleasePlanCreator.Options("releaseId", ".*notTheProject")
                 )
                 assertSingleProject(releasePlan, singleProjectIdAndVersions)
             }
@@ -174,7 +174,7 @@ object IntegrationSpec : Spek({
                 val releasePlan = analyseAndCreateReleasePlan(
                     exampleA.id,
                     getTestDirectory("managingVersions/inDependency"),
-                    JenkinsReleasePlanCreator.Options("publishId", "${exampleB.id.groupId}:${exampleB.id.artifactId}")
+                    JenkinsReleasePlanCreator.Options("releaseId", "${exampleB.id.groupId}:${exampleB.id.artifactId}")
                 )
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
 
@@ -191,7 +191,7 @@ object IntegrationSpec : Spek({
                 val releasePlan = analyseAndCreateReleasePlan(
                     exampleA.id,
                     getTestDirectory("transitive/implicit"),
-                    JenkinsReleasePlanCreator.Options("publishId", "${exampleB.id.groupId}:${exampleB.id.artifactId}")
+                    JenkinsReleasePlanCreator.Options("releaseId", "${exampleB.id.groupId}:${exampleB.id.artifactId}")
                 )
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB)
 
@@ -217,7 +217,7 @@ object IntegrationSpec : Spek({
                     exampleA.id,
                     getTestDirectory("transitive/implicit"),
                     JenkinsReleasePlanCreator.Options(
-                        "publishId",
+                        "releaseId",
                         "${exampleB.id.groupId}:(${exampleB.id.artifactId}|${exampleC.id.artifactId})"
                     )
                 )
@@ -246,7 +246,7 @@ object IntegrationSpec : Spek({
                 val releasePlan = analyseAndCreateReleasePlan(
                     singleProjectIdAndVersions.id,
                     getTestDirectory("singleProject"),
-                    JenkinsReleasePlanCreator.Options("publishId", Regex(".*notTheProject"), mapOf())
+                    JenkinsReleasePlanCreator.Options("releaseId", Regex(".*notTheProject"), mapOf())
                 )
                 assertSingleProject(releasePlan, singleProjectIdAndVersions)
                 assert(releasePlan.config).isEmpty()
@@ -258,7 +258,7 @@ object IntegrationSpec : Spek({
                     singleProjectIdAndVersions.id,
                     getTestDirectory("singleProject"),
                     JenkinsReleasePlanCreator.Options(
-                        "publishId",
+                        "releaseId",
                         Regex(".*notTheProject"),
                         mapOf(ConfigKey.REMOTE_JOB to "b", ConfigKey.REMOTE_REGEX to "d")
                     )
@@ -1115,7 +1115,7 @@ private fun analyseAndCreateReleasePlanWithPomResolverOldVersions(
 }
 
 private fun analyseAndCreateReleasePlan(projectToRelease: ProjectId, analyser: Analyser): ReleasePlan {
-    return analyseAndCreateReleasePlan(projectToRelease, analyser, JenkinsReleasePlanCreator.Options("publishId", "^$"))
+    return analyseAndCreateReleasePlan(projectToRelease, analyser, JenkinsReleasePlanCreator.Options("releaseId", "^$"))
 }
 
 private fun analyseAndCreateReleasePlan(

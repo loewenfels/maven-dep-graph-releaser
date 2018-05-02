@@ -11,7 +11,7 @@ import ch.loewenfels.depgraph.LevelIterator
  * where the key represents the dependency and the value the dependent.
  */
 data class ReleasePlan(
-    val publishId: String,
+    val releaseId: String,
     val state: ReleaseState,
     val rootProjectId: ProjectId,
     private val projects: Map<ProjectId, Project>,
@@ -27,7 +27,7 @@ data class ReleasePlan(
      */
     constructor(releasePlan: ReleasePlan, projects: Map<ProjectId, Project>) :
         this(
-            releasePlan.publishId,
+            releasePlan.releaseId,
             releasePlan.state,
             releasePlan.rootProjectId,
             projects,

@@ -27,7 +27,7 @@ fun deserialize(body: String): ReleasePlan {
     val config = deserializeConfig(releasePlanJson.config)
 
     return ReleasePlan(
-        releasePlanJson.publishId,
+        releasePlanJson.releaseId,
         state,
         rootProjectId,
         projects,
@@ -144,7 +144,7 @@ fun deserializeConfig(config: Array<Array<String>>): Map<ConfigKey, String> {
 
 
 external interface ReleasePlanJson {
-    var publishId: String
+    var releaseId: String
     var state: ReleaseState
     val id: GenericType<ProjectId>
     val projects: Array<ProjectJson>

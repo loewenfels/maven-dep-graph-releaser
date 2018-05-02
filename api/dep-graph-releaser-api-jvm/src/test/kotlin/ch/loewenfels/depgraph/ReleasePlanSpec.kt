@@ -49,7 +49,7 @@ object ReleasePlanSpec : Spek({
                 projectNotifierId to setOf()
             )
             val releasePlan = ReleasePlan(
-                "publishId",
+                "releaseId",
                 rootProjectId,
                 mapOf(
                     rootProjectId to rootProject,
@@ -94,7 +94,7 @@ object ReleasePlanSpec : Spek({
                 submodule2Id to setOf()
             )
             val releasePlan = ReleasePlan(
-                "publishId",
+                "releaseId",
                 multiModuleId,
                 mapOf(
                     multiModuleId to multiModule,
@@ -125,7 +125,7 @@ object ReleasePlanSpec : Spek({
                 dependentId to setOf()
             )
             val releasePlan = ReleasePlan(
-                "publishId",
+                "releaseId",
                 multiModuleId,
                 mapOf(
                     multiModuleId to multiModule,

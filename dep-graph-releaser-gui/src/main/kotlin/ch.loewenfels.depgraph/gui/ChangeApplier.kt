@@ -43,12 +43,12 @@ object ChangeApplier {
 
     private fun replacePublishIdIfChanged(releasePlanJson: ReleasePlanJson): Boolean {
         var changed = false
-        val input = getTextField(Gui.PUBLISH_ID_HTML_ID)
-        if (releasePlanJson.publishId != input.value) {
+        val input = getTextField(Gui.RELEASE_ID_HTML_ID)
+        if (releasePlanJson.releaseId != input.value) {
             check(input.value.isNotBlank()) {
                 "An empty or blank PublishId is not allowed"
             }
-            releasePlanJson.publishId = input.value
+            releasePlanJson.releaseId = input.value
             changed = true
         }
         return changed

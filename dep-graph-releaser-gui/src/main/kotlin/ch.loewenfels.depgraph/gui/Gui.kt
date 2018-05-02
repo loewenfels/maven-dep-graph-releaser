@@ -57,7 +57,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         //TODO add description for each property
         elementById("config").append {
             div {
-                fieldWithLabel(PUBLISH_ID_HTML_ID, "PublishId", releasePlan.publishId)
+                fieldWithLabel(RELEASE_ID_HTML_ID, "ReleaseId", releasePlan.releaseId)
 
                 val config = releasePlan.config
                 listOf(
@@ -344,7 +344,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
     companion object {
         private const val PIPELINE_HTML_ID = "pipeline"
-        const val PUBLISH_ID_HTML_ID = "publishId"
+        const val RELEASE_ID_HTML_ID = "releaseId"
         const val HIDE_MESSAGES_HTML_ID = "hideMessages"
 
         const val DEACTIVATE_SUFFIX = ":deactivate"

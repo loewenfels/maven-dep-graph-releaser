@@ -61,7 +61,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
 
         override fun toJsonNonNull(writer: JsonWriter, value: ReleasePlan) {
             writer.writeObject {
-                writeNameAndValue(PUBLISH_ID, value.publishId, stringAdapter)
+                writeNameAndValue(RELEASE_ID, value.releaseId, stringAdapter)
                 writeNameAndValue(STATE, value.state, stateAdapter)
                 writeNameAndValue(ID, value.rootProjectId, projectIdAdapter)
                 writeNameAndValue(PROJECTS, value.getProjects(), projectsAdapter)
@@ -77,7 +77,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
 
         override fun fromJson(reader: JsonReader): ReleasePlan? {
             return reader.readObject {
-                val publishId = checkNextNameAndGetValue(PUBLISH_ID, stringAdapter)
+                val releaseId = checkNextNameAndGetValue(RELEASE_ID, stringAdapter)
                 val state: ReleaseState = checkNextNameAndGetValue(STATE, stateAdapter)
                 val projectId = checkNextNameAndGetValue(ID, projectIdAdapter)
                 val projects = checkNextNameAndGetValue(PROJECTS, projectsAdapter)
@@ -89,7 +89,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
                 val config = stringConfig.associate { ConfigKey.fromString(it.first) to it.second }
 
                 ReleasePlan(
-                    publishId,
+                    releaseId,
                     state,
                     projectId,
                     projects.associateBy { it.id },
@@ -106,7 +106,7 @@ object ReleasePlanAdapterFactory : JsonAdapter.Factory {
             checkNextNameAndGetValue(ReleasePlan::class.java.simpleName, expectedName, adapter)
     }
 
-    const val PUBLISH_ID = "publishId"
+    const val RELEASE_ID = "releaseId"
     const val STATE = "state"
     const val ID = "id"
     const val PROJECTS = "projects"
