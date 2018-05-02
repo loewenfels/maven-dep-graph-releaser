@@ -30,7 +30,7 @@ class JenkinsJobExecutor(
                         showInfo("Queued $jobName successfully, wait for execution...", 2000)
                     }
                     jobQueuedHook(queuedItemUrl).then {
-                        extractBuildNumber(crumbWithId, queuedItemUrl)
+                        extractBuildNumber(crumbWithId, "${queuedItemUrl}api/xml")
                     }.then { it }
                 }.then { buildNumber: Int ->
                     if (verbose) {
