@@ -42,13 +42,30 @@ The pipeline looks similar to the following (needless to say with your projects 
 
 ![pipeline](https://loewenfels.github.io/dep-graph-releaser/pipeline.png "generated pipeline")
 
-Every box is a maven project where multi-module project might contain inner boxes which are their submodules.
+Every box is a maven project where multi-module projects contain inner boxes which represent their submodules.
 Each toggle signifies a command which will be executed if you click on _Start Release_.
 For instance, project dgr-3 has a command _JenkinsUpdateDependency_ with _dgr-4_ as dependency. 
 This command will update the pom.xml of dgr-3 and update the version with the newest version of dgr-4.
 The submodules dgr-3-b and dgr-3-c have also a dependency to dgr-4. 
 As you can see, the pipeline might give you already some hints what you can improve. 
 In the example it would probably make sense to add dgr-4 to the `dependencyManagement` section of dgr-1 instead of managing the version in dgr-3-b and dgr-3-c.
+
+The pipeline supports re-triggering of failed jobs. 
+For instance, in the following example, two jobs failed, dgr-5 and dgr-2.
+Nonetheless, it continued with executing commands of dgr-1 which are not affected by these failures.
+Notice that the vertical bar lines are a visual help in case you have to release manually (for whatever reason). 
+In such a case we recommend that use the pipeline as release plan and release one project after another where you can release projects in the same column in parallel.
+The pipeline as such is way more efficient and triggers commands as soon as a dependency is released.
+As an example, updating the dependency _dgr-3-b_ in the project drg-1 is done as soon as dgr-3 is released and does not wait until dgr-2 is released.
+
+As side notice, we used the _Explore Release Order_ button to generate this view and played around with `window['dep-graph-releaser-gui'].failAfter` which lets you fail a command by will :wink: in the simulation.
+  
+![pipeline with failure](https://loewenfels.github.io/dep-graph-releaser/pipeline_failure.png "pipeline after failed release")
+
+Once you have released everything then you will have a nice looking green pipeline:
+
+![pipeline with failure](https://loewenfels.github.io/dep-graph-releaser/pipeline_success.png "pipeline after failed release")
+
 
 ## Release
 
