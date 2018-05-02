@@ -23,7 +23,9 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
     private val toggler = Toggler(releasePlan, menu)
 
     fun load() {
-        document.title = "Release " + releasePlan.rootProjectId.identifier
+        val rootProjectId = releasePlan.rootProjectId
+        val htmlTitle = (rootProjectId as? MavenProjectId)?.artifactId ?: rootProjectId.identifier
+        document.title = "Release $htmlTitle"
         setUpMessages(releasePlan.warnings, "warnings", { showWarning(it) })
         setUpMessages(releasePlan.infos, "infos", { showInfo(it) })
         setUpConfig(releasePlan)
