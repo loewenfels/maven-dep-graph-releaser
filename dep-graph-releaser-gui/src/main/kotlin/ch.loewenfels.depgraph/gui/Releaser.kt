@@ -237,7 +237,8 @@ class Releaser(
             "&groupId=${dependencyMavenProjectId.groupId}" +
             "&artifactId=${dependencyMavenProjectId.artifactId}" +
             "&newVersion=${dependency.releaseVersion}" +
-            "&commitPrefix=${paramObject.getConfig(ConfigKey.COMMIT_PREFIX)}"
+            "&commitPrefix=${paramObject.getConfig(ConfigKey.COMMIT_PREFIX)}" +
+            "&releaseId=${paramObject.releasePlan.releaseId}"
     }
 
     private fun triggerRelease(paramObject: ParamObject, command: M2ReleaseCommand, index: Int): Promise<CommandState> {
