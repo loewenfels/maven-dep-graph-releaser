@@ -6,6 +6,7 @@ enum class ConfigKey(private val key: kotlin.String) {
     REMOTE_REGEX("remoteRegex"),
     REMOTE_JOB("remoteJob"),
     REGEX_PARAMS("regexParams"),
+    JOB_MAPPING("jobMapping"),
     ;
 
     override fun toString(): String = key
@@ -17,6 +18,6 @@ enum class ConfigKey(private val key: kotlin.String) {
             return values().first { it.asString() == key  }
         }
 
-        fun all() = listOf(COMMIT_PREFIX, UPDATE_DEPENDENCY_JOB, REMOTE_REGEX, REMOTE_JOB, REGEX_PARAMS)
+        fun all() = listOf(COMMIT_PREFIX, UPDATE_DEPENDENCY_JOB, REMOTE_REGEX, REMOTE_JOB, REGEX_PARAMS, JOB_MAPPING)
     }
 }
