@@ -64,7 +64,7 @@ As side notice, we used the _Explore Release Order_ button to generate this view
 
 Once you have released everything then you will have a nice looking green pipeline:
 
-![pipeline with failure](https://loewenfels.github.io/dep-graph-releaser/pipeline_success.png "pipeline after failed release")
+![pipeline with failure](https://loewenfels.github.io/dep-graph-releaser/pipeline_success.png "pipeline after successful release")
 
 
 ## Release
@@ -107,11 +107,17 @@ The following guide shows how you can integrate dep-graph-releaser with Jenkins.
       # Modified version to allow dep-graph-releaser to execute its javascripts
       JENKINS_JAVA_OPTIONS="-Djava.awt.headless=true -server -Xmx2g -Dhudson.model.DirectoryBrowserSupport.CSP=\"sandbox allow-same-origin allow-scripts; script-src 'self'\""
       ```
-5. Create a job which runs the Main with command json
+5. Set up CORS, we use the [Cors Filter Plugin](https://wiki.jenkins.io/display/JENKINS/Cors+Filter+Plugin) but you can do it differently. The important part is, that Jenkins allows:
+   - the custom header: `Jenkins-Crumb` so that we can [issue crumbs](https://wiki.jenkins.io/display/JENKINS/Remote+access+API#RemoteaccessAPI-RemoteAPIandsecurity).
+   - exposes `Location` header so that we get the queued item id when we trigger a build.       
+   In case you are using the cors filter plugin, then it looks as follows (where you need to replace jenkinsUrl with your URL):  
+   ![cors filter plugin settings](https://loewenfels.github.io/dep-graph-releaser/cors_filter_plugin_settings.png)
+   
+6. Create a job which runs MainKt with command `json`
     - an example will follow using maven. 
       In short, you can use the [jenkins.pom](https://github.com/loewenfels/dep-graph-releaser/tree/master/dep-graph-releaser-runner/src/jenkins.pom)
       if you use mvn (to retrieve dependencies).
-    - if you want to run Main directly then you can use the [zip](https://dl.bintray.com/loewenfels/oss/ch/loewenfels/dep-graph-releaser-runner/) (chose version and then *.zip)
+    - if you want to run MainKt directly then you can use the [zip](https://dl.bintray.com/loewenfels/oss/ch/loewenfels/dep-graph-releaser-runner/) (chose version and then *.zip)
       containing all necessary libraries as well as a `.bat`
 
 <a name="jenkins-release"></a>  
