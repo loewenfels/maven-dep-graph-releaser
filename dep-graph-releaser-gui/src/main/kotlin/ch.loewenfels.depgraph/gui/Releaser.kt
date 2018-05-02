@@ -248,10 +248,7 @@ class Releaser(
     private fun determineJobUrlAndParams(paramObject: ParamObject, command: M2ReleaseCommand): Pair<String, String> {
         val mavenProjectId = paramObject.project.id as MavenProjectId
         val regex = Regex(paramObject.getConfig(ConfigKey.REMOTE_REGEX))
-
-        val regexParameters = paramObject.getConfig(ConfigKey.REGEX_PARAMS)
-        val regexParametersList = parseRegexParametersList(regexParameters)
-        val relevantParams = regexParametersList.asSequence()
+        val relevantParams = paramObject.regexParametersList.asSequence()
             .filter { (regex, _) -> regex.matches(mavenProjectId.identifier) }
             .map { it.second }
 
@@ -265,37 +262,6 @@ class Releaser(
             "$jenkinsUrl/job/$mavenProjectId" to
                 "$params&${relevantParams.joinToString("&")}}"
         }
-    }
-
-    private fun parseRegexParametersList(regexParameters: String): List<Pair<Regex, String>> {
-        return if (regexParameters.isNotEmpty()) {
-            regexParameters.splitToSequence("$")
-                .map { pair ->
-                    val index = checkRegexNotEmpty(pair, regexParameters)
-                    val parameters = pair.substring(index + 1)
-                    checkParamNameNotEmpty(parameters, regexParameters)
-                    Regex(pair.substring(0, index)) to parameters
-                }
-                .toList()
-        } else {
-            emptyList()
-        }
-    }
-
-    private fun checkRegexNotEmpty(pair: String, regexParameters: String): Int {
-        val index = pair.indexOf('#')
-        check(index > 0) {
-            "regex requires at least one character.\nParameters: $regexParameters"
-        }
-        return index
-    }
-
-    private fun checkParamNameNotEmpty(pair: String, parameters: String): Int {
-        val index = pair.indexOf('=')
-        check(index > 0) {
-            "Parameter name requires at least one character.\nParameters: $parameters"
-        }
-        return index
     }
 
     private fun triggerJob(
@@ -358,6 +324,8 @@ class Releaser(
         val locks: HashMap<ProjectId, Promise<*>>,
         val projectResults: HashMap<ProjectId, CommandState>
     ) {
+        val regexParametersList: List<Pair<Regex, String>>
+
         constructor(paramObject: ParamObject, newProjectId: ProjectId)
             : this(paramObject, paramObject.releasePlan.getProject(newProjectId))
 
@@ -369,6 +337,38 @@ class Releaser(
             paramObject.locks,
             paramObject.projectResults
         )
+
+        init {
+            val regexParameters = getConfig(ConfigKey.REGEX_PARAMS)
+            regexParametersList = if (regexParameters.isNotEmpty()) {
+                regexParameters.splitToSequence("$")
+                    .map { pair ->
+                        val index = checkRegexNotEmpty(pair, regexParameters)
+                        val parameters = pair.substring(index + 1)
+                        checkParamNameNotEmpty(parameters, regexParameters)
+                        Regex(pair.substring(0, index)) to parameters
+                    }
+                    .toList()
+            } else {
+                emptyList()
+            }
+        }
+
+        private fun checkRegexNotEmpty(pair: String, regexParameters: String): Int {
+            val index = pair.indexOf('#')
+            check(index > 0) {
+                "regex requires at least one character.\nParameters: $regexParameters"
+            }
+            return index
+        }
+
+        private fun checkParamNameNotEmpty(pair: String, parameters: String): Int {
+            val index = pair.indexOf('=')
+            check(index > 0) {
+                "Parameter name requires at least one character.\nParameters: $parameters"
+            }
+            return index
+        }
 
         fun getConfig(configKey: ConfigKey): String {
             return releasePlan.config[configKey] ?: throw IllegalArgumentException("unknown config key: $configKey")
