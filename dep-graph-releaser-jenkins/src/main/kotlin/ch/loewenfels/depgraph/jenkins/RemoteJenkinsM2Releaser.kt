@@ -93,7 +93,7 @@ class RemoteJenkinsM2Releaser internal constructor(
         check(result == "SUCCESS") {
             "Job status was not SUCCESS but $result" +
                 "\nJob: $jobName" +
-                "Visit ${jobUrl(jobName)}/$buildNumber for more details"
+                "\nVisit ${jobUrl(jobName)}/$buildNumber for more details"
 
         }
     }
