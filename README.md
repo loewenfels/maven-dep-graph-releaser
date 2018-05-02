@@ -97,14 +97,18 @@ Explanation will follow
 # Known Limitations
 
 The project does currently not support (pull requests are more than welcome):
-- recovery from ongoing processes. If you navigate away from the pipeline in the middle of the process (or you browser crashes), then the state is likely to be wrong if you return to the page.
+- recovery from ongoing processes. If you navigate away from the pipeline in the middle of the process (or you browser crashes),
+  then the state is likely to be wrong if you return to the page.
 - exclusions are not yet taken into account. As consequence, dep-graph-releaser might detect cycles where there are not any.
 - version managed in a property which itself refers to a property: `<properties><a>${b}</a><b>1.0.0</b></properties>`.
 - version which is partly static and partly a property: `<version>1.0.0-${BUILD_NUMBER}</version>`.
 - version managed in a property which is defined elsewhere and there it is not used in a dependency.
 - dependencies only defined in profiles (not yet tested, might be that it already works).
 - simple regex replacement is used to update dependencies: if you have files containing malformed xml in comments, then updating dependencies might be erroneous.
-- disabling a submodule does not work with the `-disableRegex` option, you have to disable the multi-module instead                
+- disabling a submodule does not work with the `-disableRegex` option, you have to disable the multi-module instead
+- remote releaser extracts build number from HTML in case the job is queued before we get the chance to retrieve the queued item id 
+  -> in such a case the newest run is considered to be the triggered one. 
+  This is not necessarily the case. We would have to check parameters to be sure but we omit that at the moment.                
 
 # License
 Dependent Graph Releaser is published under [Apache 2.0](http://opensource.org/licenses/Apache2.0). 

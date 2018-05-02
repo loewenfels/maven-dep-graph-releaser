@@ -192,6 +192,7 @@ class JenkinsJobExecutor(
 
     class PollException(message: String, val body: String) : RuntimeException(message)
 
+    //TODO move to api, is duplicated in RemoteJenkinsM2Releaser
     companion object {
         private val numberRegex = Regex("<number>([0-9]+)</number>")
         private val resultRegex = Regex("<result>([A-Z]+)</result>")

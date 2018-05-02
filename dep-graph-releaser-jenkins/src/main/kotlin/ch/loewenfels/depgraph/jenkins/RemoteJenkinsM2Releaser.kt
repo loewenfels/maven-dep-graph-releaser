@@ -19,8 +19,10 @@ class RemoteJenkinsM2Releaser internal constructor(
     private val jenkinsUsername: String,
     private val jenkinsPassword: String,
     private val maxTriggerTries: Int,
+    private val pollExecutionEverySecond: Int,
+    private val maxWaitForExecutionInSeconds: Int,
+    private val pollReleaseEverySecond: Int,
     private val maxReleaseTimeInSeconds: Int,
-    private val pollEverySecond: Int,
     private val parameters: Map<String, String>
 ) {
 
@@ -29,8 +31,10 @@ class RemoteJenkinsM2Releaser internal constructor(
         jenkinsUsername: String,
         jenkinsPassword: String,
         maxTriggerTries: Int,
+        pollExecutionEverySecond: Int,
+        maxWaitForExecutionInSeconds: Int,
+        pollReleaseEverySecond: Int,
         maxReleaseTimeInSeconds: Int,
-        pollEverySecond: Int,
         parameters: Map<String, String>
     ) : this(
         { OkHttpClient() },
@@ -38,8 +42,10 @@ class RemoteJenkinsM2Releaser internal constructor(
         jenkinsUsername,
         jenkinsPassword,
         maxTriggerTries,
+        pollExecutionEverySecond,
+        maxWaitForExecutionInSeconds,
+        pollReleaseEverySecond,
         maxReleaseTimeInSeconds,
-        pollEverySecond,
         parameters
     )
 
@@ -62,11 +68,17 @@ class RemoteJenkinsM2Releaser internal constructor(
         require(maxTriggerTries > 0) {
             "maxTriggerTries has to be greater than 0, given: $maxReleaseTimeInSeconds"
         }
+        require(pollExecutionEverySecond > 0) {
+            "pollExecutionEverySecond has to be greater than 0, given: $pollExecutionEverySecond"
+        }
+        require(maxWaitForExecutionInSeconds > 0) {
+            "maxWaitForExecutionInSeconds has to be greater than 0, given: $maxWaitForExecutionInSeconds"
+        }
+        require(pollReleaseEverySecond > 0) {
+            "pollReleaseEverySecond has to be greater than 0, given: $pollReleaseEverySecond"
+        }
         require(maxReleaseTimeInSeconds > 0) {
             "maxReleaseTimeInSeconds has to be greater than 0, given: $maxReleaseTimeInSeconds"
-        }
-        require(pollEverySecond > 0) {
-            "pollEverySecond has to be greater than 0, given: $pollEverySecond"
         }
     }
 
@@ -117,9 +129,7 @@ class RemoteJenkinsM2Releaser internal constructor(
             }
         } while (!response.isSuccessful)
 
-        // We somehow have to get the build number.
-        // Unfortunately it is not returned by jenkins that's why we need to extract it from the resulting HTML
-        return extractBuildNumber(response, jobName)
+        return extractBuildNumber(httpClient, jobName, releaseVersion, nextDevVersion)
     }
 
     private inline fun checkMaximumTriesNotYetReached(count: Int, jobName: String, getResponse: () -> Response) {
@@ -147,7 +157,7 @@ class RemoteJenkinsM2Releaser internal constructor(
             return URL(urlSpec)
         } catch (e: MalformedURLException) {
             throw IllegalArgumentException(
-                "Cannot create a POST-URL. Most probably there is an error in the given jenkinsBaseUrl." +
+                "Cannot create a URL. Most probably there is an error in the given jenkinsBaseUrl." +
                     "\nUrl: $urlSpec", e
             )
         }
@@ -189,17 +199,89 @@ class RemoteJenkinsM2Releaser internal constructor(
         append("}")
     }
 
-    private fun extractBuildNumber(response: Response, jobName: String): Int {
+    private fun extractBuildNumber(
+        httpClient: OkHttpClient,
+        jobName: String,
+        releaseVersion: String,
+        nextDevVersion: String
+    ): Int {
+        // We somehow have to get the build number. Unfortunately it is not returned by M2Plugin from the POST request
+        // (also not in header) that's why we first check if there is a queued item matching our versions
+        // if so we can extract the build number as soon as the job is no longer queued but executed
+        // otherwise (execution is already running; no queued item), we need to extract the build number
+        // from the resulting HTML
+
+        val content = fetch(jobName, "/api/xml", httpClient, "job-overview-api-xml response")
+        val queueItemRegex = Regex(
+            "<queueItem>[\\S\\s]*?" +
+                "<id>([0-9]+)</id>[\\S\\s]*?" +
+                "<params>[\\S\\s]*?" +
+                "MVN_RELEASE_VERSION=$releaseVersion MVN_DEV_VERSION=$nextDevVersion[\\S\\s]*?" +
+                "</queueItem>"
+        )
+        val matchResult = queueItemRegex.find(content)
+        return if (matchResult != null) {
+            val queuedItemId = matchResult.groupValues[1].toInt()
+            logger.info(
+                "Going to extract the build number from the queued item $queuedItemId" +
+                    "\nVisit ${getQueueItemUrl(queuedItemId)} for more details."
+            )
+            extractBuildNumberFromQueuedItem(httpClient, queuedItemId, jobName)
+        } else {
+            logger.info("Going to extract the build number from HTML, the most recent M2 Release build is considered")
+            extractBuildNumberFromHtml(httpClient, jobName)
+        }
+    }
+
+    private fun getQueueItemUrl(queuedItemId: Int): String {
+        return "$jenkinsBaseUrl/queue/item/$queuedItemId/api/xml?xpath=//executable/number"
+    }
+
+    private fun fetch(jobName: String, suffix: String, httpClient: OkHttpClient, responseName: String): String {
+        val jobOverviewXmlUrl = createUrl("${jobUrl(jobName)}$suffix")
+        val request = Request.Builder().url(jobOverviewXmlUrl).build()
+        val response = httpClient.newCall(request).execute()
+        check(response.isSuccessful) {
+            "Cannot fetch, $responseName was not OK." +
+                "\nJob: $jobName" +
+                "\nResponse: $response"
+        }
+        return checkBodyNotNull(response, responseName, jobName)
+    }
+
+    private fun checkBodyNotNull(response: Response, responseName: String, jobName: String): String {
         val body = response.body()
         check(body != null) {
-            "Body of the response was null, cannot extract the build number." +
+            "Body of the $responseName was null, cannot extract the build number." +
                 "\nJob: $jobName" +
                 "\nResponse: $response"
         }
         val content = body!!.string()
         body.close()
+        return content
+    }
+
+    private fun extractBuildNumberFromQueuedItem(httpClient: OkHttpClient, queuedItemId: Int, jobName: String): Int {
+        val queueItemUrl = createUrl(getQueueItemUrl(queuedItemId))
+        val buildNumber = pollAndExtract(
+            httpClient,
+            queueItemUrl,
+            jobName,
+            "queued",
+            numberRegex,
+            pollExecutionEverySecond,
+            maxWaitForExecutionInSeconds
+        )
+        return buildNumber.toInt()
+    }
+
+
+    private fun extractBuildNumberFromHtml(httpClient: OkHttpClient, jobName: String): Int {
+        val content = fetch(jobName, "", httpClient, "job-overview-html response")
         val matchResult = builderNumberRegex.find(content)
         if (matchResult != null) {
+            //TODO we could additionally verify that it is the correct build by calling:
+            // https://jenkinsUrl/job/JOB_NAME/BUILD_NUMBER/api/xml and check that parameter MVN_RELEASE_VERSION and MVN_DEV_VERSION are correct
             return matchResult.groupValues[1].toInt()
         }
         throw IllegalStateException(
@@ -217,44 +299,66 @@ class RemoteJenkinsM2Releaser internal constructor(
 
     private fun pollForCompletion(httpClient: OkHttpClient, jobName: String, buildNumber: Int): String {
         val pollUrl = createUrl("${jobUrl(jobName)}/$buildNumber/api/xml?xpath=/*/result")
+        return pollAndExtract(
+            httpClient,
+            pollUrl,
+            jobName,
+            "completed",
+            resultRegex,
+            pollReleaseEverySecond,
+            maxReleaseTimeInSeconds
+        )
+    }
+
+    private fun pollAndExtract(
+        httpClient: OkHttpClient,
+        pollUrl: URL,
+        jobName: String,
+        waitingFor: String,
+        regex: Regex,
+        pollEverySecond: Int,
+        maxTimeInSeconds: Int
+    ): String {
         val request = Request.Builder().url(pollUrl).build()
         var result: String?
-        val maxCount = calculateMaxCount()
-        val minuteInterval = calculateMinuteInterval()
+        val maxCount = calculateMaxCount(pollEverySecond, maxTimeInSeconds)
+        val minuteInterval = calculateMinuteInterval(pollEverySecond)
         var count = 0
         do {
-            checkTimeoutNotYetReached(count, maxCount, jobName)
+            checkTimeoutNotYetReached(count, maxCount, jobName, waitingFor)
             Thread.sleep(pollEverySecond * 1000L)
             val response = httpClient.newCall(request).execute()
-            result = extractResult(response, response.body())
+            result = extractResult(response, regex)
             ++count
             if (count % minuteInterval == 0) {
-                logger.info("$jobName not yet complete after at least ${count * pollEverySecond} seconds, we are still polling")
+                logger.info("$jobName not yet $waitingFor after at least ${count * pollEverySecond} seconds, we are still polling")
             }
         } while (result == null)
         return result
     }
 
-    private fun calculateMaxCount(): Int {
-        val max = maxReleaseTimeInSeconds / pollEverySecond
-        return if (maxReleaseTimeInSeconds % pollEverySecond == 0) max else max + 1
+
+    private fun calculateMaxCount(pollEverySecond: Int, maxTimeInSeconds: Int): Int {
+        val max = maxTimeInSeconds / pollEverySecond
+        return if (maxTimeInSeconds % pollEverySecond == 0) max else max + 1
     }
 
-    private fun calculateMinuteInterval(): Int {
+    private fun calculateMinuteInterval(pollEverySecond: Int): Int {
         val tmp = 60 / pollEverySecond
         return if (tmp != 0) tmp else 1
     }
 
-    private fun checkTimeoutNotYetReached(count: Int, maxCount: Int, jobName: String) {
+    private fun checkTimeoutNotYetReached(count: Int, maxCount: Int, jobName: String, waitingFor: String) {
         check(count < maxCount) {
-            "Waited at least $maxReleaseTimeInSeconds seconds for the release to complete, aborting now." +
+            "Waited at least $maxReleaseTimeInSeconds seconds for the release, still not $waitingFor, aborting now." +
                 "\nJob: $jobName"
         }
     }
 
-    private fun extractResult(response: Response, body: ResponseBody?): String? {
+    private fun extractResult(response: Response, regex: Regex): String? {
+        val body = response.body()
         if (response.isSuccessful && body != null) {
-            val matchResult = resultRegex.matchEntire(body.string())
+            val matchResult = regex.matchEntire(body.string())
             body.close()
             if (matchResult != null) {
                 return matchResult.groupValues[1]
@@ -291,6 +395,7 @@ class RemoteJenkinsM2Releaser internal constructor(
                 "<img[^>]+src=\"[^\"]*/plugin/m2release[^>]+>[\\S\\s]*?" +
                 "</td>"
         )
+        private val numberRegex = Regex("<number>([0-9]+)</number>")
         private val resultRegex = Regex("<result>([A-Z]+)</result>")
         private val logger = Logger.getLogger(RemoteJenkinsM2Releaser::class.java.simpleName)
     }

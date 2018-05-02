@@ -106,8 +106,10 @@ object Orchestrator {
         jenkinsUsername: String,
         jenkinsPassword: String,
         maxTriggerTries: Int,
+        pollExecutionEverySecond: Int,
+        maxWaitForExecutionInSeconds: Int,
+        pollReleaseEverySecond: Int,
         maxReleaseTimeInSeconds: Int,
-        pollEverySecond: Int,
         parameters: Map<String, String>,
         jobName: String,
         releaseVersion: String,
@@ -118,8 +120,10 @@ object Orchestrator {
             jenkinsUsername,
             jenkinsPassword,
             maxTriggerTries,
+            pollExecutionEverySecond,
+            maxWaitForExecutionInSeconds,
+            pollReleaseEverySecond,
             maxReleaseTimeInSeconds,
-            pollEverySecond,
             parameters
         )
         logger.info({
