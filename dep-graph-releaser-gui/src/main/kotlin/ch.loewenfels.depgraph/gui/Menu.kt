@@ -39,7 +39,8 @@ class Menu {
     }
 
     fun disableButtonsDueToNoPublishUrl() {
-        val titleButtons = "You need to specify publishJob if you want to use other functionality than Download."
+        val titleButtons =
+            "You need to specify publishJob if you want to use other functionality than Download and Explore Release Order."
         disableButtonsDueToNoAuth(
             titleButtons, titleButtons +
                 "\nAn example: ${window.location}&publishJob=jobUrl" +
@@ -53,7 +54,7 @@ class Menu {
         userButton.addClass(DEACTIVATED)
         userName.innerText = "Anonymous"
         userIcon.innerText = "error"
-        listOf(saveButton, dryRunButton, releaseButton, exploreButton).forEach { it.disable(titleButtons) }
+        listOf(saveButton, dryRunButton, releaseButton).forEach { it.disable(titleButtons) }
     }
 
     fun setVerifiedUser(username: String, name: String) {
@@ -64,7 +65,12 @@ class Menu {
     }
 
 
-    internal fun initDependencies(releasePlan: ReleasePlan, downloader: Downloader, dependencies: Dependencies?) {
+    internal fun initDependencies(
+        releasePlan: ReleasePlan,
+        downloader: Downloader,
+        dependencies: Dependencies?,
+        modifiableJson: ModifiableJson
+    ) {
         if (dependencies != null) {
             publisher = dependencies.publisher
         }
@@ -80,7 +86,7 @@ class Menu {
         }
 
         initSaveAndDownloadButton(downloader, dependencies)
-        initRunButtons(releasePlan, dependencies)
+        initRunButtons(releasePlan, dependencies, modifiableJson)
 
         when (releasePlan.state) {
             ReleaseState.Ready -> Unit /* nothing to do */
@@ -107,7 +113,11 @@ class Menu {
         }
     }
 
-    private fun initRunButtons(releasePlan: ReleasePlan, dependencies: Dependencies?) {
+    private fun initRunButtons(
+        releasePlan: ReleasePlan,
+        dependencies: Dependencies?,
+        modifiableJson: ModifiableJson
+    ) {
         if (dependencies != null) {
 
             dryRunButton.addClickEventListenerIfNotDeactivatedNorDisabled {
@@ -118,44 +128,57 @@ class Menu {
                 simulation = false
                 triggerRelease(releasePlan, dependencies, dependencies.jenkinsJobExecutor)
             }
+        }
 
-            activateExploreButton()
-            exploreButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                simulation = true
-                triggerRelease(releasePlan, dependencies, dependencies.simulatingJobExecutor)
+        activateExploreButton()
+        val jenkinsUrl = "https://github.com/loewenfels/"
+        val nonNullDependencies = dependencies ?: App.createDependencies(
+            jenkinsUrl,
+            "${jenkinsUrl}dgr-publisher/",
+            UsernameToken("test", "test"),
+            modifiableJson,
+            this
+        )!!
+
+        exploreButton.addClickEventListenerIfNotDeactivatedNorDisabled {
+            simulation = true
+            publisher = nonNullDependencies.publisher
+            triggerRelease(releasePlan, nonNullDependencies, nonNullDependencies.simulatingJobExecutor)
+                .finally {
+                    //reset to null in case it was not defined previously
+                    publisher = dependencies?.publisher
+                }
+        }
+        Menu.registerForReleaseStartEvent {
+            listOf(dryRunButton, releaseButton, exploreButton).forEach {
+                it.addClass(DISABLED)
+                it.title = Gui.DISABLED_RELEASE_IN_PROGRESS
             }
-
-            Menu.registerForReleaseStartEvent {
+        }
+        Menu.registerForReleaseEndEvent { success ->
+            if (success) {
                 listOf(dryRunButton, releaseButton, exploreButton).forEach {
-                    it.addClass(DISABLED)
-                    it.title = Gui.DISABLED_RELEASE_IN_PROGRESS
+                    it.title = Gui.DISABLED_RELEASE_SUCCESS
                 }
-            }
-            Menu.registerForReleaseEndEvent { success ->
-                if (success) {
-                    listOf(dryRunButton, releaseButton, exploreButton).forEach {
-                        it.title = Gui.DISABLED_RELEASE_SUCCESS
-                    }
-                    showSuccess(
-                        "Release ended successfully :) you can now close the window." +
-                            "\nUse a new pipeline for a new release." +
-                            "\nPlease report a bug in case some job failed without us noticing it."
-                    )
+                showSuccess(
+                    "Release ended successfully :) you can now close the window." +
+                        "\nUse a new pipeline for a new release." +
+                        "\nPlease report a bug in case some job failed without us noticing it."
+                )
+            } else {
+                showError(
+                    "Release ended with failure :(" +
+                        "\nAt least one job failed. Check errors, fix them and then you can re-trigger the failed jobs, the pipeline respectively, by clicking on the release button." +
+                        "\n(You might have to delete git tags and remove artifacts if they have already been created)."
+                )
+                val (button, buttonText) = if (simulation) {
+                    exploreButton to elementById("explore.text")
                 } else {
-                    showError(
-                        "Release ended with failure :(" +
-                            "\nAt least one job failed. Check errors, fix them and then you can re-trigger the failed jobs, the pipeline respectively, by clicking on the release button." +
-                            "\n(You might have to delete git tags and remove artifacts if they have already been created)."
-                    )
-                    val (button, buttonText) = if (simulation) {
-                        exploreButton to elementById("explore.text")
-                    } else {
-                        releaseButton to elementById("release.text")
-                    }
-                    buttonText.innerText = "Re-trigger failed Jobs"
-                    button.title = "Continue with the release process by re-triggering previously failed jobs."
-                    button.removeClass(DISABLED)
+                    releaseButton to elementById("release.text")
                 }
+                buttonText.innerText = "Re-trigger failed Jobs"
+                button.title = "Continue with the release process by re-triggering previously failed jobs."
+                button.removeClass(DISABLED)
             }
         }
     }

@@ -66,9 +66,11 @@ class App {
                 }.then { body: String ->
                     switchLoader("loaderApiToken", "loaderJson")
                     val modifiableJson = ModifiableJson(body)
-                    val dependencies = createDependencies(usernameToken, modifiableJson)
+                    val dependencies = createDependencies(
+                        jenkinsUrl, publishJobUrl, usernameToken, modifiableJson, menu
+                    )
                     val releasePlan = deserialize(body)
-                    menu.initDependencies(releasePlan, Downloader(modifiableJson), dependencies)
+                    menu.initDependencies(releasePlan, Downloader(modifiableJson), dependencies, modifiableJson)
                     Gui(releasePlan, menu).load()
                     switchLoaderJsonWithPipeline()
                 }.catch {
@@ -77,17 +79,6 @@ class App {
         }
     }
 
-    private fun createDependencies(usernameToken: UsernameToken?, modifiableJson: ModifiableJson): Menu.Dependencies? {
-        return if (publishJobUrl != null && jenkinsUrl != null && usernameToken != null) {
-            val publisher = Publisher(publishJobUrl, modifiableJson)
-            val releaser = Releaser(jenkinsUrl, modifiableJson, menu)
-            val simulatingJobExecutor = SimulatingJobExecutor()
-            val jenkinsJobExecutor = JenkinsJobExecutor(jenkinsUrl, usernameToken)
-            Menu.Dependencies(publisher, releaser, jenkinsJobExecutor, simulatingJobExecutor)
-        } else {
-            null
-        }
-    }
 
     private fun retrieveUserAndApiToken(): Promise<UsernameToken?> {
         return if (jenkinsUrl == null) {
@@ -143,5 +134,24 @@ class App {
         private val fullNameRegex = Regex("<input[^>]+name=\"_\\.fullName\"[^>]+value=\"([^\"]+)\"")
         private val apiTokenRegex = Regex("<input[^>]+name=\"_\\.apiToken\"[^>]+value=\"([^\"]+)\"")
         private val usernameRegex = Regex("<a[^>]+href=\"[^\"]*/user/([^\"]+)\"")
+
+
+        internal fun createDependencies(
+            jenkinsUrl: String?,
+            publishJobUrl: String?,
+            usernameToken: UsernameToken?,
+            modifiableJson: ModifiableJson,
+            menu: Menu
+        ): Menu.Dependencies? {
+            return if (publishJobUrl != null && jenkinsUrl != null && usernameToken != null) {
+                val publisher = Publisher(publishJobUrl, modifiableJson)
+                val releaser = Releaser(jenkinsUrl, modifiableJson, menu)
+                val simulatingJobExecutor = SimulatingJobExecutor()
+                val jenkinsJobExecutor = JenkinsJobExecutor(jenkinsUrl, usernameToken)
+                Menu.Dependencies(publisher, releaser, jenkinsJobExecutor, simulatingJobExecutor)
+            } else {
+                null
+            }
+        }
     }
 }
