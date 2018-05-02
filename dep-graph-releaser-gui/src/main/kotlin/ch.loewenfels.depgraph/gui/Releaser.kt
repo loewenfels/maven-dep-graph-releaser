@@ -255,11 +255,12 @@ class Releaser(
         val params = "releaseVersion=${paramObject.project.releaseVersion}" +
             "&nextDevVersion=${command.nextDevVersion}"
 
+        val jobName = paramObject.getJobName()
         return if (regex.matches(paramObject.project.id.identifier)) {
             "$jenkinsUrl/job/${paramObject.getConfig(ConfigKey.REMOTE_JOB)}" to
-                "$params&jobName=${mavenProjectId.artifactId}&parameters=${relevantParams.joinToString(";")}"
+                "$params&jobName=$jobName&parameters=${relevantParams.joinToString(";")}"
         } else {
-            "$jenkinsUrl/job/$mavenProjectId" to
+            "$jenkinsUrl/job/$jobName" to
                 "$params&${relevantParams.joinToString("&")}}"
         }
     }
@@ -325,6 +326,7 @@ class Releaser(
         val projectResults: HashMap<ProjectId, CommandState>
     ) {
         val regexParametersList: List<Pair<Regex, String>>
+        private val jobMapping: Map<String, String>
 
         constructor(paramObject: ParamObject, newProjectId: ProjectId)
             : this(paramObject, paramObject.releasePlan.getProject(newProjectId))
@@ -339,13 +341,18 @@ class Releaser(
         )
 
         init {
+            regexParametersList = parseRegexParameters()
+            jobMapping = parseJobMapping()
+        }
+
+        private fun parseRegexParameters(): List<Pair<Regex, String>> {
             val regexParameters = getConfig(ConfigKey.REGEX_PARAMS)
-            regexParametersList = if (regexParameters.isNotEmpty()) {
+            return if (regexParameters.isNotEmpty()) {
                 regexParameters.splitToSequence("$")
                     .map { pair ->
                         val index = checkRegexNotEmpty(pair, regexParameters)
                         val parameters = pair.substring(index + 1)
-                        checkParamNameNotEmpty(parameters, regexParameters)
+                        checkAtLeastOneParameter(parameters, regexParameters)
                         Regex(pair.substring(0, index)) to parameters
                     }
                     .toList()
@@ -357,18 +364,38 @@ class Releaser(
         private fun checkRegexNotEmpty(pair: String, regexParameters: String): Int {
             val index = pair.indexOf('#')
             check(index > 0) {
-                "regex requires at least one character.\nParameters: $regexParameters"
+                "regex requires at least one character.\nregexParameters: $regexParameters"
             }
             return index
         }
 
-        private fun checkParamNameNotEmpty(pair: String, parameters: String): Int {
+        private fun checkAtLeastOneParameter(pair: String, regexParameters: String): Int {
             val index = pair.indexOf('=')
             check(index > 0) {
-                "Parameter name requires at least one character.\nParameters: $parameters"
+                "A regexParam requires at least one parameter.\nregexParameters: $regexParameters"
             }
             return index
         }
+
+        private fun parseJobMapping(): Map<String, String> {
+            val mapping = getConfig(ConfigKey.JOB_MAPPING)
+            return mapping.split("|").associate { pair ->
+                val index = pair.indexOf('=')
+                check(index > 0) {
+                    "At least one mapping has no groupId and artifactId defined.\njobMapping: $mapping"
+                }
+                val groupIdAndArtifactId = pair.substring(0, index)
+                check(groupIdAndArtifactId.contains(':')) {
+                    "At least one groupId and artifactId is erroneous, does not contain a `:`.\njobMapping: $mapping"
+                }
+                val jobName = pair.substring(index + 1)
+                check(jobName.isNotBlank()) {
+                    "At least one groupId and artifactId is erroneous, has no job name defined.\njobMapping: $mapping"
+                }
+                groupIdAndArtifactId to jobName
+            }
+        }
+
 
         fun getConfig(configKey: ConfigKey): String {
             return releasePlan.config[configKey] ?: throw IllegalArgumentException("unknown config key: $configKey")
@@ -387,6 +414,11 @@ class Releaser(
             } else {
                 lock.then { withLockForProject(act) }.unsafeCast<Promise<T>>()
             }
+        }
+
+        fun getJobName(): String {
+            val mavenProjectId = project.id as MavenProjectId
+            return jobMapping[mavenProjectId.identifier] ?: mavenProjectId.artifactId
         }
     }
 
