@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.gui
 
+import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.Command
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.ProjectId
@@ -7,6 +8,8 @@ import ch.loewenfels.depgraph.data.ReleaseState
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsCommand
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
+import org.w3c.dom.HTMLInputElement
+import org.w3c.dom.HTMLTextAreaElement
 
 object ChangeApplier {
 
@@ -68,9 +71,14 @@ object ChangeApplier {
         releasePlanJson.config.forEach { arr ->
             if (arr.size != 2) return@forEach
 
-            val input = getTextField("config-${arr[0]}")
-            if (arr[1] != input.value) {
-                arr[1] = input.value
+            val input = elementById("config-${arr[0]}")
+            val value = if (arr[0] == ConfigKey.JOB_MAPPING.asString()) {
+                (input as HTMLTextAreaElement).value.replace("\r", "").replace("\n", "|")
+            } else {
+                (input as HTMLInputElement).value
+            }
+            if (arr[1] != value) {
+                arr[1] = value
                 changed = true
             }
         }

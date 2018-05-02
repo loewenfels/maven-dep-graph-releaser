@@ -81,6 +81,7 @@ task json {
     def paramsArg = 'regexParams'
     def defaultParamsArg = ".*#branch.name=master"
     def disableRegexArg = 'disableRegex'
+    def jobMappingArg = 'jobMapping'
     inputs.property(groupIdArg, findProperty(groupIdArg))
     inputs.property(artifactIdArg, findProperty(artifactIdArg))
     inputs.property(updateDependencyJobArg, findProperty(updateDependencyJobArg) ?: defaultUpdateJob)
@@ -88,6 +89,7 @@ task json {
     inputs.property(remoteJobArg, findProperty(remoteJobArg) ?: defaultRemoteJob)
     inputs.property(paramsArg, findProperty(paramsArg) ?: defaultParamsArg)
     inputs.property(disableRegexArg, findProperty(disableRegexArg) ?: '^$')
+    inputs.property(jobMappingArg, findProperty(jobMappingArg) ?: '')
     inputs.property('mpoff', findProperty('mpoff') ?: 'on')
     inputs.files dist
     outputs.file jsonFile
@@ -99,13 +101,22 @@ task json {
         def remoteJob = findProperty(remoteJobArg) ?: defaultRemoteJob
         def params = "-$paramsArg=${findProperty(paramsArg) ?: defaultParamsArg}"
         def disableRegex = findProperty(disableRegexArg) != null ? ["-$disableRegexArg=${findProperty(disableRegexArg)}"] : []
+        def jobMapping = findProperty(jobMappingArg) != null ?
+            ["-$jobMappingArg=${findProperty(jobMappingArg)}"] :
+            ["-$jobMappingArg=" +
+                 "ch.loewenfels.depgraph:dgr-1=apnoea-test-1|" +
+                 "ch.loewenfels.depgraph:dgr-2=apnoea-test-2|" +
+                 "ch.loewenfels.depgraph:dgr-3=apnoea-test-3|" +
+                 "ch.loewenfels.depgraph:dgr-4=apnoea-test-4|" +
+                 "ch.loewenfels.depgraph:dgr-5=apnoea-test-5"
+            ]
         def mpOff = findProperty('mpoff') != null ? ['-mpoff'] : []
 
         javaexec {
             workingDir = rootProject.projectDir
             classpath = fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.Main'
-            args = ['json', groupId, artifactId, "${rootProject.projectDir}/repos", jsonFile.absolutePath, updateDependencyJob, remoteRegex, remoteJob, params] + disableRegex + mpOff
+            args = ['json', groupId, artifactId, "${rootProject.projectDir}/repos", jsonFile.absolutePath, updateDependencyJob, remoteRegex, remoteJob, params] + disableRegex + jobMapping + mpOff
         }
     }
 }

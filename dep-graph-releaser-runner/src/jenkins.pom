@@ -47,6 +47,7 @@
                                 <argument>${remoteJob}</argument>
                                 <argument>-regexParams=${regexParams}</argument>
                                 <argument>-disableRegex=${disableRegex}</argument>
+                                <argument>-jobMapping=${jobMapping}</argument>
                             </arguments>
                         </configuration>
                     </execution>

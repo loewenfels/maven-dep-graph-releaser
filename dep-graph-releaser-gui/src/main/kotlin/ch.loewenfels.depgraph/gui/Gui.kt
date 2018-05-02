@@ -11,10 +11,7 @@ import ch.loewenfels.depgraph.hasNextOnTheSameLevel
 import ch.loewenfels.depgraph.toPeekingIterator
 import kotlinx.html.*
 import kotlinx.html.dom.append
-import org.w3c.dom.HTMLAnchorElement
-import org.w3c.dom.HTMLElement
-import org.w3c.dom.HTMLInputElement
-import org.w3c.dom.get
+import org.w3c.dom.*
 import kotlin.browser.document
 import kotlin.dom.addClass
 import kotlin.dom.removeClass
@@ -50,10 +47,9 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         }
         val messagesDiv = elementById("messages")
         elementById(HIDE_MESSAGES_HTML_ID).addClickEventListener {
-            val elements = document.querySelectorAll("#messages > div")
-            for (i in 0 until elements.length) {
-                elements[i]?.let { messagesDiv.removeChild(it) }
-            }
+            document.querySelectorAll("#messages > div")
+                .asList()
+                .forEach { messagesDiv.removeChild(it) }
         }
     }
 
@@ -64,9 +60,17 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 fieldWithLabel(PUBLISH_ID_HTML_ID, "PublishId", releasePlan.publishId)
 
                 val config = releasePlan.config
-                ConfigKey.all().forEach { key ->
-                    fieldWithLabel("config-$key", key.asString(), config[key] ?: "")
+                listOf(
+                    ConfigKey.COMMIT_PREFIX,
+                    ConfigKey.UPDATE_DEPENDENCY_JOB,
+                    ConfigKey.REMOTE_REGEX,
+                    ConfigKey.REMOTE_JOB,
+                    ConfigKey.REGEX_PARAMS
+                ).forEach { key ->
+                    fieldWithLabel("config-${key.asString()}", key.asString(), config[key] ?: "")
                 }
+                val key = ConfigKey.JOB_MAPPING
+                textFieldWithLabel("config-${key.asString()}", key.asString(), config[key]?.replace("|", "\n") ?: "")
             }
         }
     }
@@ -211,6 +215,25 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 val input = getUnderlyingHtmlElement() as HTMLInputElement
                 input.addEventListener("keyup", { menu.activateSaveButton() })
                 disableUnDisableForReleaseStartAndEnd(input, input)
+            }
+        }
+    }
+
+    private fun DIV.textFieldWithLabel(id: String, label: String, text: String) {
+        div {
+            label("fields") {
+                htmlFor = id
+                +label
+            }
+            textArea {
+                this.id = id
+                +text
+                val htmlTextAreaElement = getUnderlyingHtmlElement() as HTMLTextAreaElement
+                htmlTextAreaElement.addEventListener("keyup", { menu.activateSaveButton() })
+                //for what disableUnDisableForReleaseStartAndEnd needs, title and disabled, it is ok to make the unsafe cast
+                //TODO change in case https://github.com/Kotlin/kotlinx.html/issues/87 is implemented
+                val input = htmlTextAreaElement.unsafeCast<HTMLInputElement>()
+                disableUnDisableForReleaseStartAndEnd(input, htmlTextAreaElement)
             }
         }
     }
