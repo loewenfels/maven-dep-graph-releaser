@@ -38,6 +38,18 @@ Thus, if you add another project to the `repos` folder and want to rerun the tas
 You can use `gr server` to start a lightweight local server serving `pipeline.html`. 
 This is necessary since the `pipeline.html` wants to include a javascript file and your browser forbids that to protect you from XSS attacks.  
 
+The pipeline looks similar to the following (needless to say with your projects and not with this dummy projects)
+
+![pipeline](https://loewenfels.github.io/dep-graph-releaser/pipeline.png "generated pipeline")
+
+Every box is a maven project where multi-module project might contain inner boxes which are their submodules.
+Each toggle signifies a command which will be executed if you click on _Start Release_.
+For instance, project dgr-3 has a command _JenkinsUpdateDependency_ with _dgr-4_ as dependency. 
+This command will update the pom.xml of dgr-3 and update the version with the newest version of dgr-4.
+The submodules dgr-3-b and dgr-3-c have also a dependency to dgr-4. 
+As you can see, the pipeline might give you already some hints what you can improve. 
+In the example it would probably make sense to add dgr-4 to the `dependencyManagement` section of dgr-1 instead of managing the version in dgr-3-b and dgr-3-c.
+
 ## Release
 
 You can also trigger the release locally as long as the jenkins server is set up to allow CORS accordingly.
