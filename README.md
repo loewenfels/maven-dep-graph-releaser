@@ -28,15 +28,15 @@ Add the projects you want to analyse to the folder `repos` (in the project direc
 ````
 gr html -PgId=your.group.id -PaId=the.artifact.id
 ````
-This creates a `pipeline.html` in the folder `rootFolder/build/html`. 
+This creates a `index.html` in the folder `rootFolder/build/html`. 
 
 Notice, the task is clever and does not regenerate the html if nothing has changed in the code 
 (the gradle task is mainly there to ease development, 
 using `repos` as input of the task takes too much time depending on the number of projects you have).
 Thus, if you add another project to the `repos` folder and want to rerun the task, then call `cleanJson` first. 
 
-You can use `gr server` to start a lightweight local server serving `pipeline.html`. 
-This is necessary since the `pipeline.html` wants to include a javascript file and your browser forbids that to protect you from XSS attacks.  
+You can use `gr server` to start a lightweight local server serving `index.html`. 
+This is necessary since the `index.html` wants to include a javascript file and your browser forbids that to protect you from XSS attacks.  
 
 The pipeline looks similar to the following (needless to say with your projects and not with this dummy projects)
 
@@ -87,7 +87,7 @@ The following guide shows how you can integrate dep-graph-releaser with Jenkins.
    1. change to the directory JENKINS_HOME/userContent (typically `cd /home/jenkins/userContent`)
    2. `mkdir dep-graph-releaser`
 3. Copy the extracted resources to JENKINS_HOME/userContent/dep-graph-releaser
-   1. Visit http(s)://JENKINS_URL/userContent/dep-graph-releaser/pipeline.html
+   1. Visit http(s)://JENKINS_URL/userContent/dep-graph-releaser/
    2. Most probably you will only see `Loading...` and nothing happens. That is due 
       [security measurements](https://wiki.jenkins.io/display/JENKINS/Configuring+Content+Security+Policy), see next step
 4. If Loading failed in the previous step (which is the default behaviour) 

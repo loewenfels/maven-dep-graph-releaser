@@ -66,7 +66,7 @@ object Orchestrator {
         copyResourceToFile(outputDir, "dep-graph-releaser-maven-api-js.js")
         copyResourceToFile(outputDir, "dep-graph-releaser-gui.js")
         copyResourceToFile(outputDir, "style.css")
-        copyResourceToFile(outputDir, "pipeline.html")
+        copyResourceToFile(outputDir, "index.html")
         copyResourceToFile(outputDir, "material-icons.css")
         copyResourceToFile(outputDir, "MaterialIcons-Regular.ttf")
         copyResourceToFile(outputDir, "MaterialIcons-Regular.woff")
