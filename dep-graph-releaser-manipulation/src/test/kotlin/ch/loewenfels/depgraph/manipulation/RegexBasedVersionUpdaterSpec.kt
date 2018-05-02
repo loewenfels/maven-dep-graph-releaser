@@ -87,14 +87,20 @@ object RegexBasedVersionUpdaterSpec : Spek({
                 }.toThrow<IllegalStateException> { message { contains(errMessage, "a.version", "another.version") } }
             }
         }
+        given("new version = old version") {
+            val errMessage = "Version is already up-to-date; did you pass wrong argument for newVersion"
+            it("throws an IllegalArgumentException, mentioning `$errMessage`") {
+                val pom = getPom("errorCases/sameVersion.pom")
+                val tmpPom = copyPom(tempFolder, pom)
+                expect {
+                    updateDependency(testee, tmpPom, exampleA)
+                }.toThrow<IllegalArgumentException> { message { contains(errMessage, exampleA.releaseVersion) } }
+            }
+        }
     }
 
     given("single project with third party dependency") {
         val pom = File(getTestDirectory("singleProject"), "pom.xml")
-
-        context("dependency shall be updated, same version") {
-            testSameContent(testee, tempFolder, pom, "junit", "junit", "4.12")
-        }
 
         context("dependency shall be updated, new version") {
             it("updates the dependency") {
@@ -184,10 +190,6 @@ private fun SpecBody.testWithExampleA(
     tempFolder: TempFolder,
     pom: File
 ) {
-    context("dependency shall be updated, same version") {
-        testSameContent(testee, tempFolder, pom, exampleA)
-    }
-
     context("dependency shall be updated, new version") {
         it("updates the property") {
             val tmpPom = copyPom(tempFolder, pom)
@@ -198,30 +200,6 @@ private fun SpecBody.testWithExampleA(
 }
 
 private fun getPom(pomName: String): File = File(RegexBasedVersionUpdaterSpec.javaClass.getResource("/$pomName").path)
-
-private fun SpecBody.testSameContent(
-    testee: RegexBasedVersionUpdater,
-    tempFolder: TempFolder,
-    pom: File,
-    groupId: String,
-    artifactId: String,
-    newVersion: String
-) {
-    testSameContent(tempFolder, pom) { tmpPom ->
-        testee.updateDependency(tmpPom, groupId, artifactId, newVersion)
-    }
-}
-
-private fun TestContainer.testSameContent(
-    testee: RegexBasedVersionUpdater,
-    tempFolder: TempFolder,
-    pom: File,
-    idAndVersions: IdAndVersions
-) {
-    testSameContent(tempFolder, pom) { tmpPom ->
-        updateDependency(testee, tmpPom, idAndVersions, "1.0.0")
-    }
-}
 
 private fun updateDependency(testee: RegexBasedVersionUpdater, tmpPom: File, project: IdAndVersions) {
     updateDependency(testee, tmpPom, project, project.releaseVersion)

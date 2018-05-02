@@ -75,9 +75,11 @@ object MainSpec : Spek({
             context("dependency shall be updated, same version") {
                 on("calling main") {
                     val tmpPom = copyPom(tempFolder, pom)
-
-                    testSameContent(tempFolder, pom) {
-                        Main.main("update", tmpPom.absolutePath, "junit", "junit", "4.12")
+                    val errMessage = "Version is already up-to-date; did you pass wrong argument for newVersion"
+                    it("throws an IllegalArgumentException, mentioning `$errMessage`") {
+                        expect {
+                            Main.main("update", tmpPom.absolutePath, "junit", "junit", "4.12")
+                        }.toThrow<IllegalArgumentException> { message { contains(errMessage, "4.12") } }
                     }
                 }
             }

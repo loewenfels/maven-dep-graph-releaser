@@ -12,18 +12,6 @@ fun copyPom(tempFolder: TempFolder, pom: File): File {
     return tmpPom
 }
 
-fun TestContainer.testSameContent(
-    tempFolder: TempFolder,
-    pom: File,
-    update: (File) -> Unit
-) {
-    it("updates the dependency and file content is the same as before") {
-        val tmpPom = copyPom(tempFolder, pom)
-        update(tmpPom)
-        assert(tmpPom.readText()).toBe(pom.readText())
-    }
-}
-
 fun assertSameAsBeforeAfterReplace(tmpPom: File, pom: File, versionToReplace: String, newVersion: String) {
     val content = pom.readText()
     assert(tmpPom.readText()).toBe(content.replace(versionToReplace, newVersion))

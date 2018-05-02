@@ -178,7 +178,12 @@ object RegexBasedVersionUpdater {
                 paramObject.properties.add(propertyMatchResult.groupValues[1])
                 paramObject.modifiedPom.append(resolvedVersion)
             }
-            resolvedVersion.contains("$") -> throw UnsupportedOperationException("Version was neither static nor a reference to a single property. Given: $version")
+            resolvedVersion.contains("$") -> throw UnsupportedOperationException(
+                "Version was neither static nor a reference to a single property. Given: $version"
+            )
+            paramObject.newVersion == version -> throw IllegalArgumentException(
+                "Version is already up-to-date; did you pass wrong argument for newVersion? Given: $version"
+            )
             else -> appendNewVersionAndSetUpdated(
                 paramObject
             )
