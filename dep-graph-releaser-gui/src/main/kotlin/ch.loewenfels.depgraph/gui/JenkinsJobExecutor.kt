@@ -27,10 +27,10 @@ class JenkinsJobExecutor(
                     throw Error("Could not trigger the job $jobName", it)
                 }.then { queuedItemUrl: String ->
                     if (verbose) {
-                        showInfo("Queued $jobName successfully, wait for execution...", 2000)
+                        showInfo("Queued $jobName successfully, wait for execution...\nQueued item URL: ${queuedItemUrl}api/xml", 2000)
                     }
-                    jobQueuedHook(queuedItemUrl).then {
-                        extractBuildNumber(crumbWithId, "${queuedItemUrl}api/xml")
+                    jobQueuedHook("${queuedItemUrl}api/xml").then {
+                        extractBuildNumber(crumbWithId, queuedItemUrl)
                     }.then { it }
                 }.then { buildNumber: Int ->
                     if (verbose) {
