@@ -61,7 +61,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         //TODO add description for each property
         elementById("config").append {
             div {
-                fieldWithLabel(RELEASE_ID_HTML_ID, "ReleaseId", releasePlan.releaseId)
+                textFieldWithLabel(RELEASE_ID_HTML_ID, "ReleaseId", releasePlan.releaseId)
 
                 val config = releasePlan.config
                 listOf(
@@ -71,10 +71,10 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                     ConfigKey.REMOTE_JOB,
                     ConfigKey.REGEX_PARAMS
                 ).forEach { key ->
-                    fieldWithLabel("config-${key.asString()}", key.asString(), config[key] ?: "")
+                    textFieldWithLabel("config-${key.asString()}", key.asString(), config[key] ?: "")
                 }
                 val key = ConfigKey.JOB_MAPPING
-                textFieldWithLabel("config-${key.asString()}", key.asString(), config[key]?.replace("|", "\n") ?: "")
+                textAreaWithLabel("config-${key.asString()}", key.asString(), config[key]?.replace("|", "\n") ?: "")
             }
         }
     }
@@ -194,12 +194,12 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             }
             if (!project.isSubmodule) {
                 div("fields") {
-                    fieldReadOnlyWithLabel(
+                    textFieldReadOnlyWithLabel(
                         "$identifier:currentVersion",
                         "Current Version",
                         project.currentVersion
                     )
-                    fieldWithLabel("$identifier:releaseVersion", "Release Version", project.releaseVersion)
+                    textFieldWithLabel("$identifier:releaseVersion", "Release Version", project.releaseVersion)
                 }
             }
             commands(project)
@@ -251,15 +251,15 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         }
     }
 
-    private fun DIV.fieldWithLabel(id: String, label: String, text: String) {
-        fieldWithLabel(id, label, text, {})
+    private fun DIV.textFieldWithLabel(id: String, label: String, value: String) {
+        textFieldWithLabel(id, label, value, {})
     }
 
-    private fun DIV.fieldReadOnlyWithLabel(id: String, label: String, text: String, inputAct: INPUT.() -> Unit = {}) {
-        fieldWithLabel(id, label, text, { disabled = true; inputAct() })
+    private fun DIV.textFieldReadOnlyWithLabel(id: String, label: String, value: String, inputAct: INPUT.() -> Unit = {}) {
+        textFieldWithLabel(id, label, value, { disabled = true; inputAct() })
     }
 
-    private fun DIV.fieldWithLabel(id: String, label: String, text: String, inputAct: INPUT.() -> Unit) {
+    private fun DIV.textFieldWithLabel(id: String, label: String, value: String, inputAct: INPUT.() -> Unit) {
         div {
             label("fields") {
                 htmlFor = id
@@ -267,7 +267,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             }
             textInput {
                 this.id = id
-                value = text
+                this.value = value
                 inputAct()
                 val input = getUnderlyingHtmlElement() as HTMLInputElement
                 input.addEventListener("keyup", { menu.activateSaveButton() })
@@ -276,7 +276,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         }
     }
 
-    private fun DIV.textFieldWithLabel(id: String, label: String, text: String) {
+    private fun DIV.textAreaWithLabel(id: String, label: String, value: String) {
         div {
             label("fields") {
                 htmlFor = id
@@ -284,7 +284,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             }
             textArea {
                 this.id = id
-                +text
+                +value
                 val htmlTextAreaElement = getUnderlyingHtmlElement() as HTMLTextAreaElement
                 htmlTextAreaElement.addEventListener("keyup", { menu.activateSaveButton() })
                 //for what disableUnDisableForReleaseStartAndEnd needs, title and disabled, it is ok to make the unsafe cast
@@ -319,12 +319,12 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         div("contextMenu") {
             id = "$idPrefix$CONTEXT_MENU_SUFFIX"
             div("succeeded") {
+                title = "Forcibly sets the state of this command to Succeeded, to be used with care."
                 i("material-icons") { span() }
                 span {
                     +"Set Command to Succeeded"
                 }
-                val div = getUnderlyingHtmlElement()
-                div.addClickEventListener {
+                getUnderlyingHtmlElement().addClickEventListener {
                     transitionToSucceeded(project, index)
                 }
             }
@@ -347,6 +347,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             //we don't check transition here, the user has to know what to do (at least for now)
             CommandState.Succeeded
         }
+        menu.activateSaveButton()
     }
 
     private fun DIV.appendJenkinsMavenReleasePluginField(idPrefix: String, command: JenkinsMavenReleasePlugin) {
@@ -358,7 +359,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         command: Command,
         nextDevVersion: String
     ) {
-        fieldWithLabel("$idPrefix${Gui.NEXT_DEV_VERSION_SUFFIX}", "Next Dev Version", nextDevVersion) {
+        textFieldWithLabel("$idPrefix${Gui.NEXT_DEV_VERSION_SUFFIX}", "Next Dev Version", nextDevVersion) {
             if (command.state === CommandState.Disabled) {
                 disabled = true
             }
@@ -386,7 +387,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
     }
 
     private fun DIV.appendJenkinsUpdateDependencyField(idPrefix: String, command: JenkinsUpdateDependency) {
-        fieldReadOnlyWithLabel(
+        textFieldReadOnlyWithLabel(
             "$idPrefix:groupId",
             "Dependency",
             command.projectId.identifier,
