@@ -212,7 +212,7 @@ class Menu {
                         project,
                         index,
                         CommandState.ReadyToRetrigger,
-                        Gui.STATE_READY_TO_RE_TRIGGER
+                        Gui.STATE_READY_TO_BE_TRIGGER
                     )
                 }
             }

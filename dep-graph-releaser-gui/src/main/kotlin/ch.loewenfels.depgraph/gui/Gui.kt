@@ -9,10 +9,13 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.hasNextOnTheSameLevel
 import ch.loewenfels.depgraph.toPeekingIterator
+import ch.tutteli.kbox.forEachIn
 import kotlinx.html.*
 import kotlinx.html.dom.append
 import org.w3c.dom.*
+import org.w3c.dom.events.MouseEvent
 import kotlin.browser.document
+import kotlin.browser.window
 import kotlin.dom.addClass
 import kotlin.dom.removeClass
 
@@ -28,6 +31,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         setUpConfig(releasePlan)
         setUpProjects()
         toggler.registerToggleEvents()
+        setUpCommandsOnContextMenu()
 
         //TODO we should check if releasePlant.state is inProgress. In such a case it might be that command states
         // have changed already and we need to update the state let's say the browser crashes during release and we
@@ -73,6 +77,59 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 textFieldWithLabel("config-${key.asString()}", key.asString(), config[key]?.replace("|", "\n") ?: "")
             }
         }
+    }
+
+
+    private fun setUpCommandsOnContextMenu() {
+        val toggleLabels = document.querySelectorAll(".command > .fields > .toggle")
+            .asList()
+            .map { label ->
+                val toggle = label.firstChild as HTMLInputElement
+                label to toggle.id.substringBefore(DEACTIVATE_SUFFIX)
+            }
+        val stateIcons = document.querySelectorAll(".state")
+            .asList()
+            .map { a ->
+                a to (a as HTMLAnchorElement).id.substringBefore(STATE_SUFFIX)
+            }
+        forEachIn(toggleLabels, stateIcons) { (element, idPrefix) ->
+            element.addEventListener("contextmenu", { event ->
+                hideAllContextMenus()
+                val contextMenu = elementById("$idPrefix$CONTEXT_MENU_SUFFIX")
+                moveContextMenuPosition(event as MouseEvent, contextMenu)
+                contextMenu.style.visibility = "visible"
+                window.addEventListener("click", { hideAllContextMenus() }, js("({once: true})"))
+                event.preventDefault()
+                event.stopPropagation()
+            })
+        }
+        window.addEventListener("contextmenu", { hideAllContextMenus() })
+    }
+
+    private fun hideAllContextMenus() {
+        document.querySelectorAll(".contextMenu").asList().forEach {
+            (it as HTMLElement).style.visibility = "hidden"
+        }
+    }
+
+    private fun moveContextMenuPosition(event: MouseEvent, contextMenu: HTMLElement) {
+        val menuWidth = contextMenu.offsetWidth
+        val menuHeight = contextMenu.offsetHeight
+        val mouseX = event.pageX
+        val mouseY = event.pageY
+
+        val x = if (mouseX + menuWidth > document.body!!.clientWidth + window.scrollX) {
+            mouseX - menuWidth
+        } else {
+            mouseX
+        }
+        val y = if (mouseY + menuHeight > document.body!!.clientHeight + window.scrollY) {
+            mouseY - menuHeight
+        } else {
+            mouseY
+        }
+        contextMenu.style.left = "${x}px"
+        contextMenu.style.top = "${y}px"
     }
 
     private fun setUpProjects() {
@@ -183,7 +240,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                     +command::class.simpleName!!
                 }
                 div("fields") {
-                    fieldsForCommand(commandId, project.id, command)
+                    fieldsForCommand(commandId, project, index, command)
                 }
                 val div = getUnderlyingHtmlElement().asDynamic()
                 div.state = command.state
@@ -238,11 +295,8 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         }
     }
 
-    private fun DIV.fieldsForCommand(idPrefix: String, projectId: ProjectId, command: Command) {
-        val cssClass = when (command) {
-            is ReleaseCommand -> "release"
-            else -> ""
-        }
+    private fun DIV.fieldsForCommand(idPrefix: String, project: Project, index: Int, command: Command) {
+        val cssClass = if (command is ReleaseCommand) " release" else ""
 
         toggle(
             "$idPrefix$DEACTIVATE_SUFFIX",
@@ -262,16 +316,36 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             }
             title = stateToTitle(command.state)
         }
+        div("contextMenu") {
+            id = "$idPrefix$CONTEXT_MENU_SUFFIX"
+            div("succeeded") {
+                i("material-icons") { span() }
+                span {
+                    +"Set Command to Succeeded"
+                }
+                val div = getUnderlyingHtmlElement()
+                div.addClickEventListener {
+                    transitionToSucceeded(project, index)
+                }
+            }
+        }
 
         when (command) {
             is JenkinsMavenReleasePlugin ->
                 appendJenkinsMavenReleasePluginField(idPrefix, command)
             is JenkinsMultiMavenReleasePlugin ->
-                appendJenkinsMultiMavenReleasePluginFields(idPrefix, projectId, command)
+                appendJenkinsMultiMavenReleasePluginFields(idPrefix, project.id, command)
             is JenkinsUpdateDependency ->
                 appendJenkinsUpdateDependencyField(idPrefix, command)
             else ->
                 showError("Unknown command found, cannot display its fields.\n$command")
+        }
+    }
+
+    private fun transitionToSucceeded(project: Project, index: Int) {
+        changeStateOfCommand(project, index, CommandState.Succeeded, stateToTitle(CommandState.Succeeded)) { _, _ ->
+            //we don't check transition here, the user has to know what to do (at least for now)
+            CommandState.Succeeded
         }
     }
 
@@ -320,7 +394,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
     }
 
     private fun DIV.toggle(
-        id: String,
+        idCheckbox: String,
         title: String,
         checked: Boolean,
         disabled: Boolean,
@@ -328,12 +402,12 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
     ) {
         label("toggle") {
             checkBoxInput(classes = checkboxCssClass) {
-                this.id = id
+                this.id = idCheckbox
                 this.checked = checked && !disabled
                 this.disabled = disabled
             }
             span("slider") {
-                this.id = "$id$SLIDER_SUFFIX"
+                this.id = "$idCheckbox$SLIDER_SUFFIX"
                 this.title = title
                 if (disabled) {
                     this.title = STATE_DISABLED
@@ -355,10 +429,11 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         const val NEXT_DEV_VERSION_SUFFIX = ":nextDevVersion"
         const val STATE_SUFFIX = ":state"
         const val TITLE_SUFFIX = ":title"
+        const val CONTEXT_MENU_SUFFIX = ":contextMenu"
 
         private const val STATE_WAITING = "Wait for dependent projects to complete."
         const val STATE_READY = "Ready to be queued for execution."
-        const val STATE_READY_TO_RE_TRIGGER = "Ready to be re-scheduled"
+        const val STATE_READY_TO_BE_TRIGGER = "Ready to be re-scheduled"
         const val STATE_QUEUEING = "Currently queueing the job."
         const val STATE_IN_PROGRESS = "Job is running."
         const val STATE_SUCCEEDED = "Job completed successfully."
@@ -404,22 +479,31 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             elementById(commandId).asDynamic().buildUrl = buildUrl
         }
 
-
         fun changeStateOfCommand(project: Project, index: Int, newState: CommandState, title: String) {
+            changeStateOfCommand(project, index, newState, title) { previousState, commandId ->
+                try {
+                    previousState.checkTransitionAllowed(newState)
+                } catch (e: IllegalStateException) {
+                    val commandTitle = elementById(commandId + TITLE_SUFFIX)
+                    throw IllegalStateException(
+                        "Cannot change the state of the command ${commandTitle.innerText} (${index + 1}. command) " +
+                            "of the project ${project.id.identifier}",
+                        e
+                    )
+                }
+            }
+        }
+        private fun changeStateOfCommand(
+            project: Project,
+            index: Int, newState:
+            CommandState, title: String,
+            checkStateTransition: (previousState: CommandState, commandId: String) -> CommandState
+        ) {
             val commandId = getCommandId(project, index)
             val command = elementById(commandId)
             val dynCommand = command.asDynamic()
             val previousState = dynCommand.state as CommandState
-            try {
-                dynCommand.state = previousState.checkTransitionAllowed(newState)
-            } catch (e: IllegalStateException) {
-                val commandTitle = elementById(commandId + TITLE_SUFFIX)
-                throw IllegalStateException(
-                    "Cannot change the state of the command ${commandTitle.innerText} (${index + 1}. command) " +
-                        "of the project ${project.id.identifier}",
-                    e
-                )
-            }
+            dynCommand.state = checkStateTransition(previousState, commandId)
             command.removeClass(stateToCssClass(previousState))
             command.addClass(stateToCssClass(newState))
             elementById("$commandId$STATE_SUFFIX").title = title
@@ -448,7 +532,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         private fun stateToTitle(state: CommandState) = when (state) {
             is CommandState.Waiting -> STATE_WAITING
             CommandState.Ready -> STATE_READY
-            CommandState.ReadyToRetrigger -> STATE_READY_TO_RE_TRIGGER
+            CommandState.ReadyToRetrigger -> STATE_READY_TO_BE_TRIGGER
             CommandState.Queueing -> STATE_QUEUEING
             CommandState.InProgress -> STATE_IN_PROGRESS
             CommandState.Succeeded -> STATE_SUCCEEDED

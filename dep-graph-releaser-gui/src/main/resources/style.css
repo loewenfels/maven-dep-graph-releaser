@@ -381,14 +381,15 @@ input:disabled {
     content: 'play_arrow';
 }
 
-.command.succeeded > .fields > .state .material-icons span::after {
+.command.succeeded > .fields > .state .material-icons span::after,
+.contextMenu .succeeded > .material-icons span::after {
     content: 'check';
 }
 .command.succeeded > .fields > .state {
     cursor: pointer;
     display: inline-block;
     border-color: #008000;
-    color:#008000;
+    color: #008000;
     background-color: #c9fdc9;
     animation: none;
     -webkit-animation: none;
@@ -401,7 +402,7 @@ input:disabled {
     cursor: pointer;
     display: inline-block;
     border-color: #a01c1c;
-    color:#a01c1c;
+    color: #a01c1c;
     background-color: #f7dede;
     animation: none;
     -webkit-animation: none;
@@ -432,6 +433,47 @@ input:disabled {
     padding: 2px;
     width: 20px;
     height: 20px;
+}
+
+.contextMenu {
+    position: absolute;
+    background: #FFF;
+    border: 1px solid #AAA;
+    border-radius: 6px;
+    visibility: hidden;
+    width: 205px;
+    z-index: 1;
+}
+.contextMenu div {
+    cursor: pointer;
+    padding: 5px;
+    padding-right: 20px;
+}
+.contextMenu div:first-child {
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+.contextMenu div:last-child {
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+.contextMenu div:hover {
+    background-color: #EFEFEF;
+}
+.contextMenu div > span {
+    vertical-align: middle;
+    margin-left: 2px;
+}
+.contextMenu .material-icons {
+    font-size: 20px;
+    padding: 2px;
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+}
+.contextMenu .succeeded .material-icons {
+    color: #008000;
 }
 
 #status, #messages {

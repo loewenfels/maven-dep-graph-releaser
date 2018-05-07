@@ -13,6 +13,9 @@ dependencies {
     compile("org.jetbrains.kotlinx:kotlinx-html-js:$kotlin_html_version") {
         exclude group: 'org.jetbrains.kotlin'
     }
+    compile("ch.tutteli:kbox-js:$kbox_version"){
+        exclude group: 'org.jetbrains.kotlin'
+    }
 }
 
 compileKotlin2Js {

@@ -62,6 +62,7 @@ object Orchestrator {
         logger.info("Going to copy resource files")
         copyResourceToFile(outputDir, "kotlin.js")
         copyResourceToFile(outputDir, "kotlinx-html-js.js")
+        copyResourceToFile(outputDir, "kbox-js.js")
         copyResourceToFile(outputDir, "dep-graph-releaser-api-js.js")
         copyResourceToFile(outputDir, "dep-graph-releaser-maven-api-js.js")
         copyResourceToFile(outputDir, "dep-graph-releaser-gui.js")
