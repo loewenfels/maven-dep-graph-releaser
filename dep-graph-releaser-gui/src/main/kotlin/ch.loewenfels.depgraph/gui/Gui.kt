@@ -10,6 +10,7 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.hasNextOnTheSameLevel
 import ch.loewenfels.depgraph.toPeekingIterator
 import ch.tutteli.kbox.forEachIn
+import ch.tutteli.kbox.mapWithIndex
 import kotlinx.html.*
 import kotlinx.html.dom.append
 import org.w3c.dom.*
@@ -255,7 +256,12 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         textFieldWithLabel(id, label, value, {})
     }
 
-    private fun DIV.textFieldReadOnlyWithLabel(id: String, label: String, value: String, inputAct: INPUT.() -> Unit = {}) {
+    private fun DIV.textFieldReadOnlyWithLabel(
+        id: String,
+        label: String,
+        value: String,
+        inputAct: INPUT.() -> Unit = {}
+    ) {
         textFieldWithLabel(id, label, value, { disabled = true; inputAct() })
     }
 
@@ -325,7 +331,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                     +"Set Command to Succeeded"
                 }
                 getUnderlyingHtmlElement().addClickEventListener {
-                    transitionToSucceeded(project, index)
+                    transitionToSucceededIfOk(project, index)
                 }
             }
         }
@@ -342,12 +348,53 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         }
     }
 
+    private fun transitionToSucceededIfOk(project: Project, index: Int) {
+        if (project.commands[index] is ReleaseCommand) {
+            if (notAllOtherCommandsSucceeded(project, index)) {
+                val setAllToSucceeded = window.confirm(
+                    "You cannot set this command to the state ${CommandState.Succeeded::class.simpleName} " +
+                        "because not all other commands of this project have succeeded yet." +
+                        "\n\n" +
+                        "Do you want to set all other commands forcibly to ${CommandState.Succeeded::class.simpleName} as well?"
+                )
+                if (setAllToSucceeded) {
+                    transitionAllCommandsToSucceeded(project)
+                    menu.activateSaveButton()
+                }
+                return
+            }
+        }
+        transitionToSucceeded(project, index)
+        menu.activateSaveButton()
+    }
+
+    private fun transitionAllCommandsToSucceeded(project: Project) {
+        project.commands.forEachIndexed { index, _ ->
+            transitionToSucceeded(project, index)
+        }
+        releasePlan.getSubmodules(project.id).forEach {
+            transitionAllCommandsToSucceeded(releasePlan.getProject(it))
+        }
+    }
+
     private fun transitionToSucceeded(project: Project, index: Int) {
         changeStateOfCommand(project, index, CommandState.Succeeded, stateToTitle(CommandState.Succeeded)) { _, _ ->
-            //we don't check transition here, the user has to know what to do (at least for now)
+            //we don't check transition here, the user has to know what she does (at least for now)
             CommandState.Succeeded
         }
-        menu.activateSaveButton()
+    }
+
+    private fun notAllOtherCommandsSucceeded(project: Project, index: Int?): Boolean {
+        return project.commands.asSequence()
+            .mapWithIndex()
+            .any { (i, _) ->
+                (index == null || i != index) && getCommandState(
+                    project.id,
+                    i
+                ) !== CommandState.Succeeded
+            }
+            || releasePlan.getSubmodules(project.id)
+                .any { notAllOtherCommandsSucceeded(releasePlan.getProject(it), null) }
     }
 
     private fun DIV.appendJenkinsMavenReleasePluginField(idPrefix: String, command: JenkinsMavenReleasePlugin) {
@@ -494,6 +541,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 }
             }
         }
+
         private fun changeStateOfCommand(
             project: Project,
             index: Int, newState:
