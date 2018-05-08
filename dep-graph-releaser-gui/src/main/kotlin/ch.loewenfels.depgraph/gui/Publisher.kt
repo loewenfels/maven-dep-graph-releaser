@@ -13,7 +13,7 @@ class Publisher(
         val body = "fileName=$fileName&json=${modifiableJson.json}"
         val doNothingPromise: (Any) -> Promise<*> = { Promise.resolve(1) }
         return jobExecutor.trigger(
-            publishJobUrl, "publish release-$fileName.json",
+            publishJobUrl, "publish $fileName.json",
             body,
             doNothingPromise,
             doNothingPromise,
