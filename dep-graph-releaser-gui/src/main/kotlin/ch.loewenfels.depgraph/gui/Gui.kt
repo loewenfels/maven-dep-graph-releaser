@@ -564,7 +564,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         private fun stateToCssClass(state: CommandState) = when (state) {
             is CommandState.Waiting -> "waiting"
             CommandState.Ready -> "ready"
-            CommandState.ReadyToRetrigger -> "readyToRetrigger"
+            CommandState.ReadyToReTrigger -> "readyToReTrigger"
             CommandState.Queueing -> "queueing"
             CommandState.InProgress -> "inProgress"
             CommandState.Succeeded -> "succeeded"
@@ -584,7 +584,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         private fun stateToTitle(state: CommandState) = when (state) {
             is CommandState.Waiting -> STATE_WAITING
             CommandState.Ready -> STATE_READY
-            CommandState.ReadyToRetrigger -> STATE_READY_TO_BE_TRIGGER
+            CommandState.ReadyToReTrigger -> STATE_READY_TO_BE_TRIGGER
             CommandState.Queueing -> STATE_QUEUEING
             CommandState.InProgress -> STATE_IN_PROGRESS
             CommandState.Succeeded -> STATE_SUCCEEDED

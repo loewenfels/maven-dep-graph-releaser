@@ -38,7 +38,7 @@ interface Command {
 sealed class CommandState {
     data class Waiting(val dependencies: Set<ProjectId>) : CommandState()
     object Ready : CommandState()
-    object ReadyToRetrigger : CommandState()
+    object ReadyToReTrigger : CommandState()
     /**
      * Command is queued to be executed.
      */
@@ -64,7 +64,8 @@ sealed class CommandState {
         }
 
         when (newState) {
-            ReadyToRetrigger -> checkNewState(newState, Failed::class)
+
+            ReadyToReTrigger -> checkNewState(newState, Failed::class)
             Ready -> {
                 checkNewState(newState, Waiting::class)
                 if (this is Waiting) { //could also be Deactivated with previous Ready
@@ -76,7 +77,7 @@ sealed class CommandState {
                     }
                 }
             }
-            Queueing -> checkNewState(newState, Ready::class, ReadyToRetrigger::class)
+            Queueing -> checkNewState(newState, Ready::class, ReadyToReTrigger::class)
             InProgress -> checkNewState(newState, Queueing::class)
             Succeeded -> checkNewState(newState, InProgress::class)
         }

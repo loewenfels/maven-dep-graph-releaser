@@ -328,7 +328,7 @@ input:disabled {
 }
 
 .command.ready > .fields > .toggle,
-.command.readyToRetrigger > .fields > .toggle,
+.command.readyToReTrigger > .fields > .toggle,
 .command.queueing > .fields > .toggle,
 .command.inProgress > .fields > .toggle,
 .command.succeeded > .fields > .toggle,
@@ -338,11 +338,11 @@ input:disabled {
 }
 
 .command.ready > .fields > .state,
-.command.readyToRetrigger > .fields > .state {
+.command.readyToReTrigger > .fields > .state {
     display: inline-block;
 }
 
-.command.readyToRetrigger > .fields > .state .material-icons span::after {
+.command.readyToReTrigger > .fields > .state .material-icons span::after {
     content: 'playlist_play';
 }
 

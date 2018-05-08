@@ -211,7 +211,7 @@ class Menu {
                     Gui.changeStateOfCommand(
                         project,
                         index,
-                        CommandState.ReadyToRetrigger,
+                        CommandState.ReadyToReTrigger,
                         Gui.STATE_READY_TO_BE_TRIGGER
                     )
                 }

@@ -205,7 +205,7 @@ class Releaser(
 
     private fun createCommandPromise(paramObject: ParamObject, command: Command, index: Int): Promise<CommandState> {
         val state = Gui.getCommandState(paramObject.project.id, index)
-        return if (state === CommandState.Ready || state === CommandState.ReadyToRetrigger) {
+        return if (state === CommandState.Ready || state === CommandState.ReadyToReTrigger) {
             triggerCommand(paramObject, command, index)
         } else {
             Promise.resolve(state)

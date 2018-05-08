@@ -15,7 +15,7 @@ object CommandStateAdapter {
     fun toJson(state: CommandState): CommandStateJson = when (state) {
         is CommandState.Waiting -> CommandStateJson(Waiting, state.dependencies)
         CommandState.Ready -> CommandStateJson(Ready)
-        CommandState.ReadyToRetrigger -> CommandStateJson(ReadyToRetrigger)
+        CommandState.ReadyToReTrigger -> CommandStateJson(ReadyToReTrigger)
         CommandState.Queueing -> CommandStateJson(Queueing)
         CommandState.InProgress -> CommandStateJson(InProgress)
         CommandState.Succeeded -> CommandStateJson(Succeeded)
