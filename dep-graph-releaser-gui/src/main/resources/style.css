@@ -478,16 +478,22 @@ input:disabled {
     color: #008000;
 }
 
-#status, #messages {
+#status,
+#messages {
     position: fixed;
     left: 0;
-    right: 0px;
     bottom: 0px;
     max-height: 40%;
     overflow-y: auto;
     padding-left: 15px;
     padding-right: 15px;
-    padding-bottom: 10px;
+}
+#messages {
+    right: 0px;
+}
+#status {
+    display: inline-block;
+    bottom: 10px;
 }
 
 .minimized {
@@ -632,9 +638,18 @@ input:disabled {
     color: #000;
 }
 
-#hideMessages:only-child {
+#hideMessages:first-child:nth-last-child(2) {
     display: none;
 }
+
+#messages .spacing {
+    display: block;
+    padding-bottom: 10px;
+}
+#messages .spacing:nth-child(2) {
+    display: none;
+}
+
 
 #modal {
     position: fixed;
