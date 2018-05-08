@@ -301,6 +301,9 @@ label.toggle input:disabled + .slider {
     background-color: #CDCDCD;
     cursor: not-allowed;
 }
+input:read-only {
+    color: #888;
+}
 input:disabled {
     cursor: not-allowed;
 }

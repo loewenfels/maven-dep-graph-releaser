@@ -264,7 +264,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         value: String,
         inputAct: INPUT.() -> Unit = {}
     ) {
-        textFieldWithLabel(id, label, value, { disabled = true; inputAct() })
+        textFieldWithLabel(id, label, value, { readonly = true; inputAct() })
     }
 
     private fun DIV.textFieldWithLabel(id: String, label: String, value: String, inputAct: INPUT.() -> Unit) {
