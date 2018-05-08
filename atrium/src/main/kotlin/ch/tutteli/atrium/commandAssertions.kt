@@ -13,7 +13,7 @@ import ch.tutteli.atrium.creating.AssertionPlant
 fun Assert<Command>.isStateReady() = property(subject::state).toBe(CommandState.Ready)
 
 fun Assert<Command>.withStateWaitingWithDependencies(dependency: ProjectId, vararg otherDependencies: ProjectId) =
-    withState<CommandState.Waiting> {
+    property(subject::state).isA<CommandState.Waiting> {
         withDependencies(dependency, *otherDependencies)
     }
 
@@ -23,9 +23,6 @@ fun Assert<CommandState.Waiting>.withDependencies(
 ) {
     property(subject::dependencies).contains.inAnyOrder.only.objects(dependency, *otherDependencies)
 }
-
-inline fun <reified T : CommandState> Assert<Command>.withState(noinline assertionCreator: Assert<T>.() -> Unit) =
-    property(subject::state).isA(assertionCreator)
 
 fun Assert<Command>.isJenkinsUpdateDependencyWaiting(dependency: IdAndVersions) {
     isA<JenkinsUpdateDependency> {
