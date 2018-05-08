@@ -7,7 +7,7 @@ buildscript {
         pom_explorer_version = '1.3.19'
         moshi_version = '1.5.0'
         okhttp_version = '3.10.0'
-        kotlin_html_version = '0.6.8'
+        kotlin_html_version = '0.6.10'
         kbox_version = '0.8.0'
 
         atrium_version = '0.6.0'
