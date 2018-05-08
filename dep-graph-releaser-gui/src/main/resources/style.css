@@ -216,7 +216,7 @@ div.title {
 div.title::after,
 div.command > div.fields::after,
 #menu::after, .button::after,
-#dialog .buttons::after {
+#modal .buttons::after {
     content: '';
     display: block;
     clear:both;
@@ -636,7 +636,7 @@ input:disabled {
     display: none;
 }
 
-#dialog {
+#modal {
     position: fixed;
     top: 0;
     bottom: 0;
@@ -646,7 +646,7 @@ input:disabled {
     background-color: #AAAAAA90;
     visibility: hidden;
 }
-#dialog .box {
+#modal .box {
     position: absolute;
     display: inline-block;
     border: 1px solid black;
@@ -667,24 +667,24 @@ input:disabled {
         0 0 20px rgba(0, 0, 0, 0.1) inset;
 }
 
-#dialog .text {
+#modal .text {
     dispay: table
 }
-#dialog .text .material-icons {
+#modal .text .material-icons {
     display: table-cell;
     padding-right: 15px;
     color: #2196F3;
 }
-#dialog .text span {
+#modal .text span {
     display: table-cell;
     vertical-align: top;
 }
 
-#dialog .buttons {
+#modal .buttons {
     margin-top: 15px;
     float: right;
 }
-#dialog .buttons span {
+#modal .buttons span {
     border: 1px solid #AAA;
     border-radius: 3px;
     background-color: #EEE;
@@ -701,4 +701,5 @@ input:disabled {
     box-shadow:
         0 1px 1px rgba(0, 0, 0, 0.3),
         0 0 6px rgba(0, 0, 0, 0.1) inset;
+    display: none;
 }

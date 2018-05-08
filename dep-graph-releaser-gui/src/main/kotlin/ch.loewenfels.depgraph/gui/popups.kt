@@ -6,6 +6,7 @@ import kotlinx.html.js.div
 import org.w3c.dom.HTMLElement
 import kotlin.browser.document
 import kotlin.browser.window
+import kotlin.js.Promise
 
 private var msgCounter = 0
 
@@ -116,23 +117,52 @@ private fun DIV.convertUrlToLinks(message: String) {
 private val urlRegex = Regex("http(?:s)://[^ ]+")
 
 
-fun showDialog(msg: String, callback: (Boolean) -> Unit) {
-    elementById("dialog:text").innerText = msg
-    val dialog = elementById("dialog")
-    dialog.style.visibility = "visible"
+fun showDialog(msg: String): Promise<Boolean> {
+    return Promise { resolve, _ ->
+        showModal(msg) { modal ->
+            display("modal:ok", "none")
+            val yes = elementById("modal:yes")
+            yes.style.display = "inline"
+            yes.addClickEventListener(options = js("{once: true}")) {
+                modal.style.visibility = "hidden"
+                resolve(true)
+            }
+            val no = elementById("modal:no")
+            no.style.display = "inline"
+            no.addClickEventListener(options = js("{once: true}")) {
+                modal.style.visibility = "hidden"
+                resolve(false)
+            }
+        }
+    }
+}
 
-    val box = elementById("dialog:box")
+fun showAlert(msg: String): Promise<Unit> {
+    return Promise { resolve, _ ->
+        showModal(msg) { modal ->
+            display("modal:yes", "none")
+            display("modal:no", "none")
+            val ok = elementById("modal:ok")
+            ok.style.display = "inline"
+            ok.addClickEventListener(options = js("{once: true}")) {
+                modal.style.visibility = "hidden"
+                resolve(Unit)
+            }
+        }
+    }
+}
+
+private fun showModal(msg: String, action: (HTMLElement) -> Unit) {
+    elementById("modal:text").innerText = msg
+    val modal = elementById("modal")
+    modal.style.visibility = "visible"
+
+    action(modal)
+
+    val box = elementById("modal:box")
     val top = document.body!!.clientHeight / 3
-    val left = document.body!!.clientWidth / 2  - box.offsetWidth / 2
+    val left = document.body!!.clientWidth / 2 - box.offsetWidth / 2
     box.style.top = "${top}px"
     box.style.left = "${left}px"
 
-    elementById("dialog:yes").addClickEventListener(options = js("{once: true}")) {
-        dialog.style.visibility = "hidden"
-        callback(true)
-    }
-    elementById("dialog:no").addClickEventListener(options = js("{once: true}")) {
-        dialog.style.visibility = "hidden"
-        callback(false)
-    }
 }

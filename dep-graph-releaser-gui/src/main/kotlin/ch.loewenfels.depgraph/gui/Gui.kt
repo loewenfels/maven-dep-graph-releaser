@@ -358,7 +358,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                     "You cannot set this command to the state $succeeded because not all other commands of this project have $succeeded yet." +
                         "\n\n" +
                         "Do you want to set all other commands forcibly to $succeeded as well?"
-                ) { setAllToSucceeded ->
+                ).then { setAllToSucceeded ->
                     if (setAllToSucceeded) {
                         transitionAllCommandsToSucceeded(project)
                         menu.activateSaveButton()

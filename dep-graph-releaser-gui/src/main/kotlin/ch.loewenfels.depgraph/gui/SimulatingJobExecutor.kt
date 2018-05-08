@@ -1,6 +1,8 @@
 package ch.loewenfels.depgraph.gui
 
 import failAfter
+import stepWise
+import waitBetweenSteps
 import kotlin.js.Promise
 
 class SimulatingJobExecutor : JobExecutor {
@@ -26,18 +28,29 @@ class SimulatingJobExecutor : JobExecutor {
     ): Promise<Pair<CrumbWithId, Int>> {
         return sleep(100) {
             jobQueuedHook("${jobUrl}queuingUrl")
+            informIfStepWise("job $jobName queued")
         }.then {
-            sleep(300) {
+            sleep(waitBetweenSteps) {
                 jobStartedHook(100)
+                informIfStepWise("job $jobName started")
             }
         }.then {
-            sleep(300) {
+            sleep(waitBetweenSteps) {
                 ++count
                 if (count > failAfter) check(false) { count = -3; "simulating a failure for $jobName" }
-                true
+                informIfStepWise("job $jobName ended")
+                    .then { true }
             }
         }.then {
             CrumbWithId("Jenkins-Crumb", "onlySimulation") to 100
+        }
+    }
+
+    private fun informIfStepWise(msg: String): Promise<Unit> {
+        return if (stepWise) {
+            showAlert(msg)
+        } else {
+            Promise.resolve(Unit)
         }
     }
 

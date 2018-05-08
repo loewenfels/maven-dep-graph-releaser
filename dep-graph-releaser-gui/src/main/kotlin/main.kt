@@ -11,3 +11,5 @@ val onlyUsedToCallMain = main()
 
 @JsName("failAfter")
 var failAfter = 1000
+var waitBetweenSteps = 500
+var stepWise = false
