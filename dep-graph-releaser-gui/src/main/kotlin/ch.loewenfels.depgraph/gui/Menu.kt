@@ -33,7 +33,7 @@ class Menu {
         settingsButton.addClickEventListenerIfNotDeactivatedNorDisabled {
             elementById("config").toggleClass("active")
         }
-        elementById("config_close").addClickEventListener {
+        elementById("config:close").addClickEventListener {
             elementById("config").removeClass("active")
         }
     }

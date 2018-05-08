@@ -13,37 +13,37 @@
 <body>
     <div id="gui">
         <div id="menu">
-            <a class="button deactivated" id="user">
+            <span class="button deactivated" id="user">
                 <i class="material-icons" id="user.icon">error</i>
                 <span class="text" id="user.name">Anonymous</span>
-            </a>
-            <a class="button deactivated" id="save" title="Cannot save; most probably javascript was not loaded correctly">
+            </span>
+            <span class="button deactivated" id="save" title="Cannot save; most probably javascript was not loaded correctly">
                 <i class="material-icons">save</i>
                 <span class="text">Save Changes</span>
-            </a>
-            <a class="button deactivated" id="download" title="Cannot download; most probably javascript was not loaded correctly">
+            </span>
+            <span class="button deactivated" id="download" title="Cannot download; most probably javascript was not loaded correctly">
                 <i class="material-icons">file_download</i>
                 <span class="text">Download</span>
-            </a>
-            <a class="button disabled" id="dryRun" title="not yet supported">
+            </span>
+            <span class="button disabled" id="dryRun" title="not yet supported">
                 <i class="material-icons">play_arrow</i>
                 <span class="text">Dry Run</span>
-            </a>
-            <a class="button deactivated" id="release" title="Cannot release; most probably javascript was not loaded correctly">
+            </span>
+            <span class="button deactivated" id="release" title="Cannot release; most probably javascript was not loaded correctly">
                 <i class="material-icons">play_circle_outline</i>
                 <span id="release.text" class="text">Start Release</span>
-            </a>
-            <a class="button" id="explore" title="Cannot explore the release order; most probably javascript was not loaded correctly">
+            </span>
+            <span class="button" id="explore" title="Cannot explore the release order; most probably javascript was not loaded correctly">
                 <i class="material-icons">explore</i>
                 <span id="explore.text" class="text">Explore Release Order</span>
-            </a>
-            <a class="button" id="settings">
+            </span>
+            <span class="button" id="settings">
                 <i class="material-icons">settings</i>
                 <span class="text">Settings</span>
-            </a>
+            </span>
         </div>
         <div id="config">
-            <span id="config_close" class="close" title="close settings"></span>
+            <span id="config:close" class="close" title="close settings"></span>
         </div>
         <div id="pipeline"></div>
     </div>
@@ -88,6 +88,18 @@
     </div>
     <div id="infosMinimized" class="minimized" title="Show additional hints and information from the analysis.">
         <i class="material-icons">info</i>
+    </div>
+    <div id="dialog">
+        <div id="dialog:box" class="box">
+            <div class="text">
+                <i class="material-icons">help_outline</i>
+                <span id="dialog:text">test bla bla</span>
+            </div>
+            <div class="buttons">
+                <span id="dialog:yes">Yes</span>
+                <span id="dialog:no">No</span>
+            </div>
+        </div>
     </div>
 </body>
 </html>

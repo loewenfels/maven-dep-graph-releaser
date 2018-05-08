@@ -20,12 +20,12 @@ fun HTMLTag.getUnderlyingHtmlElement(): HTMLElement {
     return arr[arr.size - 1]
 }
 
-fun HTMLElement.addClickEventListener(action: (Event) -> Any) {
-    this.addEventListener("click", { withErrorHandling(it, action) })
+fun HTMLElement.addClickEventListener(options: dynamic = js("({})"), action: (Event) -> Any) {
+    this.addEventListener("click", { withErrorHandling(it, action) }, options)
 }
 
-fun HTMLElement.addChangeEventListener(action: (Event) -> Any) {
-    this.addEventListener("change", { withErrorHandling(it, action) })
+fun HTMLElement.addChangeEventListener(options: dynamic = js("({})"), action: (Event) -> Any) {
+    this.addEventListener("change", { withErrorHandling(it, action) }, options)
 }
 
 fun HTMLElement.toggleClass(cssClass: String) {

@@ -13,6 +13,7 @@ import ch.tutteli.kbox.forEachIn
 import ch.tutteli.kbox.mapWithIndex
 import kotlinx.html.*
 import kotlinx.html.dom.append
+import kotlinx.html.js.onKeyUpFunction
 import org.w3c.dom.*
 import org.w3c.dom.events.MouseEvent
 import kotlin.browser.document
@@ -90,8 +91,9 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             }
         val stateIcons = document.querySelectorAll(".state")
             .asList()
-            .map { a ->
-                a to (a as HTMLAnchorElement).id.substringBefore(STATE_SUFFIX)
+            .map { aNode ->
+                val a = aNode as HTMLAnchorElement
+                a to a.id.substringBefore(STATE_SUFFIX)
             }
         forEachIn(toggleLabels, stateIcons) { (element, idPrefix) ->
             element.addEventListener("contextmenu", { event ->
@@ -275,8 +277,8 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 this.id = id
                 this.value = value
                 inputAct()
+                onKeyUpFunction = { menu.activateSaveButton() }
                 val input = getUnderlyingHtmlElement() as HTMLInputElement
-                input.addEventListener("keyup", { menu.activateSaveButton() })
                 disableUnDisableForReleaseStartAndEnd(input, input)
             }
         }
@@ -291,8 +293,8 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             textArea {
                 this.id = id
                 +value
+                onKeyUpFunction = { menu.activateSaveButton() }
                 val htmlTextAreaElement = getUnderlyingHtmlElement() as HTMLTextAreaElement
-                htmlTextAreaElement.addEventListener("keyup", { menu.activateSaveButton() })
                 //for what disableUnDisableForReleaseStartAndEnd needs, title and disabled, it is ok to make the unsafe cast
                 //TODO change in case https://github.com/Kotlin/kotlinx.html/issues/87 is implemented
                 val input = htmlTextAreaElement.unsafeCast<HTMLInputElement>()
@@ -351,15 +353,16 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
     private fun transitionToSucceededIfOk(project: Project, index: Int) {
         if (project.commands[index] is ReleaseCommand) {
             if (notAllOtherCommandsSucceeded(project, index)) {
-                val setAllToSucceeded = window.confirm(
-                    "You cannot set this command to the state ${CommandState.Succeeded::class.simpleName} " +
-                        "because not all other commands of this project have succeeded yet." +
+                val succeeded = CommandState.Succeeded::class.simpleName
+                showDialog(
+                    "You cannot set this command to the state $succeeded because not all other commands of this project have $succeeded yet." +
                         "\n\n" +
-                        "Do you want to set all other commands forcibly to ${CommandState.Succeeded::class.simpleName} as well?"
-                )
-                if (setAllToSucceeded) {
-                    transitionAllCommandsToSucceeded(project)
-                    menu.activateSaveButton()
+                        "Do you want to set all other commands forcibly to $succeeded as well?"
+                ) { setAllToSucceeded ->
+                    if (setAllToSucceeded) {
+                        transitionAllCommandsToSucceeded(project)
+                        menu.activateSaveButton()
+                    }
                 }
                 return
             }
@@ -394,7 +397,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                 ) !== CommandState.Succeeded
             }
             || releasePlan.getSubmodules(project.id)
-                .any { notAllOtherCommandsSucceeded(releasePlan.getProject(it), null) }
+            .any { notAllOtherCommandsSucceeded(releasePlan.getProject(it), null) }
     }
 
     private fun DIV.appendJenkinsMavenReleasePluginField(idPrefix: String, command: JenkinsMavenReleasePlugin) {

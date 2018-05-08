@@ -13,14 +13,14 @@ fun showStatus(message: String) {
     elementById("status").innerText = message
 }
 
-fun showSuccess(message: String, autoCloseAfterMs: Int? = null)
-    = showMessageOfType("success", "check_circle", message, autoCloseAfterMs)
+fun showSuccess(message: String, autoCloseAfterMs: Int? = null) =
+    showMessageOfType("success", "check_circle", message, autoCloseAfterMs)
 
-fun showInfo(message: String, autoCloseAfterMs: Int? = null)
-    = showMessageOfType("info", "info_outline", message, autoCloseAfterMs)
+fun showInfo(message: String, autoCloseAfterMs: Int? = null) =
+    showMessageOfType("info", "info_outline", message, autoCloseAfterMs)
 
-fun showWarning(message: String, autoCloseAfterMs: Int? = null)
-    = showMessageOfType("warning", "warning", message, autoCloseAfterMs)
+fun showWarning(message: String, autoCloseAfterMs: Int? = null) =
+    showMessageOfType("warning", "warning", message, autoCloseAfterMs)
 
 fun showError(message: String) = showMessageOfType("error", "error_outline", message, null)
 
@@ -114,3 +114,25 @@ private fun DIV.convertUrlToLinks(message: String) {
 }
 
 private val urlRegex = Regex("http(?:s)://[^ ]+")
+
+
+fun showDialog(msg: String, callback: (Boolean) -> Unit) {
+    elementById("dialog:text").innerText = msg
+    val dialog = elementById("dialog")
+    dialog.style.visibility = "visible"
+
+    val box = elementById("dialog:box")
+    val top = document.body!!.clientHeight / 3
+    val left = document.body!!.clientWidth / 2  - box.offsetWidth / 2
+    box.style.top = "${top}px"
+    box.style.left = "${left}px"
+
+    elementById("dialog:yes").addClickEventListener(options = js("{once: true}")) {
+        dialog.style.visibility = "hidden"
+        callback(true)
+    }
+    elementById("dialog:no").addClickEventListener(options = js("{once: true}")) {
+        dialog.style.visibility = "hidden"
+        callback(false)
+    }
+}
