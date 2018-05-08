@@ -9,7 +9,9 @@ import kotlin.dom.removeClass
 import kotlin.js.Promise
 
 /**
- * Hack to get the underlying [HTMLElement] of the the given [HTMLTag].
+ * Hack to get the underlying [HTMLElement] of the the given [HTMLTag]. Fails if
+ * a) downstream is renamed (is a private field)
+ * b) variable mangling process changes in kotlin, then it might use another name than path_0
  */
 fun HTMLTag.getUnderlyingHtmlElement(): HTMLElement {
     var d = this.consumer.asDynamic()
