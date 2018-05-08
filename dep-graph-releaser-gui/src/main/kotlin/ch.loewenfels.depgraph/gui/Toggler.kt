@@ -2,6 +2,7 @@ package ch.loewenfels.depgraph.gui
 
 import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.gui.Gui.Companion.disableUnDisableForReleaseStartAndEnd
+import ch.tutteli.kbox.mapWithIndex
 import org.w3c.dom.CustomEvent
 import org.w3c.dom.CustomEventInit
 import org.w3c.dom.HTMLInputElement
@@ -119,7 +120,7 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
             projectIds.forEach { (projectId, dependentId) ->
                 releasePlan.getProject(dependentId).commands
-                    .mapIndexed { i, t -> i to t }
+                    .mapWithIndex()
                     .filter { (_, command) ->
                         // release command will get deactivated automatically via deactivation dependency update
                         if (command is ReleaseCommand) return@filter false

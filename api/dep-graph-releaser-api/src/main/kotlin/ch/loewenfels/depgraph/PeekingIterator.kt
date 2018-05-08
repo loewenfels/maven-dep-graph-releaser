@@ -1,11 +1,7 @@
 package ch.loewenfels.depgraph
 
 import ch.loewenfels.depgraph.data.Project
+//import ch.tutteli.kbox.PeekingIterator
 
-expect class PeekingIterator<out T>(itr: Iterator<T>) : Iterator<T> {
-    fun peek(): T
-}
-
-fun <T> Iterator<T>.toPeekingIterator() = PeekingIterator(this)
-
-fun PeekingIterator<Project>.hasNextOnTheSameLevel(level: Int) = hasNext() && level == peek().level
+//TODO should be here but does not seem to work
+//fun PeekingIterator<Project>.hasNextOnTheSameLevel(level: Int) = hasNext() && level == peek().level

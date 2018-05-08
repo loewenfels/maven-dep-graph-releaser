@@ -5,6 +5,7 @@ import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
+import ch.tutteli.kbox.mapWithIndex
 import org.w3c.dom.HTMLAnchorElement
 import kotlin.browser.window
 import kotlin.collections.set
@@ -159,8 +160,8 @@ class Releaser(
     private fun triggerNonReleaseCommandsInclSubmoduleCommands(paramObject: ParamObject): Promise<CommandState> {
         return paramObject.project.commands
             .asSequence()
-            .mapIndexed { i, t -> i to t }
-            .filter { it.second !is ReleaseCommand }
+            .mapWithIndex()
+            .filter { it.value !is ReleaseCommand }
             .doSequentially(mutableListOf()) { (index, command) ->
                 createCommandPromise(paramObject, command, index)
             }.then { jobsResults ->
@@ -193,8 +194,8 @@ class Releaser(
     private fun triggerReleaseCommands(paramObject: ParamObject): Promise<CommandState> {
         return paramObject.project.commands
             .asSequence()
-            .mapIndexed { i, t -> i to t }
-            .filter { it.second is ReleaseCommand }
+            .mapWithIndex()
+            .filter { it.value is ReleaseCommand }
             .doSequentially(mutableListOf()) { (index, command) ->
                 createCommandPromise(paramObject, command, index)
             }.then { jobsResults ->

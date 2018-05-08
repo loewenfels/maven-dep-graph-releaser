@@ -8,9 +8,9 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.hasNextOnTheSameLevel
-import ch.loewenfels.depgraph.toPeekingIterator
 import ch.tutteli.kbox.forEachIn
 import ch.tutteli.kbox.mapWithIndex
+import ch.tutteli.kbox.toPeekingIterator
 import kotlinx.html.*
 import kotlinx.html.dom.append
 import kotlinx.html.js.onKeyUpFunction
