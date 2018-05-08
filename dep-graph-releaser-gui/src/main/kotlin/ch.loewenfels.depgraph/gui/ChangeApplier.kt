@@ -46,7 +46,7 @@ object ChangeApplier {
         val input = getTextField(Gui.RELEASE_ID_HTML_ID)
         if (releasePlanJson.releaseId != input.value) {
             check(input.value.isNotBlank()) {
-                "An empty or blank PublishId is not allowed"
+                "An empty or blank ReleaseId is not allowed"
             }
             releasePlanJson.releaseId = input.value
             changed = true
