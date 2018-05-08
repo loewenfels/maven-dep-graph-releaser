@@ -9,7 +9,7 @@ object JenkinsRemoteM2Release : ConsoleCommand {
     override val name = "remoteRelease"
     override val description = "releases a project by triggering the m2 release plugin on a remote jenkins."
     override val example =
-        "./$name https://example.com/jenkins user pass 3 5 60 10 300 branch.name=master myJob 1.0 1.1-SNAPSHOT"
+        "./dgr $name https://example.com/jenkins user pass 3 5 60 10 300 branch.name=master myJob 1.0 1.1-SNAPSHOT"
     override val arguments = """
         |$name requires the following arguments in the given order:
         |jenkinsBaseUrl                // e.g. https://mydomain.org/jenkins

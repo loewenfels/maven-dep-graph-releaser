@@ -20,7 +20,7 @@ object Json : ConsoleCommand {
 
     override val name = "json"
     override val description = "analyse projects, create a release plan and serialize it to json"
-    override val example = "./produce $name com.example example-project ./repo ./release.json " +
+    override val example = "./dgr $name com.example example-project ./repo ./release.json " +
         "dgr-updater \"^.*\" dgr-remote-releaser " +
         "$REGEX_PARAMS_ARG\".*#branch.name=master\" $DISABLE_RELEASE_FOR\"ch\\.loewenfels:dist.*\" " +
         "$JOB_MAPPING_ARG=com.example:a=exampleA|ch.loewenfels:dgr-1=apnoea-test-1 $MAVEN_PARENT_ANALYSIS_OFF"

@@ -11,7 +11,7 @@ class Man(private val commands: Map<String, ConsoleCommand>) : ConsoleCommand {
     }
     override val name = "man"
     override val description = "shows kind of a man page of one or all available commands"
-    override val example = "./produce $name -command=html"
+    override val example = "./dgr $name -command=html"
     override val arguments = """
         |$name requires the following arguments in the given order:
         |(${COMMAND}json)   // optionally: the command to show, shows all if not provided
