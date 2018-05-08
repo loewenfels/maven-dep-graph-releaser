@@ -304,7 +304,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
     }
 
     private fun DIV.fieldsForCommand(idPrefix: String, project: Project, index: Int, command: Command) {
-        val cssClass = if (command is ReleaseCommand) " release" else ""
+        val cssClass = if (command is ReleaseCommand) "release" else ""
 
         toggle(
             "$idPrefix$DEACTIVATE_SUFFIX",
