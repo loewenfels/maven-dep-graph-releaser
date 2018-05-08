@@ -15,15 +15,15 @@ dependencies {
 
 task dist {
     def outputDir = "${project.buildDir}/dist"
-    def bats = file("src/main/").listFiles().findAll{ it.name.endsWith(".bat") }
+    def batAndShs = file("src/main/").listFiles().findAll{ it.name.endsWith(".bat") || it.name.endsWith(".sh") }
     outputs.dir outputDir
-    inputs.files bats
+    inputs.files batAndShs
     inputs.files jar.outputs.files
     inputs.files sourceSets.main.runtimeClasspath
 
     doLast {
         copy {
-            from bats
+            from batAndShs
             into outputDir
         }
         copy {

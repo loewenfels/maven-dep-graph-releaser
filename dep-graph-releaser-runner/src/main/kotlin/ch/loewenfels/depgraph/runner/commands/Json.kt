@@ -38,12 +38,12 @@ object Json : ConsoleCommand {
         |(${REGEX_PARAMS_ARG}spec)       // optionally: parameters of the form regex#a=b;c=d${'$'}.*#e=f where the regex
         |                          // defines for which job the parameters shall apply. Multiple regex can be
         |                          // specified. In the above, .* matches all, so every job gets e=f as argument.
-        |(${DISABLE_RELEASE_FOR}Regex) // optionally: regex specifying for which projects
-        |               the release commands have to be disabled
-        |$JOB_MAPPING_ARG=spec           // optionally: in case a jenkins job differ from its artifact name,
-        |                                // you can use this mapping which is of the form:
-        |                                // groupId:artifactId1=jobName1|groupId:artifactId2=anotherName
-        |($MAVEN_PARENT_ANALYSIS_OFF)    // optionally: turns missing parent analysis off
+        |(${DISABLE_RELEASE_FOR}Regex)     // optionally: regex specifying for which projects
+        |                          // the release commands have to be disabled
+        |$JOB_MAPPING_ARG=spec         // optionally: in case a jenkins job differ from its artifact name,
+        |                          // you can use this mapping which is of the form:
+        |                          // groupId:artifactId1=jobName1|groupId:artifactId2=anotherName
+        |($MAVEN_PARENT_ANALYSIS_OFF)                  // optionally: turns missing parent analysis off
         """.trimMargin()
     }
 
