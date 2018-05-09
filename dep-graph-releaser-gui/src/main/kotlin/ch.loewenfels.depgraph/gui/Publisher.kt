@@ -18,7 +18,7 @@ class Publisher(
             doNothingPromise,
             doNothingPromise,
             pollEverySecond = 2,
-            maxWaitingTimeForCompleteness = 20,
+            maxWaitingTimeForCompletenessInSeconds = 20,
             verbose = verbose
         ).then { (crumbWithId, buildNumber) ->
             extractResultJsonUrl(jobExecutor, crumbWithId, publishJobUrl, buildNumber).then {

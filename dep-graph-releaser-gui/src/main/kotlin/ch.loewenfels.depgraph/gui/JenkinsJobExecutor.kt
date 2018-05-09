@@ -16,7 +16,7 @@ class JenkinsJobExecutor(
         jobQueuedHook: (queuedItemUrl: String) -> Promise<*>,
         jobStartedHook: (buildNumber: Int) -> Promise<*>,
         pollEverySecond: Int,
-        maxWaitingTimeForCompleteness: Int,
+        maxWaitingTimeForCompletenessInSeconds: Int,
         verbose: Boolean
     ): Promise<Pair<CrumbWithId, Int>> {
         return issueCrumb(jenkinsUrl).then { crumbWithId: CrumbWithId? ->
@@ -38,7 +38,7 @@ class JenkinsJobExecutor(
                     }
                     jobStartedHook(buildNumber).then {
                         pollJobForCompletion(
-                            crumbWithId, jobUrl, buildNumber, pollEverySecond, maxWaitingTimeForCompleteness
+                            crumbWithId, jobUrl, buildNumber, pollEverySecond, maxWaitingTimeForCompletenessInSeconds
                         )
                     }.then { result -> buildNumber to result }
                 }.then { (buildNumber, result) ->
@@ -128,11 +128,11 @@ class JenkinsJobExecutor(
         jobUrl: String,
         buildNumber: Int,
         pollEverySecond: Int,
-        maxWaitingTime: Int
+        maxWaitingTimeInSeconds: Int
     ): Promise<String> {
         return sleep(pollEverySecond * 500) {
             poll(
-                crumbWithId, "$jobUrl$buildNumber/api/xml?xpath=/*/result", 0, pollEverySecond, maxWaitingTime
+                crumbWithId, "$jobUrl$buildNumber/api/xml?xpath=/*/result", 0, pollEverySecond, maxWaitingTimeInSeconds
             ) { body ->
                 val matchResult = resultRegex.matchEntire(body)
                 if (matchResult != null) {
@@ -149,18 +149,18 @@ class JenkinsJobExecutor(
         pollUrl: String,
         numberOfTries: Int,
         pollEverySecond: Int,
-        maxWaitingTime: Int,
+        maxWaitingTimeInSeconds: Int,
         action: (String) -> Pair<Boolean, T?>
     ): Promise<T> {
         val headers = createHeaderWithAuthAndCrumb(crumbWithId, usernameToken)
         val init = createRequestInit(null, RequestVerb.GET, headers)
 
         val rePoll: (String) -> T = { body ->
-            if (numberOfTries * pollEverySecond >= maxWaitingTime) {
-                throw PollException("Waited at least $maxWaitingTime seconds", body)
+            if (numberOfTries * pollEverySecond >= maxWaitingTimeInSeconds) {
+                throw PollException("Waited at least $maxWaitingTimeInSeconds seconds", body)
             }
             val p = sleep(pollEverySecond * 1000) {
-                poll(crumbWithId, pollUrl, numberOfTries + 1, pollEverySecond, maxWaitingTime, action)
+                poll(crumbWithId, pollUrl, numberOfTries + 1, pollEverySecond, maxWaitingTimeInSeconds, action)
             }
             // unsafeCast is used because javascript resolves the result automatically on return
             // will not result in Promise<Promise<T>> but T

@@ -23,7 +23,7 @@ class SimulatingJobExecutor : JobExecutor {
         jobQueuedHook: (queuedItemUrl: String) -> Promise<*>,
         jobStartedHook: (buildNumber: Int) -> Promise<*>,
         pollEverySecond: Int,
-        maxWaitingTimeForCompleteness: Int,
+        maxWaitingTimeForCompletenessInSeconds: Int,
         verbose: Boolean
     ): Promise<Pair<CrumbWithId, Int>> {
         return sleep(100) {

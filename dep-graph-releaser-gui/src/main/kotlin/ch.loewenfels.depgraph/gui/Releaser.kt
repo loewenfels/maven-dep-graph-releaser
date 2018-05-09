@@ -290,7 +290,7 @@ class Releaser(
                 Promise.resolve(1)
             },
             pollEverySecond = 10,
-            maxWaitingTimeForCompleteness = 60 * 15,
+            maxWaitingTimeForCompletenessInSeconds = 60 * 15,
             verbose = false
         ).then(
             { CommandState.Succeeded to Gui.STATE_SUCCEEDED },
