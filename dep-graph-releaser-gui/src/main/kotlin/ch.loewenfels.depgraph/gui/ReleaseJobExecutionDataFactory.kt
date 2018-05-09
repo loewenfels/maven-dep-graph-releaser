@@ -9,12 +9,13 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
 
 class ReleaseJobExecutionDataFactory(
-    private val jenkinsUrl: String,
-    private val releasePlan: ReleasePlan
-) : JobExecutionDataFactory {
+    jenkinsUrl: String,
+    releasePlan: ReleasePlan
+) : BaseJobExecutionDataFactory(jenkinsUrl, releasePlan) {
 
     private val regexParametersList: List<Pair<Regex, String>>
     private val jobMapping: Map<String, String>
+
     init {
         checkConfig(releasePlan.config)
         regexParametersList = parseRegexParameters()
@@ -28,14 +29,8 @@ class ReleaseJobExecutionDataFactory(
         requireConfigEntry(config, ConfigKey.COMMIT_PREFIX)
     }
 
-    private fun requireConfigEntry(config: Map<ConfigKey, String>, key: ConfigKey) {
-        require(config.containsKey(key)) {
-            "$key is not defined in settings"
-        }
-    }
-
     private fun parseRegexParameters(): List<Pair<Regex, String>> {
-        val regexParameters = releasePlan.getConfig(ConfigKey.REGEX_PARAMS)
+        val regexParameters = getConfig(ConfigKey.REGEX_PARAMS)
         return if (regexParameters.isNotEmpty()) {
             regexParameters.splitToSequence("$")
                 .map { pair ->
@@ -90,31 +85,22 @@ class ReleaseJobExecutionDataFactory(
         return jobMapping[mavenProjectId.identifier] ?: mavenProjectId.artifactId
     }
 
-    private fun getConfig(key: ConfigKey) = releasePlan.getConfig(key)
-
     override fun create(project: Project, command: Command): JobExecutionData {
         return when (command) {
-            is JenkinsUpdateDependency -> triggerUpdateDependency(project,  command)
+            is JenkinsUpdateDependency -> triggerUpdateDependency(project, command)
             is M2ReleaseCommand -> triggerRelease(project, command)
             else -> throw UnsupportedOperationException("We do not (yet) support the command: $command")
         }
     }
 
-
-    private fun triggerUpdateDependency(
-        project: Project,
-        command: JenkinsUpdateDependency
-    ): JobExecutionData {
-        val jobUrl = "$jenkinsUrl/job/${getConfig(ConfigKey.UPDATE_DEPENDENCY_JOB)}"
+    private fun triggerUpdateDependency(project: Project, command: JenkinsUpdateDependency): JobExecutionData {
+        val jobUrl = getJobUrl(ConfigKey.UPDATE_DEPENDENCY_JOB)
         val jobName = "update dependency of ${project.id.identifier}"
         val params = createUpdateDependencyParams(project, command)
         return JobExecutionData.buildWithParameters(jobName, jobUrl, params)
     }
 
-    private fun createUpdateDependencyParams(
-        project: Project,
-        command: JenkinsUpdateDependency
-    ): String {
+    private fun createUpdateDependencyParams(project: Project, command: JenkinsUpdateDependency): String {
         val dependency = releasePlan.getProject(command.projectId)
         val dependencyMavenProjectId = dependency.id as MavenProjectId
         return "pathToProject=${project.relativePath}" +
@@ -147,10 +133,10 @@ class ReleaseJobExecutionDataFactory(
 
         val jobName = getJobName(project)
         return if (regex.matches(project.id.identifier)) {
-            "$jenkinsUrl/job/${getConfig(ConfigKey.REMOTE_JOB)}" to
+            getJobUrl(ConfigKey.REMOTE_JOB) to
                 "$params&jobName=$jobName&parameters=${relevantParams.joinToString(";")}"
         } else {
-            "$jenkinsUrl/job/$jobName" to
+            getJobUrl(jobName) to
                 "$params&${relevantParams.joinToString("&")}}"
         }
     }

@@ -151,7 +151,15 @@ class App {
                 val jenkinsJobExecutor = JenkinsJobExecutor(jenkinsUrl, usernameToken)
                 val simulatingJobExecutor = SimulatingJobExecutor()
                 val releaseJobExecutionDataFactory = ReleaseJobExecutionDataFactory(jenkinsUrl, releasePlan)
-                Menu.Dependencies(publisher, releaser, jenkinsJobExecutor, simulatingJobExecutor, releaseJobExecutionDataFactory)
+                val dryRunJobExecutionDataFactory = DryRunJobExecutionDataFactory(jenkinsUrl, releasePlan)
+                Menu.Dependencies(
+                    publisher,
+                    releaser,
+                    jenkinsJobExecutor,
+                    simulatingJobExecutor,
+                    releaseJobExecutionDataFactory,
+                    dryRunJobExecutionDataFactory
+                )
             } else {
                 null
             }

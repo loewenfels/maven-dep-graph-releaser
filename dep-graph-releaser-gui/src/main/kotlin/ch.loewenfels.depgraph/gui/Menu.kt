@@ -27,7 +27,7 @@ class Menu {
     private val settingsButton get() = elementById("settings")
 
     private var publisher: Publisher? = null
-    private var simulation = false
+    private var typeOfRun = TypeOfRun.SIMULATION
 
     init {
         settingsButton.addClickEventListenerIfNotDeactivatedNorDisabled {
@@ -113,19 +113,21 @@ class Menu {
         }
     }
 
-    private fun initRunButtons(
-        releasePlan: ReleasePlan,
-        dependencies: Dependencies?,
-        modifiableJson: ModifiableJson
-    ) {
+    private fun initRunButtons(releasePlan: ReleasePlan, dependencies: Dependencies?, modifiableJson: ModifiableJson) {
         if (dependencies != null) {
 
+            activateDryRunButton()
             dryRunButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                //TODO implement
+                typeOfRun = TypeOfRun.DRY_RUN
+                triggerRelease(
+                    releasePlan,
+                    dependencies,
+                    dependencies.jenkinsJobExecutor,
+                    dependencies.dryRunExecutionDataFactory)
             }
             activateReleaseButton()
             releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                simulation = false
+                typeOfRun = TypeOfRun.RELEASE
                 triggerRelease(
                     releasePlan,
                     dependencies,
@@ -147,7 +149,7 @@ class Menu {
         )!!
 
         exploreButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-            simulation = true
+            typeOfRun = TypeOfRun.SIMULATION
             publisher = nonNullDependencies.publisher
             triggerRelease(
                 releasePlan,
@@ -182,13 +184,14 @@ class Menu {
                         "\nAt least one job failed. Check errors, fix them and then you can re-trigger the failed jobs, the pipeline respectively, by clicking on the release button." +
                         "\n(You might have to delete git tags and remove artifacts if they have already been created)."
                 )
-                val (button, buttonText) = if (simulation) {
-                    exploreButton to elementById("explore.text")
-                } else {
-                    releaseButton to elementById("release.text")
+
+                val (processName, button, buttonText) = when(typeOfRun){
+                    Menu.TypeOfRun.SIMULATION -> Triple("Explore Release Order", exploreButton, elementById("explore:text"))
+                    Menu.TypeOfRun.DRY_RUN -> Triple("Dry Run", dryRunButton, elementById("dryRun:text"))
+                    Menu.TypeOfRun.RELEASE -> Triple("Release", releaseButton, elementById("release:text"))
                 }
                 buttonText.innerText = "Re-trigger failed Jobs"
-                button.title = "Continue with the release process by re-triggering previously failed jobs."
+                button.title = "Continue with the $processName process by re-triggering previously failed jobs."
                 button.removeClass(DISABLED)
             }
         }
@@ -275,6 +278,14 @@ class Menu {
         }
     }
 
+    private fun activateDryRunButton() {
+        if (dryRunButton.isDisabled()) return
+
+        dryRunButton.removeClass(DEACTIVATED)
+        dryRunButton.title = "Start a dry run based on this release plan (no commit will be made, no artifact deployed etc.)."
+    }
+
+
     private fun activateReleaseButton() {
         if (releaseButton.isDisabled()) return
 
@@ -351,6 +362,13 @@ class Menu {
         val releaser: Releaser,
         val jenkinsJobExecutor: JobExecutor,
         val simulatingJobExecutor: JobExecutor,
-        val releaseJobExecutionDataFactory: JobExecutionDataFactory
+        val releaseJobExecutionDataFactory: JobExecutionDataFactory,
+        val dryRunExecutionDataFactory: JobExecutionDataFactory
     )
+
+    private enum class TypeOfRun{
+        SIMULATION,
+        DRY_RUN,
+        RELEASE
+    }
 }
