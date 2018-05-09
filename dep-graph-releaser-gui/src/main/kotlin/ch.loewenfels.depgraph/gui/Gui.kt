@@ -71,6 +71,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
                     ConfigKey.UPDATE_DEPENDENCY_JOB,
                     ConfigKey.REMOTE_REGEX,
                     ConfigKey.REMOTE_JOB,
+                    ConfigKey.DRY_RUN_JOB,
                     ConfigKey.REGEX_PARAMS
                 ).forEach { key ->
                     textFieldWithLabel("config-${key.asString()}", key.asString(), config[key] ?: "")

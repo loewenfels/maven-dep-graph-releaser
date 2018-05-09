@@ -53,6 +53,7 @@ object MainSpec : Spek({
                     "dgr-updater",
                     ".*",
                     "dgr-remote-releaser",
+                    "dgr-dry-run",
                     MAVEN_PARENT_ANALYSIS_OFF
                 )
                 it("creates a corresponding json file") {
@@ -106,7 +107,8 @@ private fun callJson(tempFolder: TempFolder): File {
         jsonFile.absolutePath,
         "dgr-updater",
         ".*",
-        "dgr-remote-releaser"
+        "dgr-remote-releaser",
+        "dgr-dry-run"
     )
     return jsonFile
 }

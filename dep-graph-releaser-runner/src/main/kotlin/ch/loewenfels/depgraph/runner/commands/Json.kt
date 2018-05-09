@@ -21,7 +21,7 @@ object Json : ConsoleCommand {
     override val name = "json"
     override val description = "analyse projects, create a release plan and serialize it to json"
     override val example = "./dgr $name com.example example-project ./repo ./release.json " +
-        "dgr-updater \"^.*\" dgr-remote-releaser " +
+        "dgr-updater \"^.*\" dgr-remote-releaser dgr-dry-run " +
         "$REGEX_PARAMS_ARG\".*#branch.name=master\" $DISABLE_RELEASE_FOR\"ch\\.loewenfels:dist.*\" " +
         "$JOB_MAPPING_ARG=com.example:a=exampleA|ch.loewenfels:dgr-1=apnoea-test-1 $MAVEN_PARENT_ANALYSIS_OFF"
 
@@ -35,6 +35,7 @@ object Json : ConsoleCommand {
         |${ConfigKey.UPDATE_DEPENDENCY_JOB.asString()}       // the name of the update dependency job
         |${ConfigKey.REMOTE_REGEX.asString()}               // regex which specifies which projects are released remotely
         |${ConfigKey.REMOTE_JOB.asString()}                 // the job which triggers the remote build
+        |${ConfigKey.DRY_RUN_JOB.asString()}                  // the job which executes a dry run
         |(${REGEX_PARAMS_ARG}spec)       // optionally: parameters of the form regex#a=b;c=d${'$'}.*#e=f where the regex
         |                          // defines for which job the parameters shall apply. Multiple regex can be
         |                          // specified. In the above, .* matches all, so every job gets e=f as argument.
@@ -47,13 +48,13 @@ object Json : ConsoleCommand {
         """.trimMargin()
     }
 
-    override fun numOfArgsNotOk(number: Int) = number < 8 || number > 11
+    override fun numOfArgsNotOk(number: Int) = number < 9 || number > 12
 
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
         val (_, groupId, artifactId, unsafeDirectoryToAnalyse, jsonFile) = args
         val afterFirst5 = args.drop(5)
-        val (updateDependencyJob, remoteRegex, remoteJob) = afterFirst5
-        val optionalArgs = afterFirst5.drop(3).toOptionalArgs(
+        val (updateDependencyJob, remoteRegex, remoteJob, dryRunJob) = afterFirst5
+        val optionalArgs = afterFirst5.drop(4).toOptionalArgs(
             errorHandler,
             REGEX_PARAMS_ARG, DISABLE_RELEASE_FOR, JOB_MAPPING_ARG, MAVEN_PARENT_ANALYSIS_OFF
         )
@@ -94,6 +95,7 @@ object Json : ConsoleCommand {
             ConfigKey.UPDATE_DEPENDENCY_JOB to updateDependencyJob,
             ConfigKey.REMOTE_JOB to remoteJob,
             ConfigKey.REMOTE_REGEX to remoteRegex,
+            ConfigKey.DRY_RUN_JOB to dryRunJob,
             ConfigKey.REGEX_PARAMS to (regexParameters ?: ""),
             ConfigKey.JOB_MAPPING to (jobMapping ?: "")
         )

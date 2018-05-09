@@ -3,8 +3,9 @@ package ch.loewenfels.depgraph
 enum class ConfigKey(private val key: kotlin.String) {
     COMMIT_PREFIX("commitPrefix"),
     UPDATE_DEPENDENCY_JOB("updateDependencyJob"),
-    REMOTE_REGEX("remoteRegex"),
     REMOTE_JOB("remoteJob"),
+    REMOTE_REGEX("remoteRegex"),
+    DRY_RUN_JOB("dryRunJob"),
     REGEX_PARAMS("regexParams"),
     JOB_MAPPING("jobMapping"),
     ;
