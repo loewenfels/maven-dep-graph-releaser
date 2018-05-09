@@ -17,17 +17,16 @@ class SimulatingJobExecutor : JobExecutor {
     }
 
     override fun trigger(
-        jobUrl: String,
-        jobName: String,
-        body: String,
+        jobExecutionData: JobExecutionData,
         jobQueuedHook: (queuedItemUrl: String) -> Promise<*>,
         jobStartedHook: (buildNumber: Int) -> Promise<*>,
         pollEverySecond: Int,
         maxWaitingTimeForCompletenessInSeconds: Int,
         verbose: Boolean
     ): Promise<Pair<CrumbWithId, Int>> {
+        val jobName = jobExecutionData.jobName
         return sleep(100) {
-            jobQueuedHook("${jobUrl}queuingUrl")
+            jobQueuedHook("${jobExecutionData.jobBaseUrl}queuingUrl")
             informIfStepWiseAndNotPublish("job $jobName queued", jobName)
         }.then {
             sleep(waitBetweenSteps) {

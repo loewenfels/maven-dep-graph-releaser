@@ -10,11 +10,14 @@ class Publisher(
 
     fun publish(fileName: String, verbose: Boolean, jobExecutor: JobExecutor): Promise<*> {
         changeCursorToProgress()
-        val body = "fileName=$fileName&json=${modifiableJson.json}"
         val doNothingPromise: (Any) -> Promise<*> = { Promise.resolve(1) }
+        val jobExecutionData = JobExecutionData.buildWithParameters(
+            "publish $fileName.json",
+            publishJobUrl,
+            "fileName=$fileName&json=${modifiableJson.json}"
+        )
         return jobExecutor.trigger(
-            publishJobUrl, "publish $fileName.json",
-            body,
+            jobExecutionData,
             doNothingPromise,
             doNothingPromise,
             pollEverySecond = 2,

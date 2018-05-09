@@ -5,9 +5,7 @@ import kotlin.js.Promise
 interface JobExecutor {
 
     fun trigger(
-        jobUrl: String,
-        jobName: String,
-        body: String,
+        jobExecutionData: JobExecutionData,
         jobQueuedHook: (queuedItemUrl: String) -> Promise<*>,
         jobStartedHook: (buildNumber: Int) -> Promise<*>,
         pollEverySecond: Int,

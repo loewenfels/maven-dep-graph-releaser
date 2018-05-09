@@ -213,22 +213,20 @@ class Releaser(
     }
 
     private fun triggerCommand(paramObject: ParamObject, command: Command, index: Int): Promise<CommandState> {
-        return when (command) {
-            is JenkinsUpdateDependency -> triggerUpdateDependency(paramObject, command, index)
+
+        val jobExecutionData = when (command) {
+            is JenkinsUpdateDependency -> triggerUpdateDependency(paramObject, command)
             is M2ReleaseCommand -> triggerRelease(paramObject, command, index)
             else -> throw UnsupportedOperationException("We do not (yet) support the command: $command")
         }
+        return triggerJob(paramObject, index, jobExecutionData)
     }
 
-    private fun triggerUpdateDependency(
-        paramObject: ParamObject,
-        command: JenkinsUpdateDependency,
-        index: Int
-    ): Promise<CommandState> {
+    private fun triggerUpdateDependency(paramObject: ParamObject, command: JenkinsUpdateDependency): JobExecutionData {
         val jobUrl = "$jenkinsUrl/job/${paramObject.getConfig(ConfigKey.UPDATE_DEPENDENCY_JOB)}"
         val jobName = "update dependency of ${paramObject.project.id.identifier}"
         val params = createUpdateDependencyParams(paramObject, command)
-        return triggerJob(paramObject, jobUrl, jobName, params, index)
+        return JobExecutionData.buildWithParameters(jobName, jobUrl, params)
     }
 
     private fun createUpdateDependencyParams(paramObject: ParamObject, command: JenkinsUpdateDependency): String {
@@ -242,9 +240,14 @@ class Releaser(
             "&releaseId=${paramObject.releasePlan.releaseId}"
     }
 
-    private fun triggerRelease(paramObject: ParamObject, command: M2ReleaseCommand, index: Int): Promise<CommandState> {
+    private fun triggerRelease(paramObject: ParamObject, command: M2ReleaseCommand, index: Int): JobExecutionData {
         val (jobUrl, params) = determineJobUrlAndParams(paramObject, command)
-        return triggerJob(paramObject, jobUrl, "release ${paramObject.project.id.identifier}", params, index)
+        //TODO that is actually wrong, if it is a local build, then we should use m2 trigger and not buildWithParameters
+        return JobExecutionData.buildWithParameters(
+            "release ${paramObject.project.id.identifier}",
+            jobUrl,
+            params
+        )
     }
 
     private fun determineJobUrlAndParams(paramObject: ParamObject, command: M2ReleaseCommand): Pair<String, String> {
@@ -269,15 +272,12 @@ class Releaser(
 
     private fun triggerJob(
         paramObject: ParamObject,
-        jobUrl: String,
-        jobName: String,
-        params: String,
-        index: Int
+        index: Int,
+        jobExecutionData: JobExecutionData
     ): Promise<CommandState> {
         val project = paramObject.project
-        val jobUrlWithSlash = if (jobUrl.endsWith("/")) jobUrl else "$jobUrl/"
         changeCursorToProgress()
-        return paramObject.jobExecutor.trigger(jobUrlWithSlash, jobName, params,
+        return paramObject.jobExecutor.trigger(jobExecutionData,
             { queuedItemUrl ->
                 Gui.changeStateOfCommandAndAddBuildUrl(
                     project, index, CommandState.Queueing, Gui.STATE_QUEUEING, queuedItemUrl
@@ -285,7 +285,7 @@ class Releaser(
                 save(paramObject)
             }, { buildNumber ->
                 Gui.changeStateOfCommandAndAddBuildUrl(
-                    project, index, CommandState.InProgress, Gui.STATE_IN_PROGRESS, "$jobUrlWithSlash$buildNumber/"
+                    project, index, CommandState.InProgress, Gui.STATE_IN_PROGRESS, "${jobExecutionData.jobBaseUrl}$buildNumber/"
                 )
                 Promise.resolve(1)
             },
@@ -295,7 +295,7 @@ class Releaser(
         ).then(
             { CommandState.Succeeded to Gui.STATE_SUCCEEDED },
             { t ->
-                showThrowable(Error("Job $jobName failed", t))
+                showThrowable(Error("Job ${jobExecutionData.jobName} failed", t))
                 val state = elementById<HTMLAnchorElement>("${Gui.getCommandId(project, index)}${Gui.STATE_SUFFIX}")
                 val suffix = "console#footer"
                 if (!state.href.endsWith(suffix)) {

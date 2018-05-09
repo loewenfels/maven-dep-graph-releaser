@@ -10,17 +10,16 @@ class JenkinsJobExecutor(
 ) : JobExecutor {
 
     override fun trigger(
-        jobUrl: String,
-        jobName: String,
-        body: String,
+        jobExecutionData: JobExecutionData,
         jobQueuedHook: (queuedItemUrl: String) -> Promise<*>,
         jobStartedHook: (buildNumber: Int) -> Promise<*>,
         pollEverySecond: Int,
         maxWaitingTimeForCompletenessInSeconds: Int,
         verbose: Boolean
     ): Promise<Pair<CrumbWithId, Int>> {
+        val jobName = jobExecutionData.jobName
         return issueCrumb(jenkinsUrl).then { crumbWithId: CrumbWithId? ->
-            triggerJob(crumbWithId, jobUrl, body)
+            triggerJob(crumbWithId, jobExecutionData)
                 .then { response ->
                     checkStatusAndExtractQueuedItemUrl(response, jobName)
                 }.catch {
@@ -38,13 +37,13 @@ class JenkinsJobExecutor(
                     }
                     jobStartedHook(buildNumber).then {
                         pollJobForCompletion(
-                            crumbWithId, jobUrl, buildNumber, pollEverySecond, maxWaitingTimeForCompletenessInSeconds
+                            crumbWithId, jobExecutionData.jobBaseUrl, buildNumber, pollEverySecond, maxWaitingTimeForCompletenessInSeconds
                         )
                     }.then { result -> buildNumber to result }
                 }.then { (buildNumber, result) ->
                     check(result == SUCCESS) {
                         "$jobName failed, job did not end with status $SUCCESS but $result." +
-                            "\nVisit $jobUrl$buildNumber for further information"
+                            "\nVisit ${jobExecutionData.jobBaseUrl}$buildNumber for further information"
                     }
                     crumbWithId to buildNumber
                 }
@@ -79,11 +78,11 @@ class JenkinsJobExecutor(
             }
     }
 
-    private fun triggerJob(crumbWithId: CrumbWithId?, jobUrl: String, body: String): Promise<Response> {
+    private fun triggerJob(crumbWithId: CrumbWithId?, jobExecutionData: JobExecutionData): Promise<Response> {
         val headers = createHeaderWithAuthAndCrumb(crumbWithId, usernameToken)
         headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8"
-        val init = createRequestInit(body, RequestVerb.POST, headers)
-        return window.fetch("${jobUrl}buildWithParameters", init)
+        val init = createRequestInit(jobExecutionData.body, RequestVerb.POST, headers)
+        return window.fetch(jobExecutionData.jobTriggerUrl, init)
     }
 
     private fun extractBuildNumber(crumbWithId: CrumbWithId?, queuedItemUrl: String): Promise<Int> {
