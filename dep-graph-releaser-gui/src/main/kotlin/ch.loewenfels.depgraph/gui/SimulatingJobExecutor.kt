@@ -28,11 +28,11 @@ class SimulatingJobExecutor : JobExecutor {
     ): Promise<Pair<CrumbWithId, Int>> {
         return sleep(100) {
             jobQueuedHook("${jobUrl}queuingUrl")
-            informIfStepWise("job $jobName queued")
+            informIfStepWiseAndNotPublish("job $jobName queued", jobName)
         }.then {
             sleep(waitBetweenSteps) {
                 jobStartedHook(100)
-                informIfStepWise("job $jobName started")
+                informIfStepWiseAndNotPublish("job $jobName started", jobName)
             }
         }.then {
             sleep(waitBetweenSteps) {
@@ -43,6 +43,14 @@ class SimulatingJobExecutor : JobExecutor {
             }
         }.then {
             CrumbWithId("Jenkins-Crumb", "onlySimulation") to 100
+        }
+    }
+
+    private fun informIfStepWiseAndNotPublish(msg: String, jobName: String): Promise<Unit> {
+        return if (!jobName.startsWith("publish")) {
+            informIfStepWise(msg)
+        } else {
+            Promise.resolve(Unit)
         }
     }
 

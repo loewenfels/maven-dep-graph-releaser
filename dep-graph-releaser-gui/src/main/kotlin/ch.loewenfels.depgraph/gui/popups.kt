@@ -1,6 +1,7 @@
 package ch.loewenfels.depgraph.gui
 
 import kotlinx.html.*
+import kotlinx.html.dom.append
 import kotlinx.html.dom.create
 import kotlinx.html.js.div
 import org.w3c.dom.HTMLElement
@@ -119,19 +120,20 @@ private val urlRegex = Regex("http(?:s)://[^ ]+")
 
 fun showDialog(msg: String): Promise<Boolean> {
     return Promise { resolve, _ ->
-        showModal(msg) { modal ->
-            display("modal:ok", "none")
-            val yes = elementById("modal:yes")
-            yes.style.display = "inline"
-            yes.addClickEventListener(options = js("{once: true}")) {
-                modal.style.visibility = "hidden"
-                resolve(true)
+        showModal(msg) { box ->
+            span {
+                +"Yes"
+                getUnderlyingHtmlElement().addClickEventListener(options = js("{once: true}")) {
+                    box.remove()
+                    resolve(true)
+                }
             }
-            val no = elementById("modal:no")
-            no.style.display = "inline"
-            no.addClickEventListener(options = js("{once: true}")) {
-                modal.style.visibility = "hidden"
-                resolve(false)
+            span {
+                +"No"
+                getUnderlyingHtmlElement().addClickEventListener(options = js("{once: true}")) {
+                    box.style.visibility = "hidden"
+                    resolve(false)
+                }
             }
         }
     }
@@ -139,30 +141,33 @@ fun showDialog(msg: String): Promise<Boolean> {
 
 fun showAlert(msg: String): Promise<Unit> {
     return Promise { resolve, _ ->
-        showModal(msg) { modal ->
-            display("modal:yes", "none")
-            display("modal:no", "none")
-            val ok = elementById("modal:ok")
-            ok.style.display = "inline"
-            ok.addClickEventListener(options = js("{once: true}")) {
-                modal.style.visibility = "hidden"
-                resolve(Unit)
+        showModal(msg) { box ->
+            span {
+                +"OK"
+                getUnderlyingHtmlElement().addClickEventListener(options = js("{once: true}")) {
+                    box.remove()
+                    resolve(Unit)
+                }
             }
         }
     }
 }
 
-private fun showModal(msg: String, action: (HTMLElement) -> Unit) {
-    elementById("modal:text").innerText = msg
-    val modal = elementById("modal")
-    modal.style.visibility = "visible"
-
-    action(modal)
-
-    val box = elementById("modal:box")
-    val top = document.body!!.clientHeight / 3
-    val left = document.body!!.clientWidth / 2 - box.offsetWidth / 2
-    box.style.top = "${top}px"
-    box.style.left = "${left}px"
-
+private fun showModal(msg: String, buttonCreator: DIV.(HTMLElement) -> Unit) {
+    elementById("modals").append {
+        div("box") {
+            val box = getUnderlyingHtmlElement()
+            div("text") {
+                i("material-icons") { +"help_outline" }
+                span { +msg }
+            }
+            div("buttons") {
+                buttonCreator(box)
+            }
+            val top = document.body!!.clientHeight / 3
+            val left = document.body!!.clientWidth / 2 - box.offsetWidth / 2
+            box.style.top = "${top}px"
+            box.style.left = "${left}px"
+        }
+    }
 }
