@@ -93,7 +93,6 @@ task json {
     inputs.property(paramsArg, findProperty(paramsArg) ?: defaultParamsArg)
     inputs.property(disableRegexArg, findProperty(disableRegexArg) ?: '^$')
     inputs.property(jobMappingArg, findProperty(jobMappingArg) ?: '')
-    inputs.property('mpoff', findProperty('mpoff') ?: 'on')
     inputs.files dist
     outputs.file jsonFile
     doLast {
@@ -114,14 +113,13 @@ task json {
                  "ch.loewenfels.depgraph:dgr-4=apnoea-test-4|" +
                  "ch.loewenfels.depgraph:dgr-5=apnoea-test-5"
             ]
-        def mpOff = findProperty('mpoff') != null ? ['-mpoff'] : []
 
         javaexec {
             workingDir = rootProject.projectDir
             classpath = fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.Main'
             args = ['json', groupId, artifactId, "${rootProject.projectDir}/repos", jsonFile.absolutePath, updateDependencyJob, remoteRegex, remoteJob, dryRunJob] +
-                params + disableRegex + jobMapping + mpOff
+                params + disableRegex + jobMapping
         }
     }
 }

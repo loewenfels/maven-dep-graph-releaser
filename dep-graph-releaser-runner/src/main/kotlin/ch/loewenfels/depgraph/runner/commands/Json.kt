@@ -15,7 +15,6 @@ object Json : ConsoleCommand {
 
     private val REGEX_PARAMS_ARG = "-${ConfigKey.REGEX_PARAMS.asString()}="
     private val JOB_MAPPING_ARG = "-${ConfigKey.JOB_MAPPING.asString()}="
-    internal const val MAVEN_PARENT_ANALYSIS_OFF = "-mpoff"
     private const val DISABLE_RELEASE_FOR = "-disableRegex="
 
     override val name = "json"
@@ -23,7 +22,7 @@ object Json : ConsoleCommand {
     override val example = "./dgr $name com.example example-project ./repo ./release.json " +
         "dgr-updater \"^.*\" dgr-remote-releaser dgr-dry-run " +
         "$REGEX_PARAMS_ARG\".*#branch.name=master\" $DISABLE_RELEASE_FOR\"ch\\.loewenfels:dist.*\" " +
-        "$JOB_MAPPING_ARG=com.example:a=exampleA|ch.loewenfels:dgr-1=apnoea-test-1 $MAVEN_PARENT_ANALYSIS_OFF"
+        "$JOB_MAPPING_ARG=com.example:a=exampleA|ch.loewenfels:dgr-1=apnoea-test-1"
 
     override val arguments by lazy {
         """
@@ -44,11 +43,10 @@ object Json : ConsoleCommand {
         |$JOB_MAPPING_ARG=spec         // optionally: in case a jenkins job differ from its artifact name,
         |                          // you can use this mapping which is of the form:
         |                          // groupId:artifactId1=jobName1|groupId:artifactId2=anotherName
-        |($MAVEN_PARENT_ANALYSIS_OFF)                  // optionally: turns missing parent analysis off
         """.trimMargin()
     }
 
-    override fun numOfArgsNotOk(number: Int) = number < 9 || number > 12
+    override fun numOfArgsNotOk(number: Int) = number < 9 || number > 11
 
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
         val (_, groupId, artifactId, unsafeDirectoryToAnalyse, jsonFile) = args
@@ -56,17 +54,15 @@ object Json : ConsoleCommand {
         val (updateDependencyJob, remoteRegex, remoteJob, dryRunJob) = afterFirst5
         val optionalArgs = afterFirst5.drop(4).toOptionalArgs(
             errorHandler,
-            REGEX_PARAMS_ARG, DISABLE_RELEASE_FOR, JOB_MAPPING_ARG, MAVEN_PARENT_ANALYSIS_OFF
+            REGEX_PARAMS_ARG, DISABLE_RELEASE_FOR, JOB_MAPPING_ARG
         )
-        val (regexParameters, disableReleaseFor, jobMapping, missingParentAnalysis) = optionalArgs
+        val (regexParameters, disableReleaseFor, jobMapping) = optionalArgs
 
         val disableReleaseForRegex = if (disableReleaseFor != null) {
             Regex(disableReleaseFor.substringAfter(DISABLE_RELEASE_FOR))
         } else {
             Regex("^$") //does only match the empty string
         }
-
-        val turnMissingPartnerAnalysisOff = missingParentAnalysis != null
 
         val directoryToAnalyse = unsafeDirectoryToAnalyse.toVerifiedFile("directory to analyse")
         if (!directoryToAnalyse.exists()) {
@@ -100,9 +96,8 @@ object Json : ConsoleCommand {
             ConfigKey.JOB_MAPPING to (jobMapping ?: "")
         )
 
-
         val mavenProjectId = MavenProjectId(groupId, artifactId)
-        val analyserOptions = Analyser.Options(!turnMissingPartnerAnalysisOff)
+        val analyserOptions = Analyser.Options()
         val publishId = UUID.randomUUID().toString().replace("-", "").take(15)
         val releasePlanCreatorOptions = JenkinsReleasePlanCreator.Options(publishId, disableReleaseForRegex, config)
 

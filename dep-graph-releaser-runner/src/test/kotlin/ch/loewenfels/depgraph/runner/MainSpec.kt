@@ -3,7 +3,6 @@ package ch.loewenfels.depgraph.runner
 import ch.loewenfels.depgraph.maven.getTestDirectory
 import ch.loewenfels.depgraph.runner.Main.errorHandler
 import ch.loewenfels.depgraph.runner.Main.fileVerifier
-import ch.loewenfels.depgraph.runner.commands.Json.MAVEN_PARENT_ANALYSIS_OFF
 import ch.loewenfels.depgraph.runner.console.ErrorHandler
 import ch.loewenfels.depgraph.runner.console.FileVerifier
 import ch.loewenfels.depgraph.serialization.Serializer
@@ -39,31 +38,6 @@ object MainSpec : Spek({
                     val releasePlan = Serializer().deserialize(json)
                     assertProjectAWithDependentB(releasePlan)
                     assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
-                }
-            }
-        }
-
-        given("parent not in analysis, does not matter with $MAVEN_PARENT_ANALYSIS_OFF") {
-            on("calling main") {
-                val jsonFile = File(tempFolder.tmpDir, "test.json")
-                Main.main(
-                    "json", "com.example", "b",
-                    getTestDirectory("errorCases/parentNotInAnalysis").absolutePath,
-                    jsonFile.absolutePath,
-                    "dgr-updater",
-                    ".*",
-                    "dgr-remote-releaser",
-                    "dgr-dry-run",
-                    MAVEN_PARENT_ANALYSIS_OFF
-                )
-                it("creates a corresponding json file") {
-                    assert(jsonFile).returnValueOf(jsonFile::exists).isTrue()
-                }
-
-                test("the json file can be de-serialized and is expected project A with dependent B") {
-                    val json = Scanner(jsonFile, Charsets.UTF_8.name()).useDelimiter("\\Z").use { it.next() }
-                    val releasePlan = Serializer().deserialize(json)
-                    assertSingleProject(releasePlan, exampleB)
                 }
             }
         }
