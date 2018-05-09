@@ -1,6 +1,6 @@
 package ch.loewenfels.depgraph.gui
 
-import failAfter
+import failAfterSteps
 import stepWise
 import waitBetweenSteps
 import kotlin.js.Promise
@@ -37,7 +37,7 @@ class SimulatingJobExecutor : JobExecutor {
         }.then {
             sleep(waitBetweenSteps) {
                 ++count
-                if (count > failAfter) check(false) { count = -3; "simulating a failure for $jobName" }
+                if (count > failAfterSteps) check(false) { count = -3; "simulating a failure for $jobName" }
                 informIfStepWise("job $jobName ended")
                     .then { true }
             }
