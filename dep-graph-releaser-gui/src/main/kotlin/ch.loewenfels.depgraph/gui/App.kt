@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.gui
 
+import ch.loewenfels.depgraph.data.ReleasePlan
 import org.w3c.fetch.Response
 import kotlin.browser.window
 import kotlin.js.Promise
@@ -66,10 +67,10 @@ class App {
                 }.then { body: String ->
                     switchLoader("loaderApiToken", "loaderJson")
                     val modifiableJson = ModifiableJson(body)
-                    val dependencies = createDependencies(
-                        jenkinsUrl, publishJobUrl, usernameToken, modifiableJson, menu
-                    )
                     val releasePlan = deserialize(body)
+                    val dependencies = createDependencies(
+                        jenkinsUrl, publishJobUrl, usernameToken, modifiableJson, releasePlan, menu
+                    )
                     menu.initDependencies(releasePlan, Downloader(modifiableJson), dependencies, modifiableJson)
                     Gui(releasePlan, menu).load()
                     switchLoaderJsonWithPipeline()
@@ -141,14 +142,16 @@ class App {
             publishJobUrl: String?,
             usernameToken: UsernameToken?,
             modifiableJson: ModifiableJson,
+            releasePlan: ReleasePlan,
             menu: Menu
         ): Menu.Dependencies? {
             return if (publishJobUrl != null && jenkinsUrl != null && usernameToken != null) {
                 val publisher = Publisher(publishJobUrl, modifiableJson)
                 val releaser = Releaser(jenkinsUrl, modifiableJson, menu)
-                val simulatingJobExecutor = SimulatingJobExecutor()
                 val jenkinsJobExecutor = JenkinsJobExecutor(jenkinsUrl, usernameToken)
-                Menu.Dependencies(publisher, releaser, jenkinsJobExecutor, simulatingJobExecutor)
+                val simulatingJobExecutor = SimulatingJobExecutor()
+                val releaseJobExecutionDataFactory = ReleaseJobExecutionDataFactory(jenkinsUrl, releasePlan)
+                Menu.Dependencies(publisher, releaser, jenkinsJobExecutor, simulatingJobExecutor, releaseJobExecutionDataFactory)
             } else {
                 null
             }

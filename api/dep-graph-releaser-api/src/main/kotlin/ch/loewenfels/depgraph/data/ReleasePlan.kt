@@ -76,6 +76,10 @@ data class ReleasePlan(
             ?: throw IllegalArgumentException("Could not find dependents for project with id $projectId")
     }
 
+    fun getConfig(configKey: ConfigKey): String {
+        return config[configKey] ?: throw IllegalArgumentException("Unknown config key: $configKey")
+    }
+
     /**
      * Returns the dependents of the given [multiModuleId] as well as the dependents of submodules and
      * dependents of nested submodules.

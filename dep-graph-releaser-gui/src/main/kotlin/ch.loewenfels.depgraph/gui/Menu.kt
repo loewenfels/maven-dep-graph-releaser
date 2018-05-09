@@ -126,7 +126,12 @@ class Menu {
             activateReleaseButton()
             releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
                 simulation = false
-                triggerRelease(releasePlan, dependencies, dependencies.jenkinsJobExecutor)
+                triggerRelease(
+                    releasePlan,
+                    dependencies,
+                    dependencies.jenkinsJobExecutor,
+                    dependencies.releaseJobExecutionDataFactory
+                )
             }
         }
 
@@ -137,13 +142,19 @@ class Menu {
             "${jenkinsUrl}dgr-publisher/",
             UsernameToken("test", "test"),
             modifiableJson,
+            releasePlan,
             this
         )!!
 
         exploreButton.addClickEventListenerIfNotDeactivatedNorDisabled {
             simulation = true
             publisher = nonNullDependencies.publisher
-            triggerRelease(releasePlan, nonNullDependencies, nonNullDependencies.simulatingJobExecutor)
+            triggerRelease(
+                releasePlan,
+                nonNullDependencies,
+                nonNullDependencies.simulatingJobExecutor,
+                nonNullDependencies.releaseJobExecutionDataFactory
+            )
                 .finally {
                     //reset to null in case it was not defined previously
                     publisher = dependencies?.publisher
@@ -186,13 +197,14 @@ class Menu {
     private fun triggerRelease(
         releasePlan: ReleasePlan,
         dependencies: Dependencies,
-        jobExecutor: JobExecutor
+        jobExecutor: JobExecutor,
+        jobExecutionDataFactory: JobExecutionDataFactory
     ): Promise<*> {
         if (Gui.getReleaseState() === ReleaseState.Failed) {
             turnFailedIntoReTrigger(releasePlan)
         }
         dispatchReleaseStart()
-        return dependencies.releaser.release(jobExecutor).then(
+        return dependencies.releaser.release(jobExecutor, jobExecutionDataFactory).then(
             { result ->
                 dispatchReleaseEnd(success = result)
             },
@@ -337,7 +349,8 @@ class Menu {
     internal class Dependencies(
         val publisher: Publisher,
         val releaser: Releaser,
-        val jenkinsJobExecutor: JenkinsJobExecutor,
-        val simulatingJobExecutor: SimulatingJobExecutor
+        val jenkinsJobExecutor: JobExecutor,
+        val simulatingJobExecutor: JobExecutor,
+        val releaseJobExecutionDataFactory: JobExecutionDataFactory
     )
 }
