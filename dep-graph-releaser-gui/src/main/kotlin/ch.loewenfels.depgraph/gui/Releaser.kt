@@ -275,7 +275,6 @@ class Releaser(
         index: Int
     ): Promise<CommandState> {
         val project = paramObject.project
-        console.log("trigger: ${project.id.identifier} / $jobUrl / $params")
         val jobUrlWithSlash = if (jobUrl.endsWith("/")) jobUrl else "$jobUrl/"
         changeCursorToProgress()
         return paramObject.jobExecutor.trigger(jobUrlWithSlash, jobName, params,

@@ -20,7 +20,7 @@ class JenkinsJobExecutor(
         verbose: Boolean
     ): Promise<Pair<CrumbWithId, Int>> {
         return issueCrumb(jenkinsUrl).then { crumbWithId: CrumbWithId? ->
-            post(crumbWithId, jobUrl, body)
+            triggerJob(crumbWithId, jobUrl, body)
                 .then { response ->
                     checkStatusAndExtractQueuedItemUrl(response, jobName)
                 }.catch {
@@ -79,7 +79,7 @@ class JenkinsJobExecutor(
             }
     }
 
-    private fun post(crumbWithId: CrumbWithId?, jobUrl: String, body: String): Promise<Response> {
+    private fun triggerJob(crumbWithId: CrumbWithId?, jobUrl: String, body: String): Promise<Response> {
         val headers = createHeaderWithAuthAndCrumb(crumbWithId, usernameToken)
         headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8"
         val init = createRequestInit(body, RequestVerb.POST, headers)
