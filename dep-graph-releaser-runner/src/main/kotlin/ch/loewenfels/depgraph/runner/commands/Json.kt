@@ -34,7 +34,7 @@ object Json : ConsoleCommand {
         |${ConfigKey.UPDATE_DEPENDENCY_JOB.asString()}       // the name of the update dependency job
         |${ConfigKey.REMOTE_REGEX.asString()}               // regex which specifies which projects are released remotely
         |${ConfigKey.REMOTE_JOB.asString()}                 // the job which triggers the remote build
-        |${ConfigKey.DRY_RUN_JOB.asString()}                  // the job which executes a dry run
+        |${ConfigKey.DRY_RUN_JOB.asString()}                 // the job which executes a dry run
         |(${REGEX_PARAMS_ARG}spec)       // optionally: parameters of the form regex#a=b;c=d${'$'}.*#e=f where the regex
         |                          // defines for which job the parameters shall apply. Multiple regex can be
         |                          // specified. In the above, .* matches all, so every job gets e=f as argument.

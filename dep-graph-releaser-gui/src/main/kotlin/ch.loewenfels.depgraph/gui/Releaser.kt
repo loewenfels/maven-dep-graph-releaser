@@ -73,7 +73,10 @@ class Releaser(
     private fun checkForNoneFailedBug(paramObject: ParamObject) {
         if (paramObject.projectResults.values.none { it === CommandState.Failed }) {
             val erroneousProjects = paramObject.projectResults.entries
-                .filter { it.value !== CommandState.Failed && it.value !== CommandState.Succeeded }
+                .filter {
+                    it.value !== CommandState.Failed && it.value !== CommandState.Succeeded &&
+                    it.value !is CommandState.Deactivated && it.value !== CommandState.Disabled
+                }
             if (erroneousProjects.isNotEmpty()) {
                 showError(
                     "Seems like there is a bug since no command failed but not all are succeeded." +
