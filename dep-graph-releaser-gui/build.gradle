@@ -13,7 +13,7 @@ dependencies {
     compile("org.jetbrains.kotlinx:kotlinx-html-js:$kotlin_html_version") {
         exclude group: 'org.jetbrains.kotlin'
     }
-    compile("ch.tutteli:kbox-js:$kbox_version") {
+    compile("ch.tutteli.kbox:kbox-js:$kbox_version") {
         exclude group: 'org.jetbrains.kotlin'
     }
 }

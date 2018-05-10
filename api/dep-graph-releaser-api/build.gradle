@@ -4,5 +4,5 @@ buildscript {
 
 //TODO should be here but does not work
 //dependencies {
-//    compile "ch.tutteli:kbox-common:$kbox_version"
+//    compile "ch.tutteli.kbox:kbox-common:$kbox_version"
 //}

@@ -3,5 +3,5 @@ buildscript {
 }
 
 dependencies {
-    compile "ch.tutteli:kbox-js:$kbox_version"
+    compile "ch.tutteli.kbox:kbox-js:$kbox_version"
 }
