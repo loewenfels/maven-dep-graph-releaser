@@ -46,7 +46,7 @@ object Json : ConsoleCommand {
         """.trimMargin()
     }
 
-    override fun numOfArgsNotOk(number: Int) = number < 9 || number > 11
+    override fun numOfArgsNotOk(number: Int) = number < 9 || number > 12
 
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
         val (_, groupId, artifactId, unsafeDirectoryToAnalyse, jsonFile) = args
