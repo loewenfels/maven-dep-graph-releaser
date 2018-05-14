@@ -3,8 +3,16 @@ buildscript {
 }
 
 dependencies {
-    compile prefixedProject('maven-api-jvm')
-    compile prefixedProject('manipulation')
+    compile(prefixedProject('maven-api-jvm')) {
+        exclude group: 'org.jetbrains.kotlin'
+        exclude group: 'ch.tutteli.kbox'
+    }
+    compile(prefixedProject('manipulation')) {
+        exclude group: 'org.jetbrains.kotlin'
+        exclude group: 'ch.tutteli.kbox'
+    }
     compile "ch.tutteli.copies:pom-explorer-core:$pom_explorer_version"
-    compile "ch.tutteli.kbox:kbox:$kbox_version"
+    compile("ch.tutteli.kbox:kbox:$kbox_version") {
+        exclude group: 'ch.tutteli.kbox'
+    }
 }
