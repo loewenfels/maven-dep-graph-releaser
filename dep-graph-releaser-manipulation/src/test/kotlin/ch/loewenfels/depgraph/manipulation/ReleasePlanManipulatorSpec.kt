@@ -13,46 +13,61 @@ import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.*
 
 object ReleasePlanManipulatorSpec : Spek({
-    val rootProjectId = MavenProjectId("com.example", "a")
+    val rootProjectId = MavenProjectId("com.example", "root")
     val rootProject = Project(rootProjectId, false, "1.1.0-SNAPSHOT", "1.2.0", 0, listOf(), "")
 
-    val projectWithDependentId = MavenProjectId("com.example", "b")
-    val projectWithDependentUpdateDependency =
+    val multiModuleId = MavenProjectId("com.example", "multi-module")
+    val multiModuleUpdateRootProject =
         JenkinsUpdateDependency(CommandState.Waiting(setOf(rootProjectId)), rootProjectId)
-    val projectWithDependentJenkinsRelease =
+    val multiModuleJenkinsRelease =
         JenkinsMavenReleasePlugin(CommandState.Waiting(setOf(rootProjectId)), "3.1-SNAPSHOT")
-    val projectWithDependentCommands = listOf(
-        projectWithDependentUpdateDependency,
-        projectWithDependentJenkinsRelease
+    val multiModuleCommands = listOf(
+        multiModuleUpdateRootProject,
+        multiModuleJenkinsRelease
     )
-    val projectWithDependent = Project(projectWithDependentId, false, "2.0", "3.0", 1, projectWithDependentCommands, "")
+    val multiModule = Project(multiModuleId, false, "2.0", "3.0", 1, multiModuleCommands, "")
 
-    val projectWithoutDependentId = MavenProjectId("com.example", "c")
-    val projectWithoutDependentUpdateDependency1 =
+    val submoduleId = MavenProjectId("com.example", "submodule")
+    val submoduleUpdateRootProject =
         JenkinsUpdateDependency(CommandState.Waiting(setOf(rootProjectId)), rootProjectId)
-    val projectWithoutDependentUpdateDependency2 =
-        JenkinsUpdateDependency(CommandState.Waiting(setOf(projectWithDependentId)), projectWithDependentId)
+    val submoduleUpdateMultiModule =
+        JenkinsUpdateDependency(CommandState.Waiting(setOf(multiModuleId)), multiModuleId)
+    val submoduleJenkinsRelease =
+        JenkinsMavenReleasePlugin(CommandState.Waiting(setOf(multiModuleId, rootProjectId)), "3.1-SNAPSHOT")
+    val submoduleCommands = listOf(
+        submoduleUpdateRootProject,
+        submoduleUpdateMultiModule,
+        submoduleJenkinsRelease
+    )
+    val submodule = Project(submoduleId, false, "2.0", "3.0", 2, submoduleCommands, "")
+
+    val projectWithoutDependentId = MavenProjectId("com.example", "project-without-dependent")
+    val projectWithoutDependentUpdateRootProject =
+        JenkinsUpdateDependency(CommandState.Waiting(setOf(rootProjectId)), rootProjectId)
+    val projectWithoutDependentUpdateMultiModule =
+        JenkinsUpdateDependency(
+            CommandState.Deactivated(CommandState.Waiting(setOf(multiModuleId))),
+            multiModuleId
+        )
+    val projectWithoutDependentUpdateSubmodule =
+        JenkinsUpdateDependency(CommandState.Waiting(setOf(submoduleId)), submoduleId)
     val projectWithoutDependentJenkinsRelease = JenkinsMavenReleasePlugin(
-        CommandState.Deactivated(
-            CommandState.Waiting(
-                setOf(
-                    projectWithDependentId,
-                    rootProjectId
-                )
-            )
-        ), "4.2-SNAPSHOT"
+        CommandState.Waiting(setOf(submoduleId, multiModuleId, rootProjectId)),
+        "4.2-SNAPSHOT"
     )
     val projectWithoutDependentCommands = listOf(
-        projectWithoutDependentUpdateDependency1,
-        projectWithoutDependentUpdateDependency2,
+        projectWithoutDependentUpdateRootProject,
+        projectWithoutDependentUpdateMultiModule,
+        projectWithoutDependentUpdateSubmodule,
         projectWithoutDependentJenkinsRelease
     )
     val projectWithoutDependent =
-        Project(projectWithoutDependentId, false, "4.0", "4.1", 2, projectWithoutDependentCommands, "")
+        Project(projectWithoutDependentId, false, "4.0", "4.1", 3, projectWithoutDependentCommands, "")
 
     val dependents = mapOf<ProjectId, Set<MavenProjectId>>(
-        rootProjectId to setOf(projectWithDependentId),
-        projectWithDependentId to setOf(projectWithoutDependentId),
+        rootProjectId to setOf(multiModuleId),
+        multiModuleId to setOf(submoduleId),
+        submoduleId to setOf(projectWithoutDependentId),
         projectWithoutDependentId to setOf()
     )
     val testee = ReleasePlanManipulator(
@@ -61,7 +76,8 @@ object ReleasePlanManipulatorSpec : Spek({
             rootProjectId,
             mapOf(
                 rootProjectId to rootProject,
-                projectWithDependentId to projectWithDependent,
+                multiModuleId to multiModule,
+                submoduleId to submodule,
                 projectWithoutDependentId to projectWithoutDependent
             ),
             mapOf(),
@@ -76,8 +92,8 @@ object ReleasePlanManipulatorSpec : Spek({
         test("rootProject is still the same instance") {
             assert(newReleasePlan.getProject(rootProjectId)).isSame(rootProject)
         }
-        test("there are still 3 projects") {
-            assert(newReleasePlan.getNumberOfProjects()).toBe(3)
+        test("there are still 4 projects") {
+            assert(newReleasePlan.getNumberOfProjects()).toBe(4)
         }
         test("the dependents are unchanged, is still the same instance") {
             assert(newReleasePlan) {
@@ -89,10 +105,10 @@ object ReleasePlanManipulatorSpec : Spek({
         }
 
         test("the project with dependent still has the same versions") {
-            assert(newReleasePlan.getProject(projectWithDependentId)).hasSameVersionsAs(projectWithDependent)
+            assert(newReleasePlan.getProject(multiModuleId)).hasSameVersionsAs(multiModule)
         }
         test("the project with dependent still has the same level") {
-            assert(newReleasePlan.getProject(projectWithDependentId).level).toBe(projectWithDependent.level)
+            assert(newReleasePlan.getProject(multiModuleId).level).toBe(multiModule.level)
         }
 
         test("the project without dependent still has the same versions") {
@@ -103,9 +119,15 @@ object ReleasePlanManipulatorSpec : Spek({
         }
     }
 
-    fun TestContainer.assertProjectWithDependentStillSame(newReleasePlan: ReleasePlan) {
-        test("project with dependent is still the same") {
-            assert(newReleasePlan.getProject(projectWithDependentId)).isSame(projectWithDependent)
+    fun TestContainer.assertMultiModuleStillSame(newReleasePlan: ReleasePlan) {
+        test("multi module is still the same") {
+            assert(newReleasePlan.getProject(multiModuleId)).isSame(multiModule)
+        }
+    }
+
+    fun TestContainer.assertSubmoduleStillSame(newReleasePlan: ReleasePlan) {
+        test("submodule is still the same") {
+            assert(newReleasePlan.getProject(submoduleId)).isSame(submodule)
         }
     }
 
@@ -143,24 +165,56 @@ object ReleasePlanManipulatorSpec : Spek({
             }
         }
 
-        given("rootProject with dependent project with another dependent project") {
+        given("rootProject with dependent multi module with one submodule which has another dependent project") {
 
-            on("deactivating project with dependent") {
-                val newReleasePlan = testee.deactivateProject(projectWithDependentId)
+            on("deactivating the multi module") {
+                val newReleasePlan = testee.deactivateProject(multiModuleId)
                 assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan)
 
-                it("deactivates the project with dependent (all commands)") {
-                    assert(newReleasePlan.getProject(projectWithDependentId).commands).containsStrictly(
-                        { isJenkinsUpdateDependencyDeactivated(projectWithDependentUpdateDependency) },
-                        { isJenkinsMavenReleaseDeactivated(projectWithDependentJenkinsRelease) }
+                it("deactivates the multi module (all commands)") {
+                    assert(newReleasePlan.getProject(multiModuleId).commands).containsStrictly(
+                        { isJenkinsUpdateDependencyDeactivated(multiModuleUpdateRootProject) },
+                        { isJenkinsMavenReleaseDeactivated(multiModuleJenkinsRelease) }
                     )
                 }
 
-                it("deactivates the dependent project (only the update commands, release is already deactivated)") {
+                it("deactivates depending and release command of the submodule module") {
+                    assert(newReleasePlan.getProject(submoduleId).commands).containsStrictly(
+                        { isSame(submoduleUpdateRootProject) },
+                        { isJenkinsUpdateDependencyDeactivated(submoduleUpdateMultiModule) },
+                        { isJenkinsMavenReleaseDeactivated(submoduleJenkinsRelease) }
+                    )
+                }
+
+                it("deactivates submodule depending command and the release command of the project without dependents (multi module depending command is already deactivated)") {
                     assert(newReleasePlan.getProject(projectWithoutDependentId).commands).containsStrictly(
-                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateDependency1) },
-                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateDependency2) },
-                        { isSame(projectWithoutDependentJenkinsRelease) }
+                        { isSame(projectWithoutDependentUpdateRootProject) },
+                        { isSame(projectWithoutDependentUpdateMultiModule) },
+                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateSubmodule) },
+                        { isJenkinsMavenReleaseDeactivated(projectWithoutDependentJenkinsRelease) }
+                    )
+                }
+            }
+
+            on("deactivating the submodule") {
+                val newReleasePlan = testee.deactivateProject(submoduleId)
+                assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan)
+                assertMultiModuleStillSame(newReleasePlan)
+
+                it("deactivates the submodule (all commands)") {
+                    assert(newReleasePlan.getProject(submoduleId).commands).containsStrictly(
+                        { isJenkinsUpdateDependencyDeactivated(submoduleUpdateRootProject) },
+                        { isJenkinsUpdateDependencyDeactivated(submoduleUpdateMultiModule) },
+                        { isJenkinsMavenReleaseDeactivated(submoduleJenkinsRelease) }
+                    )
+                }
+
+                it("deactivates the depending and the release command of the dependent project") {
+                    assert(newReleasePlan.getProject(projectWithoutDependentId).commands).containsStrictly(
+                        { isSame(projectWithoutDependentUpdateRootProject) },
+                        { isSame(projectWithoutDependentUpdateMultiModule) },
+                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateSubmodule) },
+                        { isJenkinsMavenReleaseDeactivated(projectWithoutDependentJenkinsRelease) }
                     )
                 }
             }
@@ -168,13 +222,15 @@ object ReleasePlanManipulatorSpec : Spek({
             on("deactivating the project without dependents") {
                 val newReleasePlan = testee.deactivateProject(projectWithoutDependentId)
                 assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan)
-                assertProjectWithDependentStillSame(newReleasePlan)
+                assertMultiModuleStillSame(newReleasePlan)
+                assertSubmoduleStillSame(newReleasePlan)
 
-                it("deactivates the project without dependents (only the update commands, release is already deactivated)") {
+                it("deactivates the project without dependents (first and third command, second was already deactivated)") {
                     assert(newReleasePlan.getProject(projectWithoutDependentId).commands).containsStrictly(
-                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateDependency1) },
-                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateDependency2) },
-                        { isSame(projectWithoutDependentJenkinsRelease) }
+                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateRootProject) },
+                        { isSame(projectWithoutDependentUpdateMultiModule) },
+                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateSubmodule) },
+                        { isJenkinsMavenReleaseDeactivated(projectWithoutDependentJenkinsRelease) }
                     )
                 }
             }
@@ -191,9 +247,9 @@ object ReleasePlanManipulatorSpec : Spek({
             given("index which is bigger than the number of commands the project has") {
                 it("throws an IllegalArgumentException, containing the index and the projectId") {
                     expect {
-                        testee.deactivateCommand(projectWithDependentId, 5)
+                        testee.deactivateCommand(multiModuleId, 5)
                     }.toThrow<IllegalArgumentException> {
-                        message { contains(5, projectWithDependentId.toString()) }
+                        message { contains(5, multiModuleId.toString()) }
                     }
                 }
             }
@@ -201,11 +257,11 @@ object ReleasePlanManipulatorSpec : Spek({
             given("deactivate already deactivated command") {
                 it("throws an IllegalArgumentException, containing the index and the projectId") {
                     expect {
-                        testee.deactivateCommand(projectWithoutDependentId, 2)
+                        testee.deactivateCommand(projectWithoutDependentId, 1)
                     }.toThrow<IllegalArgumentException> {
                         message {
                             contains(
-                                projectWithoutDependentJenkinsRelease.toString(),
+                                projectWithoutDependentUpdateMultiModule.toString(),
                                 projectWithoutDependentId.toString()
                             )
                         }
@@ -214,24 +270,56 @@ object ReleasePlanManipulatorSpec : Spek({
             }
         }
 
-        given("rootProject with dependent project with another dependent project") {
+        given("rootProject with dependent multi module with one submodule which has another dependent project") {
 
-            on("deactivate first ${JenkinsUpdateDependency::class.simpleName} on project with dependent") {
-                val newReleasePlan = testee.deactivateCommand(projectWithDependentId, 0)
+            on("deactivate ${JenkinsUpdateDependency::class.simpleName} of multi module") {
+                val newReleasePlan = testee.deactivateCommand(multiModuleId, 0)
                 assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan)
 
-                it("has deactivated both commands (since second is release command)") {
-                    assert(newReleasePlan.getProject(projectWithDependentId).commands).containsStrictly(
-                        { isJenkinsUpdateDependencyDeactivated(projectWithDependentUpdateDependency) },
-                        { isJenkinsMavenReleaseDeactivated(projectWithDependentJenkinsRelease) }
+                it("has deactivated both commands of the multi module (since second is release command)") {
+                    assert(newReleasePlan.getProject(multiModuleId).commands).containsStrictly(
+                        { isJenkinsUpdateDependencyDeactivated(multiModuleUpdateRootProject) },
+                        { isJenkinsMavenReleaseDeactivated(multiModuleJenkinsRelease) }
                     )
                 }
 
-                it("deactivates the project without dependents (only the update commands, release is already deactivated)") {
+                it("deactivates depending command and release command of the submodule ") {
+                    assert(newReleasePlan.getProject(submoduleId).commands).containsStrictly(
+                        { isSame(submoduleUpdateRootProject) },
+                        { isJenkinsUpdateDependencyDeactivated(submoduleUpdateMultiModule) },
+                        { isJenkinsMavenReleaseDeactivated(submoduleJenkinsRelease) }
+                    )
+                }
+
+                it("deactivates submodule depending command and release command of the project without dependents (multi module depending command was already deactivated)") {
                     assert(newReleasePlan.getProject(projectWithoutDependentId).commands).containsStrictly(
-                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateDependency1) },
-                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateDependency2) },
-                        { isSame(projectWithoutDependentJenkinsRelease) }
+                        { isSame(projectWithoutDependentUpdateRootProject) },
+                        { isSame(projectWithoutDependentUpdateMultiModule) },
+                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateSubmodule) },
+                        { isJenkinsMavenReleaseDeactivated(projectWithoutDependentJenkinsRelease) }
+                    )
+                }
+            }
+
+            on("deactivate first ${JenkinsUpdateDependency::class.simpleName} of submodule") {
+                val newReleasePlan = testee.deactivateCommand(submoduleId, 0)
+                assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan)
+                assertMultiModuleStillSame(newReleasePlan)
+
+                it("has deactivated first command and release command of the submodule") {
+                    assert(newReleasePlan.getProject(submoduleId).commands).containsStrictly(
+                        { isJenkinsUpdateDependencyDeactivated(submoduleUpdateRootProject) },
+                        { isSame(submoduleUpdateMultiModule) },
+                        { isJenkinsMavenReleaseDeactivated(submoduleJenkinsRelease) }
+                    )
+                }
+
+                it("deactivates the depending and the release command of the project without dependents") {
+                    assert(newReleasePlan.getProject(projectWithoutDependentId).commands).containsStrictly(
+                        { isSame(projectWithoutDependentUpdateRootProject) },
+                        { isSame(projectWithoutDependentUpdateMultiModule) },
+                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateSubmodule) },
+                        { isJenkinsMavenReleaseDeactivated(projectWithoutDependentJenkinsRelease) }
                     )
                 }
             }
@@ -239,13 +327,15 @@ object ReleasePlanManipulatorSpec : Spek({
             on("deactivate first ${JenkinsUpdateDependency::class.simpleName} on project without dependent") {
                 val newReleasePlan = testee.deactivateCommand(projectWithoutDependentId, 0)
                 assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan)
-                assertProjectWithDependentStillSame(newReleasePlan)
+                assertMultiModuleStillSame(newReleasePlan)
+                assertSubmoduleStillSame(newReleasePlan)
 
-                it("has deactivated only first update command") {
+                it("has deactivated first update command and release command") {
                     assert(newReleasePlan.getProject(projectWithoutDependentId).commands).containsStrictly(
-                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateDependency1) },
-                        { isSame(projectWithoutDependentUpdateDependency2) },
-                        { isSame(projectWithoutDependentJenkinsRelease) }
+                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateRootProject) },
+                        { isSame(projectWithoutDependentUpdateMultiModule) },
+                        { isSame(projectWithoutDependentUpdateSubmodule) },
+                        { isJenkinsMavenReleaseDeactivated(projectWithoutDependentJenkinsRelease) }
                     )
                 }
             }
@@ -255,8 +345,110 @@ object ReleasePlanManipulatorSpec : Spek({
     describe("fun ${testee::disableCommand.name}") {
 
         describe("error cases") {
-            errorCasesInvalidProjectId("Disabling a command of") { projectId ->
-                testee.disableCommand(projectId, 0)
+            describe("error cases") {
+                errorCasesInvalidProjectId("Disabling a command of") { projectId ->
+                    testee.disableCommand(projectId, 0)
+                }
+
+                given("index which is bigger than the number of commands the project has") {
+                    it("throws an IllegalArgumentException, containing the index and the projectId") {
+                        expect {
+                            testee.disableCommand(multiModuleId, 5)
+                        }.toThrow<IllegalArgumentException> {
+                            message { contains(5, multiModuleId.toString()) }
+                        }
+                    }
+                }
+
+                given("disable already disable command") {
+                    it("throws an IllegalArgumentException, containing the index and the projectId") {
+                        val newReleasePlan = testee.disableCommand(projectWithoutDependentId, 2)
+                        val oldReleaseCommand = newReleasePlan.getProject(projectWithoutDependentId).commands[2]
+                        val tmpTestee = ReleasePlanManipulator(newReleasePlan)
+                        expect {
+                            tmpTestee.disableCommand(projectWithoutDependentId, 2)
+                        }.toThrow<IllegalArgumentException> {
+                            message {
+                                contains(
+                                    oldReleaseCommand.toString(),
+                                    projectWithoutDependentId.toString()
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+
+        given("rootProject with dependent multi module with one submodule which has another dependent project") {
+
+            on("disable ${JenkinsUpdateDependency::class.simpleName} of multi module") {
+                val newReleasePlan = testee.disableCommand(multiModuleId, 0)
+                assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan)
+
+                it("disables both commands of the multi module (since second is release command)") {
+                    assert(newReleasePlan.getProject(multiModuleId).commands).containsStrictly(
+                        { isJenkinsUpdateDependencyDisabled(multiModuleUpdateRootProject) },
+                        { isJenkinsMavenReleaseDisabled(multiModuleJenkinsRelease.nextDevVersion) }
+                    )
+                }
+
+                it("deactivates depending command and release command of the submodule ") {
+                    assert(newReleasePlan.getProject(submoduleId).commands).containsStrictly(
+                        { isSame(submoduleUpdateRootProject) },
+                        { isJenkinsUpdateDependencyDeactivated(submoduleUpdateMultiModule) },
+                        { isJenkinsMavenReleaseDeactivated(submoduleJenkinsRelease) }
+                    )
+                }
+
+                it("deactivates submodule depending command and the release command of the project without dependents (multi module depending command is already deactivated)") {
+                    assert(newReleasePlan.getProject(projectWithoutDependentId).commands).containsStrictly(
+                        { isSame(projectWithoutDependentUpdateRootProject) },
+                        { isSame(projectWithoutDependentUpdateMultiModule) },
+                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateSubmodule) },
+                        { isJenkinsMavenReleaseDeactivated(projectWithoutDependentJenkinsRelease) }
+                    )
+                }
+            }
+
+            on("disable first ${JenkinsUpdateDependency::class.simpleName} of submodule") {
+                val newReleasePlan = testee.disableCommand(submoduleId, 0)
+                assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan)
+                assertMultiModuleStillSame(newReleasePlan)
+
+                it("disables first command and release command of the submodule") {
+                    assert(newReleasePlan.getProject(submoduleId).commands).containsStrictly(
+                        { isJenkinsUpdateDependencyDisabled(submoduleUpdateRootProject) },
+                        { isSame(submoduleUpdateMultiModule) },
+                        { isJenkinsMavenReleaseDisabled(submoduleJenkinsRelease.nextDevVersion) }
+                    )
+                }
+
+                it("deactivates the depending and the release command of the project without dependents") {
+                    assert(newReleasePlan.getProject(projectWithoutDependentId).commands).containsStrictly(
+                        { isSame(projectWithoutDependentUpdateRootProject) },
+                        { isSame(projectWithoutDependentUpdateMultiModule) },
+                        { isJenkinsUpdateDependencyDeactivated(projectWithoutDependentUpdateSubmodule) },
+                        { isJenkinsMavenReleaseDeactivated(projectWithoutDependentJenkinsRelease) }
+                    )
+                }
+            }
+
+            on("disable first ${JenkinsUpdateDependency::class.simpleName} on project without dependent") {
+                val newReleasePlan = testee.disableCommand(projectWithoutDependentId, 0)
+                assertRootProjectVersionsAndDependentsUnchanged(newReleasePlan)
+                assertMultiModuleStillSame(newReleasePlan)
+                assertSubmoduleStillSame(newReleasePlan)
+
+                it("disables first update command and release command") {
+                    assert(newReleasePlan.getProject(projectWithoutDependentId).commands).containsStrictly(
+                        { isJenkinsUpdateDependencyDisabled(projectWithoutDependentUpdateRootProject) },
+                        { isSame(projectWithoutDependentUpdateMultiModule) },
+                        { isSame(projectWithoutDependentUpdateSubmodule) },
+                        { isJenkinsMavenReleaseDisabled(projectWithoutDependentJenkinsRelease.nextDevVersion) }
+                    )
+                }
             }
         }
     }

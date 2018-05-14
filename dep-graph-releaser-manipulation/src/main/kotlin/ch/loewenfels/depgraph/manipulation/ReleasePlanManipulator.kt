@@ -7,17 +7,28 @@ class ReleasePlanManipulator(private val releasePlan: ReleasePlan) {
     fun deactivateProject(projectId: ProjectId): ReleasePlan {
         requireValidProjectId(projectId, "Deactivating")
 
+        val newProject = transformToDeactivatedProject(projectId)
         val projectsToDeactivate = collectDependentProjects(projectId)
-        val newProjects = transformProjects(projectsToDeactivate, this::transformToDeactivatedProject)
-        return ReleasePlan(releasePlan, newProjects)
+
+        val newProjects = transformProjects(
+            projectsToDeactivate, newProject = null, transform = this::transformDependingCommandsToDeactivated
+        )
+        return ReleasePlan(releasePlan, newProjects + mapOf(projectId to newProject))
     }
 
-    private fun transformToDeactivatedProject(project: Project): Project {
+    private fun transformToDeactivatedProject(projectId: ProjectId): Project {
+        val project = releasePlan.getProject(projectId)
         val newCommands = project.commands.map {
             transformToDeactivatedCommand(it)
         }
         return Project(project, newCommands)
     }
+
+
+    private fun stateIsWaitingAndDependent(
+        state: CommandState,
+        dependencies: Set<ProjectId>
+    ) = state is CommandState.Waiting && state.dependencies.any { dependencies.contains(it) }
 
     private fun transformToDeactivatedCommand(it: Command): Command {
         return if (it.state is CommandState.Deactivated || it.state === CommandState.Disabled) {
@@ -44,17 +55,20 @@ class ReleasePlanManipulator(private val releasePlan: ReleasePlan) {
         releasePlan.getProject(projectId)
     }
 
-    private fun collectDependentProjects(projectId: ProjectId): Set<ProjectId> {
-        return releasePlan.iterator(projectId)
-            .asSequence()
-            .map { it.id }
-            .toHashSet()
+    private fun collectDependentProjects(targetProjectId: ProjectId): Map<ProjectId, Set<ProjectId>> {
+        val projectIds = hashMapOf<ProjectId, MutableSet<ProjectId>>()
+        val projectsToVisit = hashSetOf(targetProjectId)
+        do {
+            val projectId = projectsToVisit.iterator().next()
+            projectsToVisit.remove(projectId)
+            releasePlan.getDependents(projectId).forEach { dependentId ->
+                val set = projectIds.computeIfAbsent(dependentId, { hashSetOf() })
+                set.add(projectId)
+                projectsToVisit.add(dependentId)
+            }
+        } while (projectsToVisit.isNotEmpty())
+        return projectIds
     }
-
-    private fun transformProjects(
-        projectsToDeactivate: Set<ProjectId>,
-        transform: (Project) -> Project
-    ): Map<ProjectId, Project> = transformProjects(projectsToDeactivate, null, transform)
 
     /**
      * Transforms all projects which are defined in [projectsToTransform] with the help of [transform] and
@@ -62,14 +76,14 @@ class ReleasePlanManipulator(private val releasePlan: ReleasePlan) {
      * in this case the [newProject] is used.
      */
     private fun transformProjects(
-        projectsToTransform: Set<ProjectId>,
+        projectsToTransform: Map<ProjectId, Set<ProjectId>>,
         newProject: Project?,
-        transform: (Project) -> Project
+        transform: (Project, Set<ProjectId>) -> Project
     ): Map<ProjectId, Project> {
         return releasePlan.getAllProjects().entries.associate { (k, v) ->
             k to when {
                 newProject != null && newProject.id == v.id -> newProject
-                projectsToTransform.contains(k) -> transform(v)
+                projectsToTransform.contains(k) -> transform(v, projectsToTransform[k]!!)
                 else -> v
             }
         }
@@ -86,7 +100,7 @@ class ReleasePlanManipulator(private val releasePlan: ReleasePlan) {
             "Deactivating a command of",
             index,
             this::transformToDeactivatedCommand,
-            this::transformToDeactivatedProject
+            this::transformDependingCommandsToDeactivated
         ) {
             checkTransformationAllowed("deactivate", it, CommandState.Deactivated(it.state), projectId)
         }
@@ -116,7 +130,7 @@ class ReleasePlanManipulator(private val releasePlan: ReleasePlan) {
             "Disabling a command of",
             index,
             this::transformToDisabledCommand,
-            this::transformToDeactivatedProject
+            this::transformDependingCommandsToDeactivated
         ) {
             checkTransformationAllowed("disable", it, CommandState.Disabled, projectId)
         }
@@ -127,7 +141,7 @@ class ReleasePlanManipulator(private val releasePlan: ReleasePlan) {
         action: String,
         index: Int,
         transformCommand: (Command) -> Command,
-        transformProject: (Project) -> Project,
+        transformProject: (Project, Set<ProjectId>) -> Project,
         checkNotAlreadyTransformed: (Command) -> Unit
     ): ReleasePlan {
         requireValidProjectId(projectId, action)
@@ -138,6 +152,17 @@ class ReleasePlanManipulator(private val releasePlan: ReleasePlan) {
         val projectsToTransform = collectDependentProjects(projectId)
         val newProjects = transformProjects(projectsToTransform, newProject, transformProject)
         return ReleasePlan(releasePlan, newProjects)
+    }
+
+    private fun transformDependingCommandsToDeactivated(project: Project, dependencies: Set<ProjectId>): Project {
+        val newCommands = project.commands.map {
+            if (it.state is ReleaseCommand || stateIsWaitingAndDependent(it.state, dependencies)) {
+                transformToDeactivatedCommand(it)
+            } else {
+                it
+            }
+        }
+        return Project(project, newCommands)
     }
 
     private fun createNewProjectWithTransformedCommand(

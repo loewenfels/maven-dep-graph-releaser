@@ -98,8 +98,7 @@ data class ReleasePlan(
         return projectIds
     }
 
-    fun iterator(): Iterator<Project> = ReleasePlanIterator(this, rootProjectId)
-    fun iterator(entryPoint: ProjectId): Iterator<Project> = ReleasePlanIterator(this, entryPoint)
+    fun iterator(): Iterator<Project> = ReleasePlanIterator(this)
 
     fun getProjectIds(): Set<ProjectId> = projects.keys
     fun getProjects(): Collection<Project> = projects.values
@@ -112,10 +111,9 @@ data class ReleasePlan(
 
 
     private class ReleasePlanIterator(
-        private val releasePlan: ReleasePlan,
-        entryPoint: ProjectId
+        private val releasePlan: ReleasePlan
     ) : Iterator<Project> {
-        private val levelIterator = LevelIterator(entryPoint to releasePlan.getProject(entryPoint))
+        private val levelIterator = LevelIterator(releasePlan.rootProjectId to releasePlan.getRootProject())
         private val visitedProjects = hashSetOf<ProjectId>()
 
         override fun hasNext() = levelIterator.hasNext()

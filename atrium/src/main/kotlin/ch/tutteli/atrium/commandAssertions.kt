@@ -101,6 +101,13 @@ fun Assert<Command>.isJenkinsUpdateDependencyDeactivated(oldCommand: JenkinsUpda
     }
 }
 
+fun Assert<Command>.isJenkinsUpdateDependencyDisabled(oldCommand: JenkinsUpdateDependency) {
+    isA<JenkinsUpdateDependency> {
+        property(subject::state).toBe(CommandState.Disabled)
+        property(subject::projectId).toBe(oldCommand.projectId)
+    }
+}
+
 fun Assert<Command>.isJenkinsMavenReleaseDeactivated(oldCommand: JenkinsMavenReleasePlugin) {
     isA<JenkinsMavenReleasePlugin> {
         property(subject::state).toBe(CommandState.Deactivated(oldCommand.state))
