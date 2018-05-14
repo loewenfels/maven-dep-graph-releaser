@@ -2,7 +2,6 @@ buildscript {
     ext.publish_description = 'Contains the general API of the dep-graph-analyser, e.g. data structures.'
 }
 
-//TODO should be here but does not work
-//dependencies {
-//    compile "ch.tutteli.kbox:kbox-common:$kbox_version"
-//}
+dependencies {
+    compile "ch.tutteli.kbox:kbox-common:$kbox_version"
+}

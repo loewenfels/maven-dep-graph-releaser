@@ -1,3 +1,7 @@
 buildscript {
     ext.publish_description = 'Contains the general API of the dep-graph-analyser, e.g. data structures, for the JVM target'
 }
+
+dependencies {
+    compile "ch.tutteli.kbox:kbox:$kbox_version"
+}
