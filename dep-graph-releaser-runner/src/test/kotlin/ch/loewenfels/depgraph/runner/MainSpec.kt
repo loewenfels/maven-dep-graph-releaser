@@ -3,6 +3,7 @@ package ch.loewenfels.depgraph.runner
 import ch.loewenfels.depgraph.maven.getTestDirectory
 import ch.loewenfels.depgraph.runner.Main.errorHandler
 import ch.loewenfels.depgraph.runner.Main.fileVerifier
+import ch.loewenfels.depgraph.runner.commands.Json
 import ch.loewenfels.depgraph.runner.console.ErrorHandler
 import ch.loewenfels.depgraph.runner.console.FileVerifier
 import ch.loewenfels.depgraph.serialization.Serializer
@@ -28,7 +29,16 @@ object MainSpec : Spek({
     describe("json") {
         given("project A with dependent project B (happy case)") {
             on("calling main") {
-                val jsonFile = callJson(tempFolder)
+                val jsonFile = File(tempFolder.tmpDir, "test.json")
+                Main.main(
+                    "json", "com.example", "a",
+                    getTestDirectory("managingVersions/inDependency").absolutePath,
+                    jsonFile.absolutePath,
+                    "dgr-updater",
+                    ".*",
+                    "dgr-remote-releaser",
+                    "dgr-dry-run"
+                )
                 it("creates a corresponding json file") {
                     assert(jsonFile).returnValueOf(jsonFile::exists).isTrue()
                 }
@@ -72,17 +82,3 @@ object MainSpec : Spek({
         }
     }
 })
-
-private fun callJson(tempFolder: TempFolder): File {
-    val jsonFile = File(tempFolder.tmpDir, "test.json")
-    Main.main(
-        "json", "com.example", "a",
-        getTestDirectory("managingVersions/inDependency").absolutePath,
-        jsonFile.absolutePath,
-        "dgr-updater",
-        ".*",
-        "dgr-remote-releaser",
-        "dgr-dry-run"
-    )
-    return jsonFile
-}

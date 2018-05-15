@@ -31,7 +31,7 @@ fun dispatch(
         .toList()
         .toTypedArray()
 
-    val command = if (commandName == "man") {
+    val command = if (commandName == Man.name) {
         manCommand
     } else {
         manCommand.getCommand(commandName, errorHandler)

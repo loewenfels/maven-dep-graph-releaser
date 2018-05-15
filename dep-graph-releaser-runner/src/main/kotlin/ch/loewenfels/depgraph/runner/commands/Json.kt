@@ -13,9 +13,9 @@ import java.util.*
 
 object Json : ConsoleCommand {
 
-    private val REGEX_PARAMS_ARG = "-${ConfigKey.REGEX_PARAMS.asString()}="
-    private val JOB_MAPPING_ARG = "-${ConfigKey.JOB_MAPPING.asString()}="
-    private const val DISABLE_RELEASE_FOR = "-disableRegex="
+    val REGEX_PARAMS_ARG = "-${ConfigKey.REGEX_PARAMS.asString()}="
+    val JOB_MAPPING_ARG = "-${ConfigKey.JOB_MAPPING.asString()}="
+    const val DISABLE_RELEASE_FOR = "-disableRegex="
 
     override val name = "json"
     override val description = "analyse projects, create a release plan and serialize it to json"
@@ -40,7 +40,7 @@ object Json : ConsoleCommand {
         |                          // specified. In the above, .* matches all, so every job gets e=f as argument.
         |(${DISABLE_RELEASE_FOR}Regex)     // optionally: regex specifying for which projects
         |                          // the release commands have to be disabled
-        |$JOB_MAPPING_ARG=spec         // optionally: in case a jenkins job differ from its artifact name,
+        |(${JOB_MAPPING_ARG}spec)        // optionally: in case a jenkins job differ from its artifact name,
         |                          // you can use this mapping which is of the form:
         |                          // groupId:artifactId1=jobName1|groupId:artifactId2=anotherName
         """.trimMargin()

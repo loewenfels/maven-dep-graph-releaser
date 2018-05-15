@@ -8,8 +8,9 @@ class Man(private val commands: Map<String, ConsoleCommand>) : ConsoleCommand {
 
     companion object {
         private const val COMMAND = "-command="
+        const val name = "man"
     }
-    override val name = "man"
+    override val name = Companion.name
     override val description = "shows kind of a man page of one or all available commands"
     override val example = "./dgr $name -command=html"
     override val arguments = """
