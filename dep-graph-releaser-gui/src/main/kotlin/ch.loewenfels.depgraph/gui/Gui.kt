@@ -491,7 +491,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         const val STATE_QUEUEING = "Currently queueing the job."
         const val STATE_IN_PROGRESS = "Job is running."
         const val STATE_SUCCEEDED = "Job completed successfully."
-        const val STATE_FAILED = "Job completed successfully."
+        const val STATE_FAILED = "Job failed - click to navigate to console."
         private const val STATE_DEACTIVATED = "Currently deactivated, click to activate"
         const val STATE_DISABLED = "Command disabled, cannot be reactivated."
 
