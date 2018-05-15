@@ -131,7 +131,7 @@ fun showDialog(msg: String): Promise<Boolean> {
             span {
                 +"No"
                 getUnderlyingHtmlElement().addClickEventListener(options = js("{once: true}")) {
-                    box.style.visibility = "hidden"
+                    box.remove()
                     resolve(false)
                 }
             }
