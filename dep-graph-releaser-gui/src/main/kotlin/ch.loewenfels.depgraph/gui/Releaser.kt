@@ -226,7 +226,7 @@ class Releaser(
                 )
                 Promise.resolve(1)
             },
-            pollEverySecond = 10,
+            pollEverySecond = 5,
             maxWaitingTimeForCompletenessInSeconds = 60 * 15,
             verbose = false
         ).then(
