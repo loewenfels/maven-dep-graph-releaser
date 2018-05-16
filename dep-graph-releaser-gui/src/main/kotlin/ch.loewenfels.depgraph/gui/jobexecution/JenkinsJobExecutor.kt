@@ -71,7 +71,11 @@ class JenkinsJobExecutor(
         val url = "$jenkinsUrl/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)"
         val headers = createHeaderWithAuthAndCrumb(null, usernameToken)
         val init =
-            createRequestInit(null, ch.loewenfels.depgraph.gui.RequestVerb.GET, headers)
+            createRequestInit(
+                null,
+                ch.loewenfels.depgraph.gui.jobexecution.RequestVerb.GET,
+                headers
+            )
         return window.fetch(url, init)
             .then(::checkStatusOkOr404)
             .catch {
@@ -91,7 +95,7 @@ class JenkinsJobExecutor(
         headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8"
         val init = createRequestInit(
             jobExecutionData.body,
-            ch.loewenfels.depgraph.gui.RequestVerb.POST,
+            ch.loewenfels.depgraph.gui.jobexecution.RequestVerb.POST,
             headers
         )
         return window.fetch(jobExecutionData.jobTriggerUrl, init)
@@ -170,7 +174,11 @@ class JenkinsJobExecutor(
     ): Promise<T> {
         val headers = createHeaderWithAuthAndCrumb(crumbWithId, usernameToken)
         val init =
-            createRequestInit(null, ch.loewenfels.depgraph.gui.RequestVerb.GET, headers)
+            createRequestInit(
+                null,
+                ch.loewenfels.depgraph.gui.jobexecution.RequestVerb.GET,
+                headers
+            )
 
         val rePoll: (String) -> T = { body ->
             if (numberOfTries * pollEverySecond >= maxWaitingTimeInSeconds) {

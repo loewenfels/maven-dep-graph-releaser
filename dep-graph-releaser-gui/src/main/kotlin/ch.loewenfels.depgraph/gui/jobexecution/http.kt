@@ -1,4 +1,4 @@
-package ch.loewenfels.depgraph.gui
+package ch.loewenfels.depgraph.gui.jobexecution
 
 import org.w3c.fetch.*
 import kotlin.browser.window

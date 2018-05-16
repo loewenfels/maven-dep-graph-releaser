@@ -1,10 +1,7 @@
 package ch.loewenfels.depgraph.gui
 
 import ch.loewenfels.depgraph.data.ReleasePlan
-import ch.loewenfels.depgraph.gui.jobexecution.DryRunJobExecutionDataFactory
-import ch.loewenfels.depgraph.gui.jobexecution.JenkinsJobExecutor
-import ch.loewenfels.depgraph.gui.jobexecution.ReleaseJobExecutionDataFactory
-import ch.loewenfels.depgraph.gui.jobexecution.SimulatingJobExecutor
+import ch.loewenfels.depgraph.gui.jobexecution.*
 import org.w3c.fetch.Response
 import kotlin.browser.window
 import kotlin.js.Promise
@@ -90,7 +87,9 @@ class App {
             menu.disableButtonsDueToNoPublishUrl()
             Promise.resolve(null as UsernameToken?)
         } else {
-            window.fetch("$jenkinsUrl/me/configure", createFetchInitWithCredentials())
+            window.fetch("$jenkinsUrl/me/configure",
+                createFetchInitWithCredentials()
+            )
                 .then(::checkStatusOkOr403)
                 .then { body: String? ->
                     if (body == null) {

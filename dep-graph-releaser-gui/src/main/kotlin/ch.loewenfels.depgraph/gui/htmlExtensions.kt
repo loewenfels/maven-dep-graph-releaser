@@ -38,7 +38,7 @@ fun HTMLElement.toggleClass(cssClass: String) {
     }
 }
 
-fun withErrorHandling(event: Event, action: (Event) -> Any) {
+private fun withErrorHandling(event: Event, action: (Event) -> Any) {
     Promise.resolve(1).then {
         action(event)
     }.catch { t ->

@@ -1,4 +1,4 @@
-package ch.loewenfels.depgraph.gui
+package ch.loewenfels.depgraph.gui.jobexecution
 
 data class UsernameToken(val username: String, val token: String)
 
