@@ -121,20 +121,8 @@ private val urlRegex = Regex("http(?:s)://[^ ]+")
 fun showDialog(msg: String): Promise<Boolean> {
     return Promise { resolve, _ ->
         showModal(msg) { box ->
-            span {
-                +"Yes"
-                getUnderlyingHtmlElement().addClickEventListener(options = js("{once: true}")) {
-                    box.remove()
-                    resolve(true)
-                }
-            }
-            span {
-                +"No"
-                getUnderlyingHtmlElement().addClickEventListener(options = js("{once: true}")) {
-                    box.remove()
-                    resolve(false)
-                }
-            }
+            modalButton("Yes", box, resolve, true)
+            modalButton("No", box, resolve, false)
         }
     }
 }
@@ -142,19 +130,24 @@ fun showDialog(msg: String): Promise<Boolean> {
 fun showAlert(msg: String): Promise<Unit> {
     return Promise { resolve, _ ->
         showModal(msg) { box ->
-            span {
-                +"OK"
-                getUnderlyingHtmlElement().addClickEventListener(options = js("{once: true}")) {
-                    box.remove()
-                    resolve(Unit)
-                }
-            }
+            modalButton("OK", box, resolve, Unit)
+        }
+    }
+}
+
+private fun <T> DIV.modalButton(buttonText: String, box: HTMLElement, resolve: (T) -> Unit, objectToResolve: T) {
+    span {
+        +buttonText
+        getUnderlyingHtmlElement().addClickEventListener(options = js("{once: true}")) {
+            box.remove()
+            resolve(objectToResolve)
         }
     }
 }
 
 private fun showModal(msg: String, buttonCreator: DIV.(HTMLElement) -> Unit) {
-    elementById("modals").append {
+    val modals = elementById("modals")
+    modals.append {
         div("box") {
             val box = getUnderlyingHtmlElement()
             div("text") {
@@ -164,10 +157,13 @@ private fun showModal(msg: String, buttonCreator: DIV.(HTMLElement) -> Unit) {
             div("buttons") {
                 buttonCreator(box)
             }
-            val top = document.body!!.clientHeight / 3
-            val left = document.body!!.clientWidth / 2 - box.offsetWidth / 2
-            box.style.top = "${top}px"
-            box.style.left = "${left}px"
+            box.style.visibility = "hidden"
         }
     }
+    val box = modals.lastChild as HTMLElement
+    val top = document.body!!.clientHeight / 3
+    val left = document.body!!.clientWidth / 2 - box.offsetWidth / 2
+    box.style.top = "${top}px"
+    box.style.left = "${left}px"
+    box.style.visibility = "visible"
 }
