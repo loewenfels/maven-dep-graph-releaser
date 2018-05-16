@@ -3,6 +3,8 @@ package ch.loewenfels.depgraph.gui
 import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
+import ch.loewenfels.depgraph.gui.components.Menu
+import ch.loewenfels.depgraph.gui.components.Pipeline
 import kotlinx.html.*
 import kotlinx.html.dom.append
 import kotlinx.html.js.onKeyUpFunction

@@ -1,9 +1,10 @@
-package ch.loewenfels.depgraph.gui
+package ch.loewenfels.depgraph.gui.components
 
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ReleaseCommand
 import ch.loewenfels.depgraph.data.ReleasePlan
+import ch.loewenfels.depgraph.gui.*
 import ch.tutteli.kbox.forEachIn
 import ch.tutteli.kbox.mapWithIndex
 import kotlinx.html.*
@@ -24,10 +25,12 @@ class ContextMenu(private val releasePlan: ReleasePlan, private val menu: Menu) 
     fun createContextMenu(div: DIV, idPrefix: String, project: Project, index: Int) {
         div.div("contextMenu") {
             id = "$idPrefix$CONTEXT_MENU_SUFFIX"
-            contextMenuEntry(idPrefix, CONTEXT_MENU_DEACTIVATED, CommandState.Deactivated::class) {
+            contextMenuEntry(idPrefix,
+                CONTEXT_MENU_DEACTIVATED, CommandState.Deactivated::class) {
                 transitionToDeactivatedIfOk(project, index)
             }
-            contextMenuEntry(idPrefix, CONTEXT_MENU_SUCCEEDED, CommandState.Succeeded::class) {
+            contextMenuEntry(idPrefix,
+                CONTEXT_MENU_SUCCEEDED, CommandState.Succeeded::class) {
                 transitionToSucceededIfOk(project, index)
             }
         }
@@ -136,7 +139,8 @@ class ContextMenu(private val releasePlan: ReleasePlan, private val menu: Menu) 
             element.addEventListener("contextmenu", { event ->
                 hideAllContextMenus()
                 disableContextEntriesIfNecessary(idPrefix)
-                val contextMenu = elementById("$idPrefix$CONTEXT_MENU_SUFFIX")
+                val contextMenu =
+                    elementById("$idPrefix$CONTEXT_MENU_SUFFIX")
                 moveContextMenuPosition(event as MouseEvent, contextMenu)
                 contextMenu.style.visibility = "visible"
                 window.addEventListener("click", { hideAllContextMenus() }, js("({once: true})"))

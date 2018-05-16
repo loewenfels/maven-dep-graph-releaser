@@ -4,6 +4,7 @@ import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.gui.actions.Downloader
 import ch.loewenfels.depgraph.gui.actions.Publisher
 import ch.loewenfels.depgraph.gui.actions.Releaser
+import ch.loewenfels.depgraph.gui.components.Menu
 import ch.loewenfels.depgraph.gui.jobexecution.*
 import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
 import ch.loewenfels.depgraph.gui.serialization.deserialize

@@ -2,6 +2,8 @@ package ch.loewenfels.depgraph.gui.actions
 
 import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.gui.*
+import ch.loewenfels.depgraph.gui.components.Menu
+import ch.loewenfels.depgraph.gui.components.Pipeline
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionData
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionDataFactory
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutor

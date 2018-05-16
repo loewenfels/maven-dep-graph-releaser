@@ -1,6 +1,10 @@
-package ch.loewenfels.depgraph.gui
+package ch.loewenfels.depgraph.gui.components
 
 import ch.loewenfels.depgraph.data.*
+import ch.loewenfels.depgraph.gui.addChangeEventListener
+import ch.loewenfels.depgraph.gui.addClickEventListener
+import ch.loewenfels.depgraph.gui.elementById
+import ch.loewenfels.depgraph.gui.showInfo
 import ch.tutteli.kbox.mapWithIndex
 import org.w3c.dom.CustomEvent
 import org.w3c.dom.CustomEventInit
@@ -23,35 +27,60 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
             val toggle = Pipeline.getToggle(project, index)
 
             if (command is ReleaseCommand) {
-                toggle.addChangeEventListener { toggleCommand(project, index, EVENT_RELEASE_TOGGLE_UNCHECKED) }
+                toggle.addChangeEventListener { toggleCommand(project, index,
+                    EVENT_RELEASE_TOGGLE_UNCHECKED
+                ) }
                 disallowClickIfNotAllCommandsOrSubmodulesActive(project, toggle)
                 val projectAndSubmodules = sequenceOf(project) +
                     releasePlan.getSubmodules(project.id).asSequence().map { releasePlan.getProject(it) }
 
                 projectAndSubmodules.forEach {
-                    registerForProjectEvent(it, EVENT_TOGGLE_UNCHECKED) { toggle.uncheck() }
+                    registerForProjectEvent(it,
+                        EVENT_TOGGLE_UNCHECKED
+                    ) { toggle.uncheck() }
                 }
             } else {
-                toggle.addChangeEventListener { toggleCommand(project, index, EVENT_TOGGLE_UNCHECKED) }
+                toggle.addChangeEventListener { toggleCommand(project, index,
+                    EVENT_TOGGLE_UNCHECKED
+                ) }
             }
 
-            Menu.disableUnDisableForReleaseStartAndEnd(toggle, elementById("${toggle.id}${Pipeline.SLIDER_SUFFIX}"))
+            Menu.disableUnDisableForReleaseStartAndEnd(
+                toggle,
+                elementById("${toggle.id}${Pipeline.SLIDER_SUFFIX}")
+            )
         }
     }
 
     private fun toggleCommand(project: Project, index: Int, uncheckedEvent: String) {
         val toggle = Pipeline.getToggle(project, index)
         val command = Pipeline.getCommand(project, index).asDynamic()
-        val slider = elementById("${toggle.id}${Pipeline.SLIDER_SUFFIX}")
-        val currentTitle = elementById("${Pipeline.getCommandId(project, index)}${Pipeline.STATE_SUFFIX}").title
+        val slider =
+            elementById("${toggle.id}${Pipeline.SLIDER_SUFFIX}")
+        val currentTitle = elementById(
+            "${Pipeline.getCommandId(
+                project,
+                index
+            )}${Pipeline.STATE_SUFFIX}"
+        ).title
         if (!toggle.checked) {
             dispatchToggleEvent(project, toggle, uncheckedEvent)
             val previous = command.state as CommandState
-            Pipeline.changeStateOfCommand(project, index, CommandState.Deactivated(previous), currentTitle)
+            Pipeline.changeStateOfCommand(
+                project,
+                index,
+                CommandState.Deactivated(previous),
+                currentTitle
+            )
             slider.title = "Click to activate command."
         } else {
             val oldState = command.state as CommandState.Deactivated
-            Pipeline.changeStateOfCommand(project, index, oldState.previous, currentTitle)
+            Pipeline.changeStateOfCommand(
+                project,
+                index,
+                oldState.previous,
+                currentTitle
+            )
             slider.title = "Click to deactivate command."
         }
         menu.activateSaveButton()
@@ -91,8 +120,14 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
                         state is CommandState.Waiting && state.dependencies.contains(projectId)
                     }
                     .forEach { (index, _) ->
-                        registerForProjectEvent(project, EVENT_RELEASE_TOGGLE_UNCHECKED) {
-                            Pipeline.getToggle(releasePlan.getProject(dependentId), index).uncheck()
+                        registerForProjectEvent(project,
+                            EVENT_RELEASE_TOGGLE_UNCHECKED
+                        ) {
+                            Pipeline.getToggle(
+                                releasePlan.getProject(
+                                    dependentId
+                                ), index
+                            ).uncheck()
                         }
                     }
             }
@@ -113,7 +148,12 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
     private fun notAllCommandsActive(project: Project, predicate: (HTMLInputElement) -> Boolean): Boolean {
         return project.commands.asSequence()
-            .mapIndexed { index, _ -> Pipeline.getToggle(project, index) }
+            .mapIndexed { index, _ ->
+                Pipeline.getToggle(
+                    project,
+                    index
+                )
+            }
             .filter(predicate)
             .any { checkbox -> !checkbox.checked }
     }

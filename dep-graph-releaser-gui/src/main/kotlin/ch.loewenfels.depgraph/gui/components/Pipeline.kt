@@ -1,4 +1,4 @@
-package ch.loewenfels.depgraph.gui
+package ch.loewenfels.depgraph.gui.components
 
 import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
@@ -6,6 +6,7 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsCommand
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
+import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.Gui.Companion.textFieldWithLabel
 import ch.loewenfels.depgraph.hasNextOnTheSameLevel
 import ch.tutteli.kbox.toPeekingIterator
@@ -28,7 +29,8 @@ class Pipeline(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
     private fun setUpProjects() {
         val set = hashSetOf<ProjectId>()
-        val pipeline = elementById(PIPELINE_HTML_ID)
+        val pipeline =
+            elementById(PIPELINE_HTML_ID)
         pipeline.asDynamic().state = releasePlan.state
         pipeline.append {
             val itr = releasePlan.iterator().toPeekingIterator()
@@ -56,7 +58,7 @@ class Pipeline(private val releasePlan: ReleasePlan, private val menu: Menu) {
         showStatus("Projects involved: $involvedProjects")
         if (involvedProjects != releasePlan.getNumberOfProjects()) {
             showError("Not all dependent projects are involved in the process, please report a bug. The following where left out\n" +
-                    (releasePlan.getProjectIds() - set).joinToString("\n") { it.identifier }
+                (releasePlan.getProjectIds() - set).joinToString("\n") { it.identifier }
             )
         }
     }
@@ -120,7 +122,9 @@ class Pipeline(private val releasePlan: ReleasePlan, private val menu: Menu) {
             div {
                 val commandId = getCommandId(project, index)
                 id = commandId
-                classes = setOf("command", stateToCssClass(command.state))
+                classes = setOf("command",
+                    stateToCssClass(command.state)
+                )
                 div("commandTitle") {
                     id = "$commandId$TITLE_SUFFIX"
                     +command::class.simpleName!!
@@ -273,14 +277,32 @@ class Pipeline(private val releasePlan: ReleasePlan, private val menu: Menu) {
         const val TITLE_SUFFIX = ":title"
 
 
-        fun getCommandId(project: Project, index: Int) = getCommandId(project.id, index)
+        fun getCommandId(project: Project, index: Int) =
+            getCommandId(project.id, index)
         fun getCommandId(projectId: ProjectId, index: Int) = "${projectId.identifier}:$index"
-        fun getCommand(project: Project, index: Int) = getCommand(project.id, index)
-        fun getCommand(projectId: ProjectId, index: Int): HTMLElement = elementById(getCommandId(projectId, index))
+        fun getCommand(project: Project, index: Int) =
+            getCommand(project.id, index)
+        fun getCommand(projectId: ProjectId, index: Int): HTMLElement = elementById(
+            getCommandId(
+                projectId,
+                index
+            )
+        )
         fun getToggle(project: Project, index: Int) =
-            getCheckbox("${getCommandId(project.id, index)}$DEACTIVATE_SUFFIX")
+            getCheckbox(
+                "${getCommandId(
+                    project.id,
+                    index
+                )}$DEACTIVATE_SUFFIX"
+            )
 
-        fun getCommandState(projectId: ProjectId, index: Int) = getCommandState(getCommandId(projectId, index))
+        fun getCommandState(projectId: ProjectId, index: Int) =
+            getCommandState(
+                getCommandId(
+                    projectId,
+                    index
+                )
+            )
         fun getCommandState(idPrefix: String) = elementById(idPrefix).asDynamic().state as CommandState
         fun changeStateOfCommandAndAddBuildUrl(
             project: Project,
@@ -289,18 +311,30 @@ class Pipeline(private val releasePlan: ReleasePlan, private val menu: Menu) {
             title: String,
             buildUrl: String
         ) {
-            changeStateOfCommand(project, index, newState, title)
+            changeStateOfCommand(
+                project,
+                index,
+                newState,
+                title
+            )
             val commandId = getCommandId(project, index)
-            elementById<HTMLAnchorElement>("$commandId$STATE_SUFFIX").href = buildUrl
+            elementById<HTMLAnchorElement>("$commandId$STATE_SUFFIX")
+                .href = buildUrl
             elementById(commandId).asDynamic().buildUrl = buildUrl
         }
 
         fun changeStateOfCommand(project: Project, index: Int, newState: CommandState, title: String) {
-            changeStateOfCommand(project, index, newState, title) { previousState, commandId ->
+            changeStateOfCommand(
+                project,
+                index,
+                newState,
+                title
+            ) { previousState, commandId ->
                 try {
                     previousState.checkTransitionAllowed(newState)
                 } catch (e: IllegalStateException) {
-                    val commandTitle = elementById(commandId + TITLE_SUFFIX)
+                    val commandTitle =
+                        elementById(commandId + TITLE_SUFFIX)
                     throw IllegalStateException(
                         "Cannot change the state of the command ${commandTitle.innerText} (${index + 1}. command) " +
                             "of the project ${project.id.identifier}",
@@ -323,13 +357,15 @@ class Pipeline(private val releasePlan: ReleasePlan, private val menu: Menu) {
             dynCommand.state = checkStateTransition(previousState, commandId)
             command.removeClass(stateToCssClass(previousState))
             command.addClass(stateToCssClass(newState))
-            elementById("$commandId$STATE_SUFFIX").title = title
+            elementById("$commandId$STATE_SUFFIX")
+                .title = title
         }
 
         fun getReleaseState() = elementById(PIPELINE_HTML_ID).asDynamic().state as ReleaseState
 
         fun changeReleaseState(newState: ReleaseState) {
-            val pipeline = elementById(PIPELINE_HTML_ID).asDynamic()
+            val pipeline = elementById(PIPELINE_HTML_ID)
+                .asDynamic()
             pipeline.state = getReleaseState().checkTransitionAllowed(newState)
         }
 

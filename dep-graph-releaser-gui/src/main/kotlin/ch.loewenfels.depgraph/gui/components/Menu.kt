@@ -1,8 +1,9 @@
-package ch.loewenfels.depgraph.gui
+package ch.loewenfels.depgraph.gui.components
 
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.ReleaseState
+import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.actions.Downloader
 import ch.loewenfels.depgraph.gui.actions.Publisher
 import ch.loewenfels.depgraph.gui.actions.Releaser
@@ -69,7 +70,7 @@ class Menu {
         userName.innerText = name
         userIcon.innerText = "verified_user"
         userButton.title = "Logged in as $username"
-        userButton.removeClass(Menu.DEACTIVATED)
+        userButton.removeClass(DEACTIVATED)
     }
 
 
@@ -100,7 +101,9 @@ class Menu {
             ReleaseState.Ready -> Unit /* nothing to do */
             ReleaseState.InProgress -> dispatchReleaseStart()
             ReleaseState.Failed, ReleaseState.Succeeded -> {
-                dispatchReleaseStart(); dispatchReleaseEnd(releasePlan.state == ReleaseState.Succeeded)
+                dispatchReleaseStart(); dispatchReleaseEnd(
+                    releasePlan.state == ReleaseState.Succeeded
+                )
             }
         }
     }
@@ -170,13 +173,13 @@ class Menu {
                     publisher = dependencies?.publisher
                 }
         }
-        Menu.registerForReleaseStartEvent {
+        registerForReleaseStartEvent {
             listOf(dryRunButton, releaseButton, exploreButton).forEach {
                 it.addClass(DISABLED)
                 it.title = DISABLED_RELEASE_IN_PROGRESS
             }
         }
-        Menu.registerForReleaseEndEvent { success ->
+        registerForReleaseEndEvent { success ->
             if (success) {
                 listOf(dryRunButton, releaseButton, exploreButton).forEach {
                     it.title = DISABLED_RELEASE_SUCCESS
@@ -193,10 +196,22 @@ class Menu {
                         "\n(You might have to delete git tags and remove artifacts if they have already been created)."
                 )
 
-                val (processName, button, buttonText) = when(typeOfRun){
-                    Menu.TypeOfRun.SIMULATION -> Triple("Explore Release Order", exploreButton, elementById("explore:text"))
-                    Menu.TypeOfRun.DRY_RUN -> Triple("Dry Run", dryRunButton, elementById("dryRun:text"))
-                    Menu.TypeOfRun.RELEASE -> Triple("Release", releaseButton, elementById("release:text"))
+                val (processName, button, buttonText) = when (typeOfRun) {
+                    TypeOfRun.SIMULATION -> Triple(
+                        "Explore Release Order",
+                        exploreButton,
+                        elementById("explore:text")
+                    )
+                    TypeOfRun.DRY_RUN -> Triple(
+                        "Dry Run",
+                        dryRunButton,
+                        elementById("dryRun:text")
+                    )
+                    TypeOfRun.RELEASE -> Triple(
+                        "Release",
+                        releaseButton,
+                        elementById("release:text")
+                    )
                 }
                 buttonText.innerText = "Re-trigger failed Jobs"
                 button.title = "Continue with the $processName process by re-triggering previously failed jobs."
@@ -229,7 +244,8 @@ class Menu {
     private fun turnFailedIntoReTrigger(releasePlan: ReleasePlan) {
         releasePlan.iterator().forEach { project ->
             project.commands.forEachIndexed { index, _ ->
-                val commandState = Pipeline.getCommandState(project.id, index)
+                val commandState =
+                    Pipeline.getCommandState(project.id, index)
                 if (commandState === CommandState.Failed) {
                     Pipeline.changeStateOfCommand(
                         project,
@@ -255,7 +271,7 @@ class Menu {
         this.title = reason
     }
 
-    private fun HTMLElement.isDisabled() = hasClass(Menu.DISABLED)
+    private fun HTMLElement.isDisabled() = hasClass(DISABLED)
 
     private fun HTMLElement.deactivate(reason: String) {
         if (saveButton.isDisabled()) return
@@ -326,7 +342,8 @@ class Menu {
 
         val changed = publisher.applyChanges()
         return if (changed) {
-            val publishId = getTextField(Gui.RELEASE_ID_HTML_ID).value
+            val publishId = getTextField(Gui.RELEASE_ID_HTML_ID)
+                .value
             val newFileName = "release-$publishId"
             publisher.publish(newFileName, verbose, jobExecutor)
                 .then { true }
@@ -348,11 +365,13 @@ class Menu {
 
 
         fun registerForReleaseStartEvent(callback: (Event) -> Unit) {
-            elementById("menu").addEventListener(Menu.EVENT_RELEASE_START, callback)
+            elementById("menu")
+                .addEventListener(EVENT_RELEASE_START, callback)
         }
 
         fun registerForReleaseEndEvent(callback: (Boolean) -> Unit) {
-            elementById("menu").addEventListener(Menu.EVENT_RELEASE_END, { e ->
+            elementById("menu")
+                .addEventListener(EVENT_RELEASE_END, { e ->
                 val customEvent = e as CustomEvent
                 val success = customEvent.detail as Boolean
                 callback(success)
@@ -360,20 +379,22 @@ class Menu {
         }
 
         private fun dispatchReleaseStart() {
-            elementById("menu").dispatchEvent(Event(EVENT_RELEASE_START))
+            elementById("menu")
+                .dispatchEvent(Event(EVENT_RELEASE_START))
         }
 
         private fun dispatchReleaseEnd(success: Boolean) {
-            elementById("menu").dispatchEvent(CustomEvent(EVENT_RELEASE_END, CustomEventInit(detail = success)))
+            elementById("menu")
+                .dispatchEvent(CustomEvent(EVENT_RELEASE_END, CustomEventInit(detail = success)))
         }
 
         fun disableUnDisableForReleaseStartAndEnd(input: HTMLInputElement, titleElement: HTMLElement) {
-            Menu.registerForReleaseStartEvent {
+            registerForReleaseStartEvent {
                 input.asDynamic().oldDisabled = input.disabled
                 input.disabled = true
                 titleElement.setTitleSaveOld(DISABLED_RELEASE_IN_PROGRESS)
             }
-            Menu.registerForReleaseEndEvent { success ->
+            registerForReleaseEndEvent { success ->
                 if (success) {
                     titleElement.title = DISABLED_RELEASE_SUCCESS
                 } else {
