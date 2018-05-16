@@ -1,6 +1,10 @@
 package ch.loewenfels.depgraph.gui
 
 import ch.loewenfels.depgraph.data.ReleasePlan
+import ch.loewenfels.depgraph.gui.jobexecution.DryRunJobExecutionDataFactory
+import ch.loewenfels.depgraph.gui.jobexecution.JenkinsJobExecutor
+import ch.loewenfels.depgraph.gui.jobexecution.ReleaseJobExecutionDataFactory
+import ch.loewenfels.depgraph.gui.jobexecution.SimulatingJobExecutor
 import org.w3c.fetch.Response
 import kotlin.browser.window
 import kotlin.js.Promise
@@ -148,10 +152,13 @@ class App {
             return if (publishJobUrl != null && jenkinsUrl != null && usernameToken != null) {
                 val publisher = Publisher(publishJobUrl, modifiableJson)
                 val releaser = Releaser(jenkinsUrl, modifiableJson, menu)
-                val jenkinsJobExecutor = JenkinsJobExecutor(jenkinsUrl, usernameToken)
+                val jenkinsJobExecutor =
+                    JenkinsJobExecutor(jenkinsUrl, usernameToken)
                 val simulatingJobExecutor = SimulatingJobExecutor()
-                val releaseJobExecutionDataFactory = ReleaseJobExecutionDataFactory(jenkinsUrl, releasePlan)
-                val dryRunJobExecutionDataFactory = DryRunJobExecutionDataFactory(jenkinsUrl, releasePlan)
+                val releaseJobExecutionDataFactory =
+                    ReleaseJobExecutionDataFactory(jenkinsUrl, releasePlan)
+                val dryRunJobExecutionDataFactory =
+                    DryRunJobExecutionDataFactory(jenkinsUrl, releasePlan)
                 Menu.Dependencies(
                     publisher,
                     releaser,

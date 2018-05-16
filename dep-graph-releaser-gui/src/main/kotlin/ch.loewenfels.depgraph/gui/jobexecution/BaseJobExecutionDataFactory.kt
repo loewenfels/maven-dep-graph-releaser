@@ -1,4 +1,4 @@
-package ch.loewenfels.depgraph.gui
+package ch.loewenfels.depgraph.gui.jobexecution
 
 import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.ReleasePlan

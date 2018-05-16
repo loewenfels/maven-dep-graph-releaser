@@ -1,6 +1,9 @@
 package ch.loewenfels.depgraph.gui
 
 import ch.loewenfels.depgraph.data.*
+import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionData
+import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionDataFactory
+import ch.loewenfels.depgraph.gui.jobexecution.JobExecutor
 import ch.tutteli.kbox.mapWithIndex
 import org.w3c.dom.HTMLAnchorElement
 import kotlin.browser.window

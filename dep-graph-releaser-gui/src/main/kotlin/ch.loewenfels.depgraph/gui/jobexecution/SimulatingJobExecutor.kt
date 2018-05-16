@@ -1,5 +1,6 @@
-package ch.loewenfels.depgraph.gui
+package ch.loewenfels.depgraph.gui.jobexecution
 
+import ch.loewenfels.depgraph.gui.*
 import failAfterSteps
 import stepWise
 import waitBetweenSteps

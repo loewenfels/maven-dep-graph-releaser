@@ -1,5 +1,6 @@
-package ch.loewenfels.depgraph.gui
+package ch.loewenfels.depgraph.gui.jobexecution
 
+import ch.loewenfels.depgraph.gui.*
 import org.w3c.fetch.Response
 import kotlin.browser.window
 import kotlin.js.Promise
@@ -26,14 +27,20 @@ class JenkinsJobExecutor(
                     throw Error("Could not trigger the job $jobName", it)
                 }.then { queuedItemUrl: String ->
                     if (verbose) {
-                        showInfo("Queued $jobName successfully, wait for execution...\nQueued item URL: ${queuedItemUrl}api/xml", 2000)
+                        showInfo(
+                            "Queued $jobName successfully, wait for execution...\nQueued item URL: ${queuedItemUrl}api/xml",
+                            2000
+                        )
                     }
                     jobQueuedHook("${queuedItemUrl}api/xml").then {
                         extractBuildNumber(crumbWithId, queuedItemUrl)
                     }.then { it }
                 }.then { buildNumber: Int ->
                     if (verbose) {
-                        showInfo("$jobName started with build number $buildNumber, wait for completion...", 2000)
+                        showInfo(
+                            "$jobName started with build number $buildNumber, wait for completion...",
+                            2000
+                        )
                     }
                     jobStartedHook(buildNumber).then {
                         pollJobForCompletion(
@@ -63,7 +70,8 @@ class JenkinsJobExecutor(
     private fun issueCrumb(jenkinsUrl: String): Promise<CrumbWithId?> {
         val url = "$jenkinsUrl/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)"
         val headers = createHeaderWithAuthAndCrumb(null, usernameToken)
-        val init = createRequestInit(null, RequestVerb.GET, headers)
+        val init =
+            createRequestInit(null, ch.loewenfels.depgraph.gui.RequestVerb.GET, headers)
         return window.fetch(url, init)
             .then(::checkStatusOkOr404)
             .catch {
@@ -81,7 +89,11 @@ class JenkinsJobExecutor(
     private fun triggerJob(crumbWithId: CrumbWithId?, jobExecutionData: JobExecutionData): Promise<Response> {
         val headers = createHeaderWithAuthAndCrumb(crumbWithId, usernameToken)
         headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8"
-        val init = createRequestInit(jobExecutionData.body, RequestVerb.POST, headers)
+        val init = createRequestInit(
+            jobExecutionData.body,
+            ch.loewenfels.depgraph.gui.RequestVerb.POST,
+            headers
+        )
         return window.fetch(jobExecutionData.jobTriggerUrl, init)
     }
 
@@ -89,7 +101,11 @@ class JenkinsJobExecutor(
         val xpathUrl = "${queuedItemUrl}api/xml?xpath=//executable/number"
         // wait a bit, if we are too fast we run almost certainly into a 404
         return sleep(400) {
-            pollAndExtract(crumbWithId, xpathUrl, numberRegex) { e ->
+            pollAndExtract(
+                crumbWithId,
+                xpathUrl,
+                numberRegex
+            ) { e ->
                 throw IllegalStateException(
                     "Could not find the build number in the returned body." +
                         "\nJob URL: $queuedItemUrl" +
@@ -133,7 +149,8 @@ class JenkinsJobExecutor(
             poll(
                 crumbWithId, "$jobUrl$buildNumber/api/xml?xpath=/*/result", 0, pollEverySecond, maxWaitingTimeInSeconds
             ) { body ->
-                val matchResult = resultRegex.matchEntire(body)
+                val matchResult =
+                    resultRegex.matchEntire(body)
                 if (matchResult != null) {
                     true to matchResult.groupValues[1]
                 } else {
@@ -152,11 +169,15 @@ class JenkinsJobExecutor(
         action: (String) -> Pair<Boolean, T?>
     ): Promise<T> {
         val headers = createHeaderWithAuthAndCrumb(crumbWithId, usernameToken)
-        val init = createRequestInit(null, RequestVerb.GET, headers)
+        val init =
+            createRequestInit(null, ch.loewenfels.depgraph.gui.RequestVerb.GET, headers)
 
         val rePoll: (String) -> T = { body ->
             if (numberOfTries * pollEverySecond >= maxWaitingTimeInSeconds) {
-                throw PollException("Waited at least $maxWaitingTimeInSeconds seconds", body)
+                throw PollException(
+                    "Waited at least $maxWaitingTimeInSeconds seconds",
+                    body
+                )
             }
             val p = sleep(pollEverySecond * 1000) {
                 poll(crumbWithId, pollUrl, numberOfTries + 1, pollEverySecond, maxWaitingTimeInSeconds, action)

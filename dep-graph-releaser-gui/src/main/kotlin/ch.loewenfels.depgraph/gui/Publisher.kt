@@ -1,5 +1,7 @@
 package ch.loewenfels.depgraph.gui
 
+import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionData
+import ch.loewenfels.depgraph.gui.jobexecution.JobExecutor
 import kotlin.browser.window
 import kotlin.js.Promise
 

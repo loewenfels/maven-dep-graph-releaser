@@ -3,6 +3,8 @@ package ch.loewenfels.depgraph.gui
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.ReleaseState
+import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionDataFactory
+import ch.loewenfels.depgraph.gui.jobexecution.JobExecutor
 import org.w3c.dom.CustomEvent
 import org.w3c.dom.CustomEventInit
 import org.w3c.dom.HTMLElement
