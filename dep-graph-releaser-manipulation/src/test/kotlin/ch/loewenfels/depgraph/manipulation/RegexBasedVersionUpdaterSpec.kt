@@ -161,6 +161,11 @@ object RegexBasedVersionUpdaterSpec : Spek({
         val pom = getPom("emptyProperties.pom")
         testWithExampleA(testee, tempFolder, pom)
     }
+
+    given("project which has a property which is built up by another property but not the one we want to update") {
+        val pom = getPom("propertyWithProperty.pom")
+        testWithExampleA(testee, tempFolder, pom)
+    }
 })
 
 private fun SpecBody.testProjectVersionWithExampleA(

@@ -22,11 +22,7 @@ object RegexBasedVersionUpdater {
                 "\ndependency: $groupId:$artifactId:$newVersion"
         }
 
-        val groupIdArtifactIdRegex =
-            createGroupIdArtifactIdRegex(
-                groupId,
-                artifactId
-            )
+        val groupIdArtifactIdRegex = createGroupIdArtifactIdRegex(groupId, artifactId)
         val content = pom.readText()
 
         val dependenciesParamObject = ParamObject(
@@ -37,33 +33,15 @@ object RegexBasedVersionUpdater {
             content,
             dependencyRegex
         )
-        updateDependencies(
-            dependenciesParamObject,
-            groupIdArtifactIdRegex
-        )
+        updateDependencies(dependenciesParamObject, groupIdArtifactIdRegex)
 
-        val parentParamObject = ParamObject(
-            dependenciesParamObject,
-            parentRegex
-        )
-        updateParentRelation(
-            parentParamObject,
-            groupIdArtifactIdRegex,
-            pom
-        )
+        val parentParamObject = ParamObject(dependenciesParamObject, parentRegex)
+        updateParentRelation(parentParamObject, groupIdArtifactIdRegex, pom)
 
-        val propertiesParamObject = ParamObject(
-            parentParamObject,
-            propertiesRegex
-        )
+        val propertiesParamObject = ParamObject(parentParamObject, propertiesRegex)
         updateProperties(propertiesParamObject)
 
-        checkAndUpdatePomIfOk(
-            dependenciesParamObject,
-            parentParamObject,
-            propertiesParamObject,
-            pom
-        )
+        checkAndUpdatePomIfOk(dependenciesParamObject, parentParamObject, propertiesParamObject, pom)
     }
 
     private fun createGroupIdArtifactIdRegex(groupId: String, artifactId: String): Regex {
@@ -107,15 +85,9 @@ object RegexBasedVersionUpdater {
                 propertiesParamObject.startIndex,
                 initialStartIndex + tagMatchResult.range.start
             )
-            val (propertyName, version) = getTagNameAndVersion(
-                tagMatchResult
-            )
+            val (propertyName, version) = getTagNameAndVersion(tagMatchResult)
             propertiesParamObject.modifiedPom.append("<").append(propertyName).append(">")
-            appendVersionInProperty(
-                propertiesParamObject,
-                propertyName,
-                version
-            )
+            appendVersionInProperty(propertiesParamObject, propertyName, version)
             propertiesParamObject.modifiedPom.append("</").append(propertyName).append(">")
 
             val nextMatchResult = tagMatchResult.next()
@@ -155,10 +127,7 @@ object RegexBasedVersionUpdater {
             paramObject.appendBeforeSubMatch(versionMatchResult)
 
             paramObject.modifiedPom.append("<$VERSION>")
-            appendVersion(
-                paramObject,
-                versionMatchResult.groupValues[1]
-            )
+            appendVersion(paramObject, versionMatchResult.groupValues[1])
             paramObject.modifiedPom.append("</$VERSION>")
 
             paramObject.appendAfterSubMatchAndSetStartIndex(versionMatchResult)
@@ -170,8 +139,7 @@ object RegexBasedVersionUpdater {
     }
 
     private fun appendVersion(paramObject: ParamObject, version: String) {
-        val resolvedVersion =
-            resolveVersion(paramObject, version)
+        val resolvedVersion = resolveVersion(paramObject, version)
         val propertyMatchResult = mavenPropertyRegex.matchEntire(resolvedVersion)
         when {
             propertyMatchResult != null -> {
@@ -184,9 +152,7 @@ object RegexBasedVersionUpdater {
             paramObject.newVersion == version -> throw IllegalArgumentException(
                 "Version is already up-to-date; did you pass wrong argument for newVersion? Given: $version"
             )
-            else -> appendNewVersionAndSetUpdated(
-                paramObject
-            )
+            else -> appendNewVersionAndSetUpdated(paramObject)
         }
     }
 
@@ -200,15 +166,14 @@ object RegexBasedVersionUpdater {
 
     private fun appendVersionInProperty(propertiesParamObject: ParamObject, propertyName: String, version: String) {
         when {
-            resolveVersion(propertiesParamObject, version).contains("$") ->
-                throw UnsupportedOperationException(
-                    "Property contains another property.\nProperty: $propertyName\nValue: $version"
-                )
-
-            propertiesParamObject.properties.contains(propertyName) ->
-                appendNewVersionAndSetUpdated(
-                    propertiesParamObject
-                )
+            propertiesParamObject.properties.contains(propertyName) -> {
+                if(resolveVersion(propertiesParamObject, version).contains("$")) {
+                    throw UnsupportedOperationException(
+                        "Property contains another property.\nProperty: $propertyName\nValue: $version"
+                    )
+                }
+                appendNewVersionAndSetUpdated(propertiesParamObject)
+            }
 
             else -> propertiesParamObject.modifiedPom.append(version)
         }
