@@ -80,7 +80,7 @@ class App {
                     )
                     menu.initDependencies(releasePlan,
                         Downloader(modifiableJson), dependencies, modifiableJson)
-                    Gui(releasePlan, menu).load()
+                    Gui(releasePlan, menu)
                     switchLoaderJsonWithPipeline()
                 }.catch {
                     showThrowableAndThrow(it)

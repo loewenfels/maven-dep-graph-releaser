@@ -15,7 +15,7 @@ import kotlin.js.Promise
 
 class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
-    fun registerToggleEvents() {
+    init {
         releasePlan.getProjects().forEach { project ->
             registerCommandToggleEvents(project)
             registerReleaseUncheckEventForDependentsAndSubmodules(project)

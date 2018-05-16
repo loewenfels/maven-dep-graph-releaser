@@ -5,23 +5,23 @@ import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.gui.components.Menu
 import ch.loewenfels.depgraph.gui.components.Pipeline
+import ch.loewenfels.depgraph.gui.components.textAreaWithLabel
+import ch.loewenfels.depgraph.gui.components.textFieldWithLabel
 import kotlinx.html.*
 import kotlinx.html.dom.append
-import kotlinx.html.js.onKeyUpFunction
 import org.w3c.dom.*
 import kotlin.browser.document
 
-class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
-    private val pipeline = Pipeline(releasePlan, menu)
+class Gui(releasePlan: ReleasePlan, private val menu: Menu) {
 
-    fun load() {
+    init {
         val rootProjectId = releasePlan.rootProjectId
         val htmlTitle = (rootProjectId as? MavenProjectId)?.artifactId ?: rootProjectId.identifier
         document.title = "Release $htmlTitle"
         setUpMessages(releasePlan.warnings, "warnings", { showWarning(it) })
         setUpMessages(releasePlan.infos, "infos", { showInfo(it) })
         setUpConfig(releasePlan)
-        pipeline.setUp()
+        Pipeline(releasePlan, menu)
 
         //TODO we should check if releasePlant.state is inProgress. In such a case it might be that command states
         // have changed already and we need to update the state let's say the browser crashes during release and we
@@ -73,46 +73,5 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
     companion object {
         const val RELEASE_ID_HTML_ID = "releaseId"
         const val HIDE_MESSAGES_HTML_ID = "hideMessages"
-
-        fun DIV.textFieldWithLabel(id: String, label: String, value: String, menu: Menu) {
-            textFieldWithLabel(id, label, value, menu, {})
-        }
-
-
-        fun DIV.textFieldWithLabel(id: String, label: String, value: String, menu: Menu, inputAct: INPUT.() -> Unit) {
-            div {
-                label("fields") {
-                    htmlFor = id
-                    +label
-                }
-                textInput {
-                    this.id = id
-                    this.value = value
-                    inputAct()
-                    onKeyUpFunction = { menu.activateSaveButton() }
-                    val input = getUnderlyingHtmlElement() as HTMLInputElement
-                    Menu.disableUnDisableForReleaseStartAndEnd(input, input)
-                }
-            }
-        }
-
-        fun DIV.textAreaWithLabel(id: String, label: String, value: String, menu: Menu) {
-            div {
-                label("fields") {
-                    htmlFor = id
-                    +label
-                }
-                textArea {
-                    this.id = id
-                    +value
-                    onKeyUpFunction = { menu.activateSaveButton() }
-                    val htmlTextAreaElement = getUnderlyingHtmlElement() as HTMLTextAreaElement
-                    //for what disableUnDisableForReleaseStartAndEnd needs, title and disabled, it is ok to make the unsafe cast
-                    //TODO change in case https://github.com/Kotlin/kotlinx.html/issues/87 is implemented
-                    val input = htmlTextAreaElement.unsafeCast<HTMLInputElement>()
-                    Menu.disableUnDisableForReleaseStartAndEnd(input, htmlTextAreaElement)
-                }
-            }
-        }
     }
 }
