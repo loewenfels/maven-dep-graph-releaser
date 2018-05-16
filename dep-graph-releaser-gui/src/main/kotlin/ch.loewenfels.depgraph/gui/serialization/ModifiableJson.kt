@@ -1,4 +1,4 @@
-package ch.loewenfels.depgraph.gui
+package ch.loewenfels.depgraph.gui.serialization
 
 class ModifiableJson(json: String) {
 
@@ -15,7 +15,9 @@ class ModifiableJson(json: String) {
      * @return `true` in case changes were made; `false` otherwise.
      */
     fun applyChanges(): Boolean {
-        val (changed, newJson) = ChangeApplier.createReleasePlanJsonWithChanges(json)
+        val (changed, newJson) = ChangeApplier.createReleasePlanJsonWithChanges(
+            json
+        )
         this.json = newJson
         return changed
     }

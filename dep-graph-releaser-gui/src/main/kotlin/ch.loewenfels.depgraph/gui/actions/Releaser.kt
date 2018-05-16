@@ -5,6 +5,8 @@ import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionData
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionDataFactory
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutor
+import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
+import ch.loewenfels.depgraph.gui.serialization.deserialize
 import ch.tutteli.kbox.mapWithIndex
 import org.w3c.dom.HTMLAnchorElement
 import kotlin.browser.window

@@ -1,4 +1,4 @@
-package ch.loewenfels.depgraph.gui
+package ch.loewenfels.depgraph.gui.serialization
 
 import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.*
@@ -8,6 +8,7 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.data.serialization.CommandStateJson
 import ch.loewenfels.depgraph.data.serialization.fromJson
+import ch.loewenfels.depgraph.gui.showWarning
 
 internal const val MAVEN_PROJECT_ID = "ch.loewenfels.depgraph.data.maven.MavenProjectId"
 internal const val JENKINS_MAVEN_RELEASE_PLUGIN = "ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin"
@@ -20,8 +21,10 @@ fun deserialize(body: String): ReleasePlan {
     val state = deserializeReleaseState(releasePlanJson)
     val rootProjectId = deserializeProjectId(releasePlanJson.id)
     val projects = deserializeProjects(releasePlanJson)
-    val submodules = deserializeMapOfProjectIdAndSetProjectId(releasePlanJson.submodules)
-    val dependents = deserializeMapOfProjectIdAndSetProjectId(releasePlanJson.dependents)
+    val submodules =
+        deserializeMapOfProjectIdAndSetProjectId(releasePlanJson.submodules)
+    val dependents =
+        deserializeMapOfProjectIdAndSetProjectId(releasePlanJson.dependents)
     val warnings = releasePlanJson.warnings.toList()
     val infos = releasePlanJson.infos.toList()
     val config = deserializeConfig(releasePlanJson.config)
@@ -45,7 +48,9 @@ fun deserializeReleaseState(releasePlanJson: ReleasePlanJson): ReleaseState {
 
 fun deserializeProjectId(id: GenericType<ProjectId>): ProjectId {
     return when (id.t) {
-        MAVEN_PROJECT_ID -> createMavenProjectId(id)
+        MAVEN_PROJECT_ID -> createMavenProjectId(
+            id
+        )
         else -> throw UnsupportedOperationException("${id.t} is not supported.")
     }
 }
@@ -71,9 +76,15 @@ fun deserializeProjects(releasePlanJson: ReleasePlanJson): Map<ProjectId, Projec
 fun deserializeCommands(commands: Array<GenericType<Command>>): List<Command> {
     return commands.map {
         when (it.t) {
-            JENKINS_MAVEN_RELEASE_PLUGIN -> createJenkinsMavenReleasePlugin(it.p)
-            JENKINS_MULTI_MAVEN_RELEASE_PLUGIN -> createJenkinsMultiMavenReleasePlugin(it.p)
-            JENKINS_UPDATE_DEPENDENCY -> createJenkinsUpdateDependency(it.p)
+            JENKINS_MAVEN_RELEASE_PLUGIN -> createJenkinsMavenReleasePlugin(
+                it.p
+            )
+            JENKINS_MULTI_MAVEN_RELEASE_PLUGIN -> createJenkinsMultiMavenReleasePlugin(
+                it.p
+            )
+            JENKINS_UPDATE_DEPENDENCY -> createJenkinsUpdateDependency(
+                it.p
+            )
             else -> throw UnsupportedOperationException("${it.t} is not supported.")
         }
     }

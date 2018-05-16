@@ -9,6 +9,7 @@ import ch.loewenfels.depgraph.gui.actions.Releaser
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionDataFactory
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutor
 import ch.loewenfels.depgraph.gui.jobexecution.UsernameToken
+import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
 import org.w3c.dom.CustomEvent
 import org.w3c.dom.CustomEventInit
 import org.w3c.dom.HTMLElement

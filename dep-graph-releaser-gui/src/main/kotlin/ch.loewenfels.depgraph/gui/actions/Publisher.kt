@@ -4,6 +4,7 @@ import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.jobexecution.CrumbWithId
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionData
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutor
+import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
 import kotlin.browser.window
 import kotlin.js.Promise
 

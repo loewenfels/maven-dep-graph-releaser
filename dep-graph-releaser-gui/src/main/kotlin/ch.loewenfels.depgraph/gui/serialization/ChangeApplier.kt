@@ -1,4 +1,4 @@
-package ch.loewenfels.depgraph.gui
+package ch.loewenfels.depgraph.gui.serialization
 
 import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.Command
@@ -8,6 +8,10 @@ import ch.loewenfels.depgraph.data.ReleaseState
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsCommand
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
+import ch.loewenfels.depgraph.gui.Gui
+import ch.loewenfels.depgraph.gui.elementById
+import ch.loewenfels.depgraph.gui.getTextField
+import ch.loewenfels.depgraph.gui.getTextFieldOrNull
 import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.HTMLTextAreaElement
 
@@ -23,21 +27,35 @@ object ChangeApplier {
     private fun applyChanges(releasePlanJson: ReleasePlanJson): Boolean {
         var changed = false
 
-        changed = changed or replacePublishIdIfChanged(releasePlanJson)
-        changed = changed or replaceReleaseStateIfChanged(releasePlanJson)
+        changed = changed or
+            replacePublishIdIfChanged(releasePlanJson)
+        changed = changed or
+            replaceReleaseStateIfChanged(releasePlanJson)
 
         releasePlanJson.projects.forEach { project ->
             val mavenProjectId = deserializeProjectId(project.id)
-            changed = changed or replaceReleaseVersionIfChanged(project, mavenProjectId)
+            changed = changed or replaceReleaseVersionIfChanged(
+                project,
+                mavenProjectId
+            )
 
             project.commands.forEachIndexed { index, command ->
                 changed = changed or
-                    replaceCommandStateIfChanged(command, mavenProjectId, index) or
-                    replaceFieldsIfChanged(command, mavenProjectId, index)
+                    replaceCommandStateIfChanged(
+                        command,
+                        mavenProjectId,
+                        index
+                    ) or
+                    replaceFieldsIfChanged(
+                        command,
+                        mavenProjectId,
+                        index
+                    )
             }
         }
 
-        changed = changed or replaceConfigEntriesIfChanged(releasePlanJson)
+        changed = changed or
+            replaceConfigEntriesIfChanged(releasePlanJson)
         return changed
     }
 
@@ -152,17 +170,34 @@ object ChangeApplier {
     private fun replaceFieldsIfChanged(command: GenericType<Command>, mavenProjectId: ProjectId, index: Int): Boolean {
         return when (command.t) {
             JENKINS_MAVEN_RELEASE_PLUGIN, JENKINS_MULTI_MAVEN_RELEASE_PLUGIN -> {
-                replaceNextVersionIfChanged(command.p, mavenProjectId, index) or
-                    replaceBuildUrlIfChanged(command.p, mavenProjectId, index)
+                replaceNextVersionIfChanged(
+                    command.p,
+                    mavenProjectId,
+                    index
+                ) or
+                    replaceBuildUrlIfChanged(
+                        command.p,
+                        mavenProjectId,
+                        index
+                    )
             }
-            JENKINS_UPDATE_DEPENDENCY -> replaceBuildUrlIfChanged(command.p, mavenProjectId, index)
+            JENKINS_UPDATE_DEPENDENCY -> replaceBuildUrlIfChanged(
+                command.p,
+                mavenProjectId,
+                index
+            )
             else -> throw UnsupportedOperationException("${command.t} is not supported.")
         }
     }
 
     private fun replaceNextVersionIfChanged(command: Command, mavenProjectId: ProjectId, index: Int): Boolean {
         val m2Command = command.unsafeCast<M2ReleaseCommand>()
-        val input = getTextField(Gui.getCommandId(mavenProjectId, index) + Gui.NEXT_DEV_VERSION_SUFFIX)
+        val input = getTextField(
+            Gui.getCommandId(
+                mavenProjectId,
+                index
+            ) + Gui.NEXT_DEV_VERSION_SUFFIX
+        )
         if (m2Command.nextDevVersion != input.value) {
             check(input.value.isNotBlank()) {
                 "An empty or blank Next Dev Version is not allowed"
