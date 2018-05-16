@@ -184,14 +184,6 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             val identifier = project.id.identifier
             this.id = identifier
             div("title") {
-                if (hasCommands) {
-                    toggle(
-                        "$identifier$DEACTIVATE_ALL_SUFFIX",
-                        "deactivate all commands",
-                        project.commands.any { it.state !is CommandState.Deactivated },
-                        false
-                    )
-                }
                 span {
                     projectId(project.id)
                 }

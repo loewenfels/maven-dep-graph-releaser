@@ -14,24 +14,9 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
     fun registerToggleEvents() {
         releasePlan.getProjects().forEach { project ->
-            val allToggle = getAllToggle(project) ?: return@forEach
-
-            registerAllToggleEvents(allToggle, project)
             registerCommandToggleEvents(project)
             registerReleaseUncheckEventForDependentsAndSubmodules(project)
         }
-    }
-
-    private fun getAllToggle(project: Project): HTMLInputElement? = getAllToggle(project.id)
-    private fun getAllToggle(projectId: ProjectId): HTMLInputElement? =
-        elementByIdOrNull(projectId.identifier + Gui.DEACTIVATE_ALL_SUFFIX)
-
-    private fun registerAllToggleEvents(allToggle: HTMLInputElement, project: Project) {
-        allToggle.addChangeEventListener {
-            val event = if (allToggle.checked) EVENT_ALL_TOGGLE_CHECKED else EVENT_ALL_TOGGLE_UNCHECKED
-            dispatchToggleEvent(project, allToggle, event)
-        }
-        Gui.disableUnDisableForReleaseStartAndEnd(allToggle, elementById("${allToggle.id}${Gui.SLIDER_SUFFIX}"))
     }
 
     private fun registerCommandToggleEvents(project: Project) {
@@ -52,25 +37,7 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
             }
 
             disableUnDisableForReleaseStartAndEnd(toggle, elementById("${toggle.id}${Gui.SLIDER_SUFFIX}"))
-            registerForProjectEvent(project, EVENT_ALL_TOGGLE_CHECKED) {
-                if (inCorrectStateForToggling(project, index)) {
-                    toggle.check()
-                }
-            }
-            registerForProjectEvent(project, EVENT_ALL_TOGGLE_UNCHECKED) {
-                if (inCorrectStateForToggling(project, index)) {
-                    toggle.uncheck()
-                }
-            }
         }
-    }
-
-    private fun inCorrectStateForToggling(project: Project, index: Int): Boolean {
-        val commandState = Gui.getCommandState(project.id, index)
-        return commandState === CommandState.Ready ||
-            commandState is CommandState.Waiting ||
-            commandState is CommandState.Deactivated ||
-            commandState === CommandState.Failed //maybe a user does not want to re-trigger a failed command
     }
 
     private fun getToggle(project: Project, index: Int): HTMLInputElement =
@@ -182,7 +149,5 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
     companion object {
         private const val EVENT_TOGGLE_UNCHECKED = "toggle.unchecked"
         private const val EVENT_RELEASE_TOGGLE_UNCHECKED = "release.toggle.unchecked"
-        private const val EVENT_ALL_TOGGLE_CHECKED = "all.toggle.checked"
-        private const val EVENT_ALL_TOGGLE_UNCHECKED = "all.toggle.unchecked"
     }
 }
