@@ -21,7 +21,7 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
     private fun registerCommandToggleEvents(project: Project) {
         project.commands.forEachIndexed { index, command ->
-            val toggle = getToggle(project, index)
+            val toggle = Gui.getToggle(project, index)
 
             if (command is ReleaseCommand) {
                 toggle.addChangeEventListener { toggleCommand(project, index, EVENT_RELEASE_TOGGLE_UNCHECKED) }
@@ -40,11 +40,8 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
         }
     }
 
-    private fun getToggle(project: Project, index: Int): HTMLInputElement =
-        elementById<HTMLInputElement>(Gui.getCommandId(project, index) + Gui.DEACTIVATE_SUFFIX)
-
     private fun toggleCommand(project: Project, index: Int, uncheckedEvent: String) {
-        val toggle = getToggle(project, index)
+        val toggle = Gui.getToggle(project, index)
         val command = Gui.getCommand(project, index).asDynamic()
         val slider = elementById("${toggle.id}${Gui.SLIDER_SUFFIX}")
         val currentTitle = elementById("${Gui.getCommandId(project, index)}${Gui.STATE_SUFFIX}").title
@@ -96,7 +93,7 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
                     }
                     .forEach { (index, _) ->
                         registerForProjectEvent(project, EVENT_RELEASE_TOGGLE_UNCHECKED) {
-                            getToggle(releasePlan.getProject(dependentId), index).uncheck()
+                            Gui.getToggle(releasePlan.getProject(dependentId), index).uncheck()
                         }
                     }
             }
@@ -118,7 +115,7 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
     private fun notAllCommandsActive(project: Project, predicate: (HTMLInputElement) -> Boolean): Boolean {
         return project.commands.asSequence()
-            .mapIndexed { index, _ -> getCheckbox(project.id.identifier, index) }
+            .mapIndexed { index, _ -> Gui.getToggle(project, index) }
             .filter(predicate)
             .any { checkbox -> !checkbox.checked }
     }
@@ -133,7 +130,6 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
     }
 
     private fun getDeactivateAllId(projectId: ProjectId) = "${projectId.identifier}${Gui.DEACTIVATE_ALL_SUFFIX}"
-    private fun getCheckbox(identifier: String, index: Int) = getCheckbox("$identifier:$index${Gui.DEACTIVATE_SUFFIX}")
 
 
     private fun dispatchToggleEvent(project: Project, toggle: HTMLInputElement, event: String) {

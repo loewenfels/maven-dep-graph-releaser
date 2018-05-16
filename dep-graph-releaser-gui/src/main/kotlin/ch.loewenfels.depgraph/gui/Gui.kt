@@ -15,11 +15,13 @@ import kotlinx.html.*
 import kotlinx.html.dom.append
 import kotlinx.html.js.onKeyUpFunction
 import org.w3c.dom.*
+import org.w3c.dom.events.Event
 import org.w3c.dom.events.MouseEvent
 import kotlin.browser.document
 import kotlin.browser.window
 import kotlin.dom.addClass
 import kotlin.dom.removeClass
+import kotlin.reflect.KClass
 
 class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
     private val toggler = Toggler(releasePlan, menu)
@@ -99,6 +101,7 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         forEachIn(toggleLabels, stateIcons) { (element, idPrefix) ->
             element.addEventListener("contextmenu", { event ->
                 hideAllContextMenus()
+                disableContextEntriesIfNecessary(idPrefix)
                 val contextMenu = elementById("$idPrefix$CONTEXT_MENU_SUFFIX")
                 moveContextMenuPosition(event as MouseEvent, contextMenu)
                 contextMenu.style.visibility = "visible"
@@ -108,6 +111,26 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             })
         }
         window.addEventListener("contextmenu", { hideAllContextMenus() })
+    }
+
+    private fun disableContextEntriesIfNecessary(idPrefix: String) {
+        val commandState = getCommandState(idPrefix)
+        disableOrEnableContextMenuEntry("$idPrefix$CONTEXT_MENU_DEACTIVATED", isNotInStateToDeactivate(commandState))
+        disableOrEnableContextMenuEntry("$idPrefix$CONTEXT_MENU_SUCCEEDED", commandState === CommandState.Succeeded)
+    }
+
+    private fun disableOrEnableContextMenuEntry(id: String, disable: Boolean) {
+        val entry = elementById(id)
+        if (disable) {
+            entry.setTitleSaveOld("Cannot apply this action.")
+            entry.addClass("disabled")
+        } else {
+            val title = entry.getOldTitleOrNull()
+            if (title != null) {
+                entry.title = title
+            }
+            entry.removeClass("disabled")
+        }
     }
 
     private fun hideAllContextMenus() {
@@ -321,15 +344,11 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         }
         div("contextMenu") {
             id = "$idPrefix$CONTEXT_MENU_SUFFIX"
-            div("succeeded") {
-                title = "Forcibly sets the state of this command to Succeeded, to be used with care."
-                i("material-icons") { span() }
-                span {
-                    +"Set Command to Succeeded"
-                }
-                getUnderlyingHtmlElement().addClickEventListener {
-                    transitionToSucceededIfOk(project, index)
-                }
+            contextMenuEntry(idPrefix, CONTEXT_MENU_DEACTIVATED, CommandState.Deactivated::class) {
+                transitionToDeactivatedIfOk(project, index)
+            }
+            contextMenuEntry(idPrefix, "succeeded", CommandState.Succeeded::class) {
+                transitionToSucceededIfOk(project, index)
             }
         }
 
@@ -343,6 +362,37 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
             else ->
                 showError("Unknown command found, cannot display its fields.\n$command")
         }
+    }
+
+    private fun DIV.contextMenuEntry(
+        idPrefix: String,
+        cssClass: String,
+        commandClass: KClass<out CommandState>,
+        action: (Event) -> Unit
+    ) {
+        div(cssClass) {
+            id = "$idPrefix$cssClass"
+            title = "Forcibly sets the state of this command to ${commandClass.simpleName}, to be used with care."
+            i("material-icons") { span() }
+            span {
+                +"Set Command to ${commandClass.simpleName}"
+            }
+            getUnderlyingHtmlElement().addClickEventListener(action = action)
+        }
+    }
+
+    private fun transitionToDeactivatedIfOk(project: Project, index: Int) {
+        val commandState = getCommandState(project.id, index)
+        if (isNotInStateToDeactivate(commandState)) return
+
+
+        getToggle(project, index).click()
+    }
+
+    private fun isNotInStateToDeactivate(commandState: CommandState): Boolean {
+        return commandState is CommandState.Deactivated ||
+                commandState === CommandState.Succeeded ||
+                commandState === CommandState.Disabled
     }
 
     private fun transitionToSucceededIfOk(project: Project, index: Int) {
@@ -476,6 +526,8 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         const val STATE_SUFFIX = ":state"
         const val TITLE_SUFFIX = ":title"
         const val CONTEXT_MENU_SUFFIX = ":contextMenu"
+        const val CONTEXT_MENU_DEACTIVATED = "deactivated"
+        const val CONTEXT_MENU_SUCCEEDED = "succeeded"
 
         private const val STATE_WAITING = "Wait for dependent projects to complete."
         const val STATE_READY = "Ready to be queued for execution."
@@ -491,10 +543,11 @@ class Gui(private val releasePlan: ReleasePlan, private val menu: Menu) {
         fun getCommandId(projectId: ProjectId, index: Int) = "${projectId.identifier}:$index"
         fun getCommand(project: Project, index: Int) = getCommand(project.id, index)
         fun getCommand(projectId: ProjectId, index: Int): HTMLElement = elementById(getCommandId(projectId, index))
+        fun getToggle(project: Project, index: Int) =
+            getCheckbox("${getCommandId(project.id, index)}$DEACTIVATE_SUFFIX")
 
-        fun getCommandState(projectId: ProjectId, index: Int): CommandState {
-            return getCommand(projectId, index).asDynamic().state as CommandState
-        }
+        fun getCommandState(projectId: ProjectId, index: Int) = getCommandState(getCommandId(projectId, index))
+        private fun getCommandState(idPrefix: String) = elementById(idPrefix).asDynamic().state as CommandState
 
         fun disableUnDisableForReleaseStartAndEnd(input: HTMLInputElement, titleElement: HTMLElement) {
             Menu.registerForReleaseStartEvent {

@@ -446,7 +446,7 @@ input:disabled {
     border: 1px solid #AAA;
     border-radius: 6px;
     visibility: hidden;
-    width: 205px;
+    display: inline-block;
     z-index: 1;
 }
 .contextMenu div {
@@ -466,6 +466,11 @@ input:disabled {
 .contextMenu div:hover {
     background-color: #EFEFEF;
 }
+.contextMenu div.disabled,
+ .contextMenu div.disabled .material-icons {
+    cursor: not-allowed;
+    color: #CCC;
+}
 .contextMenu div > span {
     vertical-align: middle;
     margin-left: 2px;
@@ -479,6 +484,12 @@ input:disabled {
 }
 .contextMenu .succeeded .material-icons {
     color: #008000;
+}
+.contextMenu .deactivated .material-icons {
+    color: #222;
+}
+.contextMenu .deactivated > .material-icons span::after {
+    content: 'stop';
 }
 
 #status,
