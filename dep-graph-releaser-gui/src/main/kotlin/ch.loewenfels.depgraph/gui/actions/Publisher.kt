@@ -1,5 +1,6 @@
-package ch.loewenfels.depgraph.gui
+package ch.loewenfels.depgraph.gui.actions
 
+import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.jobexecution.CrumbWithId
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionData
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutor
@@ -44,7 +45,9 @@ class Publisher(
         buildNumber: Int
     ): Promise<String> {
         val xpathUrl = "$jobUrl$buildNumber/api/xml?xpath=//artifact/fileName"
-        return jobExecutor.pollAndExtract(crumbWithId, xpathUrl, resultRegex) { e ->
+        return jobExecutor.pollAndExtract(crumbWithId, xpathUrl,
+            resultRegex
+        ) { e ->
             throw IllegalStateException(
                 "Could not find the published release.json as artifact." +
                     "\nJob URL: $jobUrl" +

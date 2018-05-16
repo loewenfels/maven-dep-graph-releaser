@@ -1,6 +1,9 @@
 package ch.loewenfels.depgraph.gui
 
 import ch.loewenfels.depgraph.data.ReleasePlan
+import ch.loewenfels.depgraph.gui.actions.Downloader
+import ch.loewenfels.depgraph.gui.actions.Publisher
+import ch.loewenfels.depgraph.gui.actions.Releaser
 import ch.loewenfels.depgraph.gui.jobexecution.*
 import org.w3c.fetch.Response
 import kotlin.browser.window
@@ -72,7 +75,8 @@ class App {
                     val dependencies = createDependencies(
                         jenkinsUrl, publishJobUrl, usernameToken, modifiableJson, releasePlan, menu
                     )
-                    menu.initDependencies(releasePlan, Downloader(modifiableJson), dependencies, modifiableJson)
+                    menu.initDependencies(releasePlan,
+                        Downloader(modifiableJson), dependencies, modifiableJson)
                     Gui(releasePlan, menu).load()
                     switchLoaderJsonWithPipeline()
                 }.catch {

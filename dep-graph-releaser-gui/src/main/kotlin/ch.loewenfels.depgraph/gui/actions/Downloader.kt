@@ -1,5 +1,7 @@
-package ch.loewenfels.depgraph.gui
+package ch.loewenfels.depgraph.gui.actions
 
+import ch.loewenfels.depgraph.gui.ModifiableJson
+import ch.loewenfels.depgraph.gui.encodeURIComponent
 import org.w3c.dom.HTMLElement
 import kotlin.browser.document
 

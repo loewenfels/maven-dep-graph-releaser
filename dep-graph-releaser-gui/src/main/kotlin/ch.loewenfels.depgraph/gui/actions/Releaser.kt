@@ -1,6 +1,7 @@
-package ch.loewenfels.depgraph.gui
+package ch.loewenfels.depgraph.gui.actions
 
 import ch.loewenfels.depgraph.data.*
+import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionData
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionDataFactory
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutor
@@ -120,7 +121,10 @@ class Releaser(
                     (state.dependencies as MutableSet).remove(multiOrSubmoduleId)
                     if (state.dependencies.isEmpty()) {
                         Gui.changeStateOfCommand(
-                            dependentProject, index, CommandState.Ready, Gui.STATE_READY
+                            dependentProject,
+                            index,
+                            CommandState.Ready,
+                            Gui.STATE_READY
                         )
                     }
                 }
@@ -220,12 +224,20 @@ class Releaser(
         return paramObject.jobExecutor.trigger(jobExecutionData,
             { queuedItemUrl ->
                 Gui.changeStateOfCommandAndAddBuildUrl(
-                    project, index, CommandState.Queueing, Gui.STATE_QUEUEING, queuedItemUrl
+                    project,
+                    index,
+                    CommandState.Queueing,
+                    Gui.STATE_QUEUEING,
+                    queuedItemUrl
                 )
                 save(paramObject)
             }, { buildNumber ->
                 Gui.changeStateOfCommandAndAddBuildUrl(
-                    project, index, CommandState.InProgress, Gui.STATE_IN_PROGRESS, "${jobExecutionData.jobBaseUrl}$buildNumber/"
+                    project,
+                    index,
+                    CommandState.InProgress,
+                    Gui.STATE_IN_PROGRESS,
+                    "${jobExecutionData.jobBaseUrl}$buildNumber/"
                 )
                 Promise.resolve(1)
             },
@@ -236,7 +248,12 @@ class Releaser(
             { CommandState.Succeeded to Gui.STATE_SUCCEEDED },
             { t ->
                 showThrowable(Error("Job ${jobExecutionData.jobName} failed", t))
-                val state = elementById<HTMLAnchorElement>("${Gui.getCommandId(project, index)}${Gui.STATE_SUFFIX}")
+                val state = elementById<HTMLAnchorElement>(
+                    "${Gui.getCommandId(
+                        project,
+                        index
+                    )}${Gui.STATE_SUFFIX}"
+                )
                 val suffix = "console#footer"
                 if (!state.href.endsWith(suffix)) {
                     state.href = state.href + suffix
