@@ -8,10 +8,7 @@ import ch.loewenfels.depgraph.data.ReleaseState
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsCommand
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
-import ch.loewenfels.depgraph.gui.Gui
-import ch.loewenfels.depgraph.gui.elementById
-import ch.loewenfels.depgraph.gui.getTextField
-import ch.loewenfels.depgraph.gui.getTextFieldOrNull
+import ch.loewenfels.depgraph.gui.*
 import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.HTMLTextAreaElement
 
@@ -74,7 +71,7 @@ object ChangeApplier {
 
     private fun replaceReleaseStateIfChanged(releasePlanJson: ReleasePlanJson): Boolean {
         var changed = false
-        val newState = Gui.getReleaseState()
+        val newState = Pipeline.getReleaseState()
         val currentState = deserializeReleaseState(releasePlanJson)
         if (currentState != newState) {
             releasePlanJson.state = newState.name.unsafeCast<ReleaseState>()
@@ -123,7 +120,7 @@ object ChangeApplier {
     ): Boolean {
         val command = genericCommand.p
         val previousState = deserializeCommandState(command)
-        val newState = Gui.getCommandState(mavenProjectId, index)
+        val newState = Pipeline.getCommandState(mavenProjectId, index)
         if (previousState::class != newState::class) {
             val stateObject = js("({})")
             stateObject.state = newState::class.simpleName
@@ -193,10 +190,10 @@ object ChangeApplier {
     private fun replaceNextVersionIfChanged(command: Command, mavenProjectId: ProjectId, index: Int): Boolean {
         val m2Command = command.unsafeCast<M2ReleaseCommand>()
         val input = getTextField(
-            Gui.getCommandId(
+            Pipeline.getCommandId(
                 mavenProjectId,
                 index
-            ) + Gui.NEXT_DEV_VERSION_SUFFIX
+            ) + Pipeline.NEXT_DEV_VERSION_SUFFIX
         )
         if (m2Command.nextDevVersion != input.value) {
             check(input.value.isNotBlank()) {
@@ -210,7 +207,7 @@ object ChangeApplier {
 
     private fun replaceBuildUrlIfChanged(command: Command, mavenProjectId: ProjectId, index: Int): Boolean {
         val jenkinsCommand = command.unsafeCast<JenkinsCommand>()
-        val guiCommand = Gui.getCommand(mavenProjectId, index)
+        val guiCommand = Pipeline.getCommand(mavenProjectId, index)
 
         val newBuildUrl = guiCommand.asDynamic().buildUrl as? String
         if (newBuildUrl != null && jenkinsCommand.buildUrl != newBuildUrl) {

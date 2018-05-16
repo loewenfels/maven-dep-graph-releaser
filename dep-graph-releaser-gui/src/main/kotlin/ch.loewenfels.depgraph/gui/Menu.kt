@@ -13,6 +13,7 @@ import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
 import org.w3c.dom.CustomEvent
 import org.w3c.dom.CustomEventInit
 import org.w3c.dom.HTMLElement
+import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.events.Event
 import kotlin.browser.window
 import kotlin.dom.addClass
@@ -85,7 +86,7 @@ class Menu {
         window.onbeforeunload = {
             if (!saveButton.hasClass(DEACTIVATED)) {
                 "Your changes will be lost, sure you want to leave the page?"
-            } else if (Gui.getReleaseState() === ReleaseState.InProgress) {
+            } else if (Pipeline.getReleaseState() === ReleaseState.InProgress) {
                 "You might lose state changes if you navigate away from this page, sure you want to proceed?"
             } else {
                 null
@@ -172,13 +173,13 @@ class Menu {
         Menu.registerForReleaseStartEvent {
             listOf(dryRunButton, releaseButton, exploreButton).forEach {
                 it.addClass(DISABLED)
-                it.title = Gui.DISABLED_RELEASE_IN_PROGRESS
+                it.title = DISABLED_RELEASE_IN_PROGRESS
             }
         }
         Menu.registerForReleaseEndEvent { success ->
             if (success) {
                 listOf(dryRunButton, releaseButton, exploreButton).forEach {
-                    it.title = Gui.DISABLED_RELEASE_SUCCESS
+                    it.title = DISABLED_RELEASE_SUCCESS
                 }
                 showSuccess(
                     "Release ended successfully :) you can now close the window." +
@@ -210,7 +211,7 @@ class Menu {
         jobExecutor: JobExecutor,
         jobExecutionDataFactory: JobExecutionDataFactory
     ): Promise<*> {
-        if (Gui.getReleaseState() === ReleaseState.Failed) {
+        if (Pipeline.getReleaseState() === ReleaseState.Failed) {
             turnFailedIntoReTrigger(releasePlan)
         }
         dispatchReleaseStart()
@@ -228,13 +229,13 @@ class Menu {
     private fun turnFailedIntoReTrigger(releasePlan: ReleasePlan) {
         releasePlan.iterator().forEach { project ->
             project.commands.forEachIndexed { index, _ ->
-                val commandState = Gui.getCommandState(project.id, index)
+                val commandState = Pipeline.getCommandState(project.id, index)
                 if (commandState === CommandState.Failed) {
-                    Gui.changeStateOfCommand(
+                    Pipeline.changeStateOfCommand(
                         project,
                         index,
                         CommandState.ReadyToReTrigger,
-                        Gui.STATE_READY_TO_BE_TRIGGER
+                        Pipeline.STATE_READY_TO_BE_TRIGGER
                     )
                 }
             }
@@ -342,6 +343,9 @@ class Menu {
 
         private const val EVENT_RELEASE_START = "release.start"
         private const val EVENT_RELEASE_END = "release.end"
+        private const val DISABLED_RELEASE_IN_PROGRESS = "disabled due to release which is in progress."
+        private const val DISABLED_RELEASE_SUCCESS = "Release successful, use a new pipeline for a new release."
+
 
         fun registerForReleaseStartEvent(callback: (Event) -> Unit) {
             elementById("menu").addEventListener(Menu.EVENT_RELEASE_START, callback)
@@ -361,6 +365,22 @@ class Menu {
 
         private fun dispatchReleaseEnd(success: Boolean) {
             elementById("menu").dispatchEvent(CustomEvent(EVENT_RELEASE_END, CustomEventInit(detail = success)))
+        }
+
+        fun disableUnDisableForReleaseStartAndEnd(input: HTMLInputElement, titleElement: HTMLElement) {
+            Menu.registerForReleaseStartEvent {
+                input.asDynamic().oldDisabled = input.disabled
+                input.disabled = true
+                titleElement.setTitleSaveOld(DISABLED_RELEASE_IN_PROGRESS)
+            }
+            Menu.registerForReleaseEndEvent { success ->
+                if (success) {
+                    titleElement.title = DISABLED_RELEASE_SUCCESS
+                } else {
+                    input.disabled = input.asDynamic().oldDisabled as Boolean
+                    titleElement.title = titleElement.getOldTitle()
+                }
+            }
         }
     }
 

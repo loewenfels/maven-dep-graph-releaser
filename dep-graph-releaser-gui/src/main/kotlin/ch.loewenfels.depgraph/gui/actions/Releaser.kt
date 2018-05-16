@@ -43,11 +43,11 @@ class Releaser(
     }
 
     private fun release(paramObject: ParamObject): Promise<Boolean> {
-        Gui.changeReleaseState(ReleaseState.InProgress)
+        Pipeline.changeReleaseState(ReleaseState.InProgress)
         return releaseProject(paramObject)
             .then {
                 val (result, newState) = checkProjectStates(paramObject)
-                Gui.changeReleaseState(newState)
+                Pipeline.changeReleaseState(newState)
                 save(paramObject, verbose = false)
                     .catch { t ->
                         showThrowable(
@@ -118,15 +118,15 @@ class Releaser(
         allDependents.forEach { (multiOrSubmoduleId, dependentId) ->
             val dependentProject = releasePlan.getProject(dependentId)
             dependentProject.commands.forEachIndexed { index, _ ->
-                val state = Gui.getCommandState(dependentId, index)
+                val state = Pipeline.getCommandState(dependentId, index)
                 if (state is CommandState.Waiting && state.dependencies.contains(multiOrSubmoduleId)) {
                     (state.dependencies as MutableSet).remove(multiOrSubmoduleId)
                     if (state.dependencies.isEmpty()) {
-                        Gui.changeStateOfCommand(
+                        Pipeline.changeStateOfCommand(
                             dependentProject,
                             index,
                             CommandState.Ready,
-                            Gui.STATE_READY
+                            Pipeline.STATE_READY
                         )
                     }
                 }
@@ -203,7 +203,7 @@ class Releaser(
     }
 
     private fun createCommandPromise(paramObject: ParamObject, command: Command, index: Int): Promise<CommandState> {
-        val state = Gui.getCommandState(paramObject.project.id, index)
+        val state = Pipeline.getCommandState(paramObject.project.id, index)
         return if (state === CommandState.Ready || state === CommandState.ReadyToReTrigger) {
             triggerCommand(paramObject, command, index)
         } else {
@@ -225,20 +225,20 @@ class Releaser(
         changeCursorToProgress()
         return paramObject.jobExecutor.trigger(jobExecutionData,
             { queuedItemUrl ->
-                Gui.changeStateOfCommandAndAddBuildUrl(
+                Pipeline.changeStateOfCommandAndAddBuildUrl(
                     project,
                     index,
                     CommandState.Queueing,
-                    Gui.STATE_QUEUEING,
+                    Pipeline.STATE_QUEUEING,
                     queuedItemUrl
                 )
                 save(paramObject)
             }, { buildNumber ->
-                Gui.changeStateOfCommandAndAddBuildUrl(
+                Pipeline.changeStateOfCommandAndAddBuildUrl(
                     project,
                     index,
                     CommandState.InProgress,
-                    Gui.STATE_IN_PROGRESS,
+                    Pipeline.STATE_IN_PROGRESS,
                     "${jobExecutionData.jobBaseUrl}$buildNumber/"
                 )
                 Promise.resolve(1)
@@ -247,23 +247,23 @@ class Releaser(
             maxWaitingTimeForCompletenessInSeconds = 60 * 15,
             verbose = false
         ).then(
-            { CommandState.Succeeded to Gui.STATE_SUCCEEDED },
+            { CommandState.Succeeded to Pipeline.STATE_SUCCEEDED },
             { t ->
                 showThrowable(Error("Job ${jobExecutionData.jobName} failed", t))
                 val state = elementById<HTMLAnchorElement>(
-                    "${Gui.getCommandId(
+                    "${Pipeline.getCommandId(
                         project,
                         index
-                    )}${Gui.STATE_SUFFIX}"
+                    )}${Pipeline.STATE_SUFFIX}"
                 )
                 val suffix = "console#footer"
                 if (!state.href.endsWith(suffix)) {
                     state.href = state.href + suffix
                 }
-                CommandState.Failed to Gui.STATE_FAILED
+                CommandState.Failed to Pipeline.STATE_FAILED
             }
         ).then { (state, message) ->
-            Gui.changeStateOfCommand(project, index, state, message)
+            Pipeline.changeStateOfCommand(project, index, state, message)
             changeCursorBackToNormal()
             state
         }
@@ -299,8 +299,6 @@ class Releaser(
             paramObject.locks,
             paramObject.projectResults
         )
-
-
 
         fun <T> withLockForProject(act: () -> Promise<T>): Promise<T> {
             val projectId = project.id
