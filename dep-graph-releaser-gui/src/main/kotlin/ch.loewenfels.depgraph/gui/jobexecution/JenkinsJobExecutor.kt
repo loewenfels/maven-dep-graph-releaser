@@ -32,7 +32,7 @@ class JenkinsJobExecutor(
                             2000
                         )
                     }
-                    jobQueuedHook("${queuedItemUrl}api/xml").then {
+                    jobQueuedHook("${queuedItemUrl}api/xml/").then {
                         extractBuildNumber(crumbWithId, queuedItemUrl)
                     }.then { it }
                 }.then { buildNumber: Int ->
