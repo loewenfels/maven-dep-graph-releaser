@@ -249,23 +249,25 @@ class Releaser(
             maxWaitingTimeForCompletenessInSeconds = 60 * 15,
             verbose = false
         ).then(
-            { CommandState.Succeeded to Pipeline.STATE_SUCCEEDED },
+            {
+                Pipeline.changeStateOfCommand(project, index, CommandState.Succeeded, Pipeline.STATE_SUCCEEDED)
+                CommandState.Succeeded
+            },
             { t ->
                 showThrowable(Error("Job ${jobExecutionData.jobName} failed", t))
                 val state = elementById<HTMLAnchorElement>(
-                    "${Pipeline.getCommandId(
-                        project,
-                        index
-                    )}${Pipeline.STATE_SUFFIX}"
+                    "${Pipeline.getCommandId(project, index)}${Pipeline.STATE_SUFFIX}"
                 )
                 val suffix = "console#footer"
-                if (!state.href.endsWith(suffix)) {
-                    state.href = state.href + suffix
+                val href = if (!state.href.endsWith(suffix)) {
+                    state.href + suffix
+                } else {
+                    state.href
                 }
-                CommandState.Failed to Pipeline.STATE_FAILED
+                Pipeline.changeStateOfCommandAndAddBuildUrl(project, index, CommandState.Failed,  Pipeline.STATE_FAILED, href)
+                CommandState.Failed
             }
-        ).then { (state, message) ->
-            Pipeline.changeStateOfCommand(project, index, state, message)
+        ).then { state ->
             changeCursorBackToNormal()
             state
         }
