@@ -36,7 +36,7 @@ class JsonSpec : CommandSpec(
                 ".*",
                 "dgr-remote-releaser",
                 "dgr-dry-run",
-                "${Json.REGEX_PARAMS_ARG}.*=branch=master",
+                "${Json.REGEX_PARAMS_ARG}.*=branch.name=master",
                 "${Json.DISABLE_RELEASE_FOR}ch.loewenfels.*",
                 "${Json.JOB_MAPPING_ARG}com.example.project=ownJobName|com.example.anotherProject=another-project",
                 "unexpectedAdditionalArg"
