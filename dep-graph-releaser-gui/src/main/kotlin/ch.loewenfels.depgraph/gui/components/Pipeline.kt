@@ -245,7 +245,6 @@ class Pipeline(private val releasePlan: ReleasePlan, private val menu: Menu) {
         const val STATE_DISABLED = "Command disabled, cannot be reactivated."
 
         const val DEACTIVATE_SUFFIX = ":deactivate"
-        const val DEACTIVATE_ALL_SUFFIX = ":deactivateAll"
         const val SLIDER_SUFFIX = ":slider"
         const val NEXT_DEV_VERSION_SUFFIX = ":nextDevVersion"
         const val STATE_SUFFIX = ":state"
