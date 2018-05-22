@@ -1,6 +1,7 @@
 package ch.loewenfels.depgraph.gui.components
 
 import ch.loewenfels.depgraph.data.CommandState
+import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.ReleaseState
 import ch.loewenfels.depgraph.gui.*
@@ -11,6 +12,7 @@ import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionDataFactory
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutor
 import ch.loewenfels.depgraph.gui.jobexecution.UsernameToken
 import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
+import ch.tutteli.kbox.mapWithIndex
 import org.w3c.dom.CustomEvent
 import org.w3c.dom.CustomEventInit
 import org.w3c.dom.HTMLElement
@@ -214,7 +216,7 @@ class Menu {
                     )
                 }
                 buttonText.innerText = "Re-trigger failed Jobs"
-                button.title = "Continue with the $processName process by re-triggering previously failed jobs."
+                button.title = "Continue with the $processName process by re-processing previously failed projects."
                 button.removeClass(DISABLED)
             }
         }
@@ -227,7 +229,11 @@ class Menu {
         jobExecutionDataFactory: JobExecutionDataFactory
     ): Promise<*> {
         if (Pipeline.getReleaseState() === ReleaseState.Failed) {
-            turnFailedIntoReTrigger(releasePlan)
+            if (typeOfRun == TypeOfRun.DRY_RUN) {
+                turnFailedProjectsIntoReTriggerAndReady(releasePlan)
+            } else {
+                turnFailedCommandsIntoStateReTrigger(releasePlan)
+            }
         }
         dispatchReleaseStart()
         return dependencies.releaser.release(jobExecutor, jobExecutionDataFactory).then(
@@ -241,21 +247,46 @@ class Menu {
         )
     }
 
-    private fun turnFailedIntoReTrigger(releasePlan: ReleasePlan) {
+    private fun turnFailedProjectsIntoReTriggerAndReady(releasePlan: ReleasePlan) {
         releasePlan.iterator().forEach { project ->
-            project.commands.forEachIndexed { index, _ ->
-                val commandState =
-                    Pipeline.getCommandState(project.id, index)
-                if (commandState === CommandState.Failed) {
-                    Pipeline.changeStateOfCommand(
-                        project,
-                        index,
-                        CommandState.ReadyToReTrigger,
-                        Pipeline.STATE_READY_TO_BE_TRIGGER
-                    )
+            if (hasFailedCommands(project)) {
+                project.commands.forEachIndexed { index, _ ->
+                    val commandState = Pipeline.getCommandState(project.id, index)
+                    if (commandState === CommandState.Failed) {
+                        changeToStateReadyToReTrigger(project, index)
+                    } else if (commandState === CommandState.Succeeded) {
+                        changeStateToReadyWithoutCheck(project, index)
+                    }
                 }
             }
         }
+    }
+
+    private fun hasFailedCommands(project: Project): Boolean {
+        return project.commands.mapWithIndex()
+            .any { (index, _) -> Pipeline.getCommandState(project.id, index) === CommandState.Failed }
+    }
+
+    private fun turnFailedCommandsIntoStateReTrigger(releasePlan: ReleasePlan) {
+        releasePlan.iterator().forEach { project ->
+            project.commands.forEachIndexed { index, _ ->
+                val commandState = Pipeline.getCommandState(project.id, index)
+                if (commandState === CommandState.Failed) {
+                    changeToStateReadyToReTrigger(project, index)
+                }
+            }
+        }
+    }
+
+    private fun changeStateToReadyWithoutCheck(project: Project, index: Int) {
+        Pipeline.changeStateOfCommand(project, index, CommandState.Ready, Pipeline.STATE_READY) { _, _ ->
+            //we don't check transition here, Succeeded to Ready is normally not allowed
+            CommandState.Ready
+        }
+    }
+
+    private fun changeToStateReadyToReTrigger(project: Project, index: Int) {
+        Pipeline.changeStateOfCommand(project, index, CommandState.ReadyToReTrigger, Pipeline.STATE_READY_TO_BE_TRIGGER)
     }
 
     private fun HTMLElement.addClickEventListenerIfNotDeactivatedNorDisabled(action: () -> Any) {

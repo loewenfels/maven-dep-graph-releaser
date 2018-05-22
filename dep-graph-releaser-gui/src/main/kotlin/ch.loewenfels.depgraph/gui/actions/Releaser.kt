@@ -214,7 +214,7 @@ class Releaser(
     }
 
     private fun triggerCommand(paramObject: ParamObject, command: Command, index: Int): Promise<CommandState> {
-        val jobExecutionData = paramObject.jobExecutionDataFactory.create(paramObject.project, command)
+        val jobExecutionData = paramObject.jobExecutionDataFactory.create(paramObject.project, command, index)
         return triggerJob(paramObject, index, jobExecutionData)
     }
 

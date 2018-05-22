@@ -85,7 +85,7 @@ class ReleaseJobExecutionDataFactory(
         return jobMapping[mavenProjectId.identifier] ?: mavenProjectId.artifactId
     }
 
-    override fun create(project: Project, command: Command): JobExecutionData {
+    override fun create(project: Project, command: Command, index: Int): JobExecutionData {
         return when (command) {
             is JenkinsUpdateDependency -> triggerUpdateDependency(project, command)
             is M2ReleaseCommand -> triggerRelease(project, command)
