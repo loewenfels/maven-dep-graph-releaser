@@ -72,7 +72,7 @@ class DryRunJobExecutionDataFactory(
         artifactId: String,
         newVersion: String
     ): String {
-        val skipCheckout = if (index == 0) "false" else "true"
+        val skipCheckout = if (!project.isSubmodule && index == 0) "false" else "true"
         return "command=$commandName" +
                 "&pathToProject=${project.relativePath}" +
                 "&skipCheckout=$skipCheckout" +

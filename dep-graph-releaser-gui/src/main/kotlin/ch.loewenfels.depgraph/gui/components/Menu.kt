@@ -249,22 +249,33 @@ class Menu {
 
     private fun turnFailedProjectsIntoReTriggerAndReady(releasePlan: ReleasePlan) {
         releasePlan.iterator().forEach { project ->
-            if (hasFailedCommands(project)) {
-                project.commands.forEachIndexed { index, _ ->
-                    val commandState = Pipeline.getCommandState(project.id, index)
-                    if (commandState === CommandState.Failed) {
-                        changeToStateReadyToReTrigger(project, index)
-                    } else if (commandState === CommandState.Succeeded) {
-                        changeStateToReadyWithoutCheck(project, index)
-                    }
-                }
+            if (!project.isSubmodule && project.hasFailedCommandsOrSubmoduleHasFailedCommands(releasePlan)) {
+                turnCommandsIntoStateReadyToReTriggerAndReady(releasePlan, project)
             }
         }
     }
 
-    private fun hasFailedCommands(project: Project): Boolean {
-        return project.commands.mapWithIndex()
-            .any { (index, _) -> Pipeline.getCommandState(project.id, index) === CommandState.Failed }
+    private fun turnCommandsIntoStateReadyToReTriggerAndReady(releasePlan: ReleasePlan, project: Project) {
+        project.commands.forEachIndexed { index, _ ->
+            val commandState = Pipeline.getCommandState(project.id, index)
+            if (commandState === CommandState.Failed) {
+                changeToStateReadyToReTrigger(project, index)
+            } else if (commandState === CommandState.Succeeded) {
+                changeStateToReadyWithoutCheck(project, index)
+            }
+        }
+        releasePlan.getSubmodules(project.id).forEach {
+            val submodule = releasePlan.getProject(it)
+            turnCommandsIntoStateReadyToReTriggerAndReady(releasePlan, submodule)
+        }
+    }
+
+    private fun Project.hasFailedCommandsOrSubmoduleHasFailedCommands(releasePlan: ReleasePlan): Boolean {
+        return commands.mapWithIndex()
+            .any { (index, _) -> Pipeline.getCommandState(id, index) === CommandState.Failed }
+        || releasePlan.getSubmodules(id).any {
+            releasePlan.getProject(it).hasFailedCommandsOrSubmoduleHasFailedCommands(releasePlan)
+        }
     }
 
     private fun turnFailedCommandsIntoStateReTrigger(releasePlan: ReleasePlan) {
