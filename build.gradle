@@ -1,4 +1,4 @@
-version = "0.3.5"
+version = "0.3.6"
 
 buildscript {
     ext {
@@ -13,7 +13,7 @@ buildscript {
         atrium_version = '0.6.0'
         mockito_kotlin_version = '1.5.0'
         dokka_version = '0.9.16'
-        dokka_sourceMapping = 'tree/v0.3.5'
+        dokka_sourceMapping = 'tree/v0.3.6'
 
         //spek.gradle
         jacoco_tool_version = '0.7.9'
