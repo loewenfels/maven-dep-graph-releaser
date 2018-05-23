@@ -446,7 +446,7 @@ input:disabled {
     border: 1px solid #AAA;
     border-radius: 6px;
     visibility: hidden;
-    display: inline-block;
+    width: 208px;
     z-index: 1;
 }
 .contextMenu div {
