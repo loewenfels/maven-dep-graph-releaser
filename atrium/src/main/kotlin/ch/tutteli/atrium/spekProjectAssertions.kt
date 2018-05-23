@@ -244,7 +244,7 @@ fun TestContainer.assertHasNoDependentsAndIsOnLevel(
     assertProjectIsOnLevel(releasePlan, name, dependent, level)
 }
 
-fun TestContainer.assertProjectIsOnLevel(
+private fun TestContainer.assertProjectIsOnLevel(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
@@ -361,17 +361,41 @@ fun TestContainer.assertOneDeactivatedUpdateAndOneDisabledReleaseCommand(
     }
 }
 
-fun TestContainer.assertOneUpdateAndOneMultiReleaseCommandAndSubmodulesAndSameDependents(
+fun TestContainer.assertOneUpdateAndOneMultiReleaseCommandAndIsOnLevelAndSubmodulesAreDependents(
     releasePlan: ReleasePlan,
     name: String,
     project: IdAndVersions,
     dependency: IdAndVersions,
+    level: Int,
     submodule: IdAndVersions,
     vararg otherSubmodules: IdAndVersions
 ) {
     assertOneUpdateAndOneMultiReleaseCommand(releasePlan, name, project, dependency)
     assertHasSubmodules(releasePlan, name, project, submodule, *otherSubmodules)
     assertHasDependents(releasePlan, name, project, submodule, *otherSubmodules)
+    assertProjectIsOnLevel(releasePlan, name, project, level)
+}
+
+fun TestContainer.assertOneMultiReleaseCommandAndIsOnLevelAndSubmodulesAreDependents(
+    releasePlan: ReleasePlan,
+    name: String,
+    project: IdAndVersions,
+    dependency: IdAndVersions,
+    level: Int,
+    submodule: IdAndVersions,
+    vararg otherSubmodules: IdAndVersions
+) {
+    test("$name project has one waiting Release command") {
+        assert(releasePlan.getProject(project.id)) {
+            idAndVersions(project)
+            property(subject::commands).containsStrictly(
+                { isJenkinsMultiMavenReleaseWaiting(project.nextDevVersion, dependency) }
+            )
+        }
+    }
+    assertHasSubmodules(releasePlan, name, project, submodule, *otherSubmodules)
+    assertHasDependents(releasePlan, name, project, submodule, *otherSubmodules)
+    assertProjectIsOnLevel(releasePlan, name, project, level)
 }
 
 fun TestContainer.assertOneUpdateAndOneMultiReleaseCommand(

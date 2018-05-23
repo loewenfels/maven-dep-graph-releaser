@@ -121,7 +121,7 @@ class JenkinsReleasePlanCreator(
                 val existingDependent = paramObject.projects[relation.id]
                 when {
                     existingDependent == null ->
-                        initDependent(paramObject)
+                        initDependentInclusiveCommands(paramObject)
 
                     existingDependent.level < paramObject.getAnticipatedLevel() ->
                         checkForCyclicAndUpdateIfOk(paramObject, existingDependent)
@@ -137,12 +137,17 @@ class JenkinsReleasePlanCreator(
         }
     }
 
-    private fun initDependent(paramObject: ParamObject) {
+    private fun initDependentInclusiveCommands(paramObject: ParamObject) {
+        val newDependent = initDependent(paramObject)
+        updateCommandsAddDependentAddToProjectsAndUpdateMultiModuleIfNecessary(paramObject, newDependent)
+    }
+
+    private fun initDependent(paramObject: ParamObject): Project {
         val relativePath = paramObject.analyser.getRelativePath(paramObject.relation.id)
         val newDependent = createInitialWaitingProject(paramObject, relativePath)
         paramObject.dependents[newDependent.id] = hashSetOf()
         paramObject.levelIterator.addToNextLevel(newDependent.id to newDependent)
-        updateCommandsAddDependentAddToProjectsAndUpdateMultiModuleIfNecessary(paramObject, newDependent)
+        return newDependent
     }
 
     private fun checkForCyclicAndUpdateIfOk(paramObject: ParamObject, existingDependent: Project): Boolean {
@@ -180,9 +185,13 @@ class JenkinsReleasePlanCreator(
         dependent: Project
     ) {
         addAndUpdateCommandsOfDependent(paramObject, dependent)
+        addDependentAddToProjects(paramObject, dependent)
+        updateMultiModuleIfNecessary(paramObject, dependent)
+    }
+
+    private fun addDependentAddToProjects(paramObject: ParamObject, dependent: Project) {
         addDependentToDependentsOfDependency(paramObject, dependent)
         paramObject.projects[dependent.id] = dependent
-        updateMultiModuleIfNecessary(paramObject, dependent)
     }
 
     private fun updateMultiModuleIfNecessary(paramObject: ParamObject, dependent: Project) {
@@ -190,19 +199,32 @@ class JenkinsReleasePlanCreator(
             val multiModules = paramObject.analyser.getMultiModules(paramObject.relation.id)
             val topMultiModuleId = multiModules.last()
             val topMultiModule = paramObject.projects[topMultiModuleId]
-            if (topMultiModule != null && topMultiModule.level < dependent.level) {
+            if (topMultiModule == null && isNotDependentOfDependency(paramObject, topMultiModuleId)) {
+                // It might be that the multi module is not part of the dependents graph, in such a case we have to add
+                // it to the analysis nonetheless, because we have a release dependency to track.
+                val tmpRelation = paramObject.relation
+                paramObject.relation = Relation(topMultiModuleId, paramObject.analyser.getCurrentVersion(topMultiModuleId)!!, false)
+                val newDependent = initDependent(paramObject)
+                addDependentAddToProjects(paramObject, newDependent)
+                paramObject.relation = tmpRelation
+            } else if (topMultiModule != null && topMultiModule.level < dependent.level) {
                 val tmpRelation = paramObject.relation
                 paramObject.relation = Relation(topMultiModuleId, topMultiModule.currentVersion, false)
                 val wouldHaveCycles = !checkForCyclicAndUpdateIfOk(paramObject, topMultiModule)
+                paramObject.relation = tmpRelation
                 if (wouldHaveCycles) {
                     paramObject.initDependency(topMultiModule)
-                    paramObject.relation = tmpRelation
                     //updating the multi module would introduce a cycle, thus we need to adjust the submodule instead
                     updateLevelIfNecessaryAndRevisitInCase(paramObject, dependent)
                 }
             }
         }
     }
+
+    private fun isNotDependentOfDependency(
+        paramObject: ParamObject,
+        topMultiModuleId: MavenProjectId
+    ) = paramObject.analyser.getDependentsOf(paramObject.dependencyId).none { it.id == topMultiModuleId }
 
     private fun addAndUpdateCommandsOfDependent(paramObject: ParamObject, dependent: Project) {
         // if the version is not self managed then it suffices that we have a dependency to the project
@@ -218,10 +240,10 @@ class JenkinsReleasePlanCreator(
             addDependencyToReleaseCommands(list, dependencyId)
         }
 
-        // submodule -> multi module relation is updated by M2 Release Plugin
+        // submodule -> multi module or submodule -> submodule relation is updated by M2 Release Plugin
         // if relation is a submodule and dependency as well and they share a common multi module, then we do not
-        // need to update anything because the submodules will have the same version after releasing
-        //TODO is this not entirely true, don't we still need to update the version to the new one?
+        // need to update anything because the submodules will have the same version after releasing (or the
+        // release breaks in which case we cannot do much about it)
         if (paramObject.isRelationNotInSameMultiModuleCircleAsDependency()) {
             val state = CommandState.Waiting(hashSetOf(dependencyId))
             list.add(0, JenkinsUpdateDependency(state, dependencyId))

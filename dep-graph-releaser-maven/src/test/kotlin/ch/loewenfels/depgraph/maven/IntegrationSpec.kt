@@ -495,10 +495,9 @@ object IntegrationSpec : Spek({
 
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleD)
 
-                assertOneUpdateAndOneMultiReleaseCommandAndSubmodulesAndSameDependents(
-                    releasePlan, "direct multi module", exampleB, exampleA, exampleC
+                assertOneUpdateAndOneMultiReleaseCommandAndIsOnLevelAndSubmodulesAreDependents(
+                    releasePlan, "direct multi module", exampleB, exampleA, 1, exampleC
                 )
-                assertProjectIsOnLevel(releasePlan, "direct multi module", exampleB, 1)
 
                 assertHasNoCommands(releasePlan, "indirect multi module", exampleC)
                 assertHasSubmodules(releasePlan, "indirect multi module", exampleC, exampleD)
@@ -796,10 +795,9 @@ object IntegrationSpec : Spek({
 
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC)
 
-                assertOneUpdateAndOneMultiReleaseCommandAndSubmodulesAndSameDependents(
-                    releasePlan, "multi module", exampleB, exampleA, exampleC, exampleD
+                assertOneUpdateAndOneMultiReleaseCommandAndIsOnLevelAndSubmodulesAreDependents(
+                    releasePlan, "multi module", exampleB, exampleA, 1, exampleC, exampleD
                 )
-                assertProjectIsOnLevel(releasePlan, "multi module", exampleB, 1)
 
                 assertOneUpdateCommand(releasePlan, "submodule-with-root-dependency", exampleC, exampleA)
                 assertHasOneDependentAndIsOnLevel(releasePlan, "submodule-with-root-dependency", exampleC, exampleD, 1)
@@ -910,16 +908,15 @@ object IntegrationSpec : Spek({
                 )
                 assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleD)
 
-                assertOneUpdateAndOneMultiReleaseCommandAndSubmodulesAndSameDependents(
-                    releasePlan, "multi module", exampleB, exampleA, exampleC
+                assertOneUpdateAndOneMultiReleaseCommandAndIsOnLevelAndSubmodulesAreDependents(
+                    releasePlan, "multi module", exampleB, exampleA, 2, exampleC
                 )
-                assertProjectIsOnLevel(releasePlan, "multi module", exampleB, 2)
 
                 assertOneUpdateCommand(releasePlan, "submodule", exampleC, exampleD)
-                assertProjectIsOnLevel(releasePlan, "submodule", exampleC, 2)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "submodule", exampleC, 2)
 
-                assertOneUpdateAndOneReleaseCommand(releasePlan, "dependent", exampleD, exampleA)
-                assertHasTwoDependentsAndIsOnLevel(releasePlan, "dependent", exampleD, exampleC, exampleB, 1)
+                assertOneUpdateAndOneReleaseCommand(releasePlan, "dependency", exampleD, exampleA)
+                assertHasTwoDependentsAndIsOnLevel(releasePlan, "dependency", exampleD, exampleC, exampleB, 1)
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
                 assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
@@ -940,10 +937,10 @@ object IntegrationSpec : Spek({
                 assertHasOneDependentAndIsOnLevel(releasePlan, "multi module", exampleB, exampleC, 2)
 
                 assertHasNoCommands(releasePlan, "submodule", exampleC)
-                assertProjectIsOnLevel(releasePlan, "submodule", exampleC, 2)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "submodule", exampleC, 2)
 
-                assertOneUpdateAndOneReleaseCommand(releasePlan, "dependent", exampleD, exampleA)
-                assertHasTwoDependentsAndIsOnLevel(releasePlan, "dependent", exampleD, exampleC, exampleB, 1)
+                assertOneUpdateAndOneReleaseCommand(releasePlan, "dependency", exampleD, exampleA)
+                assertHasTwoDependentsAndIsOnLevel(releasePlan, "dependency", exampleD, exampleC, exampleB, 1)
 
                 assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
                 assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
@@ -965,7 +962,7 @@ object IntegrationSpec : Spek({
                     assertHasTwoDependentsAndIsOnLevel(releasePlan, "multi module", exampleB, exampleC, exampleD, 1)
 
                     assertOneUpdateCommand(releasePlan, "submodule", exampleC, exampleD)
-                    assertProjectIsOnLevel(releasePlan, "submodule", exampleC, 1)
+                    assertHasNoDependentsAndIsOnLevel(releasePlan, "submodule", exampleC, 1)
 
                     assertOneUpdateAndOneReleaseCommand(releasePlan, "dependent", exampleD, exampleB)
                     assertHasOneDependentAndIsOnLevel(releasePlan, "dependent", exampleD, exampleC, 2)
@@ -986,13 +983,12 @@ object IntegrationSpec : Spek({
                     )
                     assertRootProjectWithDependents(releasePlan, exampleA, exampleD, exampleB)
 
-                    assertOneUpdateAndOneMultiReleaseCommandAndSubmodulesAndSameDependents(
-                        releasePlan, "multi module", exampleB, exampleA, exampleC
+                    assertOneUpdateAndOneMultiReleaseCommandAndIsOnLevelAndSubmodulesAreDependents(
+                        releasePlan, "multi module", exampleB, exampleA, 2, exampleC
                     )
-                    assertProjectIsOnLevel(releasePlan, "multi module", exampleB, 2)
 
                     assertOneUpdateCommand(releasePlan, "submodule", exampleC, exampleD)
-                    assertProjectIsOnLevel(releasePlan, "submodule", exampleC, 2)
+                    assertHasNoDependentsAndIsOnLevel(releasePlan, "submodule", exampleC, 2)
 
                     assertOneUpdateAndOneReleaseCommand(releasePlan, "dependent", exampleD, exampleA)
                     assertHasTwoDependentsAndIsOnLevel(releasePlan, "dependent", exampleD, exampleC, exampleB, 1)
@@ -1025,10 +1021,10 @@ object IntegrationSpec : Spek({
 
                 assertHasNoCommands(releasePlan, "multi module", exampleC)
                 assertHasSubmodules(releasePlan, "multi module", exampleC, exampleD)
-                assertProjectIsOnLevel(releasePlan, "multi module parent", exampleC, 2)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "multi module parent", exampleC, exampleD, 2)
 
                 assertOneUpdateCommand(releasePlan, "submodule", exampleD, exampleE)
-                assertProjectIsOnLevel(releasePlan, "submodule", exampleD, 2)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "submodule", exampleD, 2)
 
                 assertOneUpdateAndOneReleaseCommand(releasePlan, "dependent", exampleE, exampleA)
                 assertHasTwoDependentsAndIsOnLevel(releasePlan, "dependent", exampleE, exampleD, exampleB, 1)
@@ -1040,6 +1036,30 @@ object IntegrationSpec : Spek({
                     listOf(exampleE),
                     listOf(exampleB, exampleC, exampleD)
                 )
+            }
+        }
+
+        given("submodule with inter dependent module and multi module not involved") {
+            action("context Analyser which does not resolve poms") {
+
+                val releasePlan = analyseAndCreateReleasePlan(
+                    exampleA.id, "multiModule/submoduleWithDependencyAndMultiModuleNotInvolved"
+                )
+                assertRootProjectWithDependents(releasePlan, exampleA, exampleB, exampleC)
+
+                assertOneMultiReleaseCommandAndIsOnLevelAndSubmodulesAreDependents(
+                    releasePlan, "multi module", exampleB, exampleA, 1, exampleC, exampleD
+                )
+
+                assertOneUpdateCommand(releasePlan, "submodule", exampleC, exampleA)
+                assertHasOneDependentAndIsOnLevel(releasePlan, "submodule", exampleC, exampleD, 1)
+
+                assertHasNoCommands(releasePlan, "dependent submodule", exampleD)
+                assertHasNoDependentsAndIsOnLevel(releasePlan, "dependent submodule", exampleD, 1)
+
+                assertReleasePlanHasNumOfProjectsAndDependents(releasePlan, 4)
+                assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
+                assertReleasePlanIteratorReturnsRootAnd(releasePlan, listOf(exampleB, exampleC, exampleD))
             }
         }
     }
