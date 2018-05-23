@@ -5,5 +5,5 @@ import ch.loewenfels.depgraph.data.Project
 
 interface JobExecutionDataFactory {
 
-    fun create(project: Project, command: Command, index: Int): JobExecutionData
+    fun create(project: Project, command: Command): JobExecutionData
 }
