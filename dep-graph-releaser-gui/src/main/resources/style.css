@@ -446,7 +446,8 @@ input:disabled {
     border: 1px solid #AAA;
     border-radius: 6px;
     visibility: hidden;
-    width: 208px;
+    display: inline-block;
+    min-width: 211px;
     z-index: 1;
 }
 .contextMenu div {
@@ -489,11 +490,7 @@ input:disabled {
     color: #666;
 }
 .contextMenu .deactivated > .material-icons span::after {
-    /*
-    TODO power_off would be nicer but it seems there is a bug in material icons:
-    https://github.com/google/material-design-icons/issues/778
-    */
-    content: 'stop';
+    content: 'power_off';
 }
 
 #status,
