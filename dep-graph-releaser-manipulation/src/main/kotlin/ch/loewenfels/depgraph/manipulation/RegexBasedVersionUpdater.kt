@@ -14,6 +14,8 @@ object RegexBasedVersionUpdater {
     private val versionRegex = Regex("<$VERSION>([^<]+)</$VERSION>")
     private val mavenPropertyRegex = Regex("\\$\\{([^}]+)}")
     private val tagRegex = Regex("<([a-zA-Z0-9_.-]+)>([^<]+)</([a-zA-Z0-9_.-]+)>")
+    private const val EXCLUSIONS = "exclusions"
+    private val exclusionRegex = Regex("<$EXCLUSIONS>[\\S\\s]+?</$EXCLUSIONS>")
 
     fun updateDependency(pom: File, groupId: String, artifactId: String, newVersion: String) {
         require(pom.exists()) {
@@ -111,7 +113,8 @@ object RegexBasedVersionUpdater {
 
     private fun updateDependencies(dependenciesParamObject: ParamObject, groupIdArtifactIdRegex: Regex) {
         while (dependenciesParamObject.nullableMatchResult != null) {
-            if (groupIdArtifactIdRegex.containsMatchIn(dependenciesParamObject.nonNullMatchResult.value)) {
+            val dependencyWithoutExclusions = withoutExclusions(dependenciesParamObject.nonNullMatchResult.value)
+            if (groupIdArtifactIdRegex.containsMatchIn(dependencyWithoutExclusions)) {
                 dependenciesParamObject.appendBeforeMatchAndUpdateStartIndex()
                 appendDependency(dependenciesParamObject)
             }
@@ -119,6 +122,8 @@ object RegexBasedVersionUpdater {
         }
         dependenciesParamObject.appendRestIfUpdated()
     }
+
+    private fun withoutExclusions(dependency: String) = dependency.replace(exclusionRegex, "")
 
     private fun appendDependency(paramObject: ParamObject) {
         val versionMatchResult = versionRegex.find(paramObject.nonNullMatchResult.value)
@@ -167,7 +172,7 @@ object RegexBasedVersionUpdater {
     private fun appendVersionInProperty(propertiesParamObject: ParamObject, propertyName: String, version: String) {
         when {
             propertiesParamObject.properties.contains(propertyName) -> {
-                if(resolveVersion(propertiesParamObject, version).contains("$")) {
+                if (resolveVersion(propertiesParamObject, version).contains("$")) {
                     throw UnsupportedOperationException(
                         "Property contains another property.\nProperty: $propertyName\nValue: $version"
                     )

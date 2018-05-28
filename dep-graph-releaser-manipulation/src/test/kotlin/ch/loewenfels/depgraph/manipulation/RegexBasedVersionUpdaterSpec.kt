@@ -132,7 +132,7 @@ object RegexBasedVersionUpdaterSpec : Spek({
         testWithExampleA(testee, tempFolder, pom)
     }
 
-    given("project with dependent and version is \${project.version}") {
+    given("project with dependency and version is \${project.version}") {
         val pom = getPom("versionIsProjectVersion.pom")
         testProjectVersionWithExampleA(tempFolder, pom, testee)
     }
@@ -142,28 +142,38 @@ object RegexBasedVersionUpdaterSpec : Spek({
         testWithExampleA(testee, tempFolder, pom)
     }
 
-    given("project with dependent and version in property") {
+    given("project with dependency and version in property") {
         val pom = File(getTestDirectory("managingVersions/viaProperty"), "b.pom")
         testWithExampleA(testee, tempFolder, pom)
     }
 
-    given("project with dependent and version in property which is \${project.version}") {
+    given("project with dependency and version in property which is \${project.version}") {
         val pom = getPom("propertyIsProjectVersion.pom")
         testProjectVersionWithExampleA(tempFolder, pom, testee)
     }
 
-    given("project with dependent and version in property which is in different profiles") {
+    given("project with dependency and version in property which is in different profiles") {
         val pom = getPom("propertiesInProfile.pom")
         testWithExampleA(testee, tempFolder, pom)
     }
 
-    given("project with dependent and empty <properties>") {
+    given("project with dependency and empty <properties>") {
         val pom = getPom("emptyProperties.pom")
         testWithExampleA(testee, tempFolder, pom)
     }
 
     given("project which has a property which is built up by another property but not the one we want to update") {
         val pom = getPom("propertyWithProperty.pom")
+        testWithExampleA(testee, tempFolder, pom)
+    }
+
+    given("project with dependency and dependency in exclusion of other dependency as well") {
+        val pom = getPom("dependencyInExclusion.pom")
+        testWithExampleA(testee, tempFolder, pom)
+    }
+
+    given("project with dependency and dependency in exclusion of other managed dependency as well") {
+        val pom = getPom("dependencyInExclusionOfDependencyManagement.pom")
         testWithExampleA(testee, tempFolder, pom)
     }
 })
