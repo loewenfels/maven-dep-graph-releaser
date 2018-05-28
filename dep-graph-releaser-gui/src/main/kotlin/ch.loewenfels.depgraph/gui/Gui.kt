@@ -1,15 +1,15 @@
 package ch.loewenfels.depgraph.gui
 
 import ch.loewenfels.depgraph.ConfigKey
-import ch.loewenfels.depgraph.data.*
+import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.gui.components.Menu
 import ch.loewenfels.depgraph.gui.components.Pipeline
 import ch.loewenfels.depgraph.gui.components.textAreaWithLabel
 import ch.loewenfels.depgraph.gui.components.textFieldWithLabel
-import kotlinx.html.*
+import kotlinx.html.div
 import kotlinx.html.dom.append
-import org.w3c.dom.*
+import org.w3c.dom.asList
 import kotlin.browser.document
 
 class Gui(releasePlan: ReleasePlan, private val menu: Menu) {
@@ -18,8 +18,8 @@ class Gui(releasePlan: ReleasePlan, private val menu: Menu) {
         val rootProjectId = releasePlan.rootProjectId
         val htmlTitle = (rootProjectId as? MavenProjectId)?.artifactId ?: rootProjectId.identifier
         document.title = "Release $htmlTitle"
-        setUpMessages(releasePlan.warnings, "warnings", { showWarning(it) })
-        setUpMessages(releasePlan.infos, "infos", { showInfo(it) })
+        releasePlan.warnings.forEach { showWarning(it) }
+        setInfoBubble(releasePlan.infos)
         setUpConfig(releasePlan)
         Pipeline(releasePlan, menu)
 
@@ -30,13 +30,13 @@ class Gui(releasePlan: ReleasePlan, private val menu: Menu) {
         //TODO also for state failed, might be that it failed because maxWaitingTime was over
     }
 
-    private fun setUpMessages(messages: List<String>, id: String, action: (String) -> Unit) {
+    private fun setInfoBubble(messages: List<String>){
         if (messages.isNotEmpty()) {
-            val minimized = elementById("${id}Minimized")
+            val minimized = elementById("infosMinimized")
             minimized.style.display = "block"
             minimized.addEventListener("click", {
                 minimized.style.display = "none"
-                messages.forEach(action)
+                messages.forEach({ showInfo(it) })
             })
         }
         val messagesDiv = elementById("messages")
