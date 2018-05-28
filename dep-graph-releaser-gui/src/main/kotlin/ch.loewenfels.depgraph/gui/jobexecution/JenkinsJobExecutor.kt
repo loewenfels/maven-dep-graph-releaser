@@ -32,9 +32,10 @@ class JenkinsJobExecutor(
                             2000
                         )
                     }
-                    jobQueuedHook("${queuedItemUrl}api/xml/").then {
-                        extractBuildNumber(crumbWithId, queuedItemUrl)
-                    }.then { it }
+                    jobQueuedHook("${queuedItemUrl}api/xml/")
+                        .then {
+                            extractBuildNumber(crumbWithId, queuedItemUrl)
+                        }.then { it }
                 }.then { buildNumber: Int ->
                     if (verbose) {
                         showInfo(
@@ -183,7 +184,7 @@ class JenkinsJobExecutor(
         val rePoll: (String) -> T = { body ->
             if (numberOfTries * pollEverySecond >= maxWaitingTimeInSeconds) {
                 throw PollException(
-                    "Waited at least $maxWaitingTimeInSeconds seconds",
+                    "Waited at least $maxWaitingTimeInSeconds seconds for $pollUrl to complete",
                     body
                 )
             }

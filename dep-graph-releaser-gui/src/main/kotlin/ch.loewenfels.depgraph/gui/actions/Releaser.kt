@@ -50,7 +50,7 @@ class Releaser(
             .then {
                 val (result, newState) = checkProjectStates(paramObject)
                 Pipeline.changeReleaseState(newState)
-                save(paramObject, verbose = false)
+                quietSave(paramObject, verbose = false)
                     .catch { t ->
                         showThrowable(
                             Error(
@@ -234,7 +234,7 @@ class Releaser(
                     Pipeline.STATE_QUEUEING,
                     queuedItemUrl
                 )
-                save(paramObject)
+                quietSave(paramObject)
             }, { buildNumber ->
                 Pipeline.changeStateOfCommandAndAddBuildUrl(
                     project,
@@ -273,12 +273,16 @@ class Releaser(
         }
     }
 
-    private fun save(paramObject: ParamObject, verbose: Boolean = false): Promise<Unit> {
+    private fun quietSave(paramObject: ParamObject, verbose: Boolean = false): Promise<Unit> {
         return menu.save(paramObject.jobExecutor, verbose)
             .then { hadChanges ->
                 if (!hadChanges) {
                     showWarning("Could not save changes for project ${paramObject.project.id.identifier}. Please report a bug.")
                 }
+            }.catch {
+                console.error("save failed for ${paramObject.project}", it)
+                // we ignore if a save fails at this point,
+                // the next command performs a save as well and we track if the final save fails
             }
     }
 

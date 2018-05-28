@@ -384,8 +384,7 @@ class Menu {
 
         val changed = publisher.applyChanges()
         return if (changed) {
-            val publishId = getTextField(Gui.RELEASE_ID_HTML_ID)
-                .value
+            val publishId = getTextField(Gui.RELEASE_ID_HTML_ID).value
             val newFileName = "release-$publishId"
             publisher.publish(newFileName, verbose, jobExecutor)
                 .then { true }
