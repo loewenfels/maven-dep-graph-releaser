@@ -97,7 +97,16 @@ class App {
 
         remoteRegex.forEach { (_, remoteJenkinsBaseUrl) ->
             val promise = if (isUrlAndNotYetRegistered(remoteJenkinsBaseUrl)) {
-                UsernameTokenRegistry.register(remoteJenkinsBaseUrl)
+                UsernameTokenRegistry.register(remoteJenkinsBaseUrl).then { pair ->
+                    updateUserToolTip(remoteJenkinsBaseUrl, pair)
+                    if (pair == null) {
+                        menu.setHalfVerified()
+                        showWarning("You are not logged in at $remoteJenkinsBaseUrl.\n" +
+                            "You can perform a Dry Run (runs on $jenkinsBaseUrl) but a release involving the remote jenkins will most likely fail.\n\n" +
+                            "Go to the log in: $remoteJenkinsBaseUrl/login?from=" + window.location
+                        )
+                    }
+                }
             } else {
                 Promise.resolve(Unit)
             }
@@ -121,11 +130,16 @@ class App {
                     null
                 } else {
                     val (name, usernameToken) = pair
-                    menu.setVerifiedUser(usernameToken.username, name)
+                    menu.setVerifiedUser(name)
+                    updateUserToolTip(jenkinsBaseUrl, pair)
                     usernameToken
                 }
             }
         }
+    }
+
+    private fun updateUserToolTip(url: String, pair: Pair<String, UsernameToken>?) {
+        menu.appendToUserButtonToolTip(url, pair?.second?.username ?: "Anonymous", pair?.first)
     }
 
     private fun loadJson(jsonUrl: String, usernameToken: UsernameToken?): Promise<Response> {

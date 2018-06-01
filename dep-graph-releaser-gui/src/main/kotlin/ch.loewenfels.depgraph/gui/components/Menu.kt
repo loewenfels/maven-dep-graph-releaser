@@ -68,13 +68,21 @@ class Menu {
         listOf(saveButton, dryRunButton, releaseButton).forEach { it.disable(titleButtons) }
     }
 
-    fun setVerifiedUser(username: String, name: String) {
+    fun setVerifiedUser(name: String) {
         userName.innerText = name
         userIcon.innerText = "verified_user"
-        userButton.title = "Logged in as $username"
         userButton.removeClass(DEACTIVATED)
     }
 
+    fun setHalfVerified() {
+        userIcon.innerText = "error"
+        userButton.addClass("warning")
+    }
+
+    fun appendToUserButtonToolTip(url: String, username: String, name: String?) {
+        val nameSuffix = if (name != null) " ($name)" else ""
+        userButton.title += "\nLogged in as $username$nameSuffix @ $url"
+    }
 
     internal fun initDependencies(
         releasePlan: ReleasePlan,

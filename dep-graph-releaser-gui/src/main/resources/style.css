@@ -79,6 +79,9 @@ a:hover {
 #user .material-icons {
     color: #75d075;
 }
+#user.warning .material-icons {
+    color: #e2a35f;
+}
 #user.deactivated .material-icons {
     color: #e67878;
 }
