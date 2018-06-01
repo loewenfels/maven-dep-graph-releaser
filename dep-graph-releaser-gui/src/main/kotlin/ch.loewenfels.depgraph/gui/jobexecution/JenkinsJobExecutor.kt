@@ -101,7 +101,7 @@ class JenkinsJobExecutor(
     ): Promise<CrumbWithId?> {
         val url = "$jenkinsBaseUrl/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)"
         val headers = createHeaderWithAuthAndCrumb(usernameToken, null)
-        val init = createRequestInit(null, RequestVerb.GET, headers)
+        val init = createGetRequest(headers)
         return window.fetch(url, init)
             .then(::checkStatusOkOr404)
             .catch {

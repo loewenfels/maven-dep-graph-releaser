@@ -21,7 +21,7 @@ class RestApiBasedQueuedItemUrlExtractor(
         val t = jobExecutionData.jobBaseUrl.substringAfter("/job/")
         val jobName = if (t.endsWith("/")) t.substringBeforeLast("/") else t
         val headers = createHeaderWithAuthAndCrumb(usernameToken, crumbWithId)
-        val init = createRequestInit(null, RequestVerb.GET, headers)
+        val init = createGetRequest(headers)
         val paramsIdentification = createParameterRegexPattern(identifyingParams)
 
         return window.fetch("$jenkinsBaseUrl/queue/api/xml", init)

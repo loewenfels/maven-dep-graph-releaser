@@ -33,7 +33,7 @@ object Poller {
 
     fun <T : Any> poll(pollData: PollData<T>): Promise<T> {
         val headers = createHeaderWithAuthAndCrumb(pollData.usernameToken, pollData.crumbWithId)
-        val init = createRequestInit(null, RequestVerb.GET, headers)
+        val init = createGetRequest(headers)
 
         val rePoll: (String) -> T = { body ->
             if (pollData.numberOfTries * pollData.pollEverySecond >= pollData.maxWaitingTimeInSeconds) {

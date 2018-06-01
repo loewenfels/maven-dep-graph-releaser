@@ -12,7 +12,7 @@ class BuildHistoryBasedBuildNumberExtractor(
 
     override fun extract(): Promise<Int> {
         val headers = createHeaderWithAuthAndCrumb(usernameToken, crumbWithId)
-        val init = createRequestInit(null, RequestVerb.GET, headers)
+        val init = createGetRequest(headers)
         return window.fetch("${jobExecutionData.jobBaseUrl}api/xml?xpath=//build/number&wrapper=builds", init)
             .then(::checkStatusOk)
             .then { searchBuildNumber(it, init) }

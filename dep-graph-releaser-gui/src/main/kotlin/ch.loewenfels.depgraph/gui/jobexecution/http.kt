@@ -28,6 +28,7 @@ private fun checkResponseIgnore(response: Response, ignoringError: Int?): Promis
 fun createFetchInitWithCredentials(): RequestInit {
     val init = js("({})")
     init.credentials = "include"
+    init.method = RequestVerb.GET
     return init
 }
 
@@ -53,6 +54,8 @@ external interface RequestVerb {
 
 inline val RequestVerb.Companion.GET get() = "GET".asDynamic().unsafeCast<RequestVerb>()
 inline val RequestVerb.Companion.POST get() = "POST".asDynamic().unsafeCast<RequestVerb>()
+
+fun createGetRequest(headers: dynamic): RequestInit = createRequestInit(null, RequestVerb.GET, headers)
 
 fun createRequestInit(
     body: String?,
