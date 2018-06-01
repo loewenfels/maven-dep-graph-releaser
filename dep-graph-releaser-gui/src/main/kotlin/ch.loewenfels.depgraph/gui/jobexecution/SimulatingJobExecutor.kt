@@ -8,6 +8,7 @@ import kotlin.js.Promise
 
 class SimulatingJobExecutor : JobExecutor {
     private var count = 0
+
     override fun pollAndExtract(
         usernameToken: UsernameToken,
         crumbWithId: CrumbWithId?,
@@ -62,5 +63,4 @@ class SimulatingJobExecutor : JobExecutor {
             Promise.resolve(Unit)
         }
     }
-
 }

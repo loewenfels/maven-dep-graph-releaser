@@ -281,7 +281,7 @@ class RemoteJenkinsM2Releaser internal constructor(
         val matchResult = builderNumberRegex.find(content)
         if (matchResult != null) {
             //TODO we could additionally verify that it is the correct build by calling:
-            // https://jenkinsUrl/job/JOB_NAME/BUILD_NUMBER/api/xml and check that parameter MVN_RELEASE_VERSION and MVN_DEV_VERSION are correct
+            // https://jenkinsBaseUrl/job/JOB_NAME/BUILD_NUMBER/api/xml and check that parameter MVN_RELEASE_VERSION and MVN_DEV_VERSION are correct
             return matchResult.groupValues[1].toInt()
         }
         throw IllegalStateException(

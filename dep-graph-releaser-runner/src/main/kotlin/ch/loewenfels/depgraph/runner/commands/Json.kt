@@ -36,7 +36,7 @@ object Json : ConsoleCommand {
         |${ConfigKey.REMOTE_REGEX.asString()}               // regex which determines which project runs on a different jenkins server
         |                          // than the publish job. It takes the following form where regex has to
         |                          // match the project identifier (groupId:artifactId):
-        |                          // regex#jenkinsUrl;regex2#anotherJenkinsUrl
+        |                          // regex#jenkinsBaseUrl;regex2#anotherJenkinsBaseUrl
         |                          // Notice that the first match is considered and the rest ignored.
         |${ConfigKey.DRY_RUN_JOB.asString()}                 // the job which executes a dry run
         |(${REGEX_PARAMS_ARG}spec)       // optionally: parameters of the form regex#a=b;c=d${'$'}.*#e=f where the regex

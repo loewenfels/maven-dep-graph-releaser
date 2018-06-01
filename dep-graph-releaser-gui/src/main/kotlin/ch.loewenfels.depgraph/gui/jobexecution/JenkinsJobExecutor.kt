@@ -19,10 +19,10 @@ class JenkinsJobExecutor(
         verbose: Boolean
     ): Promise<Pair<CrumbWithId, Int>> {
         val jobName = jobExecutionData.jobName
-        val jenkinsUrl = jobExecutionData.getJenkinsBaseUrl()
-        val usernameToken = usernameTokenRegistry.forHostOrThrow(jenkinsUrl)
+        val jenkinsBaseUrl = jobExecutionData.getJenkinsBaseUrl()
+        val usernameToken = usernameTokenRegistry.forHostOrThrow(jenkinsBaseUrl)
 
-        return issueCrumb(jenkinsUrl, usernameToken).then { crumbWithId: CrumbWithId? ->
+        return issueCrumb(jenkinsBaseUrl, usernameToken).then { crumbWithId: CrumbWithId? ->
             triggerJob(usernameToken, crumbWithId, jobExecutionData)
                 .then { response ->
                     checkStatusAndExtractQueuedItemUrl(response, jobExecutionData, usernameToken, crumbWithId)
@@ -96,17 +96,12 @@ class JenkinsJobExecutor(
     }
 
     private fun issueCrumb(
-        jenkinsUrl: String,
+        jenkinsBaseUrl: String,
         usernameToken: UsernameToken
     ): Promise<CrumbWithId?> {
-        val url = "$jenkinsUrl/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)"
+        val url = "$jenkinsBaseUrl/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)"
         val headers = createHeaderWithAuthAndCrumb(usernameToken, null)
-        val init =
-            createRequestInit(
-                null,
-                ch.loewenfels.depgraph.gui.jobexecution.RequestVerb.GET,
-                headers
-            )
+        val init = createRequestInit(null, RequestVerb.GET, headers)
         return window.fetch(url, init)
             .then(::checkStatusOkOr404)
             .catch {
@@ -124,11 +119,7 @@ class JenkinsJobExecutor(
     private fun triggerJob(usernameToken: UsernameToken, crumbWithId: CrumbWithId?, jobExecutionData: JobExecutionData): Promise<Response> {
         val headers = createHeaderWithAuthAndCrumb(usernameToken, crumbWithId)
         headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8"
-        val init = createRequestInit(
-            jobExecutionData.body,
-            ch.loewenfels.depgraph.gui.jobexecution.RequestVerb.POST,
-            headers
-        )
+        val init = createRequestInit(jobExecutionData.body, RequestVerb.POST, headers)
         return window.fetch(jobExecutionData.jobTriggerUrl, init)
     }
 

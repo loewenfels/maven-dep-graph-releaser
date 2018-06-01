@@ -4,7 +4,7 @@ import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.ReleasePlan
 
 abstract class BaseJobExecutionDataFactory(
-    protected val jenkinsUrl: String,
+    protected val defaultJenkinsBaseUrl: String,
     protected val releasePlan: ReleasePlan
 ) : JobExecutionDataFactory {
 
@@ -16,6 +16,6 @@ abstract class BaseJobExecutionDataFactory(
 
     protected fun getConfig(key: ConfigKey) = releasePlan.getConfig(key)
 
-    protected fun getJobUrl(key: ConfigKey) = getJobUrl(jenkinsUrl, getConfig(key))
+    protected fun getJobUrl(key: ConfigKey) = getJobUrl(defaultJenkinsBaseUrl, getConfig(key))
     protected fun getJobUrl(jenkinsBaseUrl: String, jobName: String) = "$jenkinsBaseUrl/job/$jobName"
 }

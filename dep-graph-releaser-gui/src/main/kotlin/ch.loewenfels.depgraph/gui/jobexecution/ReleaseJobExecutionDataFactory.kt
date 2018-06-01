@@ -12,9 +12,9 @@ import ch.loewenfels.depgraph.gui.parseRemoteRegex
 import ch.tutteli.kbox.appendToStringBuilder
 
 class ReleaseJobExecutionDataFactory(
-    jenkinsUrl: String,
+    defaultJenkinsBaseUrl: String,
     releasePlan: ReleasePlan
-) : BaseJobExecutionDataFactory(jenkinsUrl, releasePlan) {
+) : BaseJobExecutionDataFactory(defaultJenkinsBaseUrl, releasePlan) {
 
     private val remoteRegex : List<Pair<Regex, String>>
     private val regexParametersList: List<Pair<Regex, String>>
@@ -88,7 +88,7 @@ class ReleaseJobExecutionDataFactory(
     private fun triggerRelease(project: Project, command: M2ReleaseCommand): JobExecutionData {
         val mavenProjectId = project.id as MavenProjectId
         val jobName = getJobName(project)
-        val jenkinsBaseUrl = getMatchingEntries(remoteRegex, mavenProjectId).firstOrNull() ?: jenkinsUrl
+        val jenkinsBaseUrl = getMatchingEntries(remoteRegex, mavenProjectId).firstOrNull() ?: defaultJenkinsBaseUrl
         val jobUrl = getJobUrl(jenkinsBaseUrl, jobName)
         val relevantParams = getMatchingEntries(regexParametersList, mavenProjectId)
         val parameters = StringBuilder()

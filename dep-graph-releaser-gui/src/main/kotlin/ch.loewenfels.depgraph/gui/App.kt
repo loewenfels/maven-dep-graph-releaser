@@ -14,7 +14,7 @@ import kotlin.js.Promise
 
 class App {
     private val publishJobUrl: String?
-    private val jenkinsBaseUrl: String?
+    private val defaultJenkinsBaseUrl: String?
     private val menu: Menu
 
     init {
@@ -22,7 +22,7 @@ class App {
 
         val jsonUrl = determineJsonUrl()
         publishJobUrl = determinePublishJob()
-        jenkinsBaseUrl = publishJobUrl?.substringBefore("/job/")
+        defaultJenkinsBaseUrl = publishJobUrl?.substringBefore("/job/")
         menu = Menu()
         start(jsonUrl)
     }
@@ -78,7 +78,7 @@ class App {
                     val releasePlan = deserialize(body)
                     loadOtherApiTokens(releasePlan).then {
                         val dependencies = createDependencies(
-                            jenkinsBaseUrl, publishJobUrl, usernameToken, modifiableJson, releasePlan, menu
+                            defaultJenkinsBaseUrl, publishJobUrl, usernameToken, modifiableJson, releasePlan, menu
                         )
                         menu.initDependencies(releasePlan, Downloader(modifiableJson), dependencies, modifiableJson)
                         Gui(releasePlan, menu)
@@ -102,7 +102,7 @@ class App {
                     if (pair == null) {
                         menu.setHalfVerified()
                         showWarning("You are not logged in at $remoteJenkinsBaseUrl.\n" +
-                            "You can perform a Dry Run (runs on $jenkinsBaseUrl) but a release involving the remote jenkins will most likely fail.\n\n" +
+                            "You can perform a Dry Run (runs on $defaultJenkinsBaseUrl) but a release involving the remote jenkins will most likely fail.\n\n" +
                             "Go to the log in: $remoteJenkinsBaseUrl/login?from=" + window.location
                         )
                     }
@@ -119,19 +119,19 @@ class App {
         = remoteJenkinsBaseUrl.startsWith("http") && UsernameTokenRegistry.forHost(remoteJenkinsBaseUrl) == null
 
     private fun retrieveUserAndApiToken(): Promise<UsernameToken?> {
-        return if (jenkinsBaseUrl == null) {
+        return if (defaultJenkinsBaseUrl == null) {
             menu.disableButtonsDueToNoPublishUrl()
             Promise.resolve(null as UsernameToken?)
         } else {
-            UsernameTokenRegistry.register(jenkinsBaseUrl).then { pair ->
+            UsernameTokenRegistry.register(defaultJenkinsBaseUrl).then { pair ->
                 if (pair == null) {
                     val info = "You need to log in if you want to use other functionality than Download."
-                    menu.disableButtonsDueToNoAuth(info, "$info\n$jenkinsBaseUrl/login?from=" + window.location)
+                    menu.disableButtonsDueToNoAuth(info, "$info\n$defaultJenkinsBaseUrl/login?from=" + window.location)
                     null
                 } else {
                     val (name, usernameToken) = pair
                     menu.setVerifiedUser(name)
-                    updateUserToolTip(jenkinsBaseUrl, pair)
+                    updateUserToolTip(defaultJenkinsBaseUrl, pair)
                     usernameToken
                 }
             }
@@ -167,21 +167,21 @@ class App {
         const val PUBLISH_JOB = "&publishJob="
 
         internal fun createDependencies(
-            defaultJenkinsUrl: String?,
+            defaultJenkinsBaseUrl: String?,
             publishJobUrl: String?,
             usernameToken: UsernameToken?,
             modifiableJson: ModifiableJson,
             releasePlan: ReleasePlan,
             menu: Menu
         ): Menu.Dependencies? {
-            return if (publishJobUrl != null && defaultJenkinsUrl != null && usernameToken != null) {
+            return if (publishJobUrl != null && defaultJenkinsBaseUrl != null && usernameToken != null) {
                 val publisher = Publisher(usernameToken, publishJobUrl, modifiableJson)
-                val releaser = Releaser(defaultJenkinsUrl, modifiableJson, menu)
+                val releaser = Releaser(defaultJenkinsBaseUrl, modifiableJson, menu)
 
                 val jenkinsJobExecutor = JenkinsJobExecutor(UsernameTokenRegistry)
                 val simulatingJobExecutor = SimulatingJobExecutor()
-                val releaseJobExecutionDataFactory = ReleaseJobExecutionDataFactory(defaultJenkinsUrl, releasePlan)
-                val dryRunJobExecutionDataFactory = DryRunJobExecutionDataFactory(defaultJenkinsUrl, releasePlan)
+                val releaseJobExecutionDataFactory = ReleaseJobExecutionDataFactory(defaultJenkinsBaseUrl, releasePlan)
+                val dryRunJobExecutionDataFactory = DryRunJobExecutionDataFactory(defaultJenkinsBaseUrl, releasePlan)
                 Menu.Dependencies(
                     publisher,
                     releaser,

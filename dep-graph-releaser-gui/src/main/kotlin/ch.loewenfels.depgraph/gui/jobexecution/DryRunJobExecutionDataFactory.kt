@@ -13,9 +13,9 @@ import ch.loewenfels.depgraph.gui.components.Pipeline
 private typealias GroupIdArtifactIdAndNewVersion = Triple<String, String, String>
 
 class DryRunJobExecutionDataFactory(
-    jenkinsUrl: String,
+    defaultJenkinsBaseUrl: String,
     releasePlan: ReleasePlan
-) : BaseJobExecutionDataFactory(jenkinsUrl, releasePlan) {
+) : BaseJobExecutionDataFactory(defaultJenkinsBaseUrl, releasePlan) {
 
     init {
         checkConfig(releasePlan.config)

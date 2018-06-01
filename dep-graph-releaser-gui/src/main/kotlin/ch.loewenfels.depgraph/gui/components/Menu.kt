@@ -159,10 +159,10 @@ class Menu {
         }
 
         activateExploreButton()
-        val jenkinsUrl = "https://github.com/loewenfels/"
+        val fakeJenkinsBaseUrl = "https://github.com/loewenfels/"
         val nonNullDependencies = dependencies ?: App.createDependencies(
-            jenkinsUrl,
-            "${jenkinsUrl}dgr-publisher/",
+            fakeJenkinsBaseUrl,
+            "${fakeJenkinsBaseUrl}dgr-publisher/",
             UsernameToken("test", "test"),
             modifiableJson,
             releasePlan,
