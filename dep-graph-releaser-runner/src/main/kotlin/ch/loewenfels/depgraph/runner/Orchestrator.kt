@@ -1,7 +1,6 @@
 package ch.loewenfels.depgraph.runner
 
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
-import ch.loewenfels.depgraph.jenkins.RemoteJenkinsM2Releaser
 import ch.loewenfels.depgraph.manipulation.RegexBasedVersionUpdater
 import ch.loewenfels.depgraph.maven.Analyser
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
@@ -100,40 +99,5 @@ object Orchestrator {
     fun updateDependency(pom: File, groupId: String, artifactId: String, newVersion: String) {
         RegexBasedVersionUpdater.updateDependency(pom, groupId, artifactId, newVersion)
         logger.info("updated dependency $groupId:$artifactId to new version $newVersion")
-    }
-
-    fun remoteRelease(
-        jenkinsBaseUrl: String,
-        jenkinsUsername: String,
-        jenkinsPassword: String,
-        maxTriggerTries: Int,
-        pollExecutionEverySecond: Int,
-        maxWaitForExecutionInSeconds: Int,
-        pollReleaseEverySecond: Int,
-        maxReleaseTimeInSeconds: Int,
-        parameters: Map<String, String>,
-        jobName: String,
-        releaseVersion: String,
-        nextDevVersion: String
-    ) {
-        val releaser = RemoteJenkinsM2Releaser(
-            jenkinsBaseUrl,
-            jenkinsUsername,
-            jenkinsPassword,
-            maxTriggerTries,
-            pollExecutionEverySecond,
-            maxWaitForExecutionInSeconds,
-            pollReleaseEverySecond,
-            maxReleaseTimeInSeconds,
-            parameters
-        )
-        logger.info({
-            "trigger release for $jobName." +
-                "\nRelease version:  $releaseVersion" +
-                "\nNext dev version: $nextDevVersion" +
-                "\nParameters: $parameters"
-        })
-        releaser.release(jobName, releaseVersion, nextDevVersion)
-        logger.info("released $jobName with release version $releaseVersion and next dev version $nextDevVersion")
     }
 }
