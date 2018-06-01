@@ -168,6 +168,15 @@ div.level {
     margin-top: 50px;
     display: none;
 }
+
+.loader .material-icons {
+    vertical-align: middle;
+    color: #008000;
+}
+.loader .material-icons.waiting {
+    color: #000;
+}
+
 #loaderJs {
     display: block
 }
