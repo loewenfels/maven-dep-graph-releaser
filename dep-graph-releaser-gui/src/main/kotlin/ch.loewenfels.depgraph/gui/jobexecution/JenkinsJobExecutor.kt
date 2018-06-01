@@ -1,13 +1,13 @@
 package ch.loewenfels.depgraph.gui.jobexecution
 
-import ch.loewenfels.depgraph.gui.*
+import ch.loewenfels.depgraph.gui.showInfo
+import ch.loewenfels.depgraph.gui.sleep
 import org.w3c.fetch.Response
 import kotlin.browser.window
 import kotlin.js.Promise
 
 class JenkinsJobExecutor(
-    private val jenkinsUrl: String,
-    private val usernameToken: UsernameToken
+    private val usernameTokenRegistry: UsernameTokenRegistry
 ) : JobExecutor {
 
     override fun trigger(
@@ -19,23 +19,21 @@ class JenkinsJobExecutor(
         verbose: Boolean
     ): Promise<Pair<CrumbWithId, Int>> {
         val jobName = jobExecutionData.jobName
-        return issueCrumb(jenkinsUrl).then { crumbWithId: CrumbWithId? ->
-            triggerJob(crumbWithId, jobExecutionData)
+        val jenkinsUrl = jobExecutionData.getJenkinsBaseUrl()
+        val usernameToken = usernameTokenRegistry.forHostOrThrow(jenkinsUrl)
+
+        return issueCrumb(jenkinsUrl, usernameToken).then { crumbWithId: CrumbWithId? ->
+            triggerJob(usernameToken, crumbWithId, jobExecutionData)
                 .then { response ->
-                    checkStatusAndExtractQueuedItemUrl(response, jobName)
+                    checkStatusAndExtractQueuedItemUrl(response, jobExecutionData, usernameToken, crumbWithId)
                 }.catch {
                     throw Error("Could not trigger the job $jobName", it)
-                }.then { queuedItemUrl: String ->
-                    if (verbose) {
-                        showInfo(
-                            "Queued $jobName successfully, wait for execution...\nQueued item URL: ${queuedItemUrl}api/xml",
-                            2000
-                        )
-                    }
-                    jobQueuedHook("${queuedItemUrl}api/xml/")
-                        .then {
-                            extractBuildNumber(crumbWithId, queuedItemUrl)
-                        }.then { it }
+                }.then { nullableQueuedItemUrl: String? ->
+                    showInfoQueuedItemIfVerbose(verbose, nullableQueuedItemUrl, jobName)
+                    val queuedItemUrl = if (nullableQueuedItemUrl != null) "${nullableQueuedItemUrl}api/xml/" else jobExecutionData.jobBaseUrl
+                    jobQueuedHook(queuedItemUrl).then {
+                        extractBuildNumber(nullableQueuedItemUrl, usernameToken, crumbWithId, jobExecutionData)
+                    }.then { it }
                 }.then { buildNumber: Int ->
                     if (verbose) {
                         showInfo(
@@ -45,7 +43,12 @@ class JenkinsJobExecutor(
                     }
                     jobStartedHook(buildNumber).then {
                         pollJobForCompletion(
-                            crumbWithId, jobExecutionData.jobBaseUrl, buildNumber, pollEverySecond, maxWaitingTimeForCompletenessInSeconds
+                            usernameToken,
+                            crumbWithId,
+                            jobExecutionData.jobBaseUrl,
+                            buildNumber,
+                            pollEverySecond,
+                            maxWaitingTimeForCompletenessInSeconds
                         )
                     }.then { result -> buildNumber to result }
                 }.then { (buildNumber, result) ->
@@ -58,19 +61,46 @@ class JenkinsJobExecutor(
         }.unsafeCast<Promise<Pair<CrumbWithId, Int>>>()
     }
 
-    private fun checkStatusAndExtractQueuedItemUrl(response: Response, jobName: String): Promise<String> {
+    private fun checkStatusAndExtractQueuedItemUrl(
+        response: Response,
+        jobExecutionData: JobExecutionData,
+        usernameToken: UsernameToken,
+        crumbWithId: CrumbWithId?
+    ): Promise<Promise<String?>> {
         return checkStatusOk(response).then {
-            val queuedItemUrl = response.headers.get("Location") ?: throw IllegalStateException(
-                "Job $jobName queued but Location header not found in response of Jenkins." +
-                    "\nHave you exposed Location with Access-Control-Expose-Headers?"
+            jobExecutionData.queuedItemUrlExtractor.extract(
+                usernameToken, crumbWithId, response, jobExecutionData
             )
-            if (queuedItemUrl.endsWith("/")) queuedItemUrl else "$queuedItemUrl/"
         }
     }
 
-    private fun issueCrumb(jenkinsUrl: String): Promise<CrumbWithId?> {
+    private fun extractBuildNumber(
+        nullableQueuedItemUrl: String?,
+        usernameToken: UsernameToken,
+        crumbWithId: CrumbWithId?,
+        jobExecutionData: JobExecutionData
+    ): Promise<Int> {
+        return if (nullableQueuedItemUrl != null) {
+            QueuedItemBasedBuildNumberExtractor(
+                usernameToken,
+                crumbWithId,
+                nullableQueuedItemUrl
+            ).extract()
+        } else {
+            BuildHistoryBasedBuildNumberExtractor(
+                usernameToken,
+                crumbWithId,
+                jobExecutionData
+            ).extract()
+        }
+    }
+
+    private fun issueCrumb(
+        jenkinsUrl: String,
+        usernameToken: UsernameToken
+    ): Promise<CrumbWithId?> {
         val url = "$jenkinsUrl/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)"
-        val headers = createHeaderWithAuthAndCrumb(null, usernameToken)
+        val headers = createHeaderWithAuthAndCrumb(usernameToken, null)
         val init =
             createRequestInit(
                 null,
@@ -91,8 +121,8 @@ class JenkinsJobExecutor(
             }
     }
 
-    private fun triggerJob(crumbWithId: CrumbWithId?, jobExecutionData: JobExecutionData): Promise<Response> {
-        val headers = createHeaderWithAuthAndCrumb(crumbWithId, usernameToken)
+    private fun triggerJob(usernameToken: UsernameToken, crumbWithId: CrumbWithId?, jobExecutionData: JobExecutionData): Promise<Response> {
+        val headers = createHeaderWithAuthAndCrumb(usernameToken, crumbWithId)
         headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8"
         val init = createRequestInit(
             jobExecutionData.body,
@@ -102,48 +132,38 @@ class JenkinsJobExecutor(
         return window.fetch(jobExecutionData.jobTriggerUrl, init)
     }
 
-    private fun extractBuildNumber(crumbWithId: CrumbWithId?, queuedItemUrl: String): Promise<Int> {
-        val xpathUrl = "${queuedItemUrl}api/xml?xpath=//executable/number"
-        // wait a bit, if we are too fast we run almost certainly into a 404
-        return sleep(400) {
-            pollAndExtract(
-                crumbWithId,
-                xpathUrl,
-                numberRegex
-            ) { e ->
-                throw IllegalStateException(
-                    "Could not find the build number in the returned body." +
-                        "\nJob URL: $queuedItemUrl" +
-                        "\nRegex used: ${numberRegex.pattern}" +
-                        "\nContent: ${e.body}"
+    private fun showInfoQueuedItemIfVerbose(
+        verbose: Boolean,
+        nullableQueuedItemUrl: String?,
+        jobName: String
+    ) {
+        if (verbose) {
+            if (nullableQueuedItemUrl != null) {
+                showInfo(
+                    "Queued $jobName successfully, wait for execution...\nQueued item URL: ${nullableQueuedItemUrl}api/xml",
+                    2000
+                )
+            } else {
+                showInfo(
+                    "$jobName is probably already running (queued item could not be found), trying to fetch execution number from Job history.",
+                    2000
                 )
             }
-        }.then { it.toInt() }
+        }
     }
 
     override fun pollAndExtract(
+        usernameToken: UsernameToken,
         crumbWithId: CrumbWithId?,
         url: String,
         regex: Regex,
         errorHandler: (PollException) -> Nothing
     ): Promise<String> {
-        return poll(crumbWithId, url, 0, 2, 20, { body ->
-            val matchResult = regex.find(body)
-            if (matchResult != null) {
-                true to matchResult.groupValues[1]
-            } else {
-                false to null
-            }
-        }).catch { t ->
-            if (t is PollException) {
-                errorHandler(t)
-            } else {
-                throw t
-            }
-        }
+        return Poller.pollAndExtract(usernameToken, crumbWithId, url, regex, errorHandler)
     }
 
     private fun pollJobForCompletion(
+        usernameToken: UsernameToken,
         crumbWithId: CrumbWithId?,
         jobUrl: String,
         buildNumber: Int,
@@ -151,8 +171,12 @@ class JenkinsJobExecutor(
         maxWaitingTimeInSeconds: Int
     ): Promise<String> {
         return sleep(pollEverySecond * 500) {
-            poll(
-                crumbWithId, "$jobUrl$buildNumber/api/xml?xpath=/*/result", 0, pollEverySecond, maxWaitingTimeInSeconds
+            val pollData = Poller.PollData(
+                usernameToken,
+                crumbWithId,
+                "$jobUrl$buildNumber/api/xml?xpath=/*/result",
+                pollEverySecond,
+                maxWaitingTimeInSeconds
             ) { body ->
                 val matchResult =
                     resultRegex.matchEntire(body)
@@ -162,68 +186,12 @@ class JenkinsJobExecutor(
                     false to ""
                 }
             }
+            Poller.poll(pollData)
         }.unsafeCast<Promise<String>>()
     }
 
-    private fun <T : Any> poll(
-        crumbWithId: CrumbWithId?,
-        pollUrl: String,
-        numberOfTries: Int,
-        pollEverySecond: Int,
-        maxWaitingTimeInSeconds: Int,
-        action: (String) -> Pair<Boolean, T?>
-    ): Promise<T> {
-        val headers = createHeaderWithAuthAndCrumb(crumbWithId, usernameToken)
-        val init =
-            createRequestInit(
-                null,
-                ch.loewenfels.depgraph.gui.jobexecution.RequestVerb.GET,
-                headers
-            )
-
-        val rePoll: (String) -> T = { body ->
-            if (numberOfTries * pollEverySecond >= maxWaitingTimeInSeconds) {
-                throw PollException(
-                    "Waited at least $maxWaitingTimeInSeconds seconds for $pollUrl to complete",
-                    body
-                )
-            }
-            val p = sleep(pollEverySecond * 1000) {
-                poll(crumbWithId, pollUrl, numberOfTries + 1, pollEverySecond, maxWaitingTimeInSeconds, action)
-            }
-            // unsafeCast is used because javascript resolves the result automatically on return
-            // will not result in Promise<Promise<T>> but T
-            p.unsafeCast<T>()
-        }
-
-        return window.fetch(pollUrl, init)
-            .then(::checkStatusOk)
-            .then { body: String ->
-                val (success, result) = action(body)
-                if (success) {
-                    if (result == null) {
-                        throw Error(
-                            "Result was null even though success flag during polling was true, please report a bug."
-                        )
-                    }
-                    result
-                } else {
-                    rePoll(body)
-                }
-            }.catch { t ->
-                if (t is Exception) {
-                    rePoll("")
-                } else {
-                    throw t
-                }
-            }
-    }
-
-    class PollException(message: String, val body: String) : RuntimeException(message)
-
     //TODO move to api, is duplicated in RemoteJenkinsM2Releaser
     companion object {
-        private val numberRegex = Regex("<number>([0-9]+)</number>")
         private val resultRegex = Regex("<result>([A-Z]+)</result>")
         private const val SUCCESS = "SUCCESS"
     }

@@ -1,14 +1,13 @@
 package ch.loewenfels.depgraph.gui.actions
 
 import ch.loewenfels.depgraph.gui.*
-import ch.loewenfels.depgraph.gui.jobexecution.CrumbWithId
-import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionData
-import ch.loewenfels.depgraph.gui.jobexecution.JobExecutor
+import ch.loewenfels.depgraph.gui.jobexecution.*
 import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
 import kotlin.browser.window
 import kotlin.js.Promise
 
 class Publisher(
+    private val usernameToken: UsernameToken,
     private val publishJobUrl: String,
     private var modifiableJson: ModifiableJson
 ) {
@@ -16,10 +15,15 @@ class Publisher(
     fun publish(fileName: String, verbose: Boolean, jobExecutor: JobExecutor): Promise<*> {
         changeCursorToProgress()
         val doNothingPromise: (Any) -> Promise<*> = { Promise.resolve(1) }
+        val parameters = mapOf(
+            "fileName" to fileName,
+            "json" to modifiableJson.json
+        )
         val jobExecutionData = JobExecutionData.buildWithParameters(
             "publish $fileName.json",
             publishJobUrl,
-            "fileName=$fileName&json=${modifiableJson.json}"
+            toQueryParameters(parameters),
+            parameters
         )
         return jobExecutor.trigger(
             jobExecutionData,
@@ -46,9 +50,7 @@ class Publisher(
         buildNumber: Int
     ): Promise<String> {
         val xpathUrl = "$jobUrl$buildNumber/api/xml?xpath=//artifact/fileName"
-        return jobExecutor.pollAndExtract(crumbWithId, xpathUrl,
-            resultRegex
-        ) { e ->
+        return jobExecutor.pollAndExtract(usernameToken, crumbWithId, xpathUrl, resultRegex) { e ->
             throw IllegalStateException(
                 "Could not find the published release.json as artifact." +
                     "\nJob URL: $jobUrl" +

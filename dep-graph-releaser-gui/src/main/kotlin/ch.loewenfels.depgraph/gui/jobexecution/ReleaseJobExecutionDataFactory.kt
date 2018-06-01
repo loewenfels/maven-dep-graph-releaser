@@ -7,62 +7,34 @@ import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
+import ch.loewenfels.depgraph.gui.parseRegexParameters
+import ch.loewenfels.depgraph.gui.parseRemoteRegex
+import ch.tutteli.kbox.appendToStringBuilder
 
 class ReleaseJobExecutionDataFactory(
     jenkinsUrl: String,
     releasePlan: ReleasePlan
 ) : BaseJobExecutionDataFactory(jenkinsUrl, releasePlan) {
 
+    private val remoteRegex : List<Pair<Regex, String>>
     private val regexParametersList: List<Pair<Regex, String>>
     private val jobMapping: Map<String, String>
 
     init {
         checkConfig(releasePlan.config)
-        regexParametersList = parseRegexParameters()
+        remoteRegex = parseRemoteRegex(releasePlan)
+        regexParametersList = parseRegexParameters(releasePlan)
         jobMapping = parseJobMapping()
     }
 
     private fun checkConfig(config: Map<ConfigKey, String>) {
         requireConfigEntry(config, ConfigKey.UPDATE_DEPENDENCY_JOB)
         requireConfigEntry(config, ConfigKey.REMOTE_REGEX)
-        requireConfigEntry(config, ConfigKey.REMOTE_JOB)
         requireConfigEntry(config, ConfigKey.COMMIT_PREFIX)
     }
 
-    private fun parseRegexParameters(): List<Pair<Regex, String>> {
-        val regexParameters = getConfig(ConfigKey.REGEX_PARAMS)
-        return if (regexParameters.isNotEmpty()) {
-            regexParameters.splitToSequence("$")
-                .map { pair ->
-                    val index = checkRegexNotEmpty(pair, regexParameters)
-                    val parameters = pair.substring(index + 1)
-                    checkAtLeastOneParameter(parameters, regexParameters)
-                    Regex(pair.substring(0, index)) to parameters
-                }
-                .toList()
-        } else {
-            emptyList()
-        }
-    }
-
-    private fun checkRegexNotEmpty(pair: String, regexParameters: String): Int {
-        val index = pair.indexOf('#')
-        check(index > 0) {
-            "regex requires at least one character.\nregexParameters: $regexParameters"
-        }
-        return index
-    }
-
-    private fun checkAtLeastOneParameter(pair: String, regexParameters: String): Int {
-        val index = pair.indexOf('=')
-        check(index > 0) {
-            "A regexParam requires at least one parameter.\nregexParameters: $regexParameters"
-        }
-        return index
-    }
-
     private fun parseJobMapping(): Map<String, String> {
-        val mapping = releasePlan.getConfig(ConfigKey.JOB_MAPPING)
+        val mapping = getConfig(ConfigKey.JOB_MAPPING)
         return mapping.split("|").associate { pair ->
             val index = pair.indexOf('=')
             check(index > 0) {
@@ -97,49 +69,47 @@ class ReleaseJobExecutionDataFactory(
         val jobUrl = getJobUrl(ConfigKey.UPDATE_DEPENDENCY_JOB)
         val jobName = "update dependency of ${project.id.identifier}"
         val params = createUpdateDependencyParams(project, command)
-        return JobExecutionData.buildWithParameters(jobName, jobUrl, params)
+        return JobExecutionData.buildWithParameters(jobName, jobUrl, toQueryParameters(params), params)
     }
 
-    private fun createUpdateDependencyParams(project: Project, command: JenkinsUpdateDependency): String {
+    private fun createUpdateDependencyParams(project: Project, command: JenkinsUpdateDependency): Map<String,String> {
         val dependency = releasePlan.getProject(command.projectId)
         val dependencyMavenProjectId = dependency.id as MavenProjectId
-        return "pathToProject=${project.relativePath}" +
-            "&groupId=${dependencyMavenProjectId.groupId}" +
-            "&artifactId=${dependencyMavenProjectId.artifactId}" +
-            "&newVersion=${dependency.releaseVersion}" +
-            "&commitPrefix=${getConfig(ConfigKey.COMMIT_PREFIX)}" +
-            "&releaseId=${releasePlan.releaseId}"
-    }
-
-    private fun triggerRelease(project: Project, command: M2ReleaseCommand): JobExecutionData {
-        val (jobUrl, params) = determineJobUrlAndParams(project, command)
-        //TODO that is actually wrong, if it is a local build, then we should use m2 trigger and not buildWithParameters
-        return JobExecutionData.buildWithParameters(
-            "release ${project.id.identifier}",
-            jobUrl,
-            params
+        return mapOf(
+            "pathToProject" to project.relativePath,
+            "&groupId" to dependencyMavenProjectId.groupId,
+            "&artifactId" to dependencyMavenProjectId.artifactId,
+            "&newVersion" to dependency.releaseVersion,
+            "&commitPrefix" to getConfig(ConfigKey.COMMIT_PREFIX),
+            "&releaseId" to releasePlan.releaseId
         )
     }
 
-    private fun determineJobUrlAndParams(project: Project, command: M2ReleaseCommand): Pair<String, String> {
+    private fun triggerRelease(project: Project, command: M2ReleaseCommand): JobExecutionData {
         val mavenProjectId = project.id as MavenProjectId
-        val regex = Regex(getConfig(ConfigKey.REMOTE_REGEX))
-        val relevantParams = regexParametersList.asSequence()
-            .filter { (regex, _) -> regex.matches(mavenProjectId.identifier) }
-            .map { it.second }
-
-        val params = "releaseVersion=${project.releaseVersion}" +
-            "&nextDevVersion=${command.nextDevVersion}"
-
         val jobName = getJobName(project)
-        return if (regex.matches(project.id.identifier)) {
-            getJobUrl(ConfigKey.REMOTE_JOB) to
-                "$params&jobName=$jobName&parameters=${relevantParams.joinToString(";")}"
-        } else {
-            getJobUrl(jobName) to
-                "$params&${relevantParams.joinToString("&")}}"
+        val jenkinsBaseUrl = getMatchingEntries(remoteRegex, mavenProjectId).firstOrNull() ?: jenkinsUrl
+        val jobUrl = getJobUrl(jenkinsBaseUrl, jobName)
+        val relevantParams = getMatchingEntries(regexParametersList, mavenProjectId)
+        val parameters = StringBuilder()
+        relevantParams.asIterable().appendToStringBuilder(parameters, ",") {
+            val (name, value) = it.split('=')
+            parameters.append("{\"name\":\"$name\",\"value\":\"$value\"}")
         }
+        val params = "releaseVersion=${project.releaseVersion}" +
+            "&developmentVersion=${command.nextDevVersion}" +
+            "&json={parameter=[$parameters]}"
+        return JobExecutionData.m2ReleaseSubmit(
+            "release ${project.id.identifier}",
+            jobUrl,
+            params,
+            project.releaseVersion,
+            command.nextDevVersion
+        )
     }
 
-
+    private fun getMatchingEntries(
+        regex: List<Pair<Regex, String>>,
+        mavenProjectId: MavenProjectId
+    ) = regex.asSequence().filter { (regex, _) -> regex.matches(mavenProjectId.identifier) }.map { it.second }
 }

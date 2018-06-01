@@ -14,9 +14,10 @@ interface JobExecutor {
     ): Promise<Pair<CrumbWithId, Int>>
 
     fun pollAndExtract(
+        usernameToken: UsernameToken,
         crumbWithId: CrumbWithId?,
         url: String,
         regex: Regex,
-        errorHandler: (JenkinsJobExecutor.PollException) -> Nothing
+        errorHandler: (PollException) -> Nothing
     ): Promise<String>
 }

@@ -75,9 +75,7 @@ task json {
     def updateDependencyJobArg = 'updateDependencyJob'
     def defaultUpdateJob = "dgr-updater"
     def remoteRegexArg = 'remoteRegex'
-    def defaultRemoteRegex = "\".*\""
-    def remoteJobArg = 'remoteJob'
-    def defaultRemoteJob = "dgr-remote-releaser"
+    def defaultRemoteRegex = "\".*#https://buildsystem.loewenfels.ch/jenkins\""
     def dryRunJobArg = 'dryRunJob'
     def defaultDryRunJob = "dgr-dry-run"
     def paramsArg = 'regexParams'
@@ -88,7 +86,6 @@ task json {
     inputs.property(artifactIdArg, findProperty(artifactIdArg))
     inputs.property(updateDependencyJobArg, findProperty(updateDependencyJobArg) ?: defaultUpdateJob)
     inputs.property(remoteRegexArg, findProperty(remoteRegexArg) ?: defaultRemoteRegex)
-    inputs.property(remoteJobArg, findProperty(remoteJobArg) ?: defaultRemoteJob)
     inputs.property(dryRunJobArg, findProperty(dryRunJobArg) ?: defaultDryRunJob)
     inputs.property(paramsArg, findProperty(paramsArg) ?: defaultParamsArg)
     inputs.property(disableRegexArg, findProperty(disableRegexArg) ?: '^$')
@@ -100,7 +97,6 @@ task json {
         def artifactId = getDefinedParam(artifactIdArg, "artifactId")
         def updateDependencyJob = findProperty(updateDependencyJobArg) ?: defaultUpdateJob
         def remoteRegex = findProperty(remoteRegexArg) ?: defaultRemoteRegex
-        def remoteJob = findProperty(remoteJobArg) ?: defaultRemoteJob
         def dryRunJob = findProperty(dryRunJobArg) ?: defaultDryRunJob
         def params = ["-$paramsArg=${findProperty(paramsArg) ?: defaultParamsArg}"]
         def disableRegex = findProperty(disableRegexArg) != null ? ["-$disableRegexArg=${findProperty(disableRegexArg)}"] : []
@@ -118,7 +114,7 @@ task json {
             workingDir = rootProject.projectDir
             classpath = fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.Main'
-            args = ['json', groupId, artifactId, "${rootProject.projectDir}/repos", jsonFile.absolutePath, updateDependencyJob, remoteRegex, remoteJob, dryRunJob] +
+            args = ['json', groupId, artifactId, "${rootProject.projectDir}/repos", jsonFile.absolutePath, updateDependencyJob, remoteRegex, dryRunJob] +
                 params + disableRegex + jobMapping
         }
     }

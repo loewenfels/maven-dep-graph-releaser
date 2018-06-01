@@ -60,7 +60,7 @@ object SerializerSpec : Spek({
             ),
             listOf("warning 1"),
             listOf("info 1", "info2"),
-            mapOf(ConfigKey.REMOTE_JOB to "value 1", ConfigKey.REGEX_PARAMS to "value 2")
+            mapOf(ConfigKey.COMMIT_PREFIX to "DEV-123", ConfigKey.REGEX_PARAMS to "value 2")
         )
 
         val commands = Project::commands.name

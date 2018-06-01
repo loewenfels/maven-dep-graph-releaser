@@ -58,7 +58,6 @@ class Gui(releasePlan: ReleasePlan, private val menu: Menu) {
                     ConfigKey.COMMIT_PREFIX,
                     ConfigKey.UPDATE_DEPENDENCY_JOB,
                     ConfigKey.REMOTE_REGEX,
-                    ConfigKey.REMOTE_JOB,
                     ConfigKey.DRY_RUN_JOB,
                     ConfigKey.REGEX_PARAMS
                 ).forEach { key ->
