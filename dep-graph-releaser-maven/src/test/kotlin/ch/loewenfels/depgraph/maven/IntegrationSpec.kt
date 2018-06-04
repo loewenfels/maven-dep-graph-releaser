@@ -260,13 +260,13 @@ object IntegrationSpec : Spek({
                     JenkinsReleasePlanCreator.Options(
                         "releaseId",
                         Regex(".*notTheProject"),
-                        mapOf(ConfigKey.REMOTE_JOB to "b", ConfigKey.REMOTE_REGEX to "d")
+                        mapOf(ConfigKey.REMOTE_REGEX to "b", ConfigKey.COMMIT_PREFIX to "d")
                     )
                 )
                 assertSingleProject(releasePlan, singleProjectIdAndVersions)
                 assert(releasePlan.config.entries).containsStrictly(
-                    { keyValue(ConfigKey.REMOTE_JOB, "b") },
-                    { this.keyValue(ConfigKey.REMOTE_REGEX, "d") })
+                    { keyValue(ConfigKey.REMOTE_REGEX, "b") },
+                    { this.keyValue(ConfigKey.COMMIT_PREFIX, "d") })
             }
         }
     }

@@ -14,7 +14,7 @@ import kotlin.js.Promise
 
 class App {
     private val publishJobUrl: String?
-    private val jenkinsUrl: String?
+    private val defaultJenkinsBaseUrl: String?
     private val menu: Menu
 
     init {
@@ -22,7 +22,7 @@ class App {
 
         val jsonUrl = determineJsonUrl()
         publishJobUrl = determinePublishJob()
-        jenkinsUrl = publishJobUrl?.substringBefore("/job/")
+        defaultJenkinsBaseUrl = publishJobUrl?.substringBefore("/job/")
         menu = Menu()
         start(jsonUrl)
     }
@@ -66,72 +66,95 @@ class App {
     private fun start(jsonUrl: String) {
         retrieveUserAndApiToken().then { usernameToken ->
             display("gui", "block")
+            switchLoader("loaderApiToken", "loaderJson")
 
             loadJson(jsonUrl, usernameToken)
                 .then(::checkStatusOk)
                 .catch {
                     throw Error("Could not load json.", it)
                 }.then { body: String ->
-                    switchLoader("loaderApiToken", "loaderJson")
+                    switchLoader("loaderJson", "loaderPipeline")
                     val modifiableJson = ModifiableJson(body)
                     val releasePlan = deserialize(body)
-                    val dependencies = createDependencies(
-                        jenkinsUrl, publishJobUrl, usernameToken, modifiableJson, releasePlan, menu
-                    )
-                    menu.initDependencies(releasePlan,
-                        Downloader(modifiableJson), dependencies, modifiableJson)
-                    Gui(releasePlan, menu)
-                    switchLoaderJsonWithPipeline()
+                    loadOtherApiTokens(releasePlan).then {
+                        val dependencies = createDependencies(
+                            defaultJenkinsBaseUrl, publishJobUrl, usernameToken, modifiableJson, releasePlan, menu
+                        )
+                        menu.initDependencies(releasePlan, Downloader(modifiableJson), dependencies, modifiableJson)
+                        Gui(releasePlan, menu)
+                        switchLoaderPipelineWithPipeline()
+                    }
                 }.catch {
                     showThrowableAndThrow(it)
                 }
         }
     }
 
+    private fun loadOtherApiTokens(releasePlan: ReleasePlan): Promise<*> {
 
-    private fun retrieveUserAndApiToken(): Promise<UsernameToken?> {
-        return if (jenkinsUrl == null) {
-            menu.disableButtonsDueToNoPublishUrl()
-            Promise.resolve(null as UsernameToken?)
-        } else {
-            window.fetch("$jenkinsUrl/me/configure",
-                createFetchInitWithCredentials()
-            )
-                .then(::checkStatusOkOr403)
-                .then { body: String? ->
-                    if (body == null) {
-                        val info = "You need to log in if you want to use other functionality than Download."
-                        menu.disableButtonsDueToNoAuth(info, "$info\n$jenkinsUrl/login?from=" + window.location)
-                        null
-                    } else {
-                        val (username, name, apiToken) = extractNameAndApiToken(body)
-                        menu.setVerifiedUser(username, name)
-                        UsernameToken(username, apiToken)
+        val remoteRegex = parseRemoteRegex(releasePlan)
+        val mutableList = ArrayList<Promise<*>>(remoteRegex.size)
+
+        remoteRegex.forEach { (_, remoteJenkinsBaseUrl) ->
+            val promise = if (isUrlAndNotYetRegistered(remoteJenkinsBaseUrl)) {
+                UsernameTokenRegistry.register(remoteJenkinsBaseUrl).then { pair ->
+                    updateUserToolTip(remoteJenkinsBaseUrl, pair)
+                    if (pair == null) {
+                        menu.setHalfVerified()
+                        showWarning("You are not logged in at $remoteJenkinsBaseUrl.\n" +
+                            "You can perform a Dry Run (runs on $defaultJenkinsBaseUrl) but a release involving the remote jenkins will most likely fail.\n\n" +
+                            "Go to the log in: $remoteJenkinsBaseUrl/login?from=" + window.location
+                        )
                     }
                 }
+            } else {
+                Promise.resolve(Unit)
+            }
+            mutableList.add(promise)
+        }
+        return Promise.all(mutableList.toTypedArray())
+    }
+
+    private fun isUrlAndNotYetRegistered(remoteJenkinsBaseUrl: String)
+        = remoteJenkinsBaseUrl.startsWith("http") && UsernameTokenRegistry.forHost(remoteJenkinsBaseUrl) == null
+
+    private fun retrieveUserAndApiToken(): Promise<UsernameAndApiToken?> {
+        return if (defaultJenkinsBaseUrl == null) {
+            menu.disableButtonsDueToNoPublishUrl()
+            Promise.resolve(null as UsernameAndApiToken?)
+        } else {
+            UsernameTokenRegistry.register(defaultJenkinsBaseUrl).then { pair ->
+                if (pair == null) {
+                    val info = "You need to log in if you want to use other functionality than Download."
+                    menu.disableButtonsDueToNoAuth(info, "$info\n$defaultJenkinsBaseUrl/login?from=" + window.location)
+                    null
+                } else {
+                    val (name, usernameToken) = pair
+                    menu.setVerifiedUser(name)
+                    updateUserToolTip(defaultJenkinsBaseUrl, pair)
+                    usernameToken
+                }
+            }
         }
     }
 
-    private fun extractNameAndApiToken(body: String): Triple<String, String, String> {
-        val usernameMatch = usernameRegex.find(body) ?: throw IllegalStateException("Could not find username")
-        val fullNameMatch = fullNameRegex.find(body) ?: throw IllegalStateException("Could not find user's name")
-        val apiTokenMatch = apiTokenRegex.find(body) ?: throw IllegalStateException("Could not find API token")
-        return Triple(usernameMatch.groupValues[1], fullNameMatch.groupValues[1], apiTokenMatch.groupValues[1])
+    private fun updateUserToolTip(url: String, pair: Pair<String, UsernameAndApiToken>?) {
+        menu.appendToUserButtonToolTip(url, pair?.second?.username ?: "Anonymous", pair?.first)
     }
 
-    private fun loadJson(jsonUrl: String, usernameToken: UsernameToken?): Promise<Response> {
+    private fun loadJson(jsonUrl: String, usernameAndApiToken: UsernameAndApiToken?): Promise<Response> {
         val init = createFetchInitWithCredentials()
         val headers = js("({})")
         // not necessary if we deal with jenkins but e.g. localhost
-        if (usernameToken != null) {
-            addAuthentication(headers, usernameToken)
+        if (usernameAndApiToken != null) {
+            addAuthentication(headers, usernameAndApiToken)
         }
         init.headers = headers
         return window.fetch(jsonUrl, init)
     }
 
-    private fun switchLoaderJsonWithPipeline() {
-        display("loaderJson", "none")
+    private fun switchLoaderPipelineWithPipeline() {
+        display("loaderPipeline", "none")
         display("pipeline", "table")
     }
 
@@ -142,29 +165,23 @@ class App {
 
     companion object {
         const val PUBLISH_JOB = "&publishJob="
-        private val fullNameRegex = Regex("<input[^>]+name=\"_\\.fullName\"[^>]+value=\"([^\"]+)\"")
-        private val apiTokenRegex = Regex("<input[^>]+name=\"_\\.apiToken\"[^>]+value=\"([^\"]+)\"")
-        private val usernameRegex = Regex("<a[^>]+href=\"[^\"]*/user/([^\"]+)\"")
-
 
         internal fun createDependencies(
-            jenkinsUrl: String?,
+            defaultJenkinsBaseUrl: String?,
             publishJobUrl: String?,
-            usernameToken: UsernameToken?,
+            usernameAndApiToken: UsernameAndApiToken?,
             modifiableJson: ModifiableJson,
             releasePlan: ReleasePlan,
             menu: Menu
         ): Menu.Dependencies? {
-            return if (publishJobUrl != null && jenkinsUrl != null && usernameToken != null) {
-                val publisher = Publisher(publishJobUrl, modifiableJson)
-                val releaser = Releaser(jenkinsUrl, modifiableJson, menu)
-                val jenkinsJobExecutor =
-                    JenkinsJobExecutor(jenkinsUrl, usernameToken)
+            return if (publishJobUrl != null && defaultJenkinsBaseUrl != null && usernameAndApiToken != null) {
+                val publisher = Publisher(usernameAndApiToken, publishJobUrl, modifiableJson)
+                val releaser = Releaser(defaultJenkinsBaseUrl, modifiableJson, menu)
+
+                val jenkinsJobExecutor = JenkinsJobExecutor(UsernameTokenRegistry)
                 val simulatingJobExecutor = SimulatingJobExecutor()
-                val releaseJobExecutionDataFactory =
-                    ReleaseJobExecutionDataFactory(jenkinsUrl, releasePlan)
-                val dryRunJobExecutionDataFactory =
-                    DryRunJobExecutionDataFactory(jenkinsUrl, releasePlan)
+                val releaseJobExecutionDataFactory = ReleaseJobExecutionDataFactory(defaultJenkinsBaseUrl, releasePlan)
+                val dryRunJobExecutionDataFactory = DryRunJobExecutionDataFactory(defaultJenkinsBaseUrl, releasePlan)
                 Menu.Dependencies(
                     publisher,
                     releaser,

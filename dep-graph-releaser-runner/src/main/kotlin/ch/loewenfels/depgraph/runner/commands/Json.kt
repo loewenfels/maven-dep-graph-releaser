@@ -20,7 +20,8 @@ object Json : ConsoleCommand {
     override val name = "json"
     override val description = "analyse projects, create a release plan and serialize it to json"
     override val example = "./dgr $name com.example example-project ./repo ./release.json " +
-        "dgr-updater \"^.*\" dgr-remote-releaser dgr-dry-run " +
+        "dgr-updater \"ch\\..*#https://example.com/jenkins;com\\..*#https://jenkins.example.com\" " +
+        "dgr-dry-run " +
         "$REGEX_PARAMS_ARG\".*#branch.name=master\" $DISABLE_RELEASE_FOR\"ch\\.loewenfels:dist.*\" " +
         "$JOB_MAPPING_ARG=com.example:a=exampleA|ch.loewenfels:dgr-1=apnoea-test-1"
 
@@ -32,8 +33,11 @@ object Json : ConsoleCommand {
         |dir                       // path to the directory where all projects are
         |json                      // path + file name for the resulting json file
         |${ConfigKey.UPDATE_DEPENDENCY_JOB.asString()}       // the name of the update dependency job
-        |${ConfigKey.REMOTE_REGEX.asString()}               // regex which specifies which projects are released remotely
-        |${ConfigKey.REMOTE_JOB.asString()}                 // the job which triggers the remote build
+        |${ConfigKey.REMOTE_REGEX.asString()}               // regex which determines which project runs on a different jenkins server
+        |                          // than the publish job. It takes the following form where regex has to
+        |                          // match the project identifier (groupId:artifactId):
+        |                          // regex#jenkinsBaseUrl;regex2#anotherJenkinsBaseUrl
+        |                          // Notice that the first match is considered and the rest ignored.
         |${ConfigKey.DRY_RUN_JOB.asString()}                 // the job which executes a dry run
         |(${REGEX_PARAMS_ARG}spec)       // optionally: parameters of the form regex#a=b;c=d${'$'}.*#e=f where the regex
         |                          // defines for which job the parameters shall apply. Multiple regex can be
@@ -46,13 +50,13 @@ object Json : ConsoleCommand {
         """.trimMargin()
     }
 
-    override fun numOfArgsNotOk(number: Int) = number < 9 || number > 12
+    override fun numOfArgsNotOk(number: Int) = number < 8 || number > 11
 
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
         val (_, groupId, artifactId, unsafeDirectoryToAnalyse, jsonFile) = args
         val afterFirst5 = args.drop(5)
-        val (updateDependencyJob, remoteRegex, remoteJob, dryRunJob) = afterFirst5
-        val optionalArgs = afterFirst5.drop(4).toOptionalArgs(
+        val (updateDependencyJob, remoteRegex, dryRunJob) = afterFirst5
+        val optionalArgs = afterFirst5.drop(3).toOptionalArgs(
             errorHandler,
             REGEX_PARAMS_ARG, DISABLE_RELEASE_FOR, JOB_MAPPING_ARG
         )
@@ -89,7 +93,6 @@ object Json : ConsoleCommand {
         val config = mapOf(
             ConfigKey.COMMIT_PREFIX to "[DGR]",
             ConfigKey.UPDATE_DEPENDENCY_JOB to updateDependencyJob,
-            ConfigKey.REMOTE_JOB to remoteJob,
             ConfigKey.REMOTE_REGEX to remoteRegex,
             ConfigKey.DRY_RUN_JOB to dryRunJob,
             ConfigKey.REGEX_PARAMS to (regexParameters ?: ""),

@@ -8,11 +8,12 @@ import kotlin.js.Promise
 
 class SimulatingJobExecutor : JobExecutor {
     private var count = 0
+
     override fun pollAndExtract(
-        crumbWithId: CrumbWithId?,
+        authData: AuthData,
         url: String,
         regex: Regex,
-        errorHandler: (JenkinsJobExecutor.PollException) -> Nothing
+        errorHandler: (PollException) -> Nothing
     ): Promise<String> {
         return Promise.resolve("simulation-only.json")
     }
@@ -24,7 +25,7 @@ class SimulatingJobExecutor : JobExecutor {
         pollEverySecond: Int,
         maxWaitingTimeForCompletenessInSeconds: Int,
         verbose: Boolean
-    ): Promise<Pair<CrumbWithId, Int>> {
+    ): Promise<Pair<AuthData, Int>> {
         val jobName = jobExecutionData.jobName
         return sleep(100) {
             jobQueuedHook("${jobExecutionData.jobBaseUrl}queuingUrl")
@@ -42,7 +43,10 @@ class SimulatingJobExecutor : JobExecutor {
                     .then { true }
             }
         }.then {
-            CrumbWithId("Jenkins-Crumb", "onlySimulation") to 100
+            AuthData(
+                UsernameAndApiToken("simulating-user", "random-api-token"),
+                CrumbWithId("Jenkins-Crumb", "onlySimulation")
+            ) to 100
         }
     }
 
@@ -61,5 +65,4 @@ class SimulatingJobExecutor : JobExecutor {
             Promise.resolve(Unit)
         }
     }
-
 }

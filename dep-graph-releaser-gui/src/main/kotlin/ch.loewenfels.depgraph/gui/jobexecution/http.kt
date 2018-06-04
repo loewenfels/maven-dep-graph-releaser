@@ -28,21 +28,22 @@ private fun checkResponseIgnore(response: Response, ignoringError: Int?): Promis
 fun createFetchInitWithCredentials(): RequestInit {
     val init = js("({})")
     init.credentials = "include"
+    init.method = RequestVerb.GET
     return init
 }
 
 
-fun createHeaderWithAuthAndCrumb(crumbWithId: CrumbWithId?, usernameToken: UsernameToken): dynamic {
+fun createHeaderWithAuthAndCrumb(authData: AuthData): dynamic {
     val headers = js("({})")
-    addAuthentication(headers, usernameToken)
-    if (crumbWithId != null) {
-        headers[crumbWithId.id] = crumbWithId.crumb
+    addAuthentication(headers, authData.usernameAndApiToken)
+    if (authData.crumbWithId != null) {
+        headers[authData.crumbWithId.id] = authData.crumbWithId.crumb
     }
     return headers
 }
 
-fun addAuthentication(headers: dynamic, usernameToken: UsernameToken) {
-    val base64UsernameAndToken = window.btoa("${usernameToken.username}:${usernameToken.token}")
+fun addAuthentication(headers: dynamic, usernameAndApiToken: UsernameAndApiToken) {
+    val base64UsernameAndToken = window.btoa("${usernameAndApiToken.username}:${usernameAndApiToken.token}")
     headers["Authorization"] = "Basic $base64UsernameAndToken"
 }
 
@@ -53,6 +54,8 @@ external interface RequestVerb {
 
 inline val RequestVerb.Companion.GET get() = "GET".asDynamic().unsafeCast<RequestVerb>()
 inline val RequestVerb.Companion.POST get() = "POST".asDynamic().unsafeCast<RequestVerb>()
+
+fun createGetRequest(headers: dynamic): RequestInit = createRequestInit(null, RequestVerb.GET, headers)
 
 fun createRequestInit(
     body: String?,

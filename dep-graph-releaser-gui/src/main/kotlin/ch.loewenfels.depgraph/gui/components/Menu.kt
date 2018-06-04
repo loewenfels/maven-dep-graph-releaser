@@ -10,7 +10,7 @@ import ch.loewenfels.depgraph.gui.actions.Publisher
 import ch.loewenfels.depgraph.gui.actions.Releaser
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionDataFactory
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutor
-import ch.loewenfels.depgraph.gui.jobexecution.UsernameToken
+import ch.loewenfels.depgraph.gui.jobexecution.UsernameAndApiToken
 import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
 import ch.tutteli.kbox.mapWithIndex
 import org.w3c.dom.CustomEvent
@@ -68,13 +68,21 @@ class Menu {
         listOf(saveButton, dryRunButton, releaseButton).forEach { it.disable(titleButtons) }
     }
 
-    fun setVerifiedUser(username: String, name: String) {
+    fun setVerifiedUser(name: String) {
         userName.innerText = name
         userIcon.innerText = "verified_user"
-        userButton.title = "Logged in as $username"
         userButton.removeClass(DEACTIVATED)
     }
 
+    fun setHalfVerified() {
+        userIcon.innerText = "error"
+        userButton.addClass("warning")
+    }
+
+    fun appendToUserButtonToolTip(url: String, username: String, name: String?) {
+        val nameSuffix = if (name != null) " ($name)" else ""
+        userButton.title += "\nLogged in as $username$nameSuffix @ $url"
+    }
 
     internal fun initDependencies(
         releasePlan: ReleasePlan,
@@ -151,11 +159,11 @@ class Menu {
         }
 
         activateExploreButton()
-        val jenkinsUrl = "https://github.com/loewenfels/"
+        val fakeJenkinsBaseUrl = "https://github.com/loewenfels/"
         val nonNullDependencies = dependencies ?: App.createDependencies(
-            jenkinsUrl,
-            "${jenkinsUrl}dgr-publisher/",
-            UsernameToken("test", "test"),
+            fakeJenkinsBaseUrl,
+            "${fakeJenkinsBaseUrl}dgr-publisher/",
+            UsernameAndApiToken("test", "test"),
             modifiableJson,
             releasePlan,
             this

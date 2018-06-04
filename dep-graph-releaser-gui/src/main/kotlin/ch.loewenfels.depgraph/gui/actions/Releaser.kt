@@ -17,7 +17,7 @@ import kotlin.js.Promise
 
 
 class Releaser(
-    private val jenkinsUrl: String,
+    private val jenkinsBaseUrl: String,
     private val modifiableJson: ModifiableJson,
     private val menu: Menu
 ) {
@@ -34,7 +34,7 @@ class Releaser(
 
     private fun warnIfNotOnSameHost() {
         val prefix = window.location.protocol + "//" + window.location.hostname
-        val isOnSameHost = jenkinsUrl.startsWith(prefix)
+        val isOnSameHost = jenkinsBaseUrl.startsWith(prefix)
         if (!isOnSameHost) {
             showWarning(
                 "Remote publish server detected. We currently do not support to consume remote release.json." +
@@ -225,6 +225,7 @@ class Releaser(
     ): Promise<CommandState> {
         val project = paramObject.project
         changeCursorToProgress()
+
         return paramObject.jobExecutor.trigger(jobExecutionData,
             { queuedItemUrl ->
                 Pipeline.changeStateOfCommandAndAddBuildUrl(

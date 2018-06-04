@@ -12,8 +12,7 @@ object Main {
             Json,
             PrintReleasableProjects,
             Html,
-            UpdateDependency,
-            JenkinsRemoteM2Release
+            UpdateDependency
         )
         dispatch(args, errorHandler, commands)
     }

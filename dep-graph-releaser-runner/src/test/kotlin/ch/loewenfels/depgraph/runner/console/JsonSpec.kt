@@ -9,7 +9,7 @@ class JsonSpec : CommandSpec(
     Json,
     Companion::getNotEnoughArgs,
     Companion::getTooManyArgs,
-    9..12
+    8..11
 ) {
     companion object {
         fun getNotEnoughArgs(tempFolder: TempFolder): Array<out String> {
@@ -19,8 +19,7 @@ class JsonSpec : CommandSpec(
                 getTestDirectory("managingVersions/inDependency").absolutePath,
                 jsonFile.absolutePath,
                 "dgr-updater",
-                ".*",
-                "dgr-remote-releaser"
+                ".*"
                 //the DRY_RUN_JOB is required as well
                 //"dgr-dry-run",
             )
@@ -34,7 +33,6 @@ class JsonSpec : CommandSpec(
                 jsonFile.absolutePath,
                 "dgr-updater",
                 ".*",
-                "dgr-remote-releaser",
                 "dgr-dry-run",
                 "${Json.REGEX_PARAMS_ARG}.*=branch.name=master",
                 "${Json.DISABLE_RELEASE_FOR}ch.loewenfels.*",

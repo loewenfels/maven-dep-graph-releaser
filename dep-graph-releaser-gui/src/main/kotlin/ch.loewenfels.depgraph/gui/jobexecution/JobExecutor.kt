@@ -11,12 +11,12 @@ interface JobExecutor {
         pollEverySecond: Int,
         maxWaitingTimeForCompletenessInSeconds: Int,
         verbose: Boolean = true
-    ): Promise<Pair<CrumbWithId, Int>>
+    ): Promise<Pair<AuthData, Int>>
 
     fun pollAndExtract(
-        crumbWithId: CrumbWithId?,
+        authData: AuthData,
         url: String,
         regex: Regex,
-        errorHandler: (JenkinsJobExecutor.PollException) -> Nothing
+        errorHandler: (PollException) -> Nothing
     ): Promise<String>
 }

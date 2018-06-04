@@ -1,14 +1,13 @@
 package ch.loewenfels.depgraph.gui.actions
 
 import ch.loewenfels.depgraph.gui.*
-import ch.loewenfels.depgraph.gui.jobexecution.CrumbWithId
-import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionData
-import ch.loewenfels.depgraph.gui.jobexecution.JobExecutor
+import ch.loewenfels.depgraph.gui.jobexecution.*
 import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
 import kotlin.browser.window
 import kotlin.js.Promise
 
 class Publisher(
+    private val usernameAndApiToken: UsernameAndApiToken,
     private val publishJobUrl: String,
     private var modifiableJson: ModifiableJson
 ) {
@@ -16,10 +15,15 @@ class Publisher(
     fun publish(fileName: String, verbose: Boolean, jobExecutor: JobExecutor): Promise<*> {
         changeCursorToProgress()
         val doNothingPromise: (Any) -> Promise<*> = { Promise.resolve(1) }
+        val parameters = mapOf(
+            "fileName" to fileName,
+            "json" to modifiableJson.json
+        )
         val jobExecutionData = JobExecutionData.buildWithParameters(
             "publish $fileName.json",
             publishJobUrl,
-            "fileName=$fileName&json=${modifiableJson.json}"
+            toQueryParameters(parameters),
+            parameters
         )
         return jobExecutor.trigger(
             jobExecutionData,
@@ -28,8 +32,8 @@ class Publisher(
             pollEverySecond = 2,
             maxWaitingTimeForCompletenessInSeconds = 60,
             verbose = verbose
-        ).then { (crumbWithId, buildNumber) ->
-            extractResultJsonUrl(jobExecutor, crumbWithId, publishJobUrl, buildNumber).then {
+        ).then { (authData, buildNumber) ->
+            extractResultJsonUrl(jobExecutor, authData, publishJobUrl, buildNumber).then {
                 buildNumber to it
             }
         }.then { (buildNumber, releaseJsonUrl) ->
@@ -41,14 +45,12 @@ class Publisher(
 
     private fun extractResultJsonUrl(
         jobExecutor: JobExecutor,
-        crumbWithId: CrumbWithId?,
+        authData: AuthData,
         jobUrl: String,
         buildNumber: Int
     ): Promise<String> {
         val xpathUrl = "$jobUrl$buildNumber/api/xml?xpath=//artifact/fileName"
-        return jobExecutor.pollAndExtract(crumbWithId, xpathUrl,
-            resultRegex
-        ) { e ->
+        return jobExecutor.pollAndExtract(authData, xpathUrl, resultRegex) { e ->
             throw IllegalStateException(
                 "Could not find the published release.json as artifact." +
                     "\nJob URL: $jobUrl" +
