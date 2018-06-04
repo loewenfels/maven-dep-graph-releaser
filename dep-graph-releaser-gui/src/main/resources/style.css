@@ -505,6 +505,7 @@ input:disabled {
     content: 'power_off';
 }
 
+#poweredBy,
 #status,
 #messages {
     position: fixed;
@@ -515,12 +516,17 @@ input:disabled {
     padding-left: 15px;
     padding-right: 15px;
 }
-#messages {
-    right: 0px;
+#poweredBy,
+#status {
+    bottom: 10px;
 }
 #status {
     display: inline-block;
     bottom: 10px;
+    left: 335px;
+}
+#messages {
+    right: 0px;
 }
 
 .minimized {
