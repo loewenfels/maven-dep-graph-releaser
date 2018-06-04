@@ -9,7 +9,7 @@ class RestApiBasedQueuedItemUrlExtractor(
 ) : QueuedItemUrlExtractor {
 
     override fun extract(
-        usernameToken: UsernameToken,
+        usernameAndApiToken: UsernameAndApiToken,
         crumbWithId: CrumbWithId?,
         response: Response,
         jobExecutionData: JobExecutionData
@@ -20,7 +20,7 @@ class RestApiBasedQueuedItemUrlExtractor(
         val jenkinsBaseUrl = jobExecutionData.jobBaseUrl.substringBefore("/job/")
         val t = jobExecutionData.jobBaseUrl.substringAfter("/job/")
         val jobName = if (t.endsWith("/")) t.substringBeforeLast("/") else t
-        val headers = createHeaderWithAuthAndCrumb(usernameToken, crumbWithId)
+        val headers = createHeaderWithAuthAndCrumb(usernameAndApiToken, crumbWithId)
         val init = createGetRequest(headers)
         val paramsIdentification = createParameterRegexPattern(identifyingParams)
 

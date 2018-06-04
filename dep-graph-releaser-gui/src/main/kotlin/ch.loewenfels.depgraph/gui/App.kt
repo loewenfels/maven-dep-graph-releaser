@@ -118,10 +118,10 @@ class App {
     private fun isUrlAndNotYetRegistered(remoteJenkinsBaseUrl: String)
         = remoteJenkinsBaseUrl.startsWith("http") && UsernameTokenRegistry.forHost(remoteJenkinsBaseUrl) == null
 
-    private fun retrieveUserAndApiToken(): Promise<UsernameToken?> {
+    private fun retrieveUserAndApiToken(): Promise<UsernameAndApiToken?> {
         return if (defaultJenkinsBaseUrl == null) {
             menu.disableButtonsDueToNoPublishUrl()
-            Promise.resolve(null as UsernameToken?)
+            Promise.resolve(null as UsernameAndApiToken?)
         } else {
             UsernameTokenRegistry.register(defaultJenkinsBaseUrl).then { pair ->
                 if (pair == null) {
@@ -138,16 +138,16 @@ class App {
         }
     }
 
-    private fun updateUserToolTip(url: String, pair: Pair<String, UsernameToken>?) {
+    private fun updateUserToolTip(url: String, pair: Pair<String, UsernameAndApiToken>?) {
         menu.appendToUserButtonToolTip(url, pair?.second?.username ?: "Anonymous", pair?.first)
     }
 
-    private fun loadJson(jsonUrl: String, usernameToken: UsernameToken?): Promise<Response> {
+    private fun loadJson(jsonUrl: String, usernameAndApiToken: UsernameAndApiToken?): Promise<Response> {
         val init = createFetchInitWithCredentials()
         val headers = js("({})")
         // not necessary if we deal with jenkins but e.g. localhost
-        if (usernameToken != null) {
-            addAuthentication(headers, usernameToken)
+        if (usernameAndApiToken != null) {
+            addAuthentication(headers, usernameAndApiToken)
         }
         init.headers = headers
         return window.fetch(jsonUrl, init)
@@ -169,13 +169,13 @@ class App {
         internal fun createDependencies(
             defaultJenkinsBaseUrl: String?,
             publishJobUrl: String?,
-            usernameToken: UsernameToken?,
+            usernameAndApiToken: UsernameAndApiToken?,
             modifiableJson: ModifiableJson,
             releasePlan: ReleasePlan,
             menu: Menu
         ): Menu.Dependencies? {
-            return if (publishJobUrl != null && defaultJenkinsBaseUrl != null && usernameToken != null) {
-                val publisher = Publisher(usernameToken, publishJobUrl, modifiableJson)
+            return if (publishJobUrl != null && defaultJenkinsBaseUrl != null && usernameAndApiToken != null) {
+                val publisher = Publisher(usernameAndApiToken, publishJobUrl, modifiableJson)
                 val releaser = Releaser(defaultJenkinsBaseUrl, modifiableJson, menu)
 
                 val jenkinsJobExecutor = JenkinsJobExecutor(UsernameTokenRegistry)

@@ -33,17 +33,17 @@ fun createFetchInitWithCredentials(): RequestInit {
 }
 
 
-fun createHeaderWithAuthAndCrumb(usernameToken: UsernameToken, crumbWithId: CrumbWithId?): dynamic {
+fun createHeaderWithAuthAndCrumb(usernameAndApiToken: UsernameAndApiToken, crumbWithId: CrumbWithId?): dynamic {
     val headers = js("({})")
-    addAuthentication(headers, usernameToken)
+    addAuthentication(headers, usernameAndApiToken)
     if (crumbWithId != null) {
         headers[crumbWithId.id] = crumbWithId.crumb
     }
     return headers
 }
 
-fun addAuthentication(headers: dynamic, usernameToken: UsernameToken) {
-    val base64UsernameAndToken = window.btoa("${usernameToken.username}:${usernameToken.token}")
+fun addAuthentication(headers: dynamic, usernameAndApiToken: UsernameAndApiToken) {
+    val base64UsernameAndToken = window.btoa("${usernameAndApiToken.username}:${usernameAndApiToken.token}")
     headers["Authorization"] = "Basic $base64UsernameAndToken"
 }
 

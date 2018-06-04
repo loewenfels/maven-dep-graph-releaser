@@ -7,7 +7,7 @@ import kotlin.browser.window
 import kotlin.js.Promise
 
 class Publisher(
-    private val usernameToken: UsernameToken,
+    private val usernameAndApiToken: UsernameAndApiToken,
     private val publishJobUrl: String,
     private var modifiableJson: ModifiableJson
 ) {
@@ -50,7 +50,7 @@ class Publisher(
         buildNumber: Int
     ): Promise<String> {
         val xpathUrl = "$jobUrl$buildNumber/api/xml?xpath=//artifact/fileName"
-        return jobExecutor.pollAndExtract(usernameToken, crumbWithId, xpathUrl, resultRegex) { e ->
+        return jobExecutor.pollAndExtract(usernameAndApiToken, crumbWithId, xpathUrl, resultRegex) { e ->
             throw IllegalStateException(
                 "Could not find the published release.json as artifact." +
                     "\nJob URL: $jobUrl" +

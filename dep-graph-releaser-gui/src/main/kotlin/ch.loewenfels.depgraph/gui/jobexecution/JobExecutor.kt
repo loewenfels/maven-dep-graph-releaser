@@ -14,7 +14,7 @@ interface JobExecutor {
     ): Promise<Pair<CrumbWithId, Int>>
 
     fun pollAndExtract(
-        usernameToken: UsernameToken,
+        usernameAndApiToken: UsernameAndApiToken,
         crumbWithId: CrumbWithId?,
         url: String,
         regex: Regex,

@@ -7,13 +7,13 @@ import kotlin.js.Promise
 object Poller {
 
     fun pollAndExtract(
-        usernameToken: UsernameToken,
+        usernameAndApiToken: UsernameAndApiToken,
         crumbWithId: CrumbWithId?,
         url: String,
         regex: Regex,
         errorHandler: (PollException) -> Nothing
     ): Promise<String> {
-        val pollData = PollData(usernameToken, crumbWithId, url, pollEverySecond = 2, maxWaitingTimeInSeconds = 20) { body ->
+        val pollData = PollData(usernameAndApiToken, crumbWithId, url, pollEverySecond = 2, maxWaitingTimeInSeconds = 20) { body ->
             val matchResult = regex.find(body)
             if (matchResult != null) {
                 true to matchResult.groupValues[1]
@@ -32,7 +32,7 @@ object Poller {
     }
 
     fun <T : Any> poll(pollData: PollData<T>): Promise<T> {
-        val headers = createHeaderWithAuthAndCrumb(pollData.usernameToken, pollData.crumbWithId)
+        val headers = createHeaderWithAuthAndCrumb(pollData.usernameAndApiToken, pollData.crumbWithId)
         val init = createGetRequest(headers)
 
         val rePoll: (String) -> T = { body ->
@@ -73,7 +73,7 @@ object Poller {
 
     @Suppress("DataClassPrivateConstructor")
     data class PollData<T> private constructor(
-        val usernameToken: UsernameToken,
+        val usernameAndApiToken: UsernameAndApiToken,
         val crumbWithId: CrumbWithId?,
         val pollUrl: String,
         val pollEverySecond: Int,
@@ -82,14 +82,14 @@ object Poller {
         val numberOfTries: Int
     ) {
         constructor(
-            usernameToken: UsernameToken,
+            usernameAndApiToken: UsernameAndApiToken,
             crumbWithId: CrumbWithId?,
             pollUrl: String,
             pollEverySecond: Int,
             maxWaitingTimeInSeconds: Int,
             action: (String) -> Pair<Boolean, T?>
         ) : this(
-            usernameToken,
+            usernameAndApiToken,
             crumbWithId,
             pollUrl,
             pollEverySecond,
@@ -100,7 +100,7 @@ object Poller {
 
 
         fun newWithIncreasedNumberOfTimes(): PollData<T> = PollData(
-            usernameToken,
+            usernameAndApiToken,
             crumbWithId,
             pollUrl,
             pollEverySecond,

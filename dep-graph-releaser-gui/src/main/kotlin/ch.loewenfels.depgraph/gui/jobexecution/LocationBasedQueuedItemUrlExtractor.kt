@@ -9,7 +9,7 @@ object LocationBasedQueuedItemUrlExtractor : QueuedItemUrlExtractor {
      * Takes the QueuedItemUrl from the Location header of the [response].
      */
     override fun extract(
-        usernameToken: UsernameToken,
+        usernameAndApiToken: UsernameAndApiToken,
         crumbWithId: CrumbWithId?,
         response: Response,
         jobExecutionData: JobExecutionData

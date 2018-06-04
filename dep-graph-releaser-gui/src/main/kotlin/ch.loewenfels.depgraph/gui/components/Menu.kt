@@ -10,7 +10,7 @@ import ch.loewenfels.depgraph.gui.actions.Publisher
 import ch.loewenfels.depgraph.gui.actions.Releaser
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionDataFactory
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutor
-import ch.loewenfels.depgraph.gui.jobexecution.UsernameToken
+import ch.loewenfels.depgraph.gui.jobexecution.UsernameAndApiToken
 import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
 import ch.tutteli.kbox.mapWithIndex
 import org.w3c.dom.CustomEvent
@@ -163,7 +163,7 @@ class Menu {
         val nonNullDependencies = dependencies ?: App.createDependencies(
             fakeJenkinsBaseUrl,
             "${fakeJenkinsBaseUrl}dgr-publisher/",
-            UsernameToken("test", "test"),
+            UsernameAndApiToken("test", "test"),
             modifiableJson,
             releasePlan,
             this

@@ -10,12 +10,12 @@ object UsernameTokenRegistry {
     private val apiTokenRegex = Regex("<input[^>]+name=\"_\\.apiToken\"[^>]+value=\"([^\"]+)\"")
     private val usernameRegex = Regex("<a[^>]+href=\"[^\"]*/user/([^\"]+)\"")
 
-    private val usernameTokens = hashMapOf<String, UsernameToken>()
+    private val usernameTokens = hashMapOf<String, UsernameAndApiToken>()
 
-    fun forHostOrThrow(jenkinsBaseUrl: String): UsernameToken
-        = forHost(jenkinsBaseUrl) ?: throw IllegalStateException("could not find usernameToken for $jenkinsBaseUrl")
+    fun forHostOrThrow(jenkinsBaseUrl: String): UsernameAndApiToken
+        = forHost(jenkinsBaseUrl) ?: throw IllegalStateException("could not find usernameAndApiToken for $jenkinsBaseUrl")
 
-    fun forHost(jenkinsBaseUrl: String): UsernameToken? = usernameTokens[urlWithoutEndingSlash(jenkinsBaseUrl)]
+    fun forHost(jenkinsBaseUrl: String): UsernameAndApiToken? = usernameTokens[urlWithoutEndingSlash(jenkinsBaseUrl)]
 
     private fun urlWithoutEndingSlash(jenkinsBaseUrl: String): String {
         return if (jenkinsBaseUrl.endsWith("/")) {
@@ -30,12 +30,12 @@ object UsernameTokenRegistry {
      * Retrieves the API token of the logged in user at [jenkinsBaseUrl] and registers it, moreover it returns the name
      * of the user in the same request (the name is not stored though)
      *
-     * @return A pair consisting of the name and the [UsernameToken] of the logged in user.
+     * @return A pair consisting of the name and the [UsernameAndApiToken] of the logged in user.
      */
-    fun register(jenkinsBaseUrl: String): Promise<Pair<String, UsernameToken>?>
+    fun register(jenkinsBaseUrl: String): Promise<Pair<String, UsernameAndApiToken>?>
         = retrieveUserAndApiTokenAndSaveToken(jenkinsBaseUrl)
 
-    private fun retrieveUserAndApiTokenAndSaveToken(jenkinsBaseUrl: String): Promise<Pair<String, UsernameToken>?> {
+    private fun retrieveUserAndApiTokenAndSaveToken(jenkinsBaseUrl: String): Promise<Pair<String, UsernameAndApiToken>?> {
         val urlWithoutSlash = urlWithoutEndingSlash(jenkinsBaseUrl)
         return window.fetch("$urlWithoutSlash/me/configure", createFetchInitWithCredentials())
             .then(::checkStatusOkOr403)
@@ -48,7 +48,7 @@ object UsernameTokenRegistry {
                     null
                 } else {
                     val (username, name, apiToken) = extractNameAndApiToken(body)
-                    val usernameToken = UsernameToken(username, apiToken)
+                    val usernameToken = UsernameAndApiToken(username, apiToken)
                     usernameTokens[urlWithoutSlash] = usernameToken
                     name to usernameToken
                 }
