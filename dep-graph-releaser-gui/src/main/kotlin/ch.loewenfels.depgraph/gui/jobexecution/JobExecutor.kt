@@ -17,6 +17,8 @@ interface JobExecutor {
         authData: AuthData,
         url: String,
         regex: Regex,
+        pollEverySecond: Int,
+        maxWaitingTimeInSeconds: Int,
         errorHandler: (PollException) -> Nothing
     ): Promise<String>
 }

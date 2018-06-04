@@ -13,6 +13,8 @@ class SimulatingJobExecutor : JobExecutor {
         authData: AuthData,
         url: String,
         regex: Regex,
+        pollEverySecond: Int,
+        maxWaitingTimeInSeconds: Int,
         errorHandler: (PollException) -> Nothing
     ): Promise<String> {
         return Promise.resolve("simulation-only.json")

@@ -12,14 +12,20 @@ class QueuedItemBasedBuildNumberExtractor(
     override fun extract(): Promise<Int> {
         // wait a bit, if we are too fast we run almost certainly into a 404 (job is not even queued)
         return sleep(200) {
-            Poller.pollAndExtract(authData, "${queuedItemUrl}api/xml", numberRegex) { e ->
-                throw IllegalStateException(
-                    "Extracting the build number via the queued item failed (max tries reached). Could not find the build number in the returned body." +
-                        "\nJob URL: $queuedItemUrl" +
-                        "\nRegex used: ${numberRegex.pattern}" +
-                        "\nContent: ${e.body}"
-                )
-            }
+            Poller.pollAndExtract(
+                authData,
+                "${queuedItemUrl}api/xml",
+                numberRegex,
+                pollEverySecond = 2,
+                maxWaitingTimeInSeconds = 20,
+                errorHandler = { e ->
+                    throw IllegalStateException(
+                        "Extracting the build number via the queued item failed (max waiting time reached). Could not find the build number in the returned body." +
+                            "\nJob URL: $queuedItemUrl" +
+                            "\nRegex used: ${numberRegex.pattern}" +
+                            "\nContent: ${e.body}"
+                    )
+                })
         }.then { it.toInt() }
     }
 }

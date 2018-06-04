@@ -30,7 +30,7 @@ class JenkinsJobExecutor(
                     throw Error("Could not trigger the job $jobName", it)
                 }.then { nullableQueuedItemUrl: String? ->
                     showInfoQueuedItemIfVerbose(verbose, nullableQueuedItemUrl, jobName)
-                    val queuedItemUrl = if (nullableQueuedItemUrl != null) "${nullableQueuedItemUrl}api/xml/" else jobExecutionData.jobBaseUrl
+                    val queuedItemUrl = getQueuedItemUrlOrJobUrlAsFallback(nullableQueuedItemUrl, jobExecutionData)
                     jobQueuedHook(queuedItemUrl).then {
                         extractBuildNumber(nullableQueuedItemUrl, authData, jobExecutionData)
                     }.then { it }
@@ -59,6 +59,11 @@ class JenkinsJobExecutor(
                 }
         }.unsafeCast<Promise<Pair<AuthData, Int>>>()
     }
+
+    private fun getQueuedItemUrlOrJobUrlAsFallback(
+        nullableQueuedItemUrl: String?,
+        jobExecutionData: JobExecutionData
+    ) = if (nullableQueuedItemUrl != null) "${nullableQueuedItemUrl}api/xml/" else jobExecutionData.jobBaseUrl
 
     private fun checkStatusAndExtractQueuedItemUrl(
         response: Response,
@@ -135,9 +140,11 @@ class JenkinsJobExecutor(
         authData: AuthData,
         url: String,
         regex: Regex,
+        pollEverySecond: Int,
+        maxWaitingTimeInSeconds: Int,
         errorHandler: (PollException) -> Nothing
     ): Promise<String> {
-        return Poller.pollAndExtract(authData, url, regex, errorHandler)
+        return Poller.pollAndExtract(authData, url, regex, pollEverySecond, maxWaitingTimeInSeconds, errorHandler)
     }
 
     private fun pollJobForCompletion(
@@ -147,17 +154,17 @@ class JenkinsJobExecutor(
         pollEverySecond: Int,
         maxWaitingTimeInSeconds: Int
     ): Promise<String> {
+        // the job will most probably not be finished immediately (unless an error occurred) thus we wait half the
+        // polling time before we start polling.
         return sleep(pollEverySecond * 500) {
-            val pollUrl = "$jobUrl$buildNumber/api/xml"
-            val pollData = Poller.PollData(authData, pollUrl, pollEverySecond, maxWaitingTimeInSeconds) { body ->
-                val matchResult = resultRegex.find(body)
-                if (matchResult != null) {
-                    true to matchResult.groupValues[1]
-                } else {
-                    false to ""
-                }
-            }
-            Poller.poll(pollData)
+            pollAndExtract(
+                authData,
+                "$jobUrl$buildNumber/api/xml",
+                resultRegex,
+                pollEverySecond,
+                maxWaitingTimeInSeconds,
+                errorHandler = { e -> throw e }
+            )
         }.unsafeCast<Promise<String>>()
     }
 

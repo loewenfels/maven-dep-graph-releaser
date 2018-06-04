@@ -10,27 +10,27 @@ object Poller {
         authData: AuthData,
         url: String,
         regex: Regex,
+        pollEverySecond: Int,
+        maxWaitingTimeInSeconds: Int,
         errorHandler: (PollException) -> Nothing
     ): Promise<String> {
-        val pollData = PollData(authData, url, pollEverySecond = 2, maxWaitingTimeInSeconds = 20) { body ->
-            val matchResult = regex.find(body)
-            if (matchResult != null) {
-                true to matchResult.groupValues[1]
-            } else {
-                false to null
+        return poll(PollData(authData, url, pollEverySecond, maxWaitingTimeInSeconds) { body ->
+                val matchResult = regex.find(body)
+                if (matchResult != null) {
+                    true to matchResult.groupValues[1]
+                } else {
+                    false to null
+                }
+            }).catch { t ->
+                if (t is PollException) {
+                    errorHandler(t)
+                } else {
+                    throw t
+                }
             }
-        }
-
-        return poll(pollData).catch { t ->
-            if (t is PollException) {
-                errorHandler(t)
-            } else {
-                throw t
-            }
-        }
     }
 
-    fun <T : Any> poll(pollData: PollData<T>): Promise<T> {
+    private fun <T : Any> poll(pollData: PollData<T>): Promise<T> {
         val headers = createHeaderWithAuthAndCrumb(pollData.authData)
         val init = createGetRequest(headers)
 

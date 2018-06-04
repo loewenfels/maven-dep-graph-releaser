@@ -50,14 +50,20 @@ class Publisher(
         buildNumber: Int
     ): Promise<String> {
         val xpathUrl = "$jobUrl$buildNumber/api/xml?xpath=//artifact/fileName"
-        return jobExecutor.pollAndExtract(authData, xpathUrl, resultRegex) { e ->
+        return jobExecutor.pollAndExtract(
+            authData,
+            xpathUrl,
+            resultRegex,
+            pollEverySecond = 2,
+            maxWaitingTimeInSeconds = 20,
+            errorHandler = { e ->
             throw IllegalStateException(
-                "Could not find the published release.json as artifact." +
+                "Could not find the published release.json as artifact of the publish job." +
                     "\nJob URL: $jobUrl" +
                     "\nRegex used: ${resultRegex.pattern}" +
                     "\nContent: ${e.body}"
             )
-        }.then { fileName ->
+        }).then { fileName ->
             "$jobUrl$buildNumber/artifact/$fileName"
         }
     }
