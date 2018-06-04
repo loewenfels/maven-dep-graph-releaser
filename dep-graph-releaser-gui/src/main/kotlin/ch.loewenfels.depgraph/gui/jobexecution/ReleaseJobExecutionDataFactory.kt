@@ -92,7 +92,7 @@ class ReleaseJobExecutionDataFactory(
         val jobUrl = getJobUrl(jenkinsBaseUrl, jobName)
         val relevantParams = getMatchingEntries(regexParametersList, mavenProjectId)
         val parameters = StringBuilder()
-        relevantParams.asIterable().appendToStringBuilder(parameters, ",") {
+        relevantParams.appendToStringBuilder(parameters, ",") {
             val (name, value) = it.split('=')
             parameters.append("{\"name\":\"$name\",\"value\":\"$value\"}")
         }
