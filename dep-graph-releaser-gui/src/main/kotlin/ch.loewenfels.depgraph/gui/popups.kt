@@ -40,7 +40,7 @@ private fun showMessageOfType(type: String, icon: String, message: String, autoC
             +icon
         }
         div("text") {
-            convertNewLinesToBrAndParseUrls(message)
+            convertNewLinesToBrTabToTwoSpacesAndParseUrls(message)
         }
         if (autoCloseAfterMs != null) {
             window.setTimeout({ closeMessage(msgId) }, autoCloseAfterMs)
@@ -76,43 +76,64 @@ fun turnThrowableIntoMessage(t: Throwable): String {
     return sb.toString()
 }
 
-private fun StringBuilder.appendThrowable(t: Throwable) {
-    val stack: String? = t.asDynamic().stack as? String
-    if (stack != null) {
-        append(stack)
+private fun StringBuilder.appendThrowable(t: Throwable): StringBuilder {
+    val nullableStack: String? = t.asDynamic().stack as? String
+    return if (nullableStack != null) {
+        val stackWithHead: String = nullableStack
+        val firstNewLine = stackWithHead.indexOf('\n')
+        val stack = if (firstNewLine >= 0) {
+            append(stackWithHead.substring(0, firstNewLine + 1)).append('\n')
+            stackWithHead.substring(firstNewLine + 1)
+        } else {
+            stackWithHead
+        }
+        append(stack.replace("   ", "\t"))
     } else {
         append("${t::class.js.name}: ${t.message}")
     }
 }
 
-private fun DIV.convertNewLinesToBrAndParseUrls(message: String) {
+private fun DIV.convertNewLinesToBrTabToTwoSpacesAndParseUrls(message: String) {
     if (message.isEmpty()) return
 
     val messages = message.split("\n")
-    convertUrlToLinks(messages[0])
+    convertTabToTwoSpacesAndUrlToLinks(messages[0])
     for (i in 1 until messages.size) {
         br
-        convertUrlToLinks(messages[i])
+        convertTabToTwoSpacesAndUrlToLinks(messages[i])
     }
 }
 
-private fun DIV.convertUrlToLinks(message: String) {
+private fun DIV.convertTabToTwoSpacesAndUrlToLinks(message: String) {
     var matchResult = urlRegex.find(message)
     if (matchResult != null) {
         var index = 0
         do {
             val match = matchResult!!
-            +message.substring(index, match.range.start)
+            convertTabToTwoSpaces(message.substring(index, match.range.start))
             a(href = match.value) {
                 +match.value
             }
             index = match.range.endInclusive + 1
             matchResult = match.next()
         } while (matchResult != null)
-        +message.substring(index, message.length)
+        convertTabToTwoSpaces(message.substring(index))
     } else {
-        +message
+        convertTabToTwoSpaces(message)
     }
+}
+
+private fun DIV.convertTabToTwoSpaces(content: String) {
+    var currentIndex = 0
+    do {
+        val index = content.indexOf('\t', currentIndex)
+        if(index < 0) break
+
+        +content.substring(currentIndex, index)
+        unsafe { +"&nbsp;&nbsp;" }
+        currentIndex = index + 1
+    } while (true)
+    +content.substring(currentIndex)
 }
 
 private val urlRegex = Regex("http(?:s)://[^ ]+")
