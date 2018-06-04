@@ -7,6 +7,7 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.gui.*
+import ch.loewenfels.depgraph.gui.jobexecution.GITHUB_NEW_ISSUE
 import ch.loewenfels.depgraph.hasNextOnTheSameLevel
 import ch.tutteli.kbox.toPeekingIterator
 import kotlinx.html.*
@@ -54,9 +55,12 @@ class Pipeline(private val releasePlan: ReleasePlan, private val menu: Menu) {
         val involvedProjects = set.size
         showStatus("Projects involved: $involvedProjects")
         if (involvedProjects != releasePlan.getNumberOfProjects()) {
-            showError("Not all dependent projects are involved in the process, please report a bug. The following where left out\n" +
-                (releasePlan.getProjectIds() - set).joinToString("\n") { it.identifier }
-            )
+            showError("""
+                |Not all dependent projects are involved in the process.
+                |Please report a bug: $GITHUB_NEW_ISSUE
+                |The following projects where left out of the analysis:
+                |${(releasePlan.getProjectIds() - set).joinToString("\n") { it.identifier }}
+            """.trimMargin())
         }
     }
 

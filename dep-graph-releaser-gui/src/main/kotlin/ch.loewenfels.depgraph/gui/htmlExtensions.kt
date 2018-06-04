@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.gui
 
+import ch.loewenfels.depgraph.gui.jobexecution.GITHUB_NEW_ISSUE
 import kotlinx.html.HTMLTag
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.events.Event
@@ -43,7 +44,7 @@ private fun withErrorHandling(event: Event, action: (Event) -> Any) {
         action(event)
     }.catch { t ->
         showThrowableAndThrow(
-            Error("An unexpected error occurred. Please report a bug with the following information.", t)
+            Error("An unexpected error occurred.\nPlease report a bug with the following information at $GITHUB_NEW_ISSUE", t)
         )
     }
 }

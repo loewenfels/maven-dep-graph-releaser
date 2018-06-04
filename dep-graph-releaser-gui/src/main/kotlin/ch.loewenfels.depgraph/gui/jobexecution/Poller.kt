@@ -55,7 +55,8 @@ object Poller {
                 val (success, result) = pollData.action(body)
                 if (success) {
                     if (result == null) {
-                        throw Error("Result was null even though success flag during polling was true, please report a bug.")
+                        throw Error("Result was null even though success flag during polling was true." +
+                            "\nPlease report a bug: $GITHUB_NEW_ISSUE")
                     }
                     result
                 } else {

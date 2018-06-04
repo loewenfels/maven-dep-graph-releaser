@@ -4,9 +4,7 @@ import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.components.Menu
 import ch.loewenfels.depgraph.gui.components.Pipeline
-import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionData
-import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionDataFactory
-import ch.loewenfels.depgraph.gui.jobexecution.JobExecutor
+import ch.loewenfels.depgraph.gui.jobexecution.*
 import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
 import ch.loewenfels.depgraph.gui.serialization.deserialize
 import ch.tutteli.kbox.mapWithIndex
@@ -86,11 +84,11 @@ class Releaser(
                     it.value !is CommandState.Deactivated && it.value !== CommandState.Disabled
                 }
             if (erroneousProjects.isNotEmpty()) {
-                showError(
-                    "Seems like there is a bug since no command failed but not all are succeeded." +
-                        "\nPlease report a bug, the following projects where affected:" +
-                        "\n${erroneousProjects.joinToString("\n") { it.key.identifier }}"
-                )
+                showError("""
+                        |Seems like there is a bug since no command failed but not all commands are in status Succeeded.
+                        |Please report a bug at $GITHUB_NEW_ISSUE - the following projects where affected:
+                        |${erroneousProjects.joinToString("\n") { it.key.identifier }}
+                    """.trimMargin())
             }
         }
     }
@@ -278,7 +276,8 @@ class Releaser(
         return menu.save(paramObject.jobExecutor, verbose)
             .then { hadChanges ->
                 if (!hadChanges) {
-                    showWarning("Could not save changes for project ${paramObject.project.id.identifier}. Please report a bug.")
+                    showWarning("Could not save changes for project ${paramObject.project.id.identifier}." +
+                        "\nPlease report a bug: $GITHUB_NEW_ISSUE")
                 }
             }.catch {
                 console.error("save failed for ${paramObject.project}", it)

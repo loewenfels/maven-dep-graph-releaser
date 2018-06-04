@@ -8,9 +8,7 @@ import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.actions.Downloader
 import ch.loewenfels.depgraph.gui.actions.Publisher
 import ch.loewenfels.depgraph.gui.actions.Releaser
-import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionDataFactory
-import ch.loewenfels.depgraph.gui.jobexecution.JobExecutor
-import ch.loewenfels.depgraph.gui.jobexecution.UsernameAndApiToken
+import ch.loewenfels.depgraph.gui.jobexecution.*
 import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
 import ch.tutteli.kbox.mapWithIndex
 import org.w3c.dom.CustomEvent
@@ -194,17 +192,21 @@ class Menu {
                 listOf(dryRunButton, releaseButton, exploreButton).forEach {
                     it.title = DISABLED_RELEASE_SUCCESS
                 }
-                showSuccess(
-                    "Release ended successfully :) you can now close the window." +
-                        "\nUse a new pipeline for a new release." +
-                        "\nPlease report a bug in case some job failed without us noticing it."
-                )
+                showSuccess("""
+                        |Release ended successfully :) you can now close the window.
+                        |Use a new pipeline for a new release (also in case you performed a Dry Run).
+                        |
+                        |Please report a bug at $GITHUB_NEW_ISSUE in case some job failed without us noticing it.
+                        |Do not forget to star the repository if you like dep-graph-releaser ;-) $GITHUB_REPO
+                        |Last but not least, you might want to visit $LOEWENFELS_URL to get to know the company pushing this project forward.
+                    """.trimMargin())
             } else {
-                showError(
-                    "Release ended with failure :(" +
-                        "\nAt least one job failed. Check errors, fix them and then you can re-trigger the failed jobs, the pipeline respectively, by clicking on the release button." +
-                        "\n(You might have to delete git tags and remove artifacts if they have already been created)."
-                )
+                showError("""
+                        |Release ended with failure :(
+                        |At least one job failed. Check errors, fix them and then you can re-trigger the failed jobs, the pipeline respectively, by clicking on the release button (you might have to delete git tags and remove artifacts if they have already been created).
+                        |
+                        |Please report a bug at $GITHUB_NEW_ISSUE in case a job failed due to an error in dep-graph-releaser.
+                    """.trimMargin())
 
                 val (processName, button, buttonText) = when (typeOfRun) {
                     TypeOfRun.SIMULATION -> Triple(
@@ -385,7 +387,8 @@ class Menu {
             deactivateSaveButton()
             showThrowableAndThrow(
                 IllegalStateException(
-                    "Save button should not be activate if no publish job url was specified.\nPlease report a bug."
+                    "Save button should not be activate if no publish job url was specified." +
+                        "\nPlease report a bug: $GITHUB_REPO"
                 )
             )
         }
