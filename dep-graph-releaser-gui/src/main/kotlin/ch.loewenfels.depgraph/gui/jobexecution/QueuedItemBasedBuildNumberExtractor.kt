@@ -15,7 +15,7 @@ class QueuedItemBasedBuildNumberExtractor(
         return sleep(200) {
             Poller.pollAndExtract(authData, xpathUrl, numberRegex) { e ->
                 throw IllegalStateException(
-                    "Could not find the build number in the returned body." +
+                    "Extracting the build number via the queued item failed (max tries reached). Could not find the build number in the returned body." +
                         "\nJob URL: $queuedItemUrl" +
                         "\nRegex used: ${numberRegex.pattern}" +
                         "\nContent: ${e.body}"
