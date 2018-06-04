@@ -52,7 +52,7 @@ private fun showMessageOfType(type: String, icon: String, message: String, autoC
 }
 
 private fun closeMessage(msgId: String) {
-    elementById(msgId).remove()
+    elementByIdOrNull<HTMLElement>(msgId)?.remove()
 }
 
 fun showThrowableAndThrow(t: Throwable): Nothing {
