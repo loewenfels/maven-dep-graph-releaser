@@ -1,21 +1,23 @@
 package ch.loewenfels.depgraph.manipulation
 
+import ch.loewenfels.depgraph.regex.noneOrSomeChars
+import ch.loewenfels.depgraph.regex.someChars
 import java.io.File
 
 object RegexBasedVersionUpdater {
 
     private const val DEPENDENCY = "dependency"
-    private val dependencyRegex = Regex("<$DEPENDENCY>[\\S\\s]+?</$DEPENDENCY>")
+    private val dependencyRegex = Regex("<$DEPENDENCY>$someChars</$DEPENDENCY>")
     private const val PARENT = "parent"
-    private val parentRegex = Regex("<$PARENT>[\\S\\s]+?</$PARENT>")
+    private val parentRegex = Regex("<$PARENT>$someChars</$PARENT>")
     private const val PROPERTIES = "properties"
-    private val propertiesRegex = Regex("<$PROPERTIES>[\\S\\s]+?</$PROPERTIES>")
+    private val propertiesRegex = Regex("<$PROPERTIES>$someChars</$PROPERTIES>")
     private const val VERSION = "version"
     private val versionRegex = Regex("<$VERSION>([^<]+)</$VERSION>")
     private val mavenPropertyRegex = Regex("\\$\\{([^}]+)}")
     private val tagRegex = Regex("<([a-zA-Z0-9_.-]+)>([^<]+)</([a-zA-Z0-9_.-]+)>")
     private const val EXCLUSIONS = "exclusions"
-    private val exclusionRegex = Regex("<$EXCLUSIONS>[\\S\\s]+?</$EXCLUSIONS>")
+    private val exclusionRegex = Regex("<$EXCLUSIONS>$someChars</$EXCLUSIONS>")
 
     fun updateDependency(pom: File, groupId: String, artifactId: String, newVersion: String) {
         require(pom.exists()) {
@@ -49,7 +51,7 @@ object RegexBasedVersionUpdater {
     private fun createGroupIdArtifactIdRegex(groupId: String, artifactId: String): Regex {
         val groupIdPattern = "<groupId>$groupId</groupId>"
         val artifactIdPattern = "<artifactId>$artifactId</artifactId>"
-        return Regex("(?:$groupIdPattern[\\S\\s]*?$artifactIdPattern)|(?:$artifactIdPattern[\\S\\s]*?$groupIdPattern)")
+        return Regex("(?:$groupIdPattern$noneOrSomeChars$artifactIdPattern)|(?:$artifactIdPattern$noneOrSomeChars$groupIdPattern)")
     }
 
     private fun updateParentRelation(parentParamObject: ParamObject, groupIdArtifactIdRegex: Regex, pom: File) {

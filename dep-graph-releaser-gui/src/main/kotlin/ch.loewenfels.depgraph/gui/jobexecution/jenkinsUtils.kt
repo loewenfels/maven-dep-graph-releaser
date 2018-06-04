@@ -1,11 +1,13 @@
 package ch.loewenfels.depgraph.gui.jobexecution
 
+import ch.loewenfels.depgraph.regex.noneOrSomeChars
+
 fun createParameterRegexPattern(parameters: Map<String, String>): String
-    = parameters.entries.joinToString("[\\S\\s]*?") { (k, v) ->
-        "<parameter>[\\S\\s]*?" +
-            "<name>$k</name>[\\S\\s]*?" +
-            "<value>$v</value>[\\S\\s]*?" +
-            "</parameter>[\\S\\s]*?"
+    = parameters.entries.joinToString(noneOrSomeChars) { (k, v) ->
+        "<parameter>$noneOrSomeChars" +
+            "<name>$k</name>$noneOrSomeChars" +
+            "<value>$v</value>$noneOrSomeChars" +
+            "</parameter>$noneOrSomeChars"
     }
 
 fun toQueryParameters(parameters: Map<String, String>): String
