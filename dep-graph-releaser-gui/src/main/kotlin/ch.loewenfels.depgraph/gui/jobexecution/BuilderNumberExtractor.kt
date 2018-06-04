@@ -11,4 +11,8 @@ interface BuilderNumberExtractor {
      * Eventually returns the build number.
      */
     fun extract(): Promise<Int>
+
+    companion object {
+       val numberRegex = Regex("<number>([0-9]+)</number>")
+    }
 }

@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.gui.jobexecution
 
+import ch.loewenfels.depgraph.gui.jobexecution.BuilderNumberExtractor.Companion.numberRegex
 import org.w3c.fetch.RequestInit
 import kotlin.browser.window
 import kotlin.js.Promise
@@ -38,10 +39,5 @@ class BuildHistoryBasedBuildNumberExtractor(
                     searchBuildNumber(newMatchResult, parametersRegex, init).unsafeCast<Int>()
                 }
             }
-    }
-
-    companion object {
-        //TODO duplicated, exist also in other places
-        private val numberRegex = Regex("<number>([0-9]+)</number>")
     }
 }
