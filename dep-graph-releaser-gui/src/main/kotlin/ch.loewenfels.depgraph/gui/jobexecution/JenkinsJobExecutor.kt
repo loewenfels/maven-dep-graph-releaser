@@ -148,14 +148,9 @@ class JenkinsJobExecutor(
         maxWaitingTimeInSeconds: Int
     ): Promise<String> {
         return sleep(pollEverySecond * 500) {
-            val pollData = Poller.PollData(
-                authData,
-                "$jobUrl$buildNumber/api/xml?xpath=/*/result",
-                pollEverySecond,
-                maxWaitingTimeInSeconds
-            ) { body ->
-                val matchResult =
-                    resultRegex.matchEntire(body)
+            val pollUrl = "$jobUrl$buildNumber/api/xml"
+            val pollData = Poller.PollData(authData, pollUrl, pollEverySecond, maxWaitingTimeInSeconds) { body ->
+                val matchResult = resultRegex.find(body)
                 if (matchResult != null) {
                     true to matchResult.groupValues[1]
                 } else {

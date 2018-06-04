@@ -9,11 +9,9 @@ class QueuedItemBasedBuildNumberExtractor(
 ) : BuilderNumberExtractor {
 
     override fun extract(): Promise<Int> {
-        val xpathUrl = "${queuedItemUrl}api/xml?xpath=//executable/number"
-
         // wait a bit, if we are too fast we run almost certainly into a 404 (job is not even queued)
         return sleep(200) {
-            Poller.pollAndExtract(authData, xpathUrl, numberRegex) { e ->
+            Poller.pollAndExtract(authData, "${queuedItemUrl}api/xml", numberRegex) { e ->
                 throw IllegalStateException(
                     "Extracting the build number via the queued item failed (max tries reached). Could not find the build number in the returned body." +
                         "\nJob URL: $queuedItemUrl" +
