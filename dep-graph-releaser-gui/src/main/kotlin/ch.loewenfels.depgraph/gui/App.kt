@@ -8,6 +8,7 @@ import ch.loewenfels.depgraph.gui.components.Menu
 import ch.loewenfels.depgraph.gui.jobexecution.*
 import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
 import ch.loewenfels.depgraph.gui.serialization.deserialize
+import ch.loewenfels.depgraph.parseRemoteRegex
 import org.w3c.fetch.Response
 import kotlin.browser.window
 import kotlin.js.Promise

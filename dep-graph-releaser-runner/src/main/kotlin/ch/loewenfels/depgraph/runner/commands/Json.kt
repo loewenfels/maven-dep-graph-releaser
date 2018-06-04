@@ -2,6 +2,8 @@ package ch.loewenfels.depgraph.runner.commands
 
 import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
+import ch.loewenfels.depgraph.parseRegexParameters
+import ch.loewenfels.depgraph.parseRemoteRegex
 import ch.loewenfels.depgraph.maven.Analyser
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
 import ch.loewenfels.depgraph.runner.Orchestrator
@@ -89,6 +91,10 @@ object Json : ConsoleCommand {
                 """.trimMargin()
             )
         }
+
+        //will both throw if there is a validation error
+        parseRemoteRegex(remoteRegex)
+        if(regexParameters != null) parseRegexParameters(regexParameters)
 
         val config = mapOf(
             ConfigKey.COMMIT_PREFIX to "[DGR]",

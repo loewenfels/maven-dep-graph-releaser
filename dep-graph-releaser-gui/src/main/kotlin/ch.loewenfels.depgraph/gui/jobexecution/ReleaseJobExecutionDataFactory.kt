@@ -7,8 +7,8 @@ import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
-import ch.loewenfels.depgraph.gui.parseRegexParameters
-import ch.loewenfels.depgraph.gui.parseRemoteRegex
+import ch.loewenfels.depgraph.parseRegexParameters
+import ch.loewenfels.depgraph.parseRemoteRegex
 import ch.tutteli.kbox.appendToStringBuilder
 
 class ReleaseJobExecutionDataFactory(

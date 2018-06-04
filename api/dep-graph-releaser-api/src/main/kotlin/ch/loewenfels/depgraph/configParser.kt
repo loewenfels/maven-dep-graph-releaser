@@ -1,15 +1,16 @@
-package ch.loewenfels.depgraph.gui
+package ch.loewenfels.depgraph
 
-import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.ReleasePlan
 
 
-fun parseRemoteRegex(releasePlan: ReleasePlan) = parseRemoteRegex(releasePlan.getConfig(ConfigKey.REMOTE_REGEX))
+fun parseRemoteRegex(releasePlan: ReleasePlan) =
+    parseRemoteRegex(releasePlan.getConfig(ConfigKey.REMOTE_REGEX))
 fun parseRemoteRegex(regex: String): List<Pair<Regex, String>> {
     return parseRegex(regex, ';', "remoteRegex", ::checkUrlDefined)
 }
 
-fun parseRegexParameters(releasePlan: ReleasePlan) = parseRegexParameters(releasePlan.getConfig(ConfigKey.REGEX_PARAMS))
+fun parseRegexParameters(releasePlan: ReleasePlan) =
+    parseRegexParameters(releasePlan.getConfig(ConfigKey.REGEX_PARAMS))
 fun parseRegexParameters(regex: String): List<Pair<Regex, String>> {
     return parseRegex(regex, '$', "regexParameters", ::checkAtLeastOneParameter)
 }
