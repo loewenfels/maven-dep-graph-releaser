@@ -11,11 +11,10 @@ interface JobExecutor {
         pollEverySecond: Int,
         maxWaitingTimeForCompletenessInSeconds: Int,
         verbose: Boolean = true
-    ): Promise<Pair<CrumbWithId, Int>>
+    ): Promise<Pair<AuthData, Int>>
 
     fun pollAndExtract(
-        usernameAndApiToken: UsernameAndApiToken,
-        crumbWithId: CrumbWithId?,
+        authData: AuthData,
         url: String,
         regex: Regex,
         errorHandler: (PollException) -> Nothing

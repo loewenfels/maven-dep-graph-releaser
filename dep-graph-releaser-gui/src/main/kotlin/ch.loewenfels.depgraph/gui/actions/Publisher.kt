@@ -32,8 +32,8 @@ class Publisher(
             pollEverySecond = 2,
             maxWaitingTimeForCompletenessInSeconds = 60,
             verbose = verbose
-        ).then { (crumbWithId, buildNumber) ->
-            extractResultJsonUrl(jobExecutor, crumbWithId, publishJobUrl, buildNumber).then {
+        ).then { (authData, buildNumber) ->
+            extractResultJsonUrl(jobExecutor, authData, publishJobUrl, buildNumber).then {
                 buildNumber to it
             }
         }.then { (buildNumber, releaseJsonUrl) ->
@@ -45,12 +45,12 @@ class Publisher(
 
     private fun extractResultJsonUrl(
         jobExecutor: JobExecutor,
-        crumbWithId: CrumbWithId?,
+        authData: AuthData,
         jobUrl: String,
         buildNumber: Int
     ): Promise<String> {
         val xpathUrl = "$jobUrl$buildNumber/api/xml?xpath=//artifact/fileName"
-        return jobExecutor.pollAndExtract(usernameAndApiToken, crumbWithId, xpathUrl, resultRegex) { e ->
+        return jobExecutor.pollAndExtract(authData, xpathUrl, resultRegex) { e ->
             throw IllegalStateException(
                 "Could not find the published release.json as artifact." +
                     "\nJob URL: $jobUrl" +

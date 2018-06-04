@@ -17,22 +17,22 @@ class JenkinsJobExecutor(
         pollEverySecond: Int,
         maxWaitingTimeForCompletenessInSeconds: Int,
         verbose: Boolean
-    ): Promise<Pair<CrumbWithId, Int>> {
+    ): Promise<Pair<AuthData, Int>> {
         val jobName = jobExecutionData.jobName
         val jenkinsBaseUrl = jobExecutionData.getJenkinsBaseUrl()
         val usernameToken = usernameTokenRegistry.forHostOrThrow(jenkinsBaseUrl)
 
-        return issueCrumb(jenkinsBaseUrl, usernameToken).then { crumbWithId: CrumbWithId? ->
-            triggerJob(usernameToken, crumbWithId, jobExecutionData)
+        return issueCrumb(jenkinsBaseUrl, usernameToken).then { authData: AuthData ->
+            triggerJob(authData, jobExecutionData)
                 .then { response ->
-                    checkStatusAndExtractQueuedItemUrl(response, jobExecutionData, usernameToken, crumbWithId)
+                    checkStatusAndExtractQueuedItemUrl(response, jobExecutionData, authData)
                 }.catch {
                     throw Error("Could not trigger the job $jobName", it)
                 }.then { nullableQueuedItemUrl: String? ->
                     showInfoQueuedItemIfVerbose(verbose, nullableQueuedItemUrl, jobName)
                     val queuedItemUrl = if (nullableQueuedItemUrl != null) "${nullableQueuedItemUrl}api/xml/" else jobExecutionData.jobBaseUrl
                     jobQueuedHook(queuedItemUrl).then {
-                        extractBuildNumber(nullableQueuedItemUrl, usernameToken, crumbWithId, jobExecutionData)
+                        extractBuildNumber(nullableQueuedItemUrl, authData, jobExecutionData)
                     }.then { it }
                 }.then { buildNumber: Int ->
                     if (verbose) {
@@ -43,8 +43,7 @@ class JenkinsJobExecutor(
                     }
                     jobStartedHook(buildNumber).then {
                         pollJobForCompletion(
-                            usernameToken,
-                            crumbWithId,
+                            authData,
                             jobExecutionData.jobBaseUrl,
                             buildNumber,
                             pollEverySecond,
@@ -56,68 +55,57 @@ class JenkinsJobExecutor(
                         "$jobName failed, job did not end with status $SUCCESS but $result." +
                             "\nVisit ${jobExecutionData.jobBaseUrl}$buildNumber for further information"
                     }
-                    crumbWithId to buildNumber
+                    authData to buildNumber
                 }
-        }.unsafeCast<Promise<Pair<CrumbWithId, Int>>>()
+        }.unsafeCast<Promise<Pair<AuthData, Int>>>()
     }
 
     private fun checkStatusAndExtractQueuedItemUrl(
         response: Response,
         jobExecutionData: JobExecutionData,
-        usernameAndApiToken: UsernameAndApiToken,
-        crumbWithId: CrumbWithId?
+        authData: AuthData
     ): Promise<Promise<String?>> {
         return checkStatusOk(response).then {
-            jobExecutionData.queuedItemUrlExtractor.extract(
-                usernameAndApiToken, crumbWithId, response, jobExecutionData
-            )
+            jobExecutionData.queuedItemUrlExtractor.extract(authData, response, jobExecutionData)
         }
     }
 
     private fun extractBuildNumber(
         nullableQueuedItemUrl: String?,
-        usernameAndApiToken: UsernameAndApiToken,
-        crumbWithId: CrumbWithId?,
+        authData: AuthData,
         jobExecutionData: JobExecutionData
     ): Promise<Int> {
         return if (nullableQueuedItemUrl != null) {
-            QueuedItemBasedBuildNumberExtractor(
-                usernameAndApiToken,
-                crumbWithId,
-                nullableQueuedItemUrl
-            ).extract()
+            QueuedItemBasedBuildNumberExtractor(authData, nullableQueuedItemUrl).extract()
         } else {
-            BuildHistoryBasedBuildNumberExtractor(
-                usernameAndApiToken,
-                crumbWithId,
-                jobExecutionData
-            ).extract()
+            BuildHistoryBasedBuildNumberExtractor(authData, jobExecutionData).extract()
         }
     }
 
     private fun issueCrumb(
         jenkinsBaseUrl: String,
         usernameAndApiToken: UsernameAndApiToken
-    ): Promise<CrumbWithId?> {
+    ): Promise<AuthData> {
         val url = "$jenkinsBaseUrl/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)"
-        val headers = createHeaderWithAuthAndCrumb(usernameAndApiToken, null)
+        val headers = createHeaderWithAuthAndCrumb(AuthData(usernameAndApiToken, null))
         val init = createGetRequest(headers)
         return window.fetch(url, init)
             .then(::checkStatusOkOr404)
             .catch {
                 throw Error("Cannot issue a crumb", it)
-            }.then { crumbWithId: String? ->
-                if (crumbWithId != null) {
-                    val (id, crumb) = crumbWithId.split(':')
+            }.then { crumbWithIdString: String? ->
+                val crumbWithId = if (crumbWithIdString != null) {
+                    val (id, crumb) = crumbWithIdString.split(':')
                     CrumbWithId(id, crumb)
                 } else {
                     null
                 }
+                AuthData(usernameAndApiToken, crumbWithId)
             }
     }
 
-    private fun triggerJob(usernameAndApiToken: UsernameAndApiToken, crumbWithId: CrumbWithId?, jobExecutionData: JobExecutionData): Promise<Response> {
-        val headers = createHeaderWithAuthAndCrumb(usernameAndApiToken, crumbWithId)
+    private fun triggerJob(authData: AuthData, jobExecutionData: JobExecutionData): Promise<Response> {
+        val headers = createHeaderWithAuthAndCrumb(authData)
         headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8"
         val init = createRequestInit(jobExecutionData.body, RequestVerb.POST, headers)
         return window.fetch(jobExecutionData.jobTriggerUrl, init)
@@ -144,18 +132,16 @@ class JenkinsJobExecutor(
     }
 
     override fun pollAndExtract(
-        usernameAndApiToken: UsernameAndApiToken,
-        crumbWithId: CrumbWithId?,
+        authData: AuthData,
         url: String,
         regex: Regex,
         errorHandler: (PollException) -> Nothing
     ): Promise<String> {
-        return Poller.pollAndExtract(usernameAndApiToken, crumbWithId, url, regex, errorHandler)
+        return Poller.pollAndExtract(authData, url, regex, errorHandler)
     }
 
     private fun pollJobForCompletion(
-        usernameAndApiToken: UsernameAndApiToken,
-        crumbWithId: CrumbWithId?,
+        authData: AuthData,
         jobUrl: String,
         buildNumber: Int,
         pollEverySecond: Int,
@@ -163,8 +149,7 @@ class JenkinsJobExecutor(
     ): Promise<String> {
         return sleep(pollEverySecond * 500) {
             val pollData = Poller.PollData(
-                usernameAndApiToken,
-                crumbWithId,
+                authData,
                 "$jobUrl$buildNumber/api/xml?xpath=/*/result",
                 pollEverySecond,
                 maxWaitingTimeInSeconds

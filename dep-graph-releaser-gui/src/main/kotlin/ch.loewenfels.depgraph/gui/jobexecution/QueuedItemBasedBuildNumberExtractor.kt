@@ -4,8 +4,7 @@ import ch.loewenfels.depgraph.gui.sleep
 import kotlin.js.Promise
 
 class QueuedItemBasedBuildNumberExtractor(
-    private val usernameAndApiToken: UsernameAndApiToken,
-    private val crumbWithId: CrumbWithId?,
+    private val authData: AuthData,
     private val queuedItemUrl: String
 ) : BuilderNumberExtractor {
 
@@ -14,12 +13,7 @@ class QueuedItemBasedBuildNumberExtractor(
 
         // wait a bit, if we are too fast we run almost certainly into a 404 (job is not even queued)
         return sleep(200) {
-            Poller.pollAndExtract(
-                usernameAndApiToken,
-                crumbWithId,
-                xpathUrl,
-                numberRegex
-            ) { e ->
+            Poller.pollAndExtract(authData, xpathUrl, numberRegex) { e ->
                 throw IllegalStateException(
                     "Could not find the build number in the returned body." +
                         "\nJob URL: $queuedItemUrl" +

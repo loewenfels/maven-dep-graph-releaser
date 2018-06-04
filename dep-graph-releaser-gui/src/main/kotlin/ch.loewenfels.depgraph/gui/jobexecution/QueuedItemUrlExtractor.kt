@@ -12,8 +12,7 @@ interface QueuedItemUrlExtractor {
      * @param jobExecutionData which was used to perform the Trigger-POST-Request.
      */
     fun extract(
-        usernameAndApiToken: UsernameAndApiToken,
-        crumbWithId: CrumbWithId?,
+        authData: AuthData,
         response: Response,
         jobExecutionData: JobExecutionData
     ): Promise<String?>

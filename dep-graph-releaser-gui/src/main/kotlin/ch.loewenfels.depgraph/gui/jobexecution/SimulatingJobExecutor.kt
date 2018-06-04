@@ -10,8 +10,7 @@ class SimulatingJobExecutor : JobExecutor {
     private var count = 0
 
     override fun pollAndExtract(
-        usernameAndApiToken: UsernameAndApiToken,
-        crumbWithId: CrumbWithId?,
+        authData: AuthData,
         url: String,
         regex: Regex,
         errorHandler: (PollException) -> Nothing
@@ -26,7 +25,7 @@ class SimulatingJobExecutor : JobExecutor {
         pollEverySecond: Int,
         maxWaitingTimeForCompletenessInSeconds: Int,
         verbose: Boolean
-    ): Promise<Pair<CrumbWithId, Int>> {
+    ): Promise<Pair<AuthData, Int>> {
         val jobName = jobExecutionData.jobName
         return sleep(100) {
             jobQueuedHook("${jobExecutionData.jobBaseUrl}queuingUrl")
@@ -44,7 +43,10 @@ class SimulatingJobExecutor : JobExecutor {
                     .then { true }
             }
         }.then {
-            CrumbWithId("Jenkins-Crumb", "onlySimulation") to 100
+            AuthData(
+                UsernameAndApiToken("simulating-user", "random-api-token"),
+                CrumbWithId("Jenkins-Crumb", "onlySimulation")
+            ) to 100
         }
     }
 

@@ -33,11 +33,11 @@ fun createFetchInitWithCredentials(): RequestInit {
 }
 
 
-fun createHeaderWithAuthAndCrumb(usernameAndApiToken: UsernameAndApiToken, crumbWithId: CrumbWithId?): dynamic {
+fun createHeaderWithAuthAndCrumb(authData: AuthData): dynamic {
     val headers = js("({})")
-    addAuthentication(headers, usernameAndApiToken)
-    if (crumbWithId != null) {
-        headers[crumbWithId.id] = crumbWithId.crumb
+    addAuthentication(headers, authData.usernameAndApiToken)
+    if (authData.crumbWithId != null) {
+        headers[authData.crumbWithId.id] = authData.crumbWithId.crumb
     }
     return headers
 }
