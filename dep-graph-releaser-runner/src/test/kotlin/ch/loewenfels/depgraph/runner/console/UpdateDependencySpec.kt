@@ -4,14 +4,24 @@ import ch.loewenfels.depgraph.maven.getTestDirectory
 import ch.loewenfels.depgraph.runner.commands.UpdateDependency
 import ch.tutteli.atrium.copyPom
 import ch.tutteli.spek.extensions.TempFolder
+import org.jetbrains.spek.api.Spek
+import org.jetbrains.spek.api.include
 import java.io.File
 
-class UpdateDependencySpec : CommandSpec(
-    UpdateDependency,
-    Companion::getNotEnoughArgs,
-    Companion::getTooManyArgs,
-    5..5
-) {
+class UpdateDependencySpec : Spek({
+    include(UpdateCommandSpec)
+
+    //TODO write spec for non-existing pom
+    //given("non-existing pom"){}
+
+}) {
+    object UpdateCommandSpec : CommandSpec(
+        UpdateDependency,
+        ::getNotEnoughArgs,
+        ::getTooManyArgs,
+        5..5
+    )
+
     companion object {
         fun getNotEnoughArgs(tempFolder: TempFolder): Array<out String> {
             val pom = File(getTestDirectory("singleProject"), "pom.xml")
