@@ -161,7 +161,6 @@ class JenkinsJobExecutor(
         }.unsafeCast<Promise<String>>()
     }
 
-    //TODO move to api, is duplicated in RemoteJenkinsM2Releaser
     companion object {
         private val resultRegex = Regex("<result>([A-Z]+)</result>")
         private const val SUCCESS = "SUCCESS"

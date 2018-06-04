@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.gui.jobexecution
 
+import ch.loewenfels.depgraph.gui.jobexecution.BuilderNumberExtractor.Companion.numberRegex
 import ch.loewenfels.depgraph.gui.sleep
 import kotlin.js.Promise
 
@@ -20,9 +21,5 @@ class QueuedItemBasedBuildNumberExtractor(
                 )
             }
         }.then { it.toInt() }
-    }
-
-    companion object {
-        private val numberRegex = Regex("<number>([0-9]+)</number>")
     }
 }
