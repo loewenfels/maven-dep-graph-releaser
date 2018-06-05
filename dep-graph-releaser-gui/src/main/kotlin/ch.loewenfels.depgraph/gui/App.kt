@@ -75,11 +75,11 @@ class App {
                     throw Error("Could not load json.", it)
                 }.then { body: String ->
                     switchLoader("loaderJson", "loaderPipeline")
-                    val modifiableJson = ModifiableJson(body)
-                    val releasePlan = deserialize(body)
+                    val modifiableJson = ModifiableJson(defaultJenkinsBaseUrl, body)
+                    val releasePlan = modifiableJson.releasePlan
                     loadOtherApiTokens(releasePlan).then {
                         val dependencies = createDependencies(
-                            defaultJenkinsBaseUrl, publishJobUrl, usernameToken, modifiableJson, releasePlan, menu
+                            defaultJenkinsBaseUrl, publishJobUrl, usernameToken, modifiableJson, menu
                         )
                         menu.initDependencies(releasePlan, Downloader(modifiableJson), dependencies, modifiableJson)
                         Gui(releasePlan, menu)
@@ -172,7 +172,6 @@ class App {
             publishJobUrl: String?,
             usernameAndApiToken: UsernameAndApiToken?,
             modifiableJson: ModifiableJson,
-            releasePlan: ReleasePlan,
             menu: Menu
         ): Menu.Dependencies? {
             return if (publishJobUrl != null && defaultJenkinsBaseUrl != null && usernameAndApiToken != null) {
@@ -181,15 +180,11 @@ class App {
 
                 val jenkinsJobExecutor = JenkinsJobExecutor(UsernameTokenRegistry)
                 val simulatingJobExecutor = SimulatingJobExecutor()
-                val releaseJobExecutionDataFactory = ReleaseJobExecutionDataFactory(defaultJenkinsBaseUrl, releasePlan)
-                val dryRunJobExecutionDataFactory = DryRunJobExecutionDataFactory(defaultJenkinsBaseUrl, releasePlan)
                 Menu.Dependencies(
                     publisher,
                     releaser,
                     jenkinsJobExecutor,
-                    simulatingJobExecutor,
-                    releaseJobExecutionDataFactory,
-                    dryRunJobExecutionDataFactory
+                    simulatingJobExecutor
                 )
             } else {
                 null

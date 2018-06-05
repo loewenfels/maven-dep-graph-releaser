@@ -142,7 +142,8 @@ class Menu {
                     releasePlan,
                     dependencies,
                     dependencies.jenkinsJobExecutor,
-                    dependencies.dryRunExecutionDataFactory)
+                    modifiableJson.dryRunExecutionDataFactory
+                )
             }
             activateReleaseButton()
             releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
@@ -151,7 +152,7 @@ class Menu {
                     releasePlan,
                     dependencies,
                     dependencies.jenkinsJobExecutor,
-                    dependencies.releaseJobExecutionDataFactory
+                    modifiableJson.releaseJobExecutionDataFactory
                 )
             }
         }
@@ -163,7 +164,6 @@ class Menu {
             "${fakeJenkinsBaseUrl}dgr-publisher/",
             UsernameAndApiToken("test", "test"),
             modifiableJson,
-            releasePlan,
             this
         )!!
 
@@ -174,12 +174,11 @@ class Menu {
                 releasePlan,
                 nonNullDependencies,
                 nonNullDependencies.simulatingJobExecutor,
-                nonNullDependencies.releaseJobExecutionDataFactory
-            )
-                .finally {
-                    //reset to null in case it was not defined previously
-                    publisher = dependencies?.publisher
-                }
+                modifiableJson.releaseJobExecutionDataFactory
+            ).finally {
+                //reset to null in case it was not defined previously
+                publisher = dependencies?.publisher
+            }
         }
         registerForReleaseStartEvent {
             listOf(dryRunButton, releaseButton, exploreButton).forEach {
@@ -461,9 +460,7 @@ class Menu {
         val publisher: Publisher,
         val releaser: Releaser,
         val jenkinsJobExecutor: JobExecutor,
-        val simulatingJobExecutor: JobExecutor,
-        val releaseJobExecutionDataFactory: JobExecutionDataFactory,
-        val dryRunExecutionDataFactory: JobExecutionDataFactory
+        val simulatingJobExecutor: JobExecutor
     )
 
     private enum class TypeOfRun{
