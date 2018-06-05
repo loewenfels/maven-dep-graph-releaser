@@ -160,12 +160,7 @@ class Releaser(
                 paramObject.releasePlan.getSubmodules(paramObject.project.id)
                     .asSequence()
                     .doSequentially(jobsResults as MutableList<CommandState>) { submoduleId ->
-                        triggerNonReleaseCommandsInclSubmoduleCommands(
-                            ParamObject(
-                                paramObject,
-                                submoduleId
-                            )
-                        )
+                        triggerNonReleaseCommandsInclSubmoduleCommands(ParamObject(paramObject, submoduleId))
                     }
             }.then { jobsResults ->
                 jobsResults.firstOrNull { it !== CommandState.Succeeded } ?: CommandState.Succeeded

@@ -113,10 +113,7 @@ class ContextMenu(private val releasePlan: ReleasePlan, private val menu: Menu) 
         return project.commands.asSequence()
             .mapWithIndex()
             .any { (i, _) ->
-                (index == null || i != index) && Pipeline.getCommandState(
-                    project.id,
-                    i
-                ) !== CommandState.Succeeded
+                (index == null || i != index) && Pipeline.getCommandState(project.id, i) !== CommandState.Succeeded
             }
             || releasePlan.getSubmodules(project.id)
             .any { notAllOtherCommandsSucceeded(releasePlan.getProject(it), null) }

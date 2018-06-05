@@ -1,10 +1,7 @@
 package ch.loewenfels.depgraph.gui.jobexecution
 
 import ch.loewenfels.depgraph.ConfigKey
-import ch.loewenfels.depgraph.data.Command
-import ch.loewenfels.depgraph.data.CommandState
-import ch.loewenfels.depgraph.data.Project
-import ch.loewenfels.depgraph.data.ReleasePlan
+import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
@@ -84,7 +81,7 @@ class DryRunJobExecutionDataFactory(
         groupIdArtifactIdAndNewVersion: GroupIdArtifactIdAndNewVersion
     ): String {
         val (groupId, artifactId, newVersion) = groupIdArtifactIdAndNewVersion
-        val skipCheckout = if (isFirstCommandAndNotSubmodule(project)) "false" else "true"
+        val skipCheckout = if (isFirstTriggeredCommand(project)) "false" else "true"
         return "command=$commandName" +
             "&pathToProject=${project.relativePath}" +
             "&skipCheckout=$skipCheckout" +
@@ -97,16 +94,26 @@ class DryRunJobExecutionDataFactory(
             "&newVersion=$newVersion"
     }
 
-    private fun isFirstCommandAndNotSubmodule(project: Project): Boolean {
-        if (project.isSubmodule) return false
+    private fun isFirstTriggeredCommand(project: Project): Boolean {
+        if(project.isSubmodule) return isFirstTriggeredCommand(searchTopMultiModule(project.id))
+        return !commandRanOnProjectOrSubmodules(project)
+    }
 
-        project.commands.forEachIndexed { index, _ ->
+    private fun searchTopMultiModule(projectId: ProjectId): Project
+        = releasePlan.getAllSubmodules().entries
+            .find { (_, v) -> v.contains(projectId) }
+            .let { if(it != null) searchTopMultiModule(it.key) else releasePlan.getProject(projectId) }
+
+    private fun commandRanOnProjectOrSubmodules(project: Project): Boolean {
+        var commandAlreadyRan = project.commands.withIndex().any { (index, _) ->
             val state = Pipeline.getCommandState(project.id, index)
-            if (state === CommandState.Succeeded || state === CommandState.Failed) {
-                return false
-            }
+            state === CommandState.Succeeded || state === CommandState.Failed
         }
-        return true
+        val submodules = releasePlan.getSubmodules(project.id)
+        commandAlreadyRan = commandAlreadyRan || (submodules.isNotEmpty() && submodules.any {
+            commandRanOnProjectOrSubmodules(releasePlan.getProject(it))
+        })
+        return commandAlreadyRan
     }
 
     private fun createJobExecutionData(
