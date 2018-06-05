@@ -7,7 +7,6 @@ import kotlin.browser.window
 import kotlin.js.Promise
 
 class Publisher(
-    private val usernameAndApiToken: UsernameAndApiToken,
     private val publishJobUrl: String,
     private var modifiableJson: ModifiableJson
 ) {

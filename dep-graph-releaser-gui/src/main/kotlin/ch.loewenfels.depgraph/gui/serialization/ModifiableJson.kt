@@ -1,5 +1,7 @@
 package ch.loewenfels.depgraph.gui.serialization
 
+import ch.loewenfels.depgraph.data.ReleasePlan
+
 class ModifiableJson(json: String) {
 
     private var _json: String = json
@@ -23,10 +25,12 @@ class ModifiableJson(json: String) {
     }
 
     /**
-     * Applies the changes made in the GUI to a copy of [json] and returns it.
+     * Applies the changes made in the GUI to a **copy** of [json] and returns it.
      */
     fun getJsonWithAppliedChanges(): String {
         val (_, newJson) = ChangeApplier.createReleasePlanJsonWithChanges(json)
         return newJson
     }
+
+    fun getReleasePlan(): ReleasePlan = deserialize(json)
 }

@@ -176,7 +176,7 @@ class App {
             menu: Menu
         ): Menu.Dependencies? {
             return if (publishJobUrl != null && defaultJenkinsBaseUrl != null && usernameAndApiToken != null) {
-                val publisher = Publisher(usernameAndApiToken, publishJobUrl, modifiableJson)
+                val publisher = Publisher(publishJobUrl, modifiableJson)
                 val releaser = Releaser(defaultJenkinsBaseUrl, modifiableJson, menu)
 
                 val jenkinsJobExecutor = JenkinsJobExecutor(UsernameTokenRegistry)
