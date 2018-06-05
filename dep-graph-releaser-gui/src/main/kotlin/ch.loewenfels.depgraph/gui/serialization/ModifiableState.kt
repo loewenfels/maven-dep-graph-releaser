@@ -5,7 +5,7 @@ import ch.loewenfels.depgraph.gui.jobexecution.DryRunJobExecutionDataFactory
 import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionDataFactory
 import ch.loewenfels.depgraph.gui.jobexecution.ReleaseJobExecutionDataFactory
 
-class ModifiableJson(defaultJenkinsBaseUrl: String?, json: String) {
+class ModifiableState(defaultJenkinsBaseUrl: String?, json: String) {
     private val defaultJenkinsBaseUrl : String
 
     private var _json: String

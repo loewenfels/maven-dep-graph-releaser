@@ -6,8 +6,7 @@ import ch.loewenfels.depgraph.gui.actions.Publisher
 import ch.loewenfels.depgraph.gui.actions.Releaser
 import ch.loewenfels.depgraph.gui.components.Menu
 import ch.loewenfels.depgraph.gui.jobexecution.*
-import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
-import ch.loewenfels.depgraph.gui.serialization.deserialize
+import ch.loewenfels.depgraph.gui.serialization.ModifiableState
 import ch.loewenfels.depgraph.parseRemoteRegex
 import org.w3c.fetch.Response
 import kotlin.browser.window
@@ -75,7 +74,7 @@ class App {
                     throw Error("Could not load json.", it)
                 }.then { body: String ->
                     switchLoader("loaderJson", "loaderPipeline")
-                    val modifiableJson = ModifiableJson(defaultJenkinsBaseUrl, body)
+                    val modifiableJson = ModifiableState(defaultJenkinsBaseUrl, body)
                     val releasePlan = modifiableJson.releasePlan
                     loadOtherApiTokens(releasePlan).then {
                         val dependencies = createDependencies(
@@ -171,12 +170,12 @@ class App {
             defaultJenkinsBaseUrl: String?,
             publishJobUrl: String?,
             usernameAndApiToken: UsernameAndApiToken?,
-            modifiableJson: ModifiableJson,
+            modifiableState: ModifiableState,
             menu: Menu
         ): Menu.Dependencies? {
             return if (publishJobUrl != null && defaultJenkinsBaseUrl != null && usernameAndApiToken != null) {
-                val publisher = Publisher(publishJobUrl, modifiableJson)
-                val releaser = Releaser(defaultJenkinsBaseUrl, modifiableJson, menu)
+                val publisher = Publisher(publishJobUrl, modifiableState)
+                val releaser = Releaser(defaultJenkinsBaseUrl, modifiableState, menu)
 
                 val jenkinsJobExecutor = JenkinsJobExecutor(UsernameTokenRegistry)
                 val simulatingJobExecutor = SimulatingJobExecutor()

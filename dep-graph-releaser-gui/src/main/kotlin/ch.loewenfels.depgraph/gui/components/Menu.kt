@@ -9,7 +9,7 @@ import ch.loewenfels.depgraph.gui.actions.Downloader
 import ch.loewenfels.depgraph.gui.actions.Publisher
 import ch.loewenfels.depgraph.gui.actions.Releaser
 import ch.loewenfels.depgraph.gui.jobexecution.*
-import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
+import ch.loewenfels.depgraph.gui.serialization.ModifiableState
 import ch.tutteli.kbox.mapWithIndex
 import org.w3c.dom.CustomEvent
 import org.w3c.dom.CustomEventInit
@@ -86,7 +86,7 @@ class Menu {
         releasePlan: ReleasePlan,
         downloader: Downloader,
         dependencies: Dependencies?,
-        modifiableJson: ModifiableJson
+        modifiableState: ModifiableState
     ) {
         if (dependencies != null) {
             publisher = dependencies.publisher
@@ -103,7 +103,7 @@ class Menu {
         }
 
         initSaveAndDownloadButton(downloader, dependencies)
-        initRunButtons(releasePlan, dependencies, modifiableJson)
+        initRunButtons(releasePlan, dependencies, modifiableState)
 
         when (releasePlan.state) {
             ReleaseState.Ready -> Unit /* nothing to do */
@@ -132,7 +132,7 @@ class Menu {
         }
     }
 
-    private fun initRunButtons(releasePlan: ReleasePlan, dependencies: Dependencies?, modifiableJson: ModifiableJson) {
+    private fun initRunButtons(releasePlan: ReleasePlan, dependencies: Dependencies?, modifiableState: ModifiableState) {
         if (dependencies != null) {
 
             activateDryRunButton()
@@ -142,7 +142,7 @@ class Menu {
                     releasePlan,
                     dependencies,
                     dependencies.jenkinsJobExecutor,
-                    modifiableJson.dryRunExecutionDataFactory
+                    modifiableState.dryRunExecutionDataFactory
                 )
             }
             activateReleaseButton()
@@ -152,7 +152,7 @@ class Menu {
                     releasePlan,
                     dependencies,
                     dependencies.jenkinsJobExecutor,
-                    modifiableJson.releaseJobExecutionDataFactory
+                    modifiableState.releaseJobExecutionDataFactory
                 )
             }
         }
@@ -163,7 +163,7 @@ class Menu {
             fakeJenkinsBaseUrl,
             "${fakeJenkinsBaseUrl}dgr-publisher/",
             UsernameAndApiToken("test", "test"),
-            modifiableJson,
+            modifiableState,
             this
         )!!
 
@@ -174,7 +174,7 @@ class Menu {
                 releasePlan,
                 nonNullDependencies,
                 nonNullDependencies.simulatingJobExecutor,
-                modifiableJson.releaseJobExecutionDataFactory
+                modifiableState.releaseJobExecutionDataFactory
             ).finally {
                 //reset to null in case it was not defined previously
                 publisher = dependencies?.publisher

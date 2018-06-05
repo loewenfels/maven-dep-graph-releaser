@@ -2,13 +2,13 @@ package ch.loewenfels.depgraph.gui.actions
 
 import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.jobexecution.*
-import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
+import ch.loewenfels.depgraph.gui.serialization.ModifiableState
 import kotlin.browser.window
 import kotlin.js.Promise
 
 class Publisher(
     private val publishJobUrl: String,
-    private var modifiableJson: ModifiableJson
+    private var modifiableState: ModifiableState
 ) {
 
     fun publish(fileName: String, verbose: Boolean, jobExecutor: JobExecutor): Promise<*> {
@@ -16,7 +16,7 @@ class Publisher(
         val doNothingPromise: (Any) -> Promise<*> = { Promise.resolve(1) }
         val parameters = mapOf(
             "fileName" to fileName,
-            "json" to modifiableJson.json
+            "json" to modifiableState.json
         )
         val jobExecutionData = JobExecutionData.buildWithParameters(
             "publish $fileName.json",
@@ -104,7 +104,7 @@ class Publisher(
     }
 
     fun applyChanges(): Boolean {
-        return modifiableJson.applyChanges()
+        return modifiableState.applyChanges()
     }
 
     companion object {

@@ -5,7 +5,7 @@ import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.components.Menu
 import ch.loewenfels.depgraph.gui.components.Pipeline
 import ch.loewenfels.depgraph.gui.jobexecution.*
-import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
+import ch.loewenfels.depgraph.gui.serialization.ModifiableState
 import ch.loewenfels.depgraph.gui.serialization.deserialize
 import ch.tutteli.kbox.mapWithIndex
 import org.w3c.dom.HTMLAnchorElement
@@ -16,12 +16,12 @@ import kotlin.js.Promise
 
 class Releaser(
     private val jenkinsBaseUrl: String,
-    private val modifiableJson: ModifiableJson,
+    private val modifiableState: ModifiableState,
     private val menu: Menu
 ) {
 
     fun release(jobExecutor: JobExecutor, jobExecutionDataFactory: JobExecutionDataFactory): Promise<Boolean> {
-        val releasePlan = deserialize(modifiableJson.json)
+        val releasePlan = deserialize(modifiableState.json)
         warnIfNotOnSameHost()
         val project = releasePlan.getRootProject()
         val paramObject = ParamObject(
