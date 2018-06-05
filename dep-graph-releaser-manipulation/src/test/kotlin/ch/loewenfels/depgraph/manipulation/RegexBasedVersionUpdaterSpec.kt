@@ -88,14 +88,15 @@ object RegexBasedVersionUpdaterSpec : Spek({
             }
         }
         given("new version = old version") {
-            val errMessage = "Version is already up-to-date; did you pass wrong argument for newVersion"
-            it("throws an IllegalArgumentException, mentioning `$errMessage`") {
-                val pom = getPom("errorCases/sameVersion.pom")
-                val tmpPom = copyPom(tempFolder, pom)
-                expect {
-                    updateDependency(testee, tmpPom, exampleA)
-                }.toThrow<IllegalArgumentException> { message { contains(errMessage, exampleA.releaseVersion) } }
-            }
+            testSameVersionThrowsIllegalArgumentException("errorCases/sameVersion.pom", tempFolder, testee)
+        }
+
+        given("new version = old version in dependency management") {
+            testSameVersionThrowsIllegalArgumentException("errorCases/sameVersionDependencyManagement.pom", tempFolder, testee)
+        }
+
+        given("new version = old version in property") {
+            testSameVersionThrowsIllegalArgumentException("errorCases/sameVersionInProperty.pom", tempFolder, testee)
         }
     }
 
@@ -177,6 +178,21 @@ object RegexBasedVersionUpdaterSpec : Spek({
         testWithExampleA(testee, tempFolder, pom)
     }
 })
+
+private fun SpecBody.testSameVersionThrowsIllegalArgumentException(
+    pomName: String,
+    tempFolder: TempFolder,
+    testee: RegexBasedVersionUpdater
+) {
+    val errMessage = "Version is already up-to-date; did you pass wrong argument for newVersion?"
+    it("throws an IllegalArgumentException, mentioning `$errMessage`") {
+        val pom = getPom(pomName)
+        val tmpPom = copyPom(tempFolder, pom)
+        expect {
+            updateDependency(testee, tmpPom, exampleA)
+        }.toThrow<IllegalArgumentException> { message { contains(errMessage, exampleA.releaseVersion) } }
+    }
+}
 
 private fun SpecBody.testProjectVersionWithExampleA(
     tempFolder: TempFolder,

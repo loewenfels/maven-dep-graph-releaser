@@ -18,6 +18,7 @@ object RegexBasedVersionUpdater {
     private val tagRegex = Regex("<([a-zA-Z0-9_.-]+)>([^<]+)</([a-zA-Z0-9_.-]+)>")
     private const val EXCLUSIONS = "exclusions"
     private val exclusionRegex = Regex("<$EXCLUSIONS>$someChars</$EXCLUSIONS>")
+    private const val ERROR_MESSAGE = "Version is already up-to-date; did you pass wrong argument for newVersion?"
 
     fun updateDependency(pom: File, groupId: String, artifactId: String, newVersion: String) {
         require(pom.exists()) {
@@ -157,7 +158,7 @@ object RegexBasedVersionUpdater {
                 "Version was neither static nor a reference to a single property. Given: $version"
             )
             paramObject.newVersion == version -> throw IllegalArgumentException(
-                "Version is already up-to-date; did you pass wrong argument for newVersion? Given: $version"
+                "$ERROR_MESSAGE Given: $version"
             )
             else -> appendNewVersionAndSetUpdated(paramObject)
         }
@@ -178,6 +179,10 @@ object RegexBasedVersionUpdater {
                     throw UnsupportedOperationException(
                         "Property contains another property.\nProperty: $propertyName\nValue: $version"
                     )
+                }
+                require(propertiesParamObject.newVersion != version) {
+                    "$ERROR_MESSAGE Given: $version" +
+                        "\nIt could be that the property is shared among different dependencies and that it was updated by a previous update command. Check the SCM history (e.g. `git log`)."
                 }
                 appendNewVersionAndSetUpdated(propertiesParamObject)
             }
