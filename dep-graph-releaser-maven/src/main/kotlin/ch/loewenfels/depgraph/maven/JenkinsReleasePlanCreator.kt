@@ -345,7 +345,7 @@ class JenkinsReleasePlanCreator(
             val sb = StringBuilder()
             sb.append("Project ").append(projectId.identifier)
                 .append(" has one or more inter module cyclic dependencies. ")
-                .append("Might be handled by the M2 Release Plugin depending what relation they have and depending on where they are defined. It might also fail, in any case you should reconsider your design:\n")
+                .append("Might be handled by the Release Command depending what relation they have and depending on where they are defined. Yet, it might also fail; in any case you should reconsider your design:\n")
             appendCyclicDependents(sb, projectId, dependentEntry.values)
             sb.toString()
         })
