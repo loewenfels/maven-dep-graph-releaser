@@ -100,14 +100,28 @@ object ChangeApplier {
                 "An empty or blank Release Version is not allowed"
             }
             project.releaseVersion = input.value
-            releasePlan.getSubmodules(mavenProjectId).forEach { submoduleId ->
-                releasePlanJson.projects
-                    .first { deserializeProjectId(it.id) == submoduleId }
-                    .releaseVersion = input.value
-            }
+            updateReleaseVersionOfSubmodules(releasePlan, releasePlanJson, mavenProjectId, input.value)
             return true
         }
         return false
+    }
+
+    private fun updateReleaseVersionOfSubmodules(
+        releasePlan: ReleasePlan,
+        releasePlanJson: ReleasePlanJson,
+        mavenProjectId: ProjectId,
+        releaseVersion: String
+    ) {
+        releasePlan.getSubmodules(mavenProjectId).forEach { submoduleId ->
+            releasePlanJson.projects
+                .asSequence()
+                .map { it to deserializeProjectId(it.id) }
+                .first { it.second == submoduleId }
+                .apply {
+                    first.releaseVersion = releaseVersion
+                    updateReleaseVersionOfSubmodules(releasePlan, releasePlanJson, second, releaseVersion)
+                }
+        }
     }
 
     private fun replaceCommandStateIfChanged(
