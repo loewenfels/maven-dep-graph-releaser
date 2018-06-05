@@ -5,8 +5,7 @@ import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.components.Menu
 import ch.loewenfels.depgraph.gui.components.Pipeline
 import ch.loewenfels.depgraph.gui.jobexecution.*
-import ch.loewenfels.depgraph.gui.serialization.ModifiableJson
-import ch.loewenfels.depgraph.gui.serialization.deserialize
+import ch.loewenfels.depgraph.gui.serialization.ModifiableState
 import ch.tutteli.kbox.mapWithIndex
 import org.w3c.dom.HTMLAnchorElement
 import kotlin.browser.window
@@ -16,16 +15,15 @@ import kotlin.js.Promise
 
 class Releaser(
     private val jenkinsBaseUrl: String,
-    private val modifiableJson: ModifiableJson,
+    private val modifiableState: ModifiableState,
     private val menu: Menu
 ) {
 
     fun release(jobExecutor: JobExecutor, jobExecutionDataFactory: JobExecutionDataFactory): Promise<Boolean> {
-        val releasePlan = deserialize(modifiableJson.json)
         warnIfNotOnSameHost()
-        val project = releasePlan.getRootProject()
+        val rootProject = modifiableState.releasePlan.getRootProject()
         val paramObject = ParamObject(
-            releasePlan, jobExecutor, jobExecutionDataFactory, project, hashMapOf(), hashMapOf()
+            modifiableState.releasePlan, jobExecutor, jobExecutionDataFactory, rootProject, hashMapOf(), hashMapOf()
         )
         return release(paramObject)
     }
@@ -257,9 +255,8 @@ class Releaser(
                 val state = elementById<HTMLAnchorElement>(
                     "${Pipeline.getCommandId(project, index)}${Pipeline.STATE_SUFFIX}"
                 )
-                val suffix = "console#footer"
-                val href = if (!state.href.endsWith(suffix)) {
-                    state.href + suffix
+                val href = if (!state.href.endsWith(endOfConsoleUrlSufix)) {
+                    state.href + endOfConsoleUrlSufix
                 } else {
                     state.href
                 }
