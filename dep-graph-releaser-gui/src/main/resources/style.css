@@ -512,7 +512,6 @@ input:disabled {
     left: 0;
     bottom: 0px;
     max-height: 40%;
-    overflow-y: auto;
     padding-left: 15px;
     padding-right: 15px;
 }
@@ -527,6 +526,7 @@ input:disabled {
 }
 #messages {
     right: 0px;
+    overflow-y: auto;
 }
 
 .minimized {
@@ -546,6 +546,12 @@ input:disabled {
     padding: 10px;
     padding-left: 8px;
     margin-top: 20px;
+}
+#messages > div:nth-child(2) {
+    margin-top: 0px;
+}
+#messages > div:last-child {
+    margin-bottom: 10px;
 }
 
 #messages .material-icons {
@@ -650,8 +656,9 @@ input:disabled {
 
 
 #hideMessages {
-    float: right;
-    margin-right: 10px;
+    position: fixed;
+    right: 20px;
+    margin-top: -20px;
 }
 
 #hideMessages .material-icons {
@@ -671,18 +678,9 @@ input:disabled {
     color: #000;
 }
 
-#hideMessages:first-child:nth-last-child(2) {
+#hideMessages:first-child:nth-last-child(1) {
     display: none;
 }
-
-#messages .spacing {
-    display: block;
-    padding-bottom: 10px;
-}
-#messages .spacing:nth-child(2) {
-    display: none;
-}
-
 
 #modals:not(:empty) {
     position: fixed;
