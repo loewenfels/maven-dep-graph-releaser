@@ -76,7 +76,12 @@ class App {
                     switchLoader("loaderJson", "loaderPipeline")
                     val modifiableJson = ModifiableState(defaultJenkinsBaseUrl, body)
                     val releasePlan = modifiableJson.releasePlan
-                    loadOtherApiTokens(releasePlan).then {
+                    val promise = if (usernameToken != null) {
+                        loadOtherApiTokens(releasePlan)
+                    } else {
+                        Promise.resolve(Unit)
+                    }
+                    promise.then {
                         val dependencies = createDependencies(
                             defaultJenkinsBaseUrl, publishJobUrl, usernameToken, modifiableJson, menu
                         )
@@ -100,11 +105,7 @@ class App {
                 UsernameTokenRegistry.register(remoteJenkinsBaseUrl).then { pair ->
                     updateUserToolTip(remoteJenkinsBaseUrl, pair)
                     if (pair == null) {
-                        menu.setHalfVerified()
-                        showWarning("You are not logged in at $remoteJenkinsBaseUrl.\n" +
-                            "You can perform a Dry Run (runs on $defaultJenkinsBaseUrl) but a release involving the remote jenkins will most likely fail.\n\n" +
-                            "Go to the log in: $remoteJenkinsBaseUrl/login?from=" + window.location
-                        )
+                        menu.setHalfVerified(defaultJenkinsBaseUrl, remoteJenkinsBaseUrl)
                     }
                 }
             } else {

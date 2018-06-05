@@ -72,9 +72,15 @@ class Menu {
         userButton.removeClass(DEACTIVATED)
     }
 
-    fun setHalfVerified() {
-        userIcon.innerText = "error"
-        userButton.addClass("warning")
+    fun setHalfVerified(defaultJenkinsBaseUrl: String?, remoteJenkinsBaseUrl: String) {
+        if (!userButton.hasClass(DEACTIVATED)) {
+            userIcon.innerText = "error"
+            userButton.addClass("warning")
+            showWarning("You are not logged in at $remoteJenkinsBaseUrl.\n" +
+                "You can perform a Dry Run (runs on $defaultJenkinsBaseUrl) but a release involving the remote jenkins will most likely fail.\n\n" +
+                "Go to the log in: $remoteJenkinsBaseUrl/login?from=" + window.location
+            )
+        }
     }
 
     fun appendToUserButtonToolTip(url: String, username: String, name: String?) {
