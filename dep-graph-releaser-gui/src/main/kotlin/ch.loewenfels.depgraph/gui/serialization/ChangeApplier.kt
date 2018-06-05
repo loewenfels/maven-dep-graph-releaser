@@ -1,59 +1,45 @@
 package ch.loewenfels.depgraph.gui.serialization
 
 import ch.loewenfels.depgraph.ConfigKey
-import ch.loewenfels.depgraph.data.Command
-import ch.loewenfels.depgraph.data.CommandState
-import ch.loewenfels.depgraph.data.ProjectId
-import ch.loewenfels.depgraph.data.ReleaseState
+import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsCommand
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
-import ch.loewenfels.depgraph.gui.*
+import ch.loewenfels.depgraph.gui.Gui
 import ch.loewenfels.depgraph.gui.components.Pipeline
+import ch.loewenfels.depgraph.gui.elementById
+import ch.loewenfels.depgraph.gui.getTextField
+import ch.loewenfels.depgraph.gui.getTextFieldOrNull
 import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.HTMLTextAreaElement
 
 object ChangeApplier {
 
-    fun createReleasePlanJsonWithChanges(json: String): Pair<Boolean, String> {
+    fun createReleasePlanJsonWithChanges(releasePlan: ReleasePlan, json: String): Pair<Boolean, String> {
         val releasePlanJson = JSON.parse<ReleasePlanJson>(json)
-        val changed = applyChanges(releasePlanJson)
+        val changed = applyChanges(releasePlan, releasePlanJson)
         val newJson = JSON.stringify(releasePlanJson)
         return changed to newJson
     }
 
-    private fun applyChanges(releasePlanJson: ReleasePlanJson): Boolean {
+    private fun applyChanges(releasePlan: ReleasePlan, releasePlanJson: ReleasePlanJson): Boolean {
         var changed = false
 
-        changed = changed or
-            replacePublishIdIfChanged(releasePlanJson)
-        changed = changed or
-            replaceReleaseStateIfChanged(releasePlanJson)
+        changed = changed or replacePublishIdIfChanged(releasePlanJson)
+        changed = changed or replaceReleaseStateIfChanged(releasePlanJson)
 
         releasePlanJson.projects.forEach { project ->
             val mavenProjectId = deserializeProjectId(project.id)
-            changed = changed or replaceReleaseVersionIfChanged(
-                project,
-                mavenProjectId
-            )
+            changed = changed or replaceReleaseVersionIfChanged(releasePlan, releasePlanJson, project, mavenProjectId)
 
             project.commands.forEachIndexed { index, command ->
                 changed = changed or
-                    replaceCommandStateIfChanged(
-                        command,
-                        mavenProjectId,
-                        index
-                    ) or
-                    replaceFieldsIfChanged(
-                        command,
-                        mavenProjectId,
-                        index
-                    )
+                    replaceCommandStateIfChanged(command, mavenProjectId, index) or
+                    replaceFieldsIfChanged(command, mavenProjectId, index)
             }
         }
 
-        changed = changed or
-            replaceConfigEntriesIfChanged(releasePlanJson)
+        changed = changed or replaceConfigEntriesIfChanged(releasePlanJson)
         return changed
     }
 
@@ -102,13 +88,23 @@ object ChangeApplier {
     }
 
 
-    private fun replaceReleaseVersionIfChanged(project: ProjectJson, mavenProjectId: ProjectId): Boolean {
+    private fun replaceReleaseVersionIfChanged(
+        releasePlan: ReleasePlan,
+        releasePlanJson: ReleasePlanJson,
+        project: ProjectJson,
+        mavenProjectId: ProjectId
+    ): Boolean {
         val input = getTextFieldOrNull("${mavenProjectId.identifier}:releaseVersion")
         if (input != null && project.releaseVersion != input.value) {
             check(input.value.isNotBlank()) {
                 "An empty or blank Release Version is not allowed"
             }
             project.releaseVersion = input.value
+            releasePlan.getSubmodules(mavenProjectId).forEach { submoduleId ->
+                releasePlanJson.projects
+                    .first { deserializeProjectId(it.id) == submoduleId }
+                    .releaseVersion = input.value
+            }
             return true
         }
         return false
@@ -168,34 +164,17 @@ object ChangeApplier {
     private fun replaceFieldsIfChanged(command: GenericType<Command>, mavenProjectId: ProjectId, index: Int): Boolean {
         return when (command.t) {
             JENKINS_MAVEN_RELEASE_PLUGIN, JENKINS_MULTI_MAVEN_RELEASE_PLUGIN -> {
-                replaceNextVersionIfChanged(
-                    command.p,
-                    mavenProjectId,
-                    index
-                ) or
-                    replaceBuildUrlIfChanged(
-                        command.p,
-                        mavenProjectId,
-                        index
-                    )
+                replaceNextDevVersionIfChanged(command.p, mavenProjectId, index) or
+                    replaceBuildUrlIfChanged(command.p, mavenProjectId, index)
             }
-            JENKINS_UPDATE_DEPENDENCY -> replaceBuildUrlIfChanged(
-                command.p,
-                mavenProjectId,
-                index
-            )
+            JENKINS_UPDATE_DEPENDENCY -> replaceBuildUrlIfChanged(command.p, mavenProjectId, index)
             else -> throw UnsupportedOperationException("${command.t} is not supported.")
         }
     }
 
-    private fun replaceNextVersionIfChanged(command: Command, mavenProjectId: ProjectId, index: Int): Boolean {
+    private fun replaceNextDevVersionIfChanged(command: Command, mavenProjectId: ProjectId, index: Int): Boolean {
         val m2Command = command.unsafeCast<M2ReleaseCommand>()
-        val input = getTextField(
-            Pipeline.getCommandId(
-                mavenProjectId,
-                index
-            ) + Pipeline.NEXT_DEV_VERSION_SUFFIX
-        )
+        val input = getTextField(Pipeline.getCommandId(mavenProjectId, index) + Pipeline.NEXT_DEV_VERSION_SUFFIX)
         if (m2Command.nextDevVersion != input.value) {
             check(input.value.isNotBlank()) {
                 "An empty or blank Next Dev Version is not allowed"

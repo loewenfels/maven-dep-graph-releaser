@@ -6,7 +6,6 @@ import ch.loewenfels.depgraph.gui.components.Menu
 import ch.loewenfels.depgraph.gui.components.Pipeline
 import ch.loewenfels.depgraph.gui.jobexecution.*
 import ch.loewenfels.depgraph.gui.serialization.ModifiableState
-import ch.loewenfels.depgraph.gui.serialization.deserialize
 import ch.tutteli.kbox.mapWithIndex
 import org.w3c.dom.HTMLAnchorElement
 import kotlin.browser.window
@@ -21,11 +20,10 @@ class Releaser(
 ) {
 
     fun release(jobExecutor: JobExecutor, jobExecutionDataFactory: JobExecutionDataFactory): Promise<Boolean> {
-        val releasePlan = deserialize(modifiableState.json)
         warnIfNotOnSameHost()
-        val project = releasePlan.getRootProject()
+        val rootProject = modifiableState.releasePlan.getRootProject()
         val paramObject = ParamObject(
-            releasePlan, jobExecutor, jobExecutionDataFactory, project, hashMapOf(), hashMapOf()
+            modifiableState.releasePlan, jobExecutor, jobExecutionDataFactory, rootProject, hashMapOf(), hashMapOf()
         )
         return release(paramObject)
     }

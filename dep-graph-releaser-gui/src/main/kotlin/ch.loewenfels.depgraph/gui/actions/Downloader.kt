@@ -10,9 +10,7 @@ class Downloader(private val modifiableState: ModifiableState) {
     fun download() {
         val json = modifiableState.getJsonWithAppliedChanges()
         val a = document.createElement("a") as HTMLElement
-        a.setAttribute("href", "data:text/plain;charset=utf-8,${encodeURIComponent(
-            json
-        )}")
+        a.setAttribute("href", "data:text/plain;charset=utf-8,${encodeURIComponent(json)}")
         a.setAttribute("download", "release.json")
         a.style.display = "none"
         document.body!!.appendChild(a)

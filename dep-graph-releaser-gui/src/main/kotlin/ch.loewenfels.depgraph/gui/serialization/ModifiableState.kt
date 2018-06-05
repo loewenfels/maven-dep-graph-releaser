@@ -55,7 +55,7 @@ class ModifiableState(defaultJenkinsBaseUrl: String?, json: String) {
      * @return `true` in case changes were made; `false` otherwise.
      */
     fun applyChanges(): Boolean {
-        val (changed, newJson) = ChangeApplier.createReleasePlanJsonWithChanges(json)
+        val (changed, newJson) = ChangeApplier.createReleasePlanJsonWithChanges(releasePlan, json)
         this.json = newJson
         initJsonDependentFields()
         return changed
@@ -65,7 +65,7 @@ class ModifiableState(defaultJenkinsBaseUrl: String?, json: String) {
      * Applies the changes made in the GUI to a **copy** of [json] and returns it.
      */
     fun getJsonWithAppliedChanges(): String {
-        val (_, newJson) = ChangeApplier.createReleasePlanJsonWithChanges(json)
+        val (_, newJson) = ChangeApplier.createReleasePlanJsonWithChanges(releasePlan, json)
         return newJson
     }
 }
