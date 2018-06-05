@@ -12,12 +12,18 @@ import kotlin.browser.window
 import kotlin.collections.set
 import kotlin.js.Promise
 
-
 class Releaser(
-    private val jenkinsBaseUrl: String,
+    defaultJenkinsBaseUrl: String,
     private val modifiableState: ModifiableState,
     private val menu: Menu
 ) {
+
+    private val isOnSameHost: Boolean
+
+    init{
+        val prefix = window.location.protocol + "//" + window.location.hostname
+        isOnSameHost = defaultJenkinsBaseUrl.startsWith(prefix)
+    }
 
     fun release(jobExecutor: JobExecutor, jobExecutionDataFactory: JobExecutionDataFactory): Promise<Boolean> {
         warnIfNotOnSameHost()
@@ -29,8 +35,6 @@ class Releaser(
     }
 
     private fun warnIfNotOnSameHost() {
-        val prefix = window.location.protocol + "//" + window.location.hostname
-        val isOnSameHost = jenkinsBaseUrl.startsWith(prefix)
         if (!isOnSameHost) {
             showWarning(
                 "Remote publish server detected. We currently do not support to consume remote release.json." +
