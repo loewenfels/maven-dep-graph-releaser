@@ -44,7 +44,6 @@
                                 <argument>${json}</argument>
                                 <argument>${updateDependencyJob}</argument>
                                 <argument>${remoteRegex}</argument>
-                                <argument>${remoteJob}</argument>
                                 <argument>${dryRunJob}</argument>
                                 <argument>-regexParams=${regexParams}</argument>
                                 <argument>-disableRegex=${disableRegex}</argument>
