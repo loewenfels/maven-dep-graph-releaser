@@ -30,8 +30,8 @@ object Json : ConsoleCommand {
     override val arguments by lazy {
         """
         |$name requires the following arguments in the given order:
-        |groupId                   // maven groupId of the project which shall be released
-        |artifactId                // maven artifactId of the project which shall be released
+        |gId                       // maven groupId of the project which shall be released
+        |aId                       // maven artifactId of the project which shall be released
         |dir                       // path to the directory where all projects are
         |json                      // path + file name for the resulting json file
         |${ConfigKey.UPDATE_DEPENDENCY_JOB.asString()}       // the name of the update dependency job
