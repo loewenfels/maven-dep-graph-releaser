@@ -2,16 +2,14 @@ package ch.loewenfels.depgraph.runner.console
 
 import ch.loewenfels.depgraph.maven.getTestDirectory
 import ch.loewenfels.depgraph.runner.commands.DependentProjects
-import ch.tutteli.atrium.copyPom
 import ch.tutteli.spek.extensions.TempFolder
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.include
-import java.io.File
 
 class DependentProjectsSpec : Spek({
     include(DependentProjectsCommandSpec)
 
-    //TODO write spec for non-existing pom
+    //TODO write spec for non-existing pom and wrong format
     //given("non-existing dir"){}
 
 }) {
@@ -19,7 +17,7 @@ class DependentProjectsSpec : Spek({
         DependentProjects,
         ::getNotEnoughArgs,
         ::getTooManyArgs,
-        4..5
+        4..7
     )
 
     companion object {
@@ -36,6 +34,8 @@ class DependentProjectsSpec : Spek({
                 DependentProjects.name, "com.example", "project",
                 getTestDirectory("managingVersions/inDependency").absolutePath,
                 "${DependentProjects.FORMAT}list",
+                "^(.*)$ ",
+                "https://github.com/$1",
                 "unexpectedAdditionalArg"
             )
         }

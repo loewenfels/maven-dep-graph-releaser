@@ -1,5 +1,7 @@
 package ch.loewenfels.depgraph.runner
 
+import ch.loewenfels.depgraph.data.Project
+import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.manipulation.RegexBasedVersionUpdater
 import ch.loewenfels.depgraph.maven.Analyser
@@ -10,8 +12,11 @@ import java.io.File
 import java.util.logging.Logger
 
 object Orchestrator {
+    private const val NOTICE_INCL_DEPENDENTS_WITHOUT_SUBMODULES = "(incl. dependents of dependent projects etc. but without submodules)"
+
     private val logger = Logger.getLogger(Orchestrator::class.qualifiedName)
     private val serializer = Serializer()
+
 
     fun analyseAndCreateJson(
         directoryToAnalyse: File,
@@ -19,14 +24,7 @@ object Orchestrator {
         projectToRelease: MavenProjectId,
         releasePlanCreatorOptions: JenkinsReleasePlanCreator.Options
     ) {
-        logger.info({ "Going to analyse: ${directoryToAnalyse.absolutePath}" })
-        val analyser = Analyser(directoryToAnalyse, Analyser.Options())
-        logger.info({ "Analysed ${analyser.getNumberOfProjects()} projects." })
-
-        logger.info("Going to create the release plan with ${projectToRelease.identifier} as root.")
-        val releasePlaner = JenkinsReleasePlanCreator(VersionDeterminer(), releasePlanCreatorOptions)
-        val releasePlan = releasePlaner.create(projectToRelease, analyser)
-        logger.info("Release plan created.")
+       val releasePlan = createReleasePlan(directoryToAnalyse, projectToRelease, releasePlanCreatorOptions)
 
         logger.info("Going to serialize the release plan to a json file.")
         logIfFileExists(outputFile, "resulting json file")
@@ -34,6 +32,24 @@ object Orchestrator {
         outputFile.writeText(json)
         logger.info({ "Created json file at: ${outputFile.absolutePath}" })
     }
+
+
+    private fun createReleasePlan(
+        directoryToAnalyse: File,
+        rootProject: MavenProjectId,
+        releasePlanCreatorOptions: JenkinsReleasePlanCreator.Options
+    ): ReleasePlan {
+        logger.info({ "Going to analyse: ${directoryToAnalyse.absolutePath}" })
+        val analyser = Analyser(directoryToAnalyse, Analyser.Options())
+        logger.info({ "Analysed ${analyser.getNumberOfProjects()} projects." })
+
+        logger.info("Going to create the release plan with ${rootProject.identifier} as root.")
+        val releasePlaner = JenkinsReleasePlanCreator(VersionDeterminer(), releasePlanCreatorOptions)
+        val releasePlan = releasePlaner.create(rootProject, analyser)
+        logger.info("Release plan created.")
+        return releasePlan
+    }
+
 
     fun printReleasableProjects(directoryToAnalyse: File) {
         logger.info({ "Going to analyse: ${directoryToAnalyse.absolutePath}" })
@@ -100,24 +116,43 @@ object Orchestrator {
         logger.info("updated dependency $groupId:$artifactId to new version $newVersion")
     }
 
-    fun listDependents(directoryToAnalyse: File, projectToAnalyse: MavenProjectId) {
-        logger.info({ "Going to analyse: ${directoryToAnalyse.absolutePath}" })
-        val analyser = Analyser(directoryToAnalyse, Analyser.Options())
-        logger.info({ "Analysed ${analyser.getNumberOfProjects()} projects." })
+    fun printDependents(directoryToAnalyse: File, projectToAnalyse: MavenProjectId) {
+        val releasePlan = createReleasePlanForAnalysisOnly(directoryToAnalyse, projectToAnalyse)
+        val list =  projectsWithoutSubmodulesAndRootProject(releasePlan).joinToString("\n") { it.id.identifier }
 
-        logger.info("Going to create the release plan with ${projectToAnalyse.identifier} as root.")
-        val releasePlaner = JenkinsReleasePlanCreator(
-            VersionDeterminer(), JenkinsReleasePlanCreator.Options("list", "^$")
-        )
-        val releasePlan = releasePlaner.create(projectToAnalyse, analyser)
-        logger.info("Release plan created.")
-
-        val list =  releasePlan.iterator()
-            .asSequence()
-            .filter { !it.isSubmodule }
-            .joinToString("\n") { it.id.identifier }
-
-        println("Following the dependent projects (incl. dependents of dependent projects etc. but without submodules) of ${projectToAnalyse.identifier}:" +
+        println("Following the dependent projects $NOTICE_INCL_DEPENDENTS_WITHOUT_SUBMODULES of ${projectToAnalyse.identifier}:" +
             "\n$list")
     }
+
+    fun printGitCloneForDependents(
+        directoryToAnalyse: File,
+        projectToAnalyse: MavenProjectId,
+        relativePathTransformerRegex: Regex,
+        relativePathTransformerReplacement: String
+    ) {
+        val releasePlan = createReleasePlanForAnalysisOnly(directoryToAnalyse, projectToAnalyse)
+        val list =  projectsWithoutSubmodulesAndRootProject(releasePlan)
+            .joinToString("\n") {
+                relativePathTransformerRegex.replace(it.relativePath, relativePathTransformerReplacement)
+            }
+
+        println("Following the git clone commands for the dependent projects $NOTICE_INCL_DEPENDENTS_WITHOUT_SUBMODULES of ${projectToAnalyse.identifier}:" +
+            "\n$list")
+    }
+
+    private fun createReleasePlanForAnalysisOnly(
+        directoryToAnalyse: File,
+        projectToAnalyse: MavenProjectId
+    ) = createReleasePlan(directoryToAnalyse, projectToAnalyse, JenkinsReleasePlanCreator.Options("list", "^$"))
+
+    private fun projectsWithoutSubmodulesAndRootProject(releasePlan: ReleasePlan): Sequence<Project> {
+        return releasePlan.iterator()
+            .asSequence()
+            .drop(1) // we do not want to include the release project
+            .filter { !it.isSubmodule }
+    }
+}
+
+fun main(args: Array<String>) {
+    println(Regex("(^.*$)").replace("jaxlion/jaxlion-config/", "git clone ssh://stoll@gerrit.loewenfels.ch:29418/$1"))
 }
