@@ -41,7 +41,10 @@
                                 <argument>${gId}</argument>
                                 <argument>${aId}</argument>
                                 <argument>${dir}</argument>
+                                <argument>${excludeRegex}</argument>
                                 <argument>-format=${format}</argument>
+                                <argument>-transformRegex=${transformRegex}</argument>
+                                <argument>-transformReplacement=${transformReplacement}</argument>
                             </arguments>
                         </configuration>
                     </execution>

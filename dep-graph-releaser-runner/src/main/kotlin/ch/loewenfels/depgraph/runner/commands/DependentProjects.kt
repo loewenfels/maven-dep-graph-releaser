@@ -12,19 +12,21 @@ object DependentProjects : ConsoleCommand {
 
     const val FORMAT = "-format="
     private const val TRANSFORM_REGEX_ARG = "transformRegex"
-    private const val TRANSFORM_REGEX = "-$TRANSFORM_REGEX_ARG="
-    private const val TRANSFORM_REPLACEMENT = "-transformReplacement="
+    const val TRANSFORM_REGEX = "-$TRANSFORM_REGEX_ARG="
+    private const val TRANSFORM_REPLACEMENT_ARG = "transformReplacement"
+    const val TRANSFORM_REPLACEMENT = "-$TRANSFORM_REPLACEMENT_ARG="
 
     override val name = "dependents"
     override val description =
         "Somehow (depending on the format) displays the dependent projects of a given root project."
-    override val example = "./dgr $name com.example example-project ./repos ${FORMAT}list" +
-        "$TRANSFORM_REGEX^(.*)\$ ${TRANSFORM_REPLACEMENT}https://github.com/\$1"
+    override val example = "./dgr $name com.example example-project ./repos \"[^/]+/[^/]+/.+\" " +
+        "${FORMAT}list $TRANSFORM_REGEX^(.*)\$ ${TRANSFORM_REPLACEMENT}https://github.com/\$1"
     override val arguments = """
         |$name requires the following arguments in the given order:
         |groupId                  // maven groupId of the project for which we search dependent projects
         |artifactId               // maven artifactId of the project for which we search dependent projects
         |dir                      // path to the directory where all projects are
+        |excludeRegex             // a relative path of the project matching the entire regex is excluded
         |(${FORMAT}list)           // optionally: defines in which format the dependents are displayed.
         |                         // `list` is used if not specified. Currently supported formats:
         |                         // - list         // print dependent projects
@@ -36,11 +38,11 @@ object DependentProjects : ConsoleCommand {
         |(${TRANSFORM_REPLACEMENT}https://...$1    // replacement pattern of the $TRANSFORM_REGEX_ARG
         """.trimMargin()
 
-    override fun numOfArgsNotOk(number: Int) = number < 4 || number > 7
+    override fun numOfArgsNotOk(number: Int) = number < 5 || number > 8
 
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
-        val (_, groupId, artifactId, unsafeDirectoryToAnalyse) = args
-        val optionalArgs = args.drop(4).toOptionalArgs(errorHandler, FORMAT, TRANSFORM_REGEX, TRANSFORM_REPLACEMENT)
+        val (_, groupId, artifactId, unsafeDirectoryToAnalyse, excludeRegexString) = args
+        val optionalArgs = args.drop(5).toOptionalArgs(errorHandler, FORMAT, TRANSFORM_REGEX, TRANSFORM_REPLACEMENT)
         val (nullableFormat, nullableTransformRegex, nullableTransformReplacement) = optionalArgs
         val format = nullableFormat ?: "list"
 
@@ -56,13 +58,31 @@ object DependentProjects : ConsoleCommand {
             )
         }
 
+        require(!excludeRegexString.startsWith(FORMAT) && !excludeRegexString.startsWith(TRANSFORM_REGEX) && !excludeRegexString.startsWith(TRANSFORM_REPLACEMENT)) {
+            errorHandler.error(
+                """You have forgotten to provide an argument for excludeRegex or you have mixed up the order of the arguments.
+                |excludeRegex: $excludeRegexString
+                |format: $nullableFormat
+                |$TRANSFORM_REGEX_ARG: $nullableTransformRegex
+                |$TRANSFORM_REPLACEMENT_ARG: $nullableTransformReplacement
+                |
+                |${expectedArgsAndGiven(this, args)}
+                |
+                |Following an example:
+                |$example
+                """.trimMargin()
+            )
+        }
+
         val mavenProjectId = MavenProjectId(groupId, artifactId)
+        val excludeRegex = Regex(excludeRegexString)
 
         when (format) {
-            "list" -> list(directoryToAnalyse, mavenProjectId)
+            "list" -> list(directoryToAnalyse, mavenProjectId, excludeRegex)
             "clone" -> clone(
                 directoryToAnalyse,
                 mavenProjectId,
+                excludeRegex,
                 nullableTransformRegex,
                 nullableTransformReplacement,
                 errorHandler,
@@ -81,14 +101,16 @@ object DependentProjects : ConsoleCommand {
 
     }
 
-    private fun list(directoryToAnalyse: File, mavenProjectId: MavenProjectId) {
-        Orchestrator.printDependents(directoryToAnalyse, mavenProjectId)
-    }
-
+    private fun list(
+        directoryToAnalyse: File,
+        mavenProjectId: MavenProjectId,
+        excludeRegex: Regex
+    ) = Orchestrator.printDependents(directoryToAnalyse, mavenProjectId, excludeRegex)
 
     private fun clone(
         directoryToAnalyse: File,
         mavenProjectId: MavenProjectId,
+        excludeRegex: Regex,
         nullableTransformRegex: String?,
         nullableTransformReplacement: String?,
         errorHandler: ErrorHandler,
@@ -104,6 +126,7 @@ object DependentProjects : ConsoleCommand {
         Orchestrator.printGitCloneForDependents(
             directoryToAnalyse,
             mavenProjectId,
+            excludeRegex,
             Regex(nullableTransformRegex),
             nullableTransformReplacement
         )

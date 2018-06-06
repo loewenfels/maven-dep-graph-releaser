@@ -116,9 +116,13 @@ object Orchestrator {
         logger.info("updated dependency $groupId:$artifactId to new version $newVersion")
     }
 
-    fun printDependents(directoryToAnalyse: File, projectToAnalyse: MavenProjectId) {
+    fun printDependents(
+        directoryToAnalyse: File,
+        projectToAnalyse: MavenProjectId,
+        excludeRegex: Regex
+    ) {
         val releasePlan = createReleasePlanForAnalysisOnly(directoryToAnalyse, projectToAnalyse)
-        val list =  projectsWithoutSubmodulesAndRootProject(releasePlan).joinToString("\n") { it.id.identifier }
+        val list =  projectsWithoutSubmodulesAndRootProject(releasePlan, excludeRegex).joinToString("\n") { it.id.identifier }
 
         println("Following the dependent projects $NOTICE_INCL_DEPENDENTS_WITHOUT_SUBMODULES of ${projectToAnalyse.identifier}:" +
             "\n$list")
@@ -127,11 +131,12 @@ object Orchestrator {
     fun printGitCloneForDependents(
         directoryToAnalyse: File,
         projectToAnalyse: MavenProjectId,
+        excludeRegex: Regex,
         relativePathTransformerRegex: Regex,
         relativePathTransformerReplacement: String
     ) {
         val releasePlan = createReleasePlanForAnalysisOnly(directoryToAnalyse, projectToAnalyse)
-        val list =  projectsWithoutSubmodulesAndRootProject(releasePlan)
+        val list =  projectsWithoutSubmodulesAndRootProject(releasePlan, excludeRegex)
             .joinToString("\n") {
                 relativePathTransformerRegex.replace(it.relativePath, relativePathTransformerReplacement)
             }
@@ -145,10 +150,14 @@ object Orchestrator {
         projectToAnalyse: MavenProjectId
     ) = createReleasePlan(directoryToAnalyse, projectToAnalyse, JenkinsReleasePlanCreator.Options("list", "^$"))
 
-    private fun projectsWithoutSubmodulesAndRootProject(releasePlan: ReleasePlan): Sequence<Project> {
+    private fun projectsWithoutSubmodulesAndRootProject(
+        releasePlan: ReleasePlan,
+        excludeRegex: Regex
+    ): Sequence<Project> {
         return releasePlan.iterator()
             .asSequence()
             .drop(1) // we do not want to include the release project
+            .filter { !excludeRegex.matches(it.relativePath) }
             .filter { !it.isSubmodule }
     }
 }

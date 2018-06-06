@@ -17,15 +17,16 @@ class DependentProjectsSpec : Spek({
         DependentProjects,
         ::getNotEnoughArgs,
         ::getTooManyArgs,
-        4..7
+        5..8
     )
 
     companion object {
         fun getNotEnoughArgs(@Suppress("UNUSED_PARAMETER") tempFolder: TempFolder): Array<out String> {
             return arrayOf(
-                DependentProjects.name, "com.example", "project"
-                //dir is required as well
-                //getTestDirectory("managingVersions/inDependency").absolutePath
+                DependentProjects.name, "com.example", "project",
+                getTestDirectory("managingVersions/inDependency").absolutePath
+                //excludeRegex is required as well
+                //"^(.*)$ "
             )
         }
 
@@ -33,9 +34,10 @@ class DependentProjectsSpec : Spek({
             return arrayOf(
                 DependentProjects.name, "com.example", "project",
                 getTestDirectory("managingVersions/inDependency").absolutePath,
+                "^$",
                 "${DependentProjects.FORMAT}list",
-                "^(.*)$ ",
-                "https://github.com/$1",
+                "${DependentProjects.TRANSFORM_REGEX}^(.*)/$",
+                "${DependentProjects.TRANSFORM_REPLACEMENT}https://github.com/$1",
                 "unexpectedAdditionalArg"
             )
         }
