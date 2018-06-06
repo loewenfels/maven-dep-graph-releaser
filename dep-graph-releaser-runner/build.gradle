@@ -53,18 +53,22 @@ String getDefinedParam(String name, String represent) {
     return prop
 }
 
+def execMain(commandLineArguments) {
+    javaexec {
+        workingDir = rootProject.projectDir
+        classpath = fileTree("${project.buildDir}/dist/lib/")
+        main = 'ch.loewenfels.depgraph.runner.Main'
+        args = commandLineArguments
+    }
+}
+
 task man {
     def commandArg = 'command'
     inputs.property(commandArg, findProperty(commandArg))
     inputs.files dist
     doLast {
         def command = findProperty(commandArg) != null ? ["-$commandArg=${findProperty(commandArg)}"] : []
-        javaexec {
-            workingDir = rootProject.projectDir
-            classpath = fileTree("${project.buildDir}/dist/lib/")
-            main = 'ch.loewenfels.depgraph.runner.Main'
-            args = ['man'] + command
-        }
+        execMain(['man'] + command)
     }
 }
 
@@ -114,13 +118,10 @@ task json {
                  "ch.loewenfels.depgraph:dgr-5=apnoea-test-5"
             ]
 
-        javaexec {
-            workingDir = rootProject.projectDir
-            classpath = fileTree("${project.buildDir}/dist/lib/")
-            main = 'ch.loewenfels.depgraph.runner.Main'
-            args = ['json', groupId, artifactId, dir, jsonFile.absolutePath, updateDependencyJob, remoteRegex, dryRunJob] +
+        execMain(
+            ['json', groupId, artifactId, dir, jsonFile.absolutePath, updateDependencyJob, remoteRegex, dryRunJob] +
                 params + disableRegex + jobMapping
-        }
+        )
     }
 }
 
@@ -129,12 +130,7 @@ task copyResources {
     outputs.dir htmlDir
     doLast {
         mkdir(htmlDir)
-        javaexec {
-            workingDir = rootProject.projectDir
-            classpath = fileTree("${project.buildDir}/dist/lib/")
-            main = 'ch.loewenfels.depgraph.runner.Main'
-            args = ['html', htmlDir.absolutePath]
-        }
+        execMain(['html', htmlDir.absolutePath])
     }
 }
 
@@ -154,13 +150,7 @@ task releasable {
 
     doLast {
         def dir = findProperty(dirArg) ?: defaultDirArg
-
-        javaexec {
-            workingDir = rootProject.projectDir
-            classpath = fileTree("${project.buildDir}/dist/lib/")
-            main = 'ch.loewenfels.depgraph.runner.Main'
-            args = ['releasable', dir]
-        }
+        execMain(['releasable', dir])
     }
 }
 
@@ -177,12 +167,7 @@ task dependents {
         def dir = findProperty(dirArg) ?: defaultDirArg
         def format = findProperty(formatArg) != null ? ["-$formatArg=${findProperty(formatArg)}"] : []
 
-        javaexec {
-            workingDir = rootProject.projectDir
-            classpath = fileTree("${project.buildDir}/dist/lib/")
-            main = 'ch.loewenfels.depgraph.runner.Main'
-            args = ['dependents', groupId, artifactId, dir] + format
-        }
+        execMain(['dependents', groupId, artifactId, dir] + format)
     }
 }
 
