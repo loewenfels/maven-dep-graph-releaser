@@ -159,6 +159,7 @@ task dependents {
     def formatArg = 'format'
     def transformRegexArg = 'transformRegex'
     def transformReplacementArg = 'transformReplacement'
+    def psfArg = 'psf'
     inputs.property(groupIdArg, findProperty(groupIdArg))
     inputs.property(artifactIdArg, findProperty(artifactIdArg))
     inputs.property(dirArg, findProperty(dirArg) ?: defaultDirArg)
@@ -166,6 +167,7 @@ task dependents {
     inputs.property(formatArg, findProperty(formatArg) ?: 'list')
     inputs.property(transformRegexArg, findProperty(transformRegexArg) ?: '')
     inputs.property(transformReplacementArg, findProperty(transformReplacementArg) ?: '')
+    inputs.property(psfArg, findProperty(psfArg) ?: '')
     inputs.files dist
     doLast {
         def groupId = getDefinedParam(groupIdArg, "groupId")
@@ -176,8 +178,9 @@ task dependents {
         def format = nullableFormat != null ? ["-$formatArg=${nullableFormat}"] : []
         def transformRegex = findProperty(transformRegexArg) != null ? ["-$transformRegexArg=${findProperty(transformRegexArg) }"] : []
         def transformReplacement = findProperty(transformReplacementArg) != null ? ["-$transformReplacementArg=${findProperty(transformReplacementArg) }"] : []
+        def psf = findProperty(psfArg) != null ? ["-$psfArg=${findProperty(psfArg) }"] : []
 
-        execMain(['dependents', groupId, artifactId, dir, excludeRegex] + format + transformRegex + transformReplacement)
+        execMain(['dependents', groupId, artifactId, dir, excludeRegex] + format + transformRegex + transformReplacement + psf)
     }
 }
 

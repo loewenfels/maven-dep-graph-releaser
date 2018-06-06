@@ -45,6 +45,7 @@
                                 <argument>-format=${format}</argument>
                                 <argument>-transformRegex=${transformRegex}</argument>
                                 <argument>-transformReplacement=${transformReplacement}</argument>
+                                <argument>-psf=${psf}</argument>
                             </arguments>
                         </configuration>
                     </execution>

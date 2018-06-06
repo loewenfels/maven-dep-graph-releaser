@@ -8,11 +8,13 @@ import ch.loewenfels.depgraph.maven.Analyser
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
 import ch.loewenfels.depgraph.maven.VersionDeterminer
 import ch.loewenfels.depgraph.serialization.Serializer
+import ch.tutteli.kbox.appendToStringBuilder
 import java.io.File
 import java.util.logging.Logger
 
 object Orchestrator {
-    private const val NOTICE_INCL_DEPENDENTS_WITHOUT_SUBMODULES = "(incl. dependents of dependent projects etc. but without submodules)"
+    private const val NOTICE_INCL_DEPENDENTS_WITHOUT_SUBMODULES =
+        "(incl. dependents of dependent projects etc. but without submodules)"
 
     private val logger = Logger.getLogger(Orchestrator::class.qualifiedName)
     private val serializer = Serializer()
@@ -24,7 +26,7 @@ object Orchestrator {
         projectToRelease: MavenProjectId,
         releasePlanCreatorOptions: JenkinsReleasePlanCreator.Options
     ) {
-       val releasePlan = createReleasePlan(directoryToAnalyse, projectToRelease, releasePlanCreatorOptions)
+        val releasePlan = createReleasePlan(directoryToAnalyse, projectToRelease, releasePlanCreatorOptions)
 
         logger.info("Going to serialize the release plan to a json file.")
         logIfFileExists(outputFile, "resulting json file")
@@ -122,10 +124,12 @@ object Orchestrator {
         excludeRegex: Regex
     ) {
         val releasePlan = createReleasePlanForAnalysisOnly(directoryToAnalyse, projectToAnalyse)
-        val list =  projectsWithoutSubmodulesAndRootProject(releasePlan, excludeRegex).joinToString("\n") { it.id.identifier }
+        val list = projectsWithoutSubmodulesAndRootProject(releasePlan, excludeRegex)
+            .joinToString("\n") { it.id.identifier }
 
         println("Following the dependent projects $NOTICE_INCL_DEPENDENTS_WITHOUT_SUBMODULES of ${projectToAnalyse.identifier}:" +
-            "\n$list")
+                "\n$list"
+        )
     }
 
     fun printGitCloneForDependents(
@@ -136,13 +140,41 @@ object Orchestrator {
         relativePathTransformerReplacement: String
     ) {
         val releasePlan = createReleasePlanForAnalysisOnly(directoryToAnalyse, projectToAnalyse)
-        val list =  projectsWithoutSubmodulesAndRootProject(releasePlan, excludeRegex)
+        val list = projectsWithoutSubmodulesAndRootProject(releasePlan, excludeRegex)
             .joinToString("\n") {
-                relativePathTransformerRegex.replace(it.relativePath, relativePathTransformerReplacement)
+                "git clone " + it.turnIntoGitRepoUrl(relativePathTransformerRegex, relativePathTransformerReplacement)
             }
 
-        println("Following the git clone commands for the dependent projects $NOTICE_INCL_DEPENDENTS_WITHOUT_SUBMODULES of ${projectToAnalyse.identifier}:" +
-            "\n$list")
+        println(
+            "Following the git clone commands for the dependent projects $NOTICE_INCL_DEPENDENTS_WITHOUT_SUBMODULES of ${projectToAnalyse.identifier}:" +
+                "\n$list"
+        )
+    }
+
+    fun createPsfFileForDependents(
+        directoryToAnalyse: File,
+        projectToAnalyse: MavenProjectId,
+        excludeRegex: Regex,
+        relativePathTransformerRegex: Regex,
+        relativePathTransformerReplacement: String,
+        outputFile: File
+    ) {
+        val releasePlan = createReleasePlanForAnalysisOnly(directoryToAnalyse, projectToAnalyse)
+        logger.info("Going to create the psf file.")
+        val sb = StringBuilder(
+            """<?xml version="1.0" encoding="UTF-8"?>
+            |<psf version="2.0">
+            |<provider id="org.eclipse.egit.core.GitProvider">
+            |
+            """.trimMargin()
+        )
+        projectsWithoutSubmodulesAndRootProject(releasePlan, excludeRegex).appendToStringBuilder(sb, "\n") {
+            val gitRepoUrl = it.turnIntoGitRepoUrl(relativePathTransformerRegex, relativePathTransformerReplacement)
+            sb.append("<project reference=\"1.0,").append(gitRepoUrl).append(",master,.\"/>")
+        }
+        sb.append("\n</provider>\n</psf>")
+        outputFile.writeText(sb.toString())
+        logger.info({ "Created psf file at: ${outputFile.absolutePath}" })
     }
 
     private fun createReleasePlanForAnalysisOnly(
@@ -160,8 +192,9 @@ object Orchestrator {
             .filter { !excludeRegex.matches(it.relativePath) }
             .filter { !it.isSubmodule }
     }
-}
 
-fun main(args: Array<String>) {
-    println(Regex("(^.*$)").replace("jaxlion/jaxlion-config/", "git clone ssh://stoll@gerrit.loewenfels.ch:29418/$1"))
+    private fun Project.turnIntoGitRepoUrl(
+        relativePathTransformerRegex: Regex,
+        relativePathTransformerReplacement: String
+    ) = relativePathTransformerRegex.replace(relativePath, relativePathTransformerReplacement)
 }

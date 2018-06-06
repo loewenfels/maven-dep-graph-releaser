@@ -17,7 +17,7 @@ class DependentProjectsSpec : Spek({
         DependentProjects,
         ::getNotEnoughArgs,
         ::getTooManyArgs,
-        5..8
+        5..9
     )
 
     companion object {
@@ -38,6 +38,7 @@ class DependentProjectsSpec : Spek({
                 "${DependentProjects.FORMAT}list",
                 "${DependentProjects.TRANSFORM_REGEX}^(.*)/$",
                 "${DependentProjects.TRANSFORM_REPLACEMENT}https://github.com/$1",
+                "${DependentProjects.PSF}./import.psf",
                 "unexpectedAdditionalArg"
             )
         }
