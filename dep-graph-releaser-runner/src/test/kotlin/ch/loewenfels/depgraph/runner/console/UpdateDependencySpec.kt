@@ -9,13 +9,13 @@ import org.jetbrains.spek.api.include
 import java.io.File
 
 class UpdateDependencySpec : Spek({
-    include(UpdateCommandSpec)
+    include(UpdateDependencyCommandSpec)
 
     //TODO write spec for non-existing pom
     //given("non-existing pom"){}
 
 }) {
-    object UpdateCommandSpec : CommandSpec(
+    object UpdateDependencyCommandSpec : CommandSpec(
         UpdateDependency,
         ::getNotEnoughArgs,
         ::getTooManyArgs,

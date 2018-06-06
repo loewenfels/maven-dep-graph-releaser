@@ -1,33 +1,32 @@
 package ch.loewenfels.depgraph.runner
 
+import ch.loewenfels.depgraph.data.Project
+import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.manipulation.RegexBasedVersionUpdater
 import ch.loewenfels.depgraph.maven.Analyser
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
 import ch.loewenfels.depgraph.maven.VersionDeterminer
 import ch.loewenfels.depgraph.serialization.Serializer
+import ch.tutteli.kbox.appendToStringBuilder
 import java.io.File
 import java.util.logging.Logger
 
 object Orchestrator {
+    private const val NOTICE_INCL_DEPENDENTS_WITHOUT_SUBMODULES =
+        "(incl. dependents of dependent projects etc. but without submodules)"
+
     private val logger = Logger.getLogger(Orchestrator::class.qualifiedName)
     private val serializer = Serializer()
+
 
     fun analyseAndCreateJson(
         directoryToAnalyse: File,
         outputFile: File,
         projectToRelease: MavenProjectId,
-        analyserOptions: Analyser.Options,
         releasePlanCreatorOptions: JenkinsReleasePlanCreator.Options
     ) {
-        logger.info({ "Going to analyse: ${directoryToAnalyse.absolutePath}" })
-        val analyser = Analyser(directoryToAnalyse, analyserOptions)
-        logger.info({ "Analysed ${analyser.getNumberOfProjects()} projects." })
-
-        logger.info("Going to create the release plan with $projectToRelease as root.")
-        val releasePlaner = JenkinsReleasePlanCreator(VersionDeterminer(), releasePlanCreatorOptions)
-        val releasePlan = releasePlaner.create(projectToRelease, analyser)
-        logger.info("Release plan created.")
+        val releasePlan = createReleasePlan(directoryToAnalyse, projectToRelease, releasePlanCreatorOptions)
 
         logger.info("Going to serialize the release plan to a json file.")
         logIfFileExists(outputFile, "resulting json file")
@@ -35,6 +34,24 @@ object Orchestrator {
         outputFile.writeText(json)
         logger.info({ "Created json file at: ${outputFile.absolutePath}" })
     }
+
+
+    private fun createReleasePlan(
+        directoryToAnalyse: File,
+        rootProject: MavenProjectId,
+        releasePlanCreatorOptions: JenkinsReleasePlanCreator.Options
+    ): ReleasePlan {
+        logger.info({ "Going to analyse: ${directoryToAnalyse.absolutePath}" })
+        val analyser = Analyser(directoryToAnalyse, Analyser.Options())
+        logger.info({ "Analysed ${analyser.getNumberOfProjects()} projects." })
+
+        logger.info("Going to create the release plan with ${rootProject.identifier} as root.")
+        val releasePlaner = JenkinsReleasePlanCreator(VersionDeterminer(), releasePlanCreatorOptions)
+        val releasePlan = releasePlaner.create(rootProject, analyser)
+        logger.info("Release plan created.")
+        return releasePlan
+    }
+
 
     fun printReleasableProjects(directoryToAnalyse: File) {
         logger.info({ "Going to analyse: ${directoryToAnalyse.absolutePath}" })
@@ -87,7 +104,7 @@ object Orchestrator {
                 inputStream.copyTo(fileOut)
             }
         }
-        logger.fine({"Created ${outputFile.absolutePath}"})
+        logger.fine({ "Created ${outputFile.absolutePath}" })
     }
 
     private fun logIfFileExists(file: File, fileDescription: String) {
@@ -100,4 +117,84 @@ object Orchestrator {
         RegexBasedVersionUpdater.updateDependency(pom, groupId, artifactId, newVersion)
         logger.info("updated dependency $groupId:$artifactId to new version $newVersion")
     }
+
+    fun printDependents(
+        directoryToAnalyse: File,
+        projectToAnalyse: MavenProjectId,
+        excludeRegex: Regex
+    ) {
+        val releasePlan = createReleasePlanForAnalysisOnly(directoryToAnalyse, projectToAnalyse)
+        val list = projectsWithoutSubmodulesAndRootProject(releasePlan, excludeRegex)
+            .joinToString("\n") { it.id.identifier }
+
+        println("Following the dependent projects $NOTICE_INCL_DEPENDENTS_WITHOUT_SUBMODULES of ${projectToAnalyse.identifier}:" +
+                "\n$list"
+        )
+    }
+
+    fun printGitCloneForDependents(
+        directoryToAnalyse: File,
+        projectToAnalyse: MavenProjectId,
+        excludeRegex: Regex,
+        relativePathTransformerRegex: Regex,
+        relativePathTransformerReplacement: String
+    ) {
+        val releasePlan = createReleasePlanForAnalysisOnly(directoryToAnalyse, projectToAnalyse)
+        val list = projectsWithoutSubmodulesAndRootProject(releasePlan, excludeRegex)
+            .joinToString("\n") {
+                "git clone " + it.turnIntoGitRepoUrl(relativePathTransformerRegex, relativePathTransformerReplacement)
+            }
+
+        println(
+            "Following the git clone commands for the dependent projects $NOTICE_INCL_DEPENDENTS_WITHOUT_SUBMODULES of ${projectToAnalyse.identifier}:" +
+                "\n$list"
+        )
+    }
+
+    fun createPsfFileForDependents(
+        directoryToAnalyse: File,
+        projectToAnalyse: MavenProjectId,
+        excludeRegex: Regex,
+        relativePathTransformerRegex: Regex,
+        relativePathTransformerReplacement: String,
+        outputFile: File
+    ) {
+        val releasePlan = createReleasePlanForAnalysisOnly(directoryToAnalyse, projectToAnalyse)
+        logger.info("Going to create the psf file.")
+        val sb = StringBuilder(
+            """<?xml version="1.0" encoding="UTF-8"?>
+            |<psf version="2.0">
+            |<provider id="org.eclipse.egit.core.GitProvider">
+            |
+            """.trimMargin()
+        )
+        projectsWithoutSubmodulesAndRootProject(releasePlan, excludeRegex).appendToStringBuilder(sb, "\n") {
+            val gitRepoUrl = it.turnIntoGitRepoUrl(relativePathTransformerRegex, relativePathTransformerReplacement)
+            sb.append("<project reference=\"1.0,").append(gitRepoUrl).append(",master,.\"/>")
+        }
+        sb.append("\n</provider>\n</psf>")
+        outputFile.writeText(sb.toString())
+        logger.info({ "Created psf file at: ${outputFile.absolutePath}" })
+    }
+
+    private fun createReleasePlanForAnalysisOnly(
+        directoryToAnalyse: File,
+        projectToAnalyse: MavenProjectId
+    ) = createReleasePlan(directoryToAnalyse, projectToAnalyse, JenkinsReleasePlanCreator.Options("list", "^$"))
+
+    private fun projectsWithoutSubmodulesAndRootProject(
+        releasePlan: ReleasePlan,
+        excludeRegex: Regex
+    ): Sequence<Project> {
+        return releasePlan.iterator()
+            .asSequence()
+            .drop(1) // we do not want to include the release project
+            .filter { !excludeRegex.matches(it.relativePath) }
+            .filter { !it.isSubmodule }
+    }
+
+    private fun Project.turnIntoGitRepoUrl(
+        relativePathTransformerRegex: Regex,
+        relativePathTransformerReplacement: String
+    ) = relativePathTransformerRegex.replace(relativePath, relativePathTransformerReplacement)
 }

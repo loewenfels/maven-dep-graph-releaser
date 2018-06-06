@@ -53,24 +53,31 @@ String getDefinedParam(String name, String represent) {
     return prop
 }
 
+def execMain(commandLineArguments) {
+    javaexec {
+        workingDir = rootProject.projectDir
+        classpath = fileTree("${project.buildDir}/dist/lib/")
+        main = 'ch.loewenfels.depgraph.runner.Main'
+        args = commandLineArguments
+    }
+}
+
 task man {
     def commandArg = 'command'
     inputs.property(commandArg, findProperty(commandArg))
     inputs.files dist
     doLast {
         def command = findProperty(commandArg) != null ? ["-$commandArg=${findProperty(commandArg)}"] : []
-        javaexec {
-            workingDir = rootProject.projectDir
-            classpath = fileTree("${project.buildDir}/dist/lib/")
-            main = 'ch.loewenfels.depgraph.runner.Main'
-            args = ['man'] + command
-        }
+        execMain(['man'] + command)
     }
 }
 
+def groupIdArg = 'gId'
+def artifactIdArg = 'aId'
+def dirArg = 'dir'
+def defaultDirArg = "${rootProject.projectDir}/repos"
+
 task json {
-    def groupIdArg = 'gId'
-    def artifactIdArg = 'aId'
     def updateDependencyJobArg = 'updateDependencyJob'
     def defaultUpdateJob = "dgr-updater"
     def remoteRegexArg = 'remoteRegex'
@@ -83,6 +90,7 @@ task json {
     def jobMappingArg = 'jobMapping'
     inputs.property(groupIdArg, findProperty(groupIdArg))
     inputs.property(artifactIdArg, findProperty(artifactIdArg))
+    inputs.property(dirArg, findProperty(dirArg) ?: defaultDirArg)
     inputs.property(updateDependencyJobArg, findProperty(updateDependencyJobArg) ?: defaultUpdateJob)
     inputs.property(remoteRegexArg, findProperty(remoteRegexArg) ?: defaultRemoteRegex)
     inputs.property(dryRunJobArg, findProperty(dryRunJobArg) ?: defaultDryRunJob)
@@ -94,6 +102,7 @@ task json {
     doLast {
         def groupId = getDefinedParam(groupIdArg, "groupId")
         def artifactId = getDefinedParam(artifactIdArg, "artifactId")
+        def dir = findProperty(dirArg) ?: defaultDirArg
         def updateDependencyJob = findProperty(updateDependencyJobArg) ?: defaultUpdateJob
         def remoteRegex = findProperty(remoteRegexArg) ?: defaultRemoteRegex
         def dryRunJob = findProperty(dryRunJobArg) ?: defaultDryRunJob
@@ -109,13 +118,10 @@ task json {
                  "ch.loewenfels.depgraph:dgr-5=apnoea-test-5"
             ]
 
-        javaexec {
-            workingDir = rootProject.projectDir
-            classpath = fileTree("${project.buildDir}/dist/lib/")
-            main = 'ch.loewenfels.depgraph.runner.Main'
-            args = ['json', groupId, artifactId, "${rootProject.projectDir}/repos", jsonFile.absolutePath, updateDependencyJob, remoteRegex, dryRunJob] +
+        execMain(
+            ['json', groupId, artifactId, dir, jsonFile.absolutePath, updateDependencyJob, remoteRegex, dryRunJob] +
                 params + disableRegex + jobMapping
-        }
+        )
     }
 }
 
@@ -124,12 +130,7 @@ task copyResources {
     outputs.dir htmlDir
     doLast {
         mkdir(htmlDir)
-        javaexec {
-            workingDir = rootProject.projectDir
-            classpath = fileTree("${project.buildDir}/dist/lib/")
-            main = 'ch.loewenfels.depgraph.runner.Main'
-            args = ['html', htmlDir.absolutePath]
-        }
+        execMain(['html', htmlDir.absolutePath])
     }
 }
 
@@ -144,14 +145,42 @@ task html {
 }
 
 task releasable {
+    inputs.property(dirArg, findProperty(dirArg) ?: defaultDirArg)
+    inputs.files dist
+
+    doLast {
+        def dir = findProperty(dirArg) ?: defaultDirArg
+        execMain(['releasable', dir])
+    }
+}
+
+task dependents {
+    def excludeRegexArg = 'excludeRegex'
+    def formatArg = 'format'
+    def transformRegexArg = 'transformRegex'
+    def transformReplacementArg = 'transformReplacement'
+    def psfArg = 'psf'
+    inputs.property(groupIdArg, findProperty(groupIdArg))
+    inputs.property(artifactIdArg, findProperty(artifactIdArg))
+    inputs.property(dirArg, findProperty(dirArg) ?: defaultDirArg)
+    inputs.property(excludeRegexArg, findProperty(excludeRegexArg) ?: excludeRegexArg)
+    inputs.property(formatArg, findProperty(formatArg) ?: 'list')
+    inputs.property(transformRegexArg, findProperty(transformRegexArg) ?: '')
+    inputs.property(transformReplacementArg, findProperty(transformReplacementArg) ?: '')
+    inputs.property(psfArg, findProperty(psfArg) ?: '')
     inputs.files dist
     doLast {
-        javaexec {
-            workingDir = rootProject.projectDir
-            classpath = fileTree("${project.buildDir}/dist/lib/")
-            main = 'ch.loewenfels.depgraph.runner.Main'
-            args = ['releasable', "${rootProject.projectDir}/repos"]
-        }
+        def groupId = getDefinedParam(groupIdArg, "groupId")
+        def artifactId = getDefinedParam(artifactIdArg, "artifactId")
+        def dir = findProperty(dirArg) ?: defaultDirArg
+        def excludeRegex = getDefinedParam(excludeRegexArg, excludeRegexArg)
+        def nullableFormat = findProperty(formatArg)
+        def format = nullableFormat != null ? ["-$formatArg=${nullableFormat}"] : []
+        def transformRegex = findProperty(transformRegexArg) != null ? ["-$transformRegexArg=${findProperty(transformRegexArg) }"] : []
+        def transformReplacement = findProperty(transformReplacementArg) != null ? ["-$transformReplacementArg=${findProperty(transformReplacementArg) }"] : []
+        def psf = findProperty(psfArg) != null ? ["-$psfArg=${findProperty(psfArg) }"] : []
+
+        execMain(['dependents', groupId, artifactId, dir, excludeRegex] + format + transformRegex + transformReplacement + psf)
     }
 }
 
