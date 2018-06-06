@@ -2,7 +2,10 @@ package ch.loewenfels.depgraph.runner.console
 
 import ch.loewenfels.depgraph.runner.Main
 import ch.loewenfels.depgraph.runner.commands.ConsoleCommand
-import ch.tutteli.atrium.api.cc.en_UK.*
+import ch.tutteli.atrium.api.cc.en_UK.contains
+import ch.tutteli.atrium.api.cc.en_UK.message
+import ch.tutteli.atrium.api.cc.en_UK.toBe
+import ch.tutteli.atrium.api.cc.en_UK.toThrow
 import ch.tutteli.atrium.assert
 import ch.tutteli.atrium.expect
 import ch.tutteli.spek.extensions.TempFolder
@@ -46,10 +49,19 @@ abstract class CommandSpec(
             }
         }
 
-        group("method numOfArgsNotOk returns false for a correct number of args") {
-            allowedNumberOfArgs.forEach { number ->
-                it("$number") {
-                    assert(testee.numOfArgsNotOk(number)).toBe(false)
+        describe("fun ${testee::numOfArgsNotOk.name}") {
+            group("returns false for a correct number of args") {
+                allowedNumberOfArgs.forEach { number ->
+                    it("$number") {
+                        assert(testee.numOfArgsNotOk(number)).toBe(false)
+                    }
+                }
+            }
+            group("returns true for an incorrect number of args") {
+                listOf(allowedNumberOfArgs.start - 1, allowedNumberOfArgs.endInclusive + 1).forEach { number ->
+                    it("$number") {
+                        assert(testee.numOfArgsNotOk(number)).toBe(true)
+                    }
                 }
             }
         }
