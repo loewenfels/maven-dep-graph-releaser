@@ -68,9 +68,12 @@ task man {
     }
 }
 
+def groupIdArg = 'gId'
+def artifactIdArg = 'aId'
+def dirArg = 'dir'
+def defaultDirArg = "${rootProject.projectDir}/repos"
+
 task json {
-    def groupIdArg = 'gId'
-    def artifactIdArg = 'aId'
     def updateDependencyJobArg = 'updateDependencyJob'
     def defaultUpdateJob = "dgr-updater"
     def remoteRegexArg = 'remoteRegex'
@@ -83,6 +86,7 @@ task json {
     def jobMappingArg = 'jobMapping'
     inputs.property(groupIdArg, findProperty(groupIdArg))
     inputs.property(artifactIdArg, findProperty(artifactIdArg))
+    inputs.property(dirArg, findProperty(dirArg) ?: defaultDirArg)
     inputs.property(updateDependencyJobArg, findProperty(updateDependencyJobArg) ?: defaultUpdateJob)
     inputs.property(remoteRegexArg, findProperty(remoteRegexArg) ?: defaultRemoteRegex)
     inputs.property(dryRunJobArg, findProperty(dryRunJobArg) ?: defaultDryRunJob)
@@ -94,6 +98,7 @@ task json {
     doLast {
         def groupId = getDefinedParam(groupIdArg, "groupId")
         def artifactId = getDefinedParam(artifactIdArg, "artifactId")
+        def dir = findProperty(dirArg) ?: defaultDirArg
         def updateDependencyJob = findProperty(updateDependencyJobArg) ?: defaultUpdateJob
         def remoteRegex = findProperty(remoteRegexArg) ?: defaultRemoteRegex
         def dryRunJob = findProperty(dryRunJobArg) ?: defaultDryRunJob
@@ -113,7 +118,7 @@ task json {
             workingDir = rootProject.projectDir
             classpath = fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.Main'
-            args = ['json', groupId, artifactId, "${rootProject.projectDir}/repos", jsonFile.absolutePath, updateDependencyJob, remoteRegex, dryRunJob] +
+            args = ['json', groupId, artifactId, dir, jsonFile.absolutePath, updateDependencyJob, remoteRegex, dryRunJob] +
                 params + disableRegex + jobMapping
         }
     }
@@ -144,35 +149,39 @@ task html {
 }
 
 task releasable {
+    inputs.property(dirArg, findProperty(dirArg) ?: defaultDirArg)
     inputs.files dist
+
     doLast {
+        def dir = findProperty(dirArg) ?: defaultDirArg
+
         javaexec {
             workingDir = rootProject.projectDir
             classpath = fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.Main'
-            args = ['releasable', "${rootProject.projectDir}/repos"]
+            args = ['releasable', dir]
         }
     }
 }
 
 task dependents {
-    def groupIdArg = 'gId'
-    def artifactIdArg = 'aId'
     def formatArg = 'format'
     inputs.property(groupIdArg, findProperty(groupIdArg))
     inputs.property(artifactIdArg, findProperty(artifactIdArg))
+    inputs.property(dirArg, findProperty(dirArg) ?: defaultDirArg)
     inputs.property(formatArg, findProperty(formatArg) ?: 'list')
     inputs.files dist
     doLast {
         def groupId = getDefinedParam(groupIdArg, "groupId")
         def artifactId = getDefinedParam(artifactIdArg, "artifactId")
+        def dir = findProperty(dirArg) ?: defaultDirArg
         def format = findProperty(formatArg) != null ? ["-$formatArg=${findProperty(formatArg)}"] : []
 
         javaexec {
             workingDir = rootProject.projectDir
             classpath = fileTree("${project.buildDir}/dist/lib/")
             main = 'ch.loewenfels.depgraph.runner.Main'
-            args = ['dependents', groupId, artifactId, "${rootProject.projectDir}/repos"] + format
+            args = ['dependents', groupId, artifactId, dir] + format
         }
     }
 }
