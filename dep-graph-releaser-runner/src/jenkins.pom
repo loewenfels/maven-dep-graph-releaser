@@ -31,6 +31,22 @@
                 </configuration>
                 <executions>
                     <execution>
+                        <id>dependents</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>
+                                <argument>dependents</argument>
+                                <argument>${gId}</argument>
+                                <argument>${aId}</argument>
+                                <argument>${dir}</argument>
+                                <argument>-format=${format}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+
+                    <execution>
                         <id>json</id>
                         <goals>
                             <goal>java</goal>

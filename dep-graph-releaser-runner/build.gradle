@@ -155,6 +155,28 @@ task releasable {
     }
 }
 
+task dependents {
+    def groupIdArg = 'gId'
+    def artifactIdArg = 'aId'
+    def formatArg = 'format'
+    inputs.property(groupIdArg, findProperty(groupIdArg))
+    inputs.property(artifactIdArg, findProperty(artifactIdArg))
+    inputs.property(formatArg, findProperty(formatArg) ?: 'list')
+    inputs.files dist
+    doLast {
+        def groupId = getDefinedParam(groupIdArg, "groupId")
+        def artifactId = getDefinedParam(artifactIdArg, "artifactId")
+        def format = findProperty(formatArg) != null ? ["-$formatArg=${findProperty(formatArg)}"] : []
+
+        javaexec {
+            workingDir = rootProject.projectDir
+            classpath = fileTree("${project.buildDir}/dist/lib/")
+            main = 'ch.loewenfels.depgraph.runner.Main'
+            args = ['dependents', groupId, artifactId, "${rootProject.projectDir}/repos"] + format
+        }
+    }
+}
+
 task server {
     doLast {
         SimpleHttpFileServerFactory factory = new SimpleHttpFileServerFactory()

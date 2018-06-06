@@ -17,14 +17,13 @@ object Orchestrator {
         directoryToAnalyse: File,
         outputFile: File,
         projectToRelease: MavenProjectId,
-        analyserOptions: Analyser.Options,
         releasePlanCreatorOptions: JenkinsReleasePlanCreator.Options
     ) {
         logger.info({ "Going to analyse: ${directoryToAnalyse.absolutePath}" })
-        val analyser = Analyser(directoryToAnalyse, analyserOptions)
+        val analyser = Analyser(directoryToAnalyse, Analyser.Options())
         logger.info({ "Analysed ${analyser.getNumberOfProjects()} projects." })
 
-        logger.info("Going to create the release plan with $projectToRelease as root.")
+        logger.info("Going to create the release plan with ${projectToRelease.identifier} as root.")
         val releasePlaner = JenkinsReleasePlanCreator(VersionDeterminer(), releasePlanCreatorOptions)
         val releasePlan = releasePlaner.create(projectToRelease, analyser)
         logger.info("Release plan created.")
@@ -87,7 +86,7 @@ object Orchestrator {
                 inputStream.copyTo(fileOut)
             }
         }
-        logger.fine({"Created ${outputFile.absolutePath}"})
+        logger.fine({ "Created ${outputFile.absolutePath}" })
     }
 
     private fun logIfFileExists(file: File, fileDescription: String) {
@@ -99,5 +98,26 @@ object Orchestrator {
     fun updateDependency(pom: File, groupId: String, artifactId: String, newVersion: String) {
         RegexBasedVersionUpdater.updateDependency(pom, groupId, artifactId, newVersion)
         logger.info("updated dependency $groupId:$artifactId to new version $newVersion")
+    }
+
+    fun listDependents(directoryToAnalyse: File, projectToAnalyse: MavenProjectId) {
+        logger.info({ "Going to analyse: ${directoryToAnalyse.absolutePath}" })
+        val analyser = Analyser(directoryToAnalyse, Analyser.Options())
+        logger.info({ "Analysed ${analyser.getNumberOfProjects()} projects." })
+
+        logger.info("Going to create the release plan with ${projectToAnalyse.identifier} as root.")
+        val releasePlaner = JenkinsReleasePlanCreator(
+            VersionDeterminer(), JenkinsReleasePlanCreator.Options("list", "^$")
+        )
+        val releasePlan = releasePlaner.create(projectToAnalyse, analyser)
+        logger.info("Release plan created.")
+
+        val list =  releasePlan.iterator()
+            .asSequence()
+            .filter { !it.isSubmodule }
+            .joinToString("\n") { it.id.identifier }
+
+        println("Following the dependent projects (incl. dependents of dependent projects etc. but without submodules) of ${projectToAnalyse.identifier}:" +
+            "\n$list")
     }
 }

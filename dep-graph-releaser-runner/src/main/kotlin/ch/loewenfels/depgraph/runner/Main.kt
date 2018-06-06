@@ -9,9 +9,10 @@ object Main {
     @JvmStatic
     fun main(vararg args: String?) {
         val commands = listOf(
+            DependentProjects,
             Json,
-            PrintReleasableProjects,
             Html,
+            PrintReleasableProjects,
             UpdateDependency
         )
         dispatch(args, errorHandler, commands)

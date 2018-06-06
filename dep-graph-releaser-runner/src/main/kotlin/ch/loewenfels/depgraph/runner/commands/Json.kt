@@ -106,7 +106,6 @@ object Json : ConsoleCommand {
         )
 
         val mavenProjectId = MavenProjectId(groupId, artifactId)
-        val analyserOptions = Analyser.Options()
         val publishId = UUID.randomUUID().toString().replace("-", "").take(15)
         val releasePlanCreatorOptions = JenkinsReleasePlanCreator.Options(publishId, disableReleaseForRegex, config)
 
@@ -114,7 +113,6 @@ object Json : ConsoleCommand {
             directoryToAnalyse,
             json,
             mavenProjectId,
-            analyserOptions,
             releasePlanCreatorOptions
         )
     }
