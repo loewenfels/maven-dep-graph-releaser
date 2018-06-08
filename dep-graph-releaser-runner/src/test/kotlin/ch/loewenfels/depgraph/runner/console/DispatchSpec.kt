@@ -10,9 +10,7 @@ import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
 
 object DispatchSpec : Spek({
-    val errorHandler = object : ErrorHandler {
-        override fun error(msg: String) = throw IllegalStateException(msg)
-    }
+
     describe("error cases") {
         it("errors in case no commands are specified") {
             expect {

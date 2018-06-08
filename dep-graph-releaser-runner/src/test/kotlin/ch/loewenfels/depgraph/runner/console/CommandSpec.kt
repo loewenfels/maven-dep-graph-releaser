@@ -22,11 +22,7 @@ abstract class CommandSpec(
 ) : Spek({
     val tempFolder = TempFolder.perTest()
     registerListener(tempFolder)
-    val errorHandler: ErrorHandler = object : ErrorHandler {
-        override fun error(msg: String): Nothing {
-            throw IllegalArgumentException(msg)
-        }
-    }
+
     Main.fileVerifier = object : FileVerifier {
         override fun file(path: String, fileDescription: String) = File(path)
     }
@@ -36,7 +32,7 @@ abstract class CommandSpec(
         it("throws an error if not enough arguments are supplied") {
             expect {
                 dispatch(notEnoughArgs(tempFolder), errorHandler, listOf(testee))
-            }.toThrow<IllegalArgumentException> {
+            }.toThrow<IllegalStateException> {
                 message { contains("Not enough or too many arguments supplied") }
             }
         }
@@ -44,7 +40,7 @@ abstract class CommandSpec(
         it("throws an error if too many arguments are supplied") {
             expect {
                 dispatch(tooManyArgs(tempFolder), errorHandler, listOf(testee))
-            }.toThrow<IllegalArgumentException> {
+            }.toThrow<IllegalStateException> {
                 message { contains("Not enough or too many arguments supplied") }
             }
         }

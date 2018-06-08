@@ -1,15 +1,28 @@
 package ch.loewenfels.depgraph.runner.console
 
 import ch.loewenfels.depgraph.runner.commands.PrintReleasableProjects
+import ch.tutteli.atrium.api.cc.en_UK.contains
+import ch.tutteli.atrium.api.cc.en_UK.message
+import ch.tutteli.atrium.api.cc.en_UK.toThrow
+import ch.tutteli.atrium.expect
 import ch.tutteli.spek.extensions.TempFolder
 import org.jetbrains.spek.api.Spek
+import org.jetbrains.spek.api.dsl.given
+import org.jetbrains.spek.api.dsl.it
 import org.jetbrains.spek.api.include
 
 class PrintReleasableProjectsSpec : Spek({
     include(PrintReleasableProjectsCommandSpec)
 
-    //TODO write spec for wrong non-existing directory
-    //given("non-existing directory"){}
+    given("non-existing directory") {
+        val errMsg = "The given directory does not exist:"
+        val inputArgs = arrayOf("projectName","directory")
+        it("throws an error, mentioning $errMsg") {
+            expect {
+                PrintReleasableProjects.execute(inputArgs, errorHandler)
+            }.toThrow<IllegalStateException> { message { contains(errMsg) } }
+        }
+    }
 
 }) {
     object PrintReleasableProjectsCommandSpec : CommandSpec(

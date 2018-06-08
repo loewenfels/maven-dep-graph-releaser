@@ -22,7 +22,7 @@ object PrintReleasableProjects : ConsoleCommand {
         if (!directoryToAnalyse.exists()) {
             errorHandler.error(
                 """
-                |The given directory dos not exist:
+                |The given directory does not exist:
                 |Directory: ${directoryToAnalyse.absolutePath}
                 """.trimMargin()
             )
