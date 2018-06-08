@@ -1,9 +1,7 @@
 package ch.loewenfels.depgraph.runner.commands
 
 import ch.loewenfels.depgraph.runner.console.ErrorHandler
-import ch.loewenfels.depgraph.runner.console.expectedArgsAndGiven
 import ch.loewenfels.depgraph.runner.Orchestrator
-import ch.loewenfels.depgraph.runner.toVerifiedFile
 
 object UpdateDependency : ConsoleCommand {
 
@@ -22,17 +20,11 @@ object UpdateDependency : ConsoleCommand {
 
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
         val (_, pomFile, groupId, artifactId, newVersion) = args
-        val pom = pomFile.toVerifiedFile("pom file")
-        if (!pom.exists()) {
-            errorHandler.error(
-                """
-                |The given pom file does not exist. Maybe you mixed up the order of the arguments?
-                |pom: ${pom.absolutePath}
-                |
-                |${expectedArgsAndGiven(this, args)}
-                """.trimMargin()
-            )
-        }
+
+        val pom = pomFile.toVerifiedExistingFile(
+            "pom file", this, args, errorHandler
+        )
+
         Orchestrator.updateDependency(pom, groupId, artifactId, newVersion)
     }
 }

@@ -22,5 +22,3 @@ object Main {
     internal var fileVerifier: FileVerifier = OnlyFolderAndSubFolderFileVerifier
 
 }
-
-fun String.toVerifiedFile(fileDescription: String): File = fileVerifier.file(this, fileDescription)

@@ -4,13 +4,10 @@ import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.parseRegexParameters
 import ch.loewenfels.depgraph.parseRemoteRegex
-import ch.loewenfels.depgraph.maven.Analyser
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
 import ch.loewenfels.depgraph.runner.Orchestrator
 import ch.loewenfels.depgraph.runner.console.ErrorHandler
-import ch.loewenfels.depgraph.runner.console.expectedArgsAndGiven
 import ch.loewenfels.depgraph.runner.console.toOptionalArgs
-import ch.loewenfels.depgraph.runner.toVerifiedFile
 import java.util.*
 
 object Json : ConsoleCommand {
@@ -70,17 +67,9 @@ object Json : ConsoleCommand {
             Regex("^$") //does only match the empty string
         }
 
-        val directoryToAnalyse = unsafeDirectoryToAnalyse.toVerifiedFile("directory to analyse")
-        if (!directoryToAnalyse.exists()) {
-            errorHandler.error(
-                """
-                |The given directory does not exist. Maybe you mixed up the order of the arguments?
-                |directory: ${directoryToAnalyse.absolutePath}
-                |
-                |${expectedArgsAndGiven(this, args)}
-                """.trimMargin()
-            )
-        }
+        val directoryToAnalyse = unsafeDirectoryToAnalyse.toVerifiedExistingFile(
+            "directory to analyse", this, args, errorHandler
+        )
 
         val json = jsonFile.toVerifiedFile("json file")
         if (!json.parentFile.exists()) {

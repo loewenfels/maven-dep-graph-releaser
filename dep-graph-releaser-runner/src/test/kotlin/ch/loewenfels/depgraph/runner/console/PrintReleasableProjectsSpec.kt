@@ -15,7 +15,7 @@ class PrintReleasableProjectsSpec : Spek({
     include(PrintReleasableProjectsCommandSpec)
 
     given("non-existing directory") {
-        val errMsg = "The given directory does not exist:"
+        val errMsg = "The given directory to analyse does not exist."
         val inputArgs = arrayOf("projectName","directory")
         it("throws an error, mentioning $errMsg") {
             expect {
