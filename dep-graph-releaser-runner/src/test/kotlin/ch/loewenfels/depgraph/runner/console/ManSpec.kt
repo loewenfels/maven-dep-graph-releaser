@@ -11,18 +11,13 @@ import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
 
 object ManSpec : Spek({
-    val errorHandler: ErrorHandler = object : ErrorHandler {
-        override fun error(msg: String): Nothing {
-            throw IllegalArgumentException(msg)
-        }
-    }
     describe("validation errors") {
         val man = Man(mapOf())
 
         it("throws an error if not enough arguments are supplied") {
             expect {
                 dispatch(arrayOf(), errorHandler, listOf(man))
-            }.toThrow<IllegalArgumentException> {
+            }.toThrow<IllegalStateException> {
                 message { contains("No arguments supplied") }
             }
         }
@@ -30,7 +25,7 @@ object ManSpec : Spek({
         it("throws an error if too many arguments are supplied") {
             expect {
                 dispatch(arrayOf(man.name, "-command=json", "unexpectedAdditionalArg"), errorHandler, listOf(man))
-            }.toThrow<IllegalArgumentException> {
+            }.toThrow<IllegalStateException> {
                 message { contains("Not enough or too many arguments supplied") }
             }
         }
