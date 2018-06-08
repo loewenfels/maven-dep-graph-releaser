@@ -3,7 +3,6 @@ package ch.loewenfels.depgraph.runner
 import ch.loewenfels.depgraph.maven.getTestDirectory
 import ch.loewenfels.depgraph.runner.Main.errorHandler
 import ch.loewenfels.depgraph.runner.Main.fileVerifier
-import ch.loewenfels.depgraph.runner.commands.Json
 import ch.loewenfels.depgraph.runner.console.ErrorHandler
 import ch.loewenfels.depgraph.runner.console.FileVerifier
 import ch.loewenfels.depgraph.serialization.Serializer
