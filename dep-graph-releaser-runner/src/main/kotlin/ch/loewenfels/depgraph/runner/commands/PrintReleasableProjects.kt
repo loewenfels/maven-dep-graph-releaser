@@ -2,7 +2,6 @@ package ch.loewenfels.depgraph.runner.commands
 
 import ch.loewenfels.depgraph.runner.console.ErrorHandler
 import ch.loewenfels.depgraph.runner.Orchestrator
-import ch.loewenfels.depgraph.runner.toVerifiedFile
 
 object PrintReleasableProjects : ConsoleCommand {
 
@@ -18,15 +17,9 @@ object PrintReleasableProjects : ConsoleCommand {
 
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
         val (_, unsafeDirectoryToAnalyse) = args
-        val directoryToAnalyse = unsafeDirectoryToAnalyse.toVerifiedFile("directory to analyse")
-        if (!directoryToAnalyse.exists()) {
-            errorHandler.error(
-                """
-                |The given directory does not exist:
-                |Directory: ${directoryToAnalyse.absolutePath}
-                """.trimMargin()
-            )
-        }
+        val directoryToAnalyse = unsafeDirectoryToAnalyse.toVerifiedExistingFile(
+            "directory to analyse", this, args, errorHandler
+        )
 
         Orchestrator.printReleasableProjects(directoryToAnalyse)
     }

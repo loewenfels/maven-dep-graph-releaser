@@ -5,7 +5,6 @@ import ch.loewenfels.depgraph.runner.Orchestrator
 import ch.loewenfels.depgraph.runner.console.ErrorHandler
 import ch.loewenfels.depgraph.runner.console.expectedArgsAndGiven
 import ch.loewenfels.depgraph.runner.console.toOptionalArgs
-import ch.loewenfels.depgraph.runner.toVerifiedFile
 import java.io.File
 
 object DependentProjects : ConsoleCommand {
@@ -22,8 +21,7 @@ object DependentProjects : ConsoleCommand {
     private const val ECLIPSE_PSF = "eclipsePsf"
 
     override val name = "dependents"
-    override val description =
-        "Somehow (depending on the format) displays the dependent projects of a given root project."
+    override val description = "Somehow (depending on the format) displays the dependent projects of a given root project."
     override val example = "./dgr $name com.example example-project ./repos \"[^/]+/[^/]+/.+\" " +
         "${FORMAT}list $TRANSFORM_REGEX^(.*)/\$ ${TRANSFORM_REPLACEMENT}https://github.com/\$1 $PSF./import.psf"
     override val arguments = """
@@ -57,22 +55,13 @@ object DependentProjects : ConsoleCommand {
         val (nullableFormat, nullableTransformRegex, nullableTransformReplacement, nullablePsf) = optionalArgs
         val format = nullableFormat ?: "list"
 
-        val directoryToAnalyse = unsafeDirectoryToAnalyse.toVerifiedFile("directory to analyse")
-        if (!directoryToAnalyse.exists()) {
-            errorHandler.error(
-                """
-                |The given directory does not exist. Maybe you mixed up the order of the arguments?
-                |directory: ${directoryToAnalyse.absolutePath}
-                |
-                |${expectedArgsAndGiven(this, args)}
-                """.trimMargin()
-            )
-        }
+        val directoryToAnalyse = unsafeDirectoryToAnalyse.toVerifiedExistingFile(
+            "directory to analyse", this, args, errorHandler
+        )
 
-        require(
-            !excludeRegexString.startsWith(FORMAT) && !excludeRegexString.startsWith(TRANSFORM_REGEX) && !excludeRegexString.startsWith(
-                TRANSFORM_REPLACEMENT
-            )
+        if (excludeRegexString.startsWith(FORMAT) ||
+            excludeRegexString.startsWith(TRANSFORM_REGEX) ||
+            excludeRegexString.startsWith(TRANSFORM_REPLACEMENT)
         ) {
             errorHandler.error(
                 """You have forgotten to provide an argument for excludeRegex or you have mixed up the order of the arguments.
@@ -178,6 +167,7 @@ object DependentProjects : ConsoleCommand {
         if (nullablePsfFile == null) {
             reportMissingArgument(errorHandler, ECLIPSE_PSF, PSF, args)
         }
+
         val psfFile = nullablePsfFile.toVerifiedFile("psf file")
         if (!psfFile.parentFile.exists()) {
             errorHandler.error(
