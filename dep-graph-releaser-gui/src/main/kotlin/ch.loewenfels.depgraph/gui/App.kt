@@ -74,8 +74,8 @@ class App {
                     throw Error("Could not load json.", it)
                 }.then { body: String ->
                     switchLoader("loaderJson", "loaderPipeline")
-                    val modifiableJson = ModifiableState(defaultJenkinsBaseUrl, body)
-                    val releasePlan = modifiableJson.releasePlan
+                    val modifiableState = ModifiableState(defaultJenkinsBaseUrl, body)
+                    val releasePlan = modifiableState.releasePlan
                     val promise = if (usernameToken != null) {
                         loadOtherApiTokens(releasePlan)
                     } else {
@@ -83,9 +83,9 @@ class App {
                     }
                     promise.then {
                         val dependencies = createDependencies(
-                            defaultJenkinsBaseUrl, publishJobUrl, usernameToken, modifiableJson, menu
+                            defaultJenkinsBaseUrl, publishJobUrl, usernameToken, modifiableState, menu
                         )
-                        menu.initDependencies(releasePlan, Downloader(modifiableJson), dependencies, modifiableJson)
+                        menu.initDependencies(Downloader(modifiableState), dependencies, modifiableState)
                         Gui(releasePlan, menu)
                         switchLoaderPipelineWithPipeline()
                     }
