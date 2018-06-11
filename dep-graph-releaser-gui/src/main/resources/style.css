@@ -746,6 +746,9 @@ input:disabled {
     display: table-cell;
     vertical-align: top;
 }
+#modals .text span.title {
+    vertical-align: middle;
+}
 
 #modals .buttons {
     margin-top: 15px;
@@ -768,4 +771,10 @@ input:disabled {
     box-shadow:
         0 1px 1px rgba(0, 0, 0, 0.3),
         0 0 6px rgba(0, 0, 0, 0.1) inset;
+}
+
+#modals textarea {
+    width: 500px;
+    height: 400px;
+    margin-top: 10px;
 }
