@@ -70,16 +70,7 @@ object Json : ConsoleCommand {
         val directoryToAnalyse = unsafeDirectoryToAnalyse.toVerifiedExistingFile(
             "directory to analyse", this, args, errorHandler
         )
-
-        val json = jsonFile.toVerifiedFile("json file")
-        if (!json.parentFile.exists()) {
-            errorHandler.error(
-                """
-                |The directory in which the resulting JSON file shall be created does not exist.
-                |Directory: ${json.parentFile.absolutePath}
-                """.trimMargin()
-            )
-        }
+        val json = jsonFile.toVerifiedFileIfParentExists("json file", errorHandler)
 
         //will both throw if there is a validation error
         parseRemoteRegex(remoteRegex)
