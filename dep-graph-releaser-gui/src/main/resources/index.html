@@ -40,13 +40,20 @@
                 <i class="material-icons">explore</i>
                 <span id="explore:text" class="text">Explore Release Order</span>
             </span>
+            <span id="tools" class="button deactivated" title="Cannot open the toolbox; most probably javascript was not loaded correctly">
+                <i class="material-icons">build</i>
+                <span class="text">Tools</span>
+            </span>
             <span id="settings" class="button deactivated" title="Cannot open settings; most probably javascript was not loaded correctly">
                 <i class="material-icons">settings</i>
                 <span class="text">Settings</span>
             </span>
         </div>
-        <div id="config">
-            <span id="config:close" class="close" title="close settings"></span>
+        <div id="toolbox" class="menuLayer">
+            <span id="toolbox:close" class="close" title="Close Toolbox"></span>
+        </div>
+        <div id="config" class="menuLayer">
+            <span id="config:close" class="close" title="Close Settings"></span>
         </div>
         <div id="pipeline"></div>
     </div>

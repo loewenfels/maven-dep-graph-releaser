@@ -71,6 +71,11 @@ a:hover {
 #dry {
     margin-right: 23px;
 }
+#tools .material-icons {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+}
 
 #user {
     float: right;
@@ -87,7 +92,7 @@ a:hover {
 }
 
 
-#config {
+.menuLayer {
     visibility: hidden;
     position: fixed;
     top: 0;
@@ -102,15 +107,15 @@ a:hover {
     overflow-y: auto;
 }
 
-#config.active {
+.menuLayer.active {
     visibility: visible;
     top: 44px;
 }
 
-#config label.fields {
+.menuLayer label.fields {
     vertical-align: top;
     padding-top: 3px;
-    width: 150px;
+    width: 190px;
     margin-right: 10px;
 }
 
@@ -127,6 +132,12 @@ a:hover {
     margin-bottom: 10px;
 }
 
+#toolbox .button {
+    background-color: #333;
+    padding: 5px;
+    padding-right: 15px;
+    border-radius: 5px;
+}
 
 
 #pipeline {
