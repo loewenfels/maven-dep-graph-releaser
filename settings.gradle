@@ -1,7 +1,7 @@
 rootProject.name = 'dep-graph-releaser'
 
 buildscript {
-    gradle.ext.tutteli_plugins_version = '0.4.0'
+    gradle.ext.tutteli_plugins_version = '0.5.0'
     repositories {
         maven { url "https://plugins.gradle.org/m2/" }
     }
@@ -15,17 +15,19 @@ apply plugin: 'ch.tutteli.settings'
 //noinspection GroovyAssignabilityCheck
 include {
     _ runner
-    api {
-        _ 'api-common'
-        _ 'api-jvm'
-        _ 'api-js'
+
+    folder('api', 'api-') {
+        _ common
+        _ jvm
+        _ js
     }
+
     _ serialization
 
-    folder('maven-api') {
-        _ 'maven-api-common'
-        _ 'maven-api-js'
-        _ 'maven-api-jvm'
+    folder('maven-api', 'maven-api-') {
+        _ common
+        _ jvm
+        _ js
     }
     _ maven
     _ manipulation
