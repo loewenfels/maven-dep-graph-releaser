@@ -5,16 +5,15 @@ import ch.loewenfels.depgraph.runner.console.ErrorHandler
 import ch.loewenfels.depgraph.runner.console.expectedArgsAndGiven
 import java.io.File
 
-fun String.toVerifiedFile(fileDescription: String): File = Main.fileVerifier.file(this, fileDescription)
-
-fun String.toVerifiedExistingFile(
+fun toVerifiedExistingFile(
+    filePath: String,
     fileDescription: String,
     command: ConsoleCommand,
     args: Array<out String>,
     errorHandler: ErrorHandler,
     suffix: String = ""
 ): File {
-    val safeFile = toVerifiedFile(fileDescription)
+    val safeFile = filePath.toVerifiedFile(fileDescription)
     if (!safeFile.exists()) {
         errorHandler.error(
             """
@@ -28,11 +27,12 @@ fun String.toVerifiedExistingFile(
     return safeFile
 }
 
-fun String.toVerifiedFileIfParentExists(
+fun toVerifiedFileIfParentExists(
+    filePath: String,
     fileDescription: String,
     errorHandler: ErrorHandler
 ): File {
-    val file = toVerifiedFile(fileDescription)
+    val file = filePath.toVerifiedFile(fileDescription)
     if (!file.parentFile.exists()) {
         errorHandler.error(
             """
@@ -43,3 +43,5 @@ fun String.toVerifiedFileIfParentExists(
     }
     return file
 }
+
+private fun String.toVerifiedFile(fileDescription: String): File = Main.fileVerifier.file(this, fileDescription)

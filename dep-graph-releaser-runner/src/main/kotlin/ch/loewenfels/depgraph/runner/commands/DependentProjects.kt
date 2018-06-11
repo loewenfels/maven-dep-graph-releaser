@@ -55,8 +55,8 @@ object DependentProjects : ConsoleCommand {
         val (nullableFormat, nullableTransformRegex, nullableTransformReplacement, nullablePsf) = optionalArgs
         val format = nullableFormat ?: "list"
 
-        val directoryToAnalyse = unsafeDirectoryToAnalyse.toVerifiedExistingFile(
-            "directory to analyse", this, args, errorHandler
+        val directoryToAnalyse = toVerifiedExistingFile(
+            unsafeDirectoryToAnalyse, "directory to analyse", this, args, errorHandler
         )
 
         if (excludeRegexString.startsWith(FORMAT) ||
@@ -168,7 +168,7 @@ object DependentProjects : ConsoleCommand {
             reportMissingArgument(errorHandler, ECLIPSE_PSF, PSF, args)
         }
 
-        val psfFile = nullablePsfFile.toVerifiedFileIfParentExists("psf file", errorHandler)
+        val psfFile = toVerifiedFileIfParentExists(nullablePsfFile, "psf file", errorHandler)
 
         Orchestrator.createPsfFileForDependents(
             directoryToAnalyse,

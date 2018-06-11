@@ -18,8 +18,9 @@ object Html : ConsoleCommand {
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
         val (_, outputDirPath) = args
 
-        val outputDir = outputDirPath.toVerifiedExistingFile(
-            "output directory", this, args, errorHandler,
+        val outputDir = toVerifiedExistingFile(
+            outputDirPath, "output directory", this, args,
+            errorHandler,
             suffix = " in which the resulting HTML file (and resources) shall be created"
         )
 

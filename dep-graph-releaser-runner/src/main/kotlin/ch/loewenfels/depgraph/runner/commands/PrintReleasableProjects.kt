@@ -17,8 +17,8 @@ object PrintReleasableProjects : ConsoleCommand {
 
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
         val (_, unsafeDirectoryToAnalyse) = args
-        val directoryToAnalyse = unsafeDirectoryToAnalyse.toVerifiedExistingFile(
-            "directory to analyse", this, args, errorHandler
+        val directoryToAnalyse = toVerifiedExistingFile(
+            unsafeDirectoryToAnalyse, "directory to analyse", this, args, errorHandler
         )
 
         Orchestrator.printReleasableProjects(directoryToAnalyse)
