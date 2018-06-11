@@ -18,7 +18,7 @@ class JsonSpec : Spek({
         Json,
         ::getNotEnoughArgs,
         ::getTooManyArgs,
-        8..11
+        11..14
     )
 
     companion object {
@@ -29,9 +29,12 @@ class JsonSpec : Spek({
                 getTestDirectory("managingVersions/inDependency").absolutePath,
                 jsonFile.absolutePath,
                 "dgr-updater",
-                "dgr-dry-run"
-                // the REMOTE_REGEX is required as well
-                //"^$#none"
+                "dgr-dry-run",
+                "^$#none",
+                "[^/]+/[^/]+/.+",
+                "^(.*)/\$"
+                //the RELATIVE_PATH_TO_GIT_REPO_REPLACEMENT is required as well
+                //"https://github.com/$1"
             )
         }
 
@@ -44,6 +47,9 @@ class JsonSpec : Spek({
                 "dgr-updater",
                 "dgr-dry-run",
                 "^$#none",
+                "[^/]+/[^/]+/.+",
+                "^(.*)/\$",
+                "https://github.com/$1",
                 "${Json.REGEX_PARAMS_ARG}.*=branch.name=master",
                 "${Json.DISABLE_RELEASE_FOR}ch.loewenfels.*",
                 "${Json.JOB_MAPPING_ARG}com.example.project=ownJobName|com.example.anotherProject=another-project",

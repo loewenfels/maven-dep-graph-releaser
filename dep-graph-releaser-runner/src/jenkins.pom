@@ -65,6 +65,11 @@
                                 <argument>${updateDependencyJob}</argument>
                                 <argument>${dryRunJob}</argument>
                                 <argument>${remoteRegex}</argument>
+                                <argument>${relativePathExcludeProjectsRegex}</argument>
+                                <argument>${relativePathToGitRepoRegex}</argument>
+                                <argument>${relativePathToGitRepoReplacement}</argument>
+                                <argument>${remoteRegex}</argument>
+                                <argument>${remoteRegex}</argument>
                                 <argument>-regexParams=${regexParams}</argument>
                                 <argument>-disableRegex=${disableRegex}</argument>
                                 <argument>-jobMapping=${jobMapping}</argument>
