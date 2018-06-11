@@ -63,8 +63,8 @@
                                 <argument>${dir}</argument>
                                 <argument>${json}</argument>
                                 <argument>${updateDependencyJob}</argument>
-                                <argument>${remoteRegex}</argument>
                                 <argument>${dryRunJob}</argument>
+                                <argument>${remoteRegex}</argument>
                                 <argument>-regexParams=${regexParams}</argument>
                                 <argument>-disableRegex=${disableRegex}</argument>
                                 <argument>-jobMapping=${jobMapping}</argument>

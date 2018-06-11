@@ -29,9 +29,9 @@ class JsonSpec : Spek({
                 getTestDirectory("managingVersions/inDependency").absolutePath,
                 jsonFile.absolutePath,
                 "dgr-updater",
-                "^$#none"
-                //the DRY_RUN_JOB is required as well
-                //"dgr-dry-run",
+                "dgr-dry-run"
+                // the REMOTE_REGEX is required as well
+                //"^$#none"
             )
         }
 
@@ -42,8 +42,8 @@ class JsonSpec : Spek({
                 getTestDirectory("managingVersions/inDependency").absolutePath,
                 jsonFile.absolutePath,
                 "dgr-updater",
-                "^$#none",
                 "dgr-dry-run",
+                "^$#none",
                 "${Json.REGEX_PARAMS_ARG}.*=branch.name=master",
                 "${Json.DISABLE_RELEASE_FOR}ch.loewenfels.*",
                 "${Json.JOB_MAPPING_ARG}com.example.project=ownJobName|com.example.anotherProject=another-project",
