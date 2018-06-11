@@ -278,7 +278,7 @@ class Menu {
     private fun initExportButtons(modifiableState: ModifiableState) {
         activateButton(eclipsePsfButton, "Download an eclipse psf-file to import all projects into eclipse.")
         activateButton(gitCloneCommandsButton, "Show git clone commands to clone the involved projects.")
-        listDependentsButton.title = "Not yet implemented"
+        activateButton(listDependentsButton, "List direct and indirect dependent projects (identifiers) of the root project.")
 
         eclipsePsfButton.addClickEventListenerIfNotDeactivatedNorDisabled {
             val releasePlan = modifiableState.releasePlan
@@ -301,6 +301,16 @@ class Menu {
             )
             val title = "Copy the following git clone commands and paste them into a terminal/command prompt"
             showOutput(title, gitCloneCommands)
+        }
+
+        listDependentsButton.addClickEventListenerIfNotDeactivatedNorDisabled {
+            val releasePlan = modifiableState.releasePlan
+            val list = generateListOfDependentsWithoutSubmoduleAndExcluded(
+                releasePlan,
+                Regex(releasePlan.getConfig(ConfigKey.RELATIVE_PATH_EXCLUDE_PROJECT_REGEX))
+            )
+            val title = "The following projects are (indirect) dependents of ${releasePlan.rootProjectId.identifier}"
+            showOutput(title, list)
         }
     }
 
