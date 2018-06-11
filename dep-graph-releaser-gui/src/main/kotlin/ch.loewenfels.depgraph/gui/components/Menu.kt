@@ -6,6 +6,8 @@ import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.ReleaseState
 import ch.loewenfels.depgraph.generateEclipsePsf
+import ch.loewenfels.depgraph.generateGitCloneCommands
+import ch.loewenfels.depgraph.generateListOfDependentsWithoutSubmoduleAndExcluded
 import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.actions.Downloader
 import ch.loewenfels.depgraph.gui.actions.Publisher
@@ -275,17 +277,30 @@ class Menu {
 
     private fun initExportButtons(modifiableState: ModifiableState) {
         activateButton(eclipsePsfButton, "Download an eclipse psf-file to import all projects into eclipse.")
-        gitCloneCommandsButton.title = "Not yet implemented"
+        activateButton(gitCloneCommandsButton, "Show git clone commands to clone the involved projects.")
         listDependentsButton.title = "Not yet implemented"
 
         eclipsePsfButton.addClickEventListenerIfNotDeactivatedNorDisabled {
             val releasePlan = modifiableState.releasePlan
-            val psfContent = generateEclipsePsf(releasePlan,
+            val psfContent = generateEclipsePsf(
+                releasePlan,
                 Regex(releasePlan.getConfig(ConfigKey.RELATIVE_PATH_EXCLUDE_PROJECT_REGEX)),
                 Regex(releasePlan.getConfig(ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REGEX)),
                 releasePlan.getConfig(ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REPLACEMENT)
             )
             Downloader.download("customImport.psf", psfContent)
+        }
+
+        gitCloneCommandsButton.addClickEventListenerIfNotDeactivatedNorDisabled {
+            val releasePlan = modifiableState.releasePlan
+            val gitCloneCommands = generateGitCloneCommands(
+                releasePlan,
+                Regex(releasePlan.getConfig(ConfigKey.RELATIVE_PATH_EXCLUDE_PROJECT_REGEX)),
+                Regex(releasePlan.getConfig(ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REGEX)),
+                releasePlan.getConfig(ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REPLACEMENT)
+            )
+            val title = "Copy the following git clone commands and paste them into a terminal/command prompt"
+            showOutput(title, gitCloneCommands)
         }
     }
 
@@ -341,8 +356,8 @@ class Menu {
         return commands.mapWithIndex()
             .any { (index, _) -> Pipeline.getCommandState(id, index) === CommandState.Failed }
             || releasePlan.getSubmodules(id).any {
-                releasePlan.getProject(it).hasFailedCommandsOrSubmoduleHasFailedCommands(releasePlan)
-            }
+            releasePlan.getProject(it).hasFailedCommandsOrSubmoduleHasFailedCommands(releasePlan)
+        }
     }
 
     private fun turnFailedCommandsIntoStateReTrigger(releasePlan: ReleasePlan) {
