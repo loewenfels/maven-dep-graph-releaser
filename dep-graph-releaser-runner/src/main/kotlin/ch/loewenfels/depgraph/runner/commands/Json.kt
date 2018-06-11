@@ -67,10 +67,10 @@ object Json : ConsoleCommand {
             Regex("^$") //does only match the empty string
         }
 
-        val directoryToAnalyse = unsafeDirectoryToAnalyse.toVerifiedExistingFile(
-            "directory to analyse", this, args, errorHandler
+        val directoryToAnalyse = toVerifiedExistingFile(
+            unsafeDirectoryToAnalyse, "directory to analyse", this, args, errorHandler
         )
-        val json = jsonFile.toVerifiedFileIfParentExists("json file", errorHandler)
+        val json = toVerifiedFileIfParentExists(jsonFile, "json file", errorHandler)
 
         //will both throw if there is a validation error
         parseRemoteRegex(remoteRegex)

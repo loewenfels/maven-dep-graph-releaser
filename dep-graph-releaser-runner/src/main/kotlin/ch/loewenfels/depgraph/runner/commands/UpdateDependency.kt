@@ -21,8 +21,8 @@ object UpdateDependency : ConsoleCommand {
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
         val (_, pomFile, groupId, artifactId, newVersion) = args
 
-        val pom = pomFile.toVerifiedExistingFile(
-            "pom file", this, args, errorHandler
+        val pom = toVerifiedExistingFile(
+            pomFile, "pom file", this, args, errorHandler
         )
 
         Orchestrator.updateDependency(pom, groupId, artifactId, newVersion)
