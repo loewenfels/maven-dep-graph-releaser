@@ -89,7 +89,6 @@ class Menu {
     }
 
     internal fun initDependencies(
-        releasePlan: ReleasePlan,
         downloader: Downloader,
         dependencies: Dependencies?,
         modifiableState: ModifiableState
@@ -109,8 +108,9 @@ class Menu {
         }
 
         initSaveAndDownloadButton(downloader, dependencies)
-        initRunButtons(releasePlan, dependencies, modifiableState)
+        initRunButtons(dependencies, modifiableState)
 
+        val releasePlan = modifiableState.releasePlan
         when (releasePlan.state) {
             ReleaseState.Ready -> Unit /* nothing to do */
             ReleaseState.InProgress -> dispatchReleaseStart()
@@ -138,14 +138,14 @@ class Menu {
         }
     }
 
-    private fun initRunButtons(releasePlan: ReleasePlan, dependencies: Dependencies?, modifiableState: ModifiableState) {
+    private fun initRunButtons(dependencies: Dependencies?, modifiableState: ModifiableState) {
         if (dependencies != null) {
 
             activateDryRunButton()
             dryRunButton.addClickEventListenerIfNotDeactivatedNorDisabled {
                 typeOfRun = TypeOfRun.DRY_RUN
                 triggerRelease(
-                    releasePlan,
+                    modifiableState.releasePlan,
                     dependencies,
                     dependencies.jenkinsJobExecutor,
                     modifiableState.dryRunExecutionDataFactory
@@ -155,7 +155,7 @@ class Menu {
             releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
                 typeOfRun = TypeOfRun.RELEASE
                 triggerRelease(
-                    releasePlan,
+                    modifiableState.releasePlan,
                     dependencies,
                     dependencies.jenkinsJobExecutor,
                     modifiableState.releaseJobExecutionDataFactory
@@ -177,7 +177,7 @@ class Menu {
             typeOfRun = TypeOfRun.SIMULATION
             publisher = nonNullDependencies.publisher
             triggerRelease(
-                releasePlan,
+                modifiableState.releasePlan,
                 nonNullDependencies,
                 nonNullDependencies.simulatingJobExecutor,
                 modifiableState.releaseJobExecutionDataFactory
