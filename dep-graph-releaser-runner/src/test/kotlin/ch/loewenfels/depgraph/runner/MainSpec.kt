@@ -34,8 +34,8 @@ object MainSpec : Spek({
                     getTestDirectory("managingVersions/inDependency").absolutePath,
                     jsonFile.absolutePath,
                     "dgr-updater",
-                    "^$#none",
-                    "dgr-dry-run"
+                    "dgr-dry-run",
+                    "^$#none"
                 )
                 it("creates a corresponding json file") {
                     assert(jsonFile).returnValueOf(jsonFile::exists).isTrue()

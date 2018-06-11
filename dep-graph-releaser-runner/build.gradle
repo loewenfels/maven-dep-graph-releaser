@@ -80,9 +80,9 @@ def defaultDirArg = "${rootProject.projectDir}/repos"
 task json {
     def updateDependencyJobArg = 'updateDependencyJob'
     def defaultUpdateJob = "dgr-updater"
+    def dryRunJobArg = 'dryRunJob'
     def remoteRegexArg = 'remoteRegex'
     def defaultRemoteRegex = "\".*#https://buildsystem.loewenfels.ch/jenkins\""
-    def dryRunJobArg = 'dryRunJob'
     def defaultDryRunJob = "dgr-dry-run"
     def paramsArg = 'regexParams'
     def defaultParamsArg = ".*#branch.name=master"
@@ -92,8 +92,8 @@ task json {
     inputs.property(artifactIdArg, findProperty(artifactIdArg))
     inputs.property(dirArg, findProperty(dirArg) ?: defaultDirArg)
     inputs.property(updateDependencyJobArg, findProperty(updateDependencyJobArg) ?: defaultUpdateJob)
-    inputs.property(remoteRegexArg, findProperty(remoteRegexArg) ?: defaultRemoteRegex)
     inputs.property(dryRunJobArg, findProperty(dryRunJobArg) ?: defaultDryRunJob)
+    inputs.property(remoteRegexArg, findProperty(remoteRegexArg) ?: defaultRemoteRegex)
     inputs.property(paramsArg, findProperty(paramsArg) ?: defaultParamsArg)
     inputs.property(disableRegexArg, findProperty(disableRegexArg) ?: '^$')
     inputs.property(jobMappingArg, findProperty(jobMappingArg) ?: '')
@@ -104,8 +104,8 @@ task json {
         def artifactId = getDefinedParam(artifactIdArg, "artifactId")
         def dir = findProperty(dirArg) ?: defaultDirArg
         def updateDependencyJob = findProperty(updateDependencyJobArg) ?: defaultUpdateJob
-        def remoteRegex = findProperty(remoteRegexArg) ?: defaultRemoteRegex
         def dryRunJob = findProperty(dryRunJobArg) ?: defaultDryRunJob
+        def remoteRegex = findProperty(remoteRegexArg) ?: defaultRemoteRegex
         def params = ["-$paramsArg=${findProperty(paramsArg) ?: defaultParamsArg}"]
         def disableRegex = findProperty(disableRegexArg) != null ? ["-$disableRegexArg=${findProperty(disableRegexArg)}"] : []
         def jobMapping = findProperty(jobMappingArg) != null ?
@@ -119,7 +119,7 @@ task json {
             ]
 
         execMain(
-            ['json', groupId, artifactId, dir, jsonFile.absolutePath, updateDependencyJob, remoteRegex, dryRunJob] +
+            ['json', groupId, artifactId, dir, jsonFile.absolutePath, updateDependencyJob, dryRunJob, remoteRegex] +
                 params + disableRegex + jobMapping
         )
     }

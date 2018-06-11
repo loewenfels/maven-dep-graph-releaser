@@ -32,12 +32,12 @@ object Json : ConsoleCommand {
         |dir                       // path to the directory where all projects are
         |json                      // path + file name for the resulting json file
         |${ConfigKey.UPDATE_DEPENDENCY_JOB.asString()}       // the name of the update dependency job
+        |${ConfigKey.DRY_RUN_JOB.asString()}                 // the job which executes a dry run
         |${ConfigKey.REMOTE_REGEX.asString()}               // regex which determines which project runs on a different jenkins server
         |                          // than the publish job. It takes the following form where regex has to
         |                          // match the project identifier (groupId:artifactId):
         |                          // regex#jenkinsBaseUrl;regex2#anotherJenkinsBaseUrl
         |                          // Notice that the first match is considered and the rest ignored.
-        |${ConfigKey.DRY_RUN_JOB.asString()}                 // the job which executes a dry run
         |(${REGEX_PARAMS_ARG}spec)       // optionally: parameters of the form regex#a=b;c=d${'$'}.*#e=f where the regex
         |                          // defines for which job the parameters shall apply. Multiple regex can be
         |                          // specified. In the above, .* matches all, so every job gets e=f as argument.
@@ -54,7 +54,7 @@ object Json : ConsoleCommand {
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
         val (_, groupId, artifactId, unsafeDirectoryToAnalyse, jsonFile) = args
         val afterFirst5 = args.drop(5)
-        val (updateDependencyJob, remoteRegex, dryRunJob) = afterFirst5
+        val (updateDependencyJob, dryRunJob, remoteRegex) = afterFirst5
         val optionalArgs = afterFirst5.drop(3).toOptionalArgs(
             errorHandler,
             REGEX_PARAMS_ARG, DISABLE_RELEASE_FOR, JOB_MAPPING_ARG
@@ -74,13 +74,13 @@ object Json : ConsoleCommand {
 
         //will both throw if there is a validation error
         parseRemoteRegex(remoteRegex)
-        if(regexParameters != null) parseRegexParameters(regexParameters)
+        if (regexParameters != null) parseRegexParameters(regexParameters)
 
         val config = mapOf(
             ConfigKey.COMMIT_PREFIX to "[DGR]",
             ConfigKey.UPDATE_DEPENDENCY_JOB to updateDependencyJob,
-            ConfigKey.REMOTE_REGEX to remoteRegex,
             ConfigKey.DRY_RUN_JOB to dryRunJob,
+            ConfigKey.REMOTE_REGEX to remoteRegex,
             ConfigKey.REGEX_PARAMS to (regexParameters ?: ""),
             ConfigKey.JOB_MAPPING to (jobMapping ?: "")
         )
