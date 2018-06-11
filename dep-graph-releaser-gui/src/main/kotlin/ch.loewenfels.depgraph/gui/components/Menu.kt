@@ -1,9 +1,11 @@
 package ch.loewenfels.depgraph.gui.components
 
+import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.ReleaseState
+import ch.loewenfels.depgraph.generateEclipsePsf
 import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.actions.Downloader
 import ch.loewenfels.depgraph.gui.actions.Publisher
@@ -35,6 +37,9 @@ class Menu {
     private val exploreButton get() = elementById("explore")
     private val toolsButton get() = elementById("tools")
     private val settingsButton get() = elementById("settings")
+    private val eclipsePsfButton get() = elementById("eclipsePsf")
+    private val gitCloneCommandsButton get() = elementById("gitCloneCommands")
+    private val listDependentsButton get() = elementById("listDependents")
 
     private var publisher: Publisher? = null
     private var typeOfRun = TypeOfRun.SIMULATION
@@ -135,6 +140,7 @@ class Menu {
         initRunButtons(dependencies, modifiableState)
         activateToolsButton()
         activateSettingsButton()
+        initExportButtons(modifiableState)
 
         val releasePlan = modifiableState.releasePlan
         when (releasePlan.state) {
@@ -264,6 +270,22 @@ class Menu {
                 button.title = "Continue with the $processName process by re-processing previously failed projects."
                 button.removeClass(DISABLED)
             }
+        }
+    }
+
+    private fun initExportButtons(modifiableState: ModifiableState) {
+        activateButton(eclipsePsfButton, "Download an eclipse psf-file to import all projects into eclipse.")
+        gitCloneCommandsButton.title = "Not yet implemented"
+        listDependentsButton.title = "Not yet implemented"
+
+        eclipsePsfButton.addClickEventListenerIfNotDeactivatedNorDisabled {
+            val releasePlan = modifiableState.releasePlan
+            val psfContent = generateEclipsePsf(releasePlan,
+                Regex(releasePlan.getConfig(ConfigKey.RELATIVE_PATH_EXCLUDE_PROJECT_REGEX)),
+                Regex(releasePlan.getConfig(ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REGEX)),
+                releasePlan.getConfig(ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REPLACEMENT)
+            )
+            Downloader.download("customImport.psf", psfContent)
         }
     }
 
