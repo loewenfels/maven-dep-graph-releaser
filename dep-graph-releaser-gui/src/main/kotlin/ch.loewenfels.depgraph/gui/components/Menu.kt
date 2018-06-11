@@ -359,27 +359,23 @@ class Menu {
         }
     }
 
-    private fun activateDryRunButton() {
-        if (dryRunButton.isDisabled()) return
+    private fun activateDryRunButton() = activateButton(
+        dryRunButton, "Start a dry run based on this release plan (no commit will be made, no artifact deployed etc.)."
+    )
 
-        dryRunButton.removeClass(DEACTIVATED)
-        dryRunButton.title = "Start a dry run based on this release plan (no commit will be made, no artifact deployed etc.)."
-    }
+    private fun activateReleaseButton() = activateButton(
+        releaseButton, "Start a release based on this release plan."
+    )
 
+    private fun activateExploreButton() = activateButton(
+        exploreButton, "See in which order the projects are build, actual order may vary due to unequal execution time."
+    )
 
-    private fun activateReleaseButton() {
-        if (releaseButton.isDisabled()) return
+    private fun activateButton(button: HTMLElement, newTitle: String) {
+        if (button.isDisabled()) return
 
-        releaseButton.removeClass(DEACTIVATED)
-        releaseButton.title = "Start a release based on this release plan."
-    }
-
-    private fun activateExploreButton() {
-        if (exploreButton.isDisabled()) return
-
-        exploreButton.removeClass(DEACTIVATED)
-        exploreButton.title =
-            "See in which order the projects are build, actual order may vary due to unequal execution time."
+        button.removeClass(DEACTIVATED)
+        button.title = newTitle
     }
 
     /**
