@@ -35,7 +35,10 @@ object MainSpec : Spek({
                     jsonFile.absolutePath,
                     "dgr-updater",
                     "dgr-dry-run",
-                    "^$#none"
+                    "^$#none",
+                    "[^/]+/[^/]+/.+",
+                    "^(.*)/\$",
+                    "https://github.com/$1"
                 )
                 it("creates a corresponding json file") {
                     assert(jsonFile).returnValueOf(jsonFile::exists).isTrue()
