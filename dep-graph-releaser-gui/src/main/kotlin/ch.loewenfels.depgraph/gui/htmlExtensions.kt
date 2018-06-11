@@ -43,9 +43,9 @@ private fun withErrorHandling(event: Event, action: (Event) -> Any) {
     Promise.resolve(1).then {
         action(event)
     }.catch { t ->
-        showThrowableAndThrow(
-            Error("An unexpected error occurred.\nPlease report a bug with the following information at $GITHUB_NEW_ISSUE", t)
-        )
+        val message = "An unexpected error occurred." +
+            "\nPlease report a bug with the following information at $GITHUB_NEW_ISSUE"
+        showThrowableAndThrow(Error(message, t))
     }
 }
 

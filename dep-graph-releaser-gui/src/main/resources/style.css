@@ -139,6 +139,17 @@ a:hover {
     border-radius: 5px;
 }
 
+.material-icons.char {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    padding-left: 5px;
+    padding-right: 1px;
+    font-family: "Arimo", sans-serif;
+}
+
 
 #pipeline {
     display: none;
