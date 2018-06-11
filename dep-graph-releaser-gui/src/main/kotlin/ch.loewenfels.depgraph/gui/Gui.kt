@@ -57,8 +57,11 @@ class Gui(releasePlan: ReleasePlan, private val menu: Menu) {
                 listOf(
                     ConfigKey.COMMIT_PREFIX,
                     ConfigKey.UPDATE_DEPENDENCY_JOB,
-                    ConfigKey.REMOTE_REGEX,
                     ConfigKey.DRY_RUN_JOB,
+                    ConfigKey.REMOTE_REGEX,
+                    ConfigKey.RELATIVE_PATH_EXCLUDE_PROJECT_REGEX,
+                    ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REGEX,
+                    ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REPLACEMENT,
                     ConfigKey.REGEX_PARAMS
                 ).forEach { key ->
                     textFieldWithLabel("config-${key.asString()}", key.asString(), config[key] ?: "", menu)

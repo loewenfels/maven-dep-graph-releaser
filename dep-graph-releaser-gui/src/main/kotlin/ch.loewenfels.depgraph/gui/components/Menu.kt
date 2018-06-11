@@ -1,9 +1,13 @@
 package ch.loewenfels.depgraph.gui.components
 
+import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.ReleaseState
+import ch.loewenfels.depgraph.generateEclipsePsf
+import ch.loewenfels.depgraph.generateGitCloneCommands
+import ch.loewenfels.depgraph.generateListOfDependentsWithoutSubmoduleAndExcluded
 import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.actions.Downloader
 import ch.loewenfels.depgraph.gui.actions.Publisher
@@ -33,23 +37,49 @@ class Menu {
     private val dryRunButton get() = elementById("dryRun")
     private val releaseButton get() = elementById("release")
     private val exploreButton get() = elementById("explore")
+    private val toolsButton get() = elementById("tools")
     private val settingsButton get() = elementById("settings")
+    private val eclipsePsfButton get() = elementById("eclipsePsf")
+    private val gitCloneCommandsButton get() = elementById("gitCloneCommands")
+    private val listDependentsButton get() = elementById("listDependents")
 
     private var publisher: Publisher? = null
     private var typeOfRun = TypeOfRun.SIMULATION
 
     init {
-        settingsButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-            elementById("config").toggleClass("active")
-        }
-        elementById("config:close").addClickEventListener {
-            elementById("config").removeClass("active")
+        setUpMenuLayers(
+            Triple(toolsButton, "toolbox", TOOLS_INACTIVE_TITLE to "Close the toolbox."),
+            Triple(settingsButton, "config", SETTINGS_INACTIVE_TITLE to "Close Settings.")
+        )
+    }
+
+    private fun setUpMenuLayers(vararg pairs: Triple<HTMLElement, String, Pair<String, String>>) {
+        pairs.forEach { (button, id, inactiveAndActiveTitle) ->
+            button.addClickEventListenerIfNotDeactivatedNorDisabled {
+                //close the others
+                pairs.forEach { (_, otherId) ->
+                    if (id != otherId) {
+                        elementById(otherId).removeClass("active")
+                    }
+                }
+
+                val layer = elementById(id)
+                if (layer.hasClass("active")) {
+                    button.title = inactiveAndActiveTitle.first
+                } else {
+                    button.title = inactiveAndActiveTitle.second
+                }
+                layer.toggleClass("active")
+            }
+            elementById("$id:close").addClickEventListener {
+                elementById(id).removeClass("active")
+            }
         }
     }
 
     fun disableButtonsDueToNoPublishUrl() {
         val titleButtons =
-            "You need to specify publishJob if you want to use other functionality than Download and Explore Release Order."
+            "You need to specify &publishJob if you want to use other functionality than Download and Explore Release Order."
         disableButtonsDueToNoAuth(
             titleButtons, titleButtons +
                 "\nAn example: ${window.location}&publishJob=jobUrl" +
@@ -76,9 +106,10 @@ class Menu {
         if (!userButton.hasClass(DEACTIVATED)) {
             userIcon.innerText = "error"
             userButton.addClass("warning")
-            showWarning("You are not logged in at $remoteJenkinsBaseUrl.\n" +
-                "You can perform a Dry Run (runs on $defaultJenkinsBaseUrl) but a release involving the remote jenkins will most likely fail.\n\n" +
-                "Go to the log in: $remoteJenkinsBaseUrl/login?from=" + window.location
+            showWarning(
+                "You are not logged in at $remoteJenkinsBaseUrl.\n" +
+                    "You can perform a Dry Run (runs on $defaultJenkinsBaseUrl) but a release involving the remote jenkins will most likely fail.\n\n" +
+                    "Go to the log in: $remoteJenkinsBaseUrl/login?from=" + window.location
             )
         }
     }
@@ -109,6 +140,9 @@ class Menu {
 
         initSaveAndDownloadButton(downloader, dependencies)
         initRunButtons(dependencies, modifiableState)
+        activateToolsButton()
+        activateSettingsButton()
+        initExportButtons(modifiableState)
 
         val releasePlan = modifiableState.releasePlan
         when (releasePlan.state) {
@@ -197,21 +231,25 @@ class Menu {
                 listOf(dryRunButton, releaseButton, exploreButton).forEach {
                     it.title = DISABLED_RELEASE_SUCCESS
                 }
-                showSuccess("""
-                        |Release ended successfully :) you can now close the window.
-                        |Use a new pipeline for a new release (also in case you performed a Dry Run).
-                        |
-                        |Please report a bug at $GITHUB_NEW_ISSUE in case some job failed without us noticing it.
-                        |Do not forget to star the repository if you like dep-graph-releaser ;-) $GITHUB_REPO
-                        |Last but not least, you might want to visit $LOEWENFELS_URL to get to know the company pushing this project forward.
-                    """.trimMargin())
+                showSuccess(
+                    """
+                    |Release ended successfully :) you can now close the window.
+                    |Use a new pipeline for a new release (also in case you performed a Dry Run).
+                    |
+                    |Please report a bug at $GITHUB_NEW_ISSUE in case some job failed without us noticing it.
+                    |Do not forget to star the repository if you like dep-graph-releaser ;-) $GITHUB_REPO
+                    |Last but not least, you might want to visit $LOEWENFELS_URL to get to know the company pushing this project forward.
+                    """.trimMargin()
+                )
             } else {
-                showError("""
-                        |Release ended with failure :(
-                        |At least one job failed. Check errors, fix them and then you can re-trigger the failed jobs, the pipeline respectively, by clicking on the release button (you might have to delete git tags and remove artifacts if they have already been created).
-                        |
-                        |Please report a bug at $GITHUB_NEW_ISSUE in case a job failed due to an error in dep-graph-releaser.
-                    """.trimMargin())
+                showError(
+                    """
+                    |Release ended with failure :(
+                    |At least one job failed. Check errors, fix them and then you can re-trigger the failed jobs, the pipeline respectively, by clicking on the release button (you might have to delete git tags and remove artifacts if they have already been created).
+                    |
+                    |Please report a bug at $GITHUB_NEW_ISSUE in case a job failed due to an error in dep-graph-releaser.
+                    """.trimMargin()
+                )
 
                 val (processName, button, buttonText) = when (typeOfRun) {
                     TypeOfRun.SIMULATION -> Triple(
@@ -234,6 +272,45 @@ class Menu {
                 button.title = "Continue with the $processName process by re-processing previously failed projects."
                 button.removeClass(DISABLED)
             }
+        }
+    }
+
+    private fun initExportButtons(modifiableState: ModifiableState) {
+        activateButton(eclipsePsfButton, "Download an eclipse psf-file to import all projects into eclipse.")
+        activateButton(gitCloneCommandsButton, "Show git clone commands to clone the involved projects.")
+        activateButton(listDependentsButton, "List direct and indirect dependent projects (identifiers) of the root project.")
+
+        eclipsePsfButton.addClickEventListenerIfNotDeactivatedNorDisabled {
+            val releasePlan = modifiableState.releasePlan
+            val psfContent = generateEclipsePsf(
+                releasePlan,
+                Regex(releasePlan.getConfig(ConfigKey.RELATIVE_PATH_EXCLUDE_PROJECT_REGEX)),
+                Regex(releasePlan.getConfig(ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REGEX)),
+                releasePlan.getConfig(ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REPLACEMENT)
+            )
+            Downloader.download("customImport.psf", psfContent)
+        }
+
+        gitCloneCommandsButton.addClickEventListenerIfNotDeactivatedNorDisabled {
+            val releasePlan = modifiableState.releasePlan
+            val gitCloneCommands = generateGitCloneCommands(
+                releasePlan,
+                Regex(releasePlan.getConfig(ConfigKey.RELATIVE_PATH_EXCLUDE_PROJECT_REGEX)),
+                Regex(releasePlan.getConfig(ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REGEX)),
+                releasePlan.getConfig(ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REPLACEMENT)
+            )
+            val title = "Copy the following git clone commands and paste them into a terminal/command prompt"
+            showOutput(title, gitCloneCommands)
+        }
+
+        listDependentsButton.addClickEventListenerIfNotDeactivatedNorDisabled {
+            val releasePlan = modifiableState.releasePlan
+            val list = generateListOfDependentsWithoutSubmoduleAndExcluded(
+                releasePlan,
+                Regex(releasePlan.getConfig(ConfigKey.RELATIVE_PATH_EXCLUDE_PROJECT_REGEX))
+            )
+            val title = "The following projects are (indirect) dependents of ${releasePlan.rootProjectId.identifier}"
+            showOutput(title, list)
         }
     }
 
@@ -288,7 +365,7 @@ class Menu {
     private fun Project.hasFailedCommandsOrSubmoduleHasFailedCommands(releasePlan: ReleasePlan): Boolean {
         return commands.mapWithIndex()
             .any { (index, _) -> Pipeline.getCommandState(id, index) === CommandState.Failed }
-        || releasePlan.getSubmodules(id).any {
+            || releasePlan.getSubmodules(id).any {
             releasePlan.getProject(it).hasFailedCommandsOrSubmoduleHasFailedCommands(releasePlan)
         }
     }
@@ -359,27 +436,31 @@ class Menu {
         }
     }
 
-    private fun activateDryRunButton() {
-        if (dryRunButton.isDisabled()) return
+    private fun activateDryRunButton() = activateButton(
+        dryRunButton, "Start a dry run based on this release plan (no commit will be made, no artifact deployed etc.)."
+    )
 
-        dryRunButton.removeClass(DEACTIVATED)
-        dryRunButton.title = "Start a dry run based on this release plan (no commit will be made, no artifact deployed etc.)."
-    }
+    private fun activateReleaseButton() = activateButton(
+        releaseButton, "Start a release based on this release plan."
+    )
 
+    private fun activateExploreButton() = activateButton(
+        exploreButton, "See in which order the projects are build, actual order may vary due to unequal execution time."
+    )
 
-    private fun activateReleaseButton() {
-        if (releaseButton.isDisabled()) return
+    private fun activateToolsButton() = activateButton(
+        toolsButton, TOOLS_INACTIVE_TITLE
+    )
 
-        releaseButton.removeClass(DEACTIVATED)
-        releaseButton.title = "Start a release based on this release plan."
-    }
+    private fun activateSettingsButton() = activateButton(
+        settingsButton, SETTINGS_INACTIVE_TITLE
+    )
 
-    private fun activateExploreButton() {
-        if (exploreButton.isDisabled()) return
+    private fun activateButton(button: HTMLElement, newTitle: String) {
+        if (button.isDisabled()) return
 
-        exploreButton.removeClass(DEACTIVATED)
-        exploreButton.title =
-            "See in which order the projects are build, actual order may vary due to unequal execution time."
+        button.removeClass(DEACTIVATED)
+        button.title = newTitle
     }
 
     /**
@@ -420,6 +501,8 @@ class Menu {
         private const val DISABLED_RELEASE_IN_PROGRESS = "disabled due to release which is in progress."
         private const val DISABLED_RELEASE_SUCCESS = "Release successful, use a new pipeline for a new release."
 
+        private const val TOOLS_INACTIVE_TITLE = "Open the toolbox to see further available features."
+        private const val SETTINGS_INACTIVE_TITLE = "Open Settings."
 
         fun registerForReleaseStartEvent(callback: (Event) -> Unit) {
             elementById("menu")
@@ -429,10 +512,10 @@ class Menu {
         fun registerForReleaseEndEvent(callback: (Boolean) -> Unit) {
             elementById("menu")
                 .addEventListener(EVENT_RELEASE_END, { e ->
-                val customEvent = e as CustomEvent
-                val success = customEvent.detail as Boolean
-                callback(success)
-            })
+                    val customEvent = e as CustomEvent
+                    val success = customEvent.detail as Boolean
+                    callback(success)
+                })
         }
 
         private fun dispatchReleaseStart() {
@@ -469,7 +552,7 @@ class Menu {
         val simulatingJobExecutor: JobExecutor
     )
 
-    private enum class TypeOfRun{
+    private enum class TypeOfRun {
         SIMULATION,
         DRY_RUN,
         RELEASE
