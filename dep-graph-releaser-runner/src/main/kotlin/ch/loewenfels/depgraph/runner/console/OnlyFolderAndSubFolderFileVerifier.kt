@@ -8,7 +8,7 @@ object OnlyFolderAndSubFolderFileVerifier : FileVerifier {
             "Using `..` in the path of the $fileDescription is prohibited due to security reasons." +
                 "\nPath: $path"
         }
-        val secureFile = File(path)
+        val secureFile = File(path).absoluteFile
         require(secureFile.absolutePath.startsWith(File("").absolutePath)) {
             "$fileDescription is neither a relative path nor " +
                 "an absolute path pointing to the same folder (or sub folder) where this command is executed." +
