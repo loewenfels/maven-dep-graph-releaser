@@ -16,14 +16,14 @@ apply plugin: 'ch.tutteli.settings'
 include {
     _ runner
     api {
-        _ api
+        _ 'api-common'
         _ 'api-jvm'
         _ 'api-js'
     }
     _ serialization
 
     folder('maven-api') {
-        _ 'maven-api'
+        _ 'maven-api-common'
         _ 'maven-api-js'
         _ 'maven-api-jvm'
     }

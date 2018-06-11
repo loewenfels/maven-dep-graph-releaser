@@ -86,7 +86,7 @@ configure(apiCommonProjects) {
 }
 
 static def getApiProject(String name, String suffix) {
-    return ":" + name.substring(0, name.indexOf(suffix))
+    return ":" + name.substring(0, name.indexOf(suffix)) + "-common"
 }
 configure(apiJsProjects) { subproject ->
     apply plugin: 'kotlin-platform-js'
