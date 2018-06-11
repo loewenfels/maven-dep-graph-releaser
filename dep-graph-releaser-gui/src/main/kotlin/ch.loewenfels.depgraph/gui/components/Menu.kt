@@ -33,17 +33,40 @@ class Menu {
     private val dryRunButton get() = elementById("dryRun")
     private val releaseButton get() = elementById("release")
     private val exploreButton get() = elementById("explore")
+    private val toolsButton get() = elementById("tools")
     private val settingsButton get() = elementById("settings")
 
     private var publisher: Publisher? = null
     private var typeOfRun = TypeOfRun.SIMULATION
 
     init {
-        settingsButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-            elementById("config").toggleClass("active")
-        }
-        elementById("config:close").addClickEventListener {
-            elementById("config").removeClass("active")
+        setUpMenuLayers(
+            Triple(toolsButton, "toolbox", TOOLS_INACTIVE_TITLE to "Close the toolbox."),
+            Triple(settingsButton, "config", SETTINGS_INACTIVE_TITLE to "Close Settings.")
+        )
+    }
+
+    private fun setUpMenuLayers(vararg pairs: Triple<HTMLElement, String, Pair<String, String>>) {
+        pairs.forEach { (button, id, inactiveAndActiveTitle) ->
+            button.addClickEventListenerIfNotDeactivatedNorDisabled {
+                //close the others
+                pairs.forEach { (_, otherId) ->
+                    if (id != otherId) {
+                        elementById(otherId).removeClass("active")
+                    }
+                }
+
+                val layer = elementById(id)
+                if (layer.hasClass("active")) {
+                    button.title = inactiveAndActiveTitle.first
+                } else {
+                    button.title = inactiveAndActiveTitle.second
+                }
+                layer.toggleClass("active")
+            }
+            elementById("$id:close").addClickEventListener {
+                elementById(id).removeClass("active")
+            }
         }
     }
 
@@ -110,6 +133,7 @@ class Menu {
 
         initSaveAndDownloadButton(downloader, dependencies)
         initRunButtons(dependencies, modifiableState)
+        activateToolsButton()
         activateSettingsButton()
 
         val releasePlan = modifiableState.releasePlan
@@ -377,6 +401,10 @@ class Menu {
         exploreButton, "See in which order the projects are build, actual order may vary due to unequal execution time."
     )
 
+    private fun activateToolsButton() = activateButton(
+        toolsButton, TOOLS_INACTIVE_TITLE
+    )
+
     private fun activateSettingsButton() = activateButton(
         settingsButton, SETTINGS_INACTIVE_TITLE
     )
@@ -426,6 +454,7 @@ class Menu {
         private const val DISABLED_RELEASE_IN_PROGRESS = "disabled due to release which is in progress."
         private const val DISABLED_RELEASE_SUCCESS = "Release successful, use a new pipeline for a new release."
 
+        private const val TOOLS_INACTIVE_TITLE = "Open the toolbox to see further available features."
         private const val SETTINGS_INACTIVE_TITLE = "Open Settings."
 
         fun registerForReleaseStartEvent(callback: (Event) -> Unit) {

@@ -136,8 +136,7 @@ class ContextMenu(private val releasePlan: ReleasePlan, private val menu: Menu) 
             element.addEventListener("contextmenu", { event ->
                 hideAllContextMenus()
                 disableContextEntriesIfNecessary(idPrefix)
-                val contextMenu =
-                    elementById("$idPrefix$CONTEXT_MENU_SUFFIX")
+                val contextMenu = elementById("$idPrefix$CONTEXT_MENU_SUFFIX")
                 moveContextMenuPosition(event as MouseEvent, contextMenu)
                 contextMenu.style.visibility = "visible"
                 window.addEventListener("click", { hideAllContextMenus() }, js("({once: true})"))
