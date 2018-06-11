@@ -1,14 +1,15 @@
 package ch.loewenfels.depgraph.runner
 
-import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
+import ch.loewenfels.depgraph.generateEclipsePsf
+import ch.loewenfels.depgraph.generateGitCloneCommands
+import ch.loewenfels.depgraph.generateListOfDependentsWithoutSubmoduleAndExcluded
 import ch.loewenfels.depgraph.manipulation.RegexBasedVersionUpdater
 import ch.loewenfels.depgraph.maven.Analyser
 import ch.loewenfels.depgraph.maven.JenkinsReleasePlanCreator
 import ch.loewenfels.depgraph.maven.VersionDeterminer
 import ch.loewenfels.depgraph.serialization.Serializer
-import ch.tutteli.kbox.appendToStringBuilder
 import java.io.File
 import java.util.logging.Logger
 
@@ -124,10 +125,10 @@ object Orchestrator {
         excludeRegex: Regex
     ) {
         val releasePlan = createReleasePlanForAnalysisOnly(directoryToAnalyse, projectToAnalyse)
-        val list = projectsWithoutSubmodulesAndRootProject(releasePlan, excludeRegex)
-            .joinToString("\n") { it.id.identifier }
+        val list = generateListOfDependentsWithoutSubmoduleAndExcluded(releasePlan, excludeRegex)
 
-        println("Following the dependent projects $NOTICE_INCL_DEPENDENTS_WITHOUT_SUBMODULES of ${projectToAnalyse.identifier}:" +
+        println(
+            "Following the dependent projects $NOTICE_INCL_DEPENDENTS_WITHOUT_SUBMODULES of ${projectToAnalyse.identifier}:" +
                 "\n$list"
         )
     }
@@ -136,18 +137,16 @@ object Orchestrator {
         directoryToAnalyse: File,
         projectToAnalyse: MavenProjectId,
         excludeRegex: Regex,
-        relativePathTransformerRegex: Regex,
-        relativePathTransformerReplacement: String
+        transformerRegex: Regex,
+        transformerReplacement: String
     ) {
         val releasePlan = createReleasePlanForAnalysisOnly(directoryToAnalyse, projectToAnalyse)
-        val list = projectsWithoutSubmodulesAndRootProject(releasePlan, excludeRegex)
-            .joinToString("\n") {
-                "git clone " + it.turnIntoGitRepoUrl(relativePathTransformerRegex, relativePathTransformerReplacement)
-            }
-
+        val gitCloneCommands = generateGitCloneCommands(
+            releasePlan, excludeRegex, transformerRegex, transformerReplacement
+        )
         println(
             "Following the git clone commands for the dependent projects $NOTICE_INCL_DEPENDENTS_WITHOUT_SUBMODULES of ${projectToAnalyse.identifier}:" +
-                "\n$list"
+                "\n$gitCloneCommands"
         )
     }
 
@@ -155,25 +154,14 @@ object Orchestrator {
         directoryToAnalyse: File,
         projectToAnalyse: MavenProjectId,
         excludeRegex: Regex,
-        relativePathTransformerRegex: Regex,
-        relativePathTransformerReplacement: String,
+        transformerRegex: Regex,
+        transformerReplacement: String,
         outputFile: File
     ) {
         val releasePlan = createReleasePlanForAnalysisOnly(directoryToAnalyse, projectToAnalyse)
         logger.info("Going to create the psf file.")
-        val sb = StringBuilder(
-            """<?xml version="1.0" encoding="UTF-8"?>
-            |<psf version="2.0">
-            |<provider id="org.eclipse.egit.core.GitProvider">
-            |
-            """.trimMargin()
-        )
-        projectsWithoutSubmodulesAndRootProject(releasePlan, excludeRegex).appendToStringBuilder(sb, "\n") {
-            val gitRepoUrl = it.turnIntoGitRepoUrl(relativePathTransformerRegex, relativePathTransformerReplacement)
-            sb.append("<project reference=\"1.0,").append(gitRepoUrl).append(",master,.\"/>")
-        }
-        sb.append("\n</provider>\n</psf>")
-        outputFile.writeText(sb.toString())
+        val psfContent = generateEclipsePsf(releasePlan, excludeRegex, transformerRegex, transformerReplacement)
+        outputFile.writeText(psfContent)
         logger.info({ "Created psf file at: ${outputFile.absolutePath}" })
     }
 
@@ -181,20 +169,4 @@ object Orchestrator {
         directoryToAnalyse: File,
         projectToAnalyse: MavenProjectId
     ) = createReleasePlan(directoryToAnalyse, projectToAnalyse, JenkinsReleasePlanCreator.Options("list", "^$"))
-
-    private fun projectsWithoutSubmodulesAndRootProject(
-        releasePlan: ReleasePlan,
-        excludeRegex: Regex
-    ): Sequence<Project> {
-        return releasePlan.iterator()
-            .asSequence()
-            .drop(1) // we do not want to include the release project
-            .filter { !excludeRegex.matches(it.relativePath) }
-            .filter { !it.isSubmodule }
-    }
-
-    private fun Project.turnIntoGitRepoUrl(
-        relativePathTransformerRegex: Regex,
-        relativePathTransformerReplacement: String
-    ) = relativePathTransformerRegex.replace(relativePath, relativePathTransformerReplacement)
 }
