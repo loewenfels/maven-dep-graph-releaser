@@ -167,32 +167,36 @@ task releasable {
 }
 
 task dependents {
-    def excludeRegexArg = 'excludeRegex'
+    def relativePathExcludeProjectsRegexArg = 'relativePathExcludeProjectsRegex'
+    def defaultRelativePathExcludeProjectsRegex = '[^/]+/[^/]+/.+'
+    def relativePathToGitRepoRegexArg = "relativePathToGitRepoRegex"
+    def defaultRelativePathToGitRepoRegex = '^(.*)/\$'
+    def relativePathToGitRepoReplacementArg = 'relativePathToGitRepoReplacement'
+    def defaultRelativePathToGitRepoReplacement = 'ssh://gerrit.loewenfels.ch:29418/$1'
     def formatArg = 'format'
-    def transformRegexArg = 'transformRegex'
-    def transformReplacementArg = 'transformReplacement'
+
     def psfArg = 'psf'
     inputs.property(groupIdArg, findProperty(groupIdArg))
     inputs.property(artifactIdArg, findProperty(artifactIdArg))
     inputs.property(dirArg, findProperty(dirArg) ?: defaultDirArg)
-    inputs.property(excludeRegexArg, findProperty(excludeRegexArg) ?: excludeRegexArg)
+    inputs.property(relativePathExcludeProjectsRegexArg, findProperty(relativePathExcludeProjectsRegexArg) ?: defaultRelativePathExcludeProjectsRegex)
     inputs.property(formatArg, findProperty(formatArg) ?: 'list')
-    inputs.property(transformRegexArg, findProperty(transformRegexArg) ?: '')
-    inputs.property(transformReplacementArg, findProperty(transformReplacementArg) ?: '')
+    inputs.property(relativePathToGitRepoRegexArg, findProperty(relativePathToGitRepoRegexArg) ?: defaultRelativePathToGitRepoRegex)
+    inputs.property(relativePathToGitRepoReplacementArg, findProperty(relativePathToGitRepoReplacementArg) ?: defaultRelativePathToGitRepoReplacement)
     inputs.property(psfArg, findProperty(psfArg) ?: '')
     inputs.files dist
     doLast {
         def groupId = getDefinedParam(groupIdArg, "groupId")
         def artifactId = getDefinedParam(artifactIdArg, "artifactId")
         def dir = findProperty(dirArg) ?: defaultDirArg
-        def excludeRegex = getDefinedParam(excludeRegexArg, excludeRegexArg)
+        def relativePathExcludeProjects = findProperty(relativePathExcludeProjectsRegexArg) ?: defaultRelativePathExcludeProjectsRegex
         def nullableFormat = findProperty(formatArg)
         def format = nullableFormat != null ? ["-$formatArg=${nullableFormat}"] : []
-        def transformRegex = findProperty(transformRegexArg) != null ? ["-$transformRegexArg=${findProperty(transformRegexArg) }"] : []
-        def transformReplacement = findProperty(transformReplacementArg) != null ? ["-$transformReplacementArg=${findProperty(transformReplacementArg) }"] : []
+        def relativePathGitRepoRegex = ["-$relativePathToGitRepoRegexArg=${findProperty(relativePathToGitRepoRegexArg) ?: defaultRelativePathToGitRepoRegex}"]
+        def relativePathGitRepoReplacement = ["-$relativePathToGitRepoReplacementArg=${findProperty(relativePathToGitRepoReplacementArg) ?: defaultRelativePathToGitRepoReplacement}"]
         def psf = findProperty(psfArg) != null ? ["-$psfArg=${findProperty(psfArg) }"] : []
 
-        execMain(['dependents', groupId, artifactId, dir, excludeRegex] + format + transformRegex + transformReplacement + psf)
+        execMain(['dependents', groupId, artifactId, dir, relativePathExcludeProjects] + format + relativePathGitRepoRegex + relativePathGitRepoReplacement + psf)
     }
 }
 

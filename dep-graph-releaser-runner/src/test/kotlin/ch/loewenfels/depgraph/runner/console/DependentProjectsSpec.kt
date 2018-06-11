@@ -35,9 +35,9 @@ class DependentProjectsSpec : Spek({
                 DependentProjects.name, "com.example", "project",
                 getTestDirectory("managingVersions/inDependency").absolutePath,
                 "^$",
-                "${DependentProjects.FORMAT}list",
-                "${DependentProjects.TRANSFORM_REGEX}^(.*)/$",
-                "${DependentProjects.TRANSFORM_REPLACEMENT}https://github.com/$1",
+                "${DependentProjects.FORMAT_ARG}list",
+                "${DependentProjects.RELATIVE_PATH_TO_GIT_REPO_REGEX_ARG}^(.*)/$",
+                "${DependentProjects.RELATIVE_PATH_TO_GIT_REPO_REPLACEMENT}https://github.com/$1",
                 "${DependentProjects.PSF}./import.psf",
                 "unexpectedAdditionalArg"
             )

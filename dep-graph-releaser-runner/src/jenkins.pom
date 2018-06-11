@@ -41,10 +41,10 @@
                                 <argument>${gId}</argument>
                                 <argument>${aId}</argument>
                                 <argument>${dir}</argument>
-                                <argument>${excludeRegex}</argument>
+                                <argument>${relativePathExcludeProjectsRegex}</argument>
                                 <argument>-format=${format}</argument>
-                                <argument>-transformRegex=${transformRegex}</argument>
-                                <argument>-transformReplacement=${transformReplacement}</argument>
+                                <argument>-relativePathToGitRepoRegex=${relativePathToGitRepoRegex}</argument>
+                                <argument>-relativePathToGitRepoReplacement=${relativePathToGitRepoReplacement}</argument>
                                 <argument>-psf=${psf}</argument>
                             </arguments>
                         </configuration>
