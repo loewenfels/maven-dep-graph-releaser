@@ -49,7 +49,7 @@ class Menu {
 
     fun disableButtonsDueToNoPublishUrl() {
         val titleButtons =
-            "You need to specify publishJob if you want to use other functionality than Download and Explore Release Order."
+            "You need to specify &publishJob if you want to use other functionality than Download and Explore Release Order."
         disableButtonsDueToNoAuth(
             titleButtons, titleButtons +
                 "\nAn example: ${window.location}&publishJob=jobUrl" +
@@ -76,9 +76,10 @@ class Menu {
         if (!userButton.hasClass(DEACTIVATED)) {
             userIcon.innerText = "error"
             userButton.addClass("warning")
-            showWarning("You are not logged in at $remoteJenkinsBaseUrl.\n" +
-                "You can perform a Dry Run (runs on $defaultJenkinsBaseUrl) but a release involving the remote jenkins will most likely fail.\n\n" +
-                "Go to the log in: $remoteJenkinsBaseUrl/login?from=" + window.location
+            showWarning(
+                "You are not logged in at $remoteJenkinsBaseUrl.\n" +
+                    "You can perform a Dry Run (runs on $defaultJenkinsBaseUrl) but a release involving the remote jenkins will most likely fail.\n\n" +
+                    "Go to the log in: $remoteJenkinsBaseUrl/login?from=" + window.location
             )
         }
     }
@@ -109,6 +110,7 @@ class Menu {
 
         initSaveAndDownloadButton(downloader, dependencies)
         initRunButtons(dependencies, modifiableState)
+        activateSettingsButton()
 
         val releasePlan = modifiableState.releasePlan
         when (releasePlan.state) {
@@ -197,21 +199,25 @@ class Menu {
                 listOf(dryRunButton, releaseButton, exploreButton).forEach {
                     it.title = DISABLED_RELEASE_SUCCESS
                 }
-                showSuccess("""
-                        |Release ended successfully :) you can now close the window.
-                        |Use a new pipeline for a new release (also in case you performed a Dry Run).
-                        |
-                        |Please report a bug at $GITHUB_NEW_ISSUE in case some job failed without us noticing it.
-                        |Do not forget to star the repository if you like dep-graph-releaser ;-) $GITHUB_REPO
-                        |Last but not least, you might want to visit $LOEWENFELS_URL to get to know the company pushing this project forward.
-                    """.trimMargin())
+                showSuccess(
+                    """
+                    |Release ended successfully :) you can now close the window.
+                    |Use a new pipeline for a new release (also in case you performed a Dry Run).
+                    |
+                    |Please report a bug at $GITHUB_NEW_ISSUE in case some job failed without us noticing it.
+                    |Do not forget to star the repository if you like dep-graph-releaser ;-) $GITHUB_REPO
+                    |Last but not least, you might want to visit $LOEWENFELS_URL to get to know the company pushing this project forward.
+                    """.trimMargin()
+                )
             } else {
-                showError("""
-                        |Release ended with failure :(
-                        |At least one job failed. Check errors, fix them and then you can re-trigger the failed jobs, the pipeline respectively, by clicking on the release button (you might have to delete git tags and remove artifacts if they have already been created).
-                        |
-                        |Please report a bug at $GITHUB_NEW_ISSUE in case a job failed due to an error in dep-graph-releaser.
-                    """.trimMargin())
+                showError(
+                    """
+                    |Release ended with failure :(
+                    |At least one job failed. Check errors, fix them and then you can re-trigger the failed jobs, the pipeline respectively, by clicking on the release button (you might have to delete git tags and remove artifacts if they have already been created).
+                    |
+                    |Please report a bug at $GITHUB_NEW_ISSUE in case a job failed due to an error in dep-graph-releaser.
+                    """.trimMargin()
+                )
 
                 val (processName, button, buttonText) = when (typeOfRun) {
                     TypeOfRun.SIMULATION -> Triple(
@@ -288,9 +294,9 @@ class Menu {
     private fun Project.hasFailedCommandsOrSubmoduleHasFailedCommands(releasePlan: ReleasePlan): Boolean {
         return commands.mapWithIndex()
             .any { (index, _) -> Pipeline.getCommandState(id, index) === CommandState.Failed }
-        || releasePlan.getSubmodules(id).any {
-            releasePlan.getProject(it).hasFailedCommandsOrSubmoduleHasFailedCommands(releasePlan)
-        }
+            || releasePlan.getSubmodules(id).any {
+                releasePlan.getProject(it).hasFailedCommandsOrSubmoduleHasFailedCommands(releasePlan)
+            }
     }
 
     private fun turnFailedCommandsIntoStateReTrigger(releasePlan: ReleasePlan) {
@@ -371,6 +377,10 @@ class Menu {
         exploreButton, "See in which order the projects are build, actual order may vary due to unequal execution time."
     )
 
+    private fun activateSettingsButton() = activateButton(
+        settingsButton, SETTINGS_INACTIVE_TITLE
+    )
+
     private fun activateButton(button: HTMLElement, newTitle: String) {
         if (button.isDisabled()) return
 
@@ -416,6 +426,7 @@ class Menu {
         private const val DISABLED_RELEASE_IN_PROGRESS = "disabled due to release which is in progress."
         private const val DISABLED_RELEASE_SUCCESS = "Release successful, use a new pipeline for a new release."
 
+        private const val SETTINGS_INACTIVE_TITLE = "Open Settings."
 
         fun registerForReleaseStartEvent(callback: (Event) -> Unit) {
             elementById("menu")
@@ -425,10 +436,10 @@ class Menu {
         fun registerForReleaseEndEvent(callback: (Boolean) -> Unit) {
             elementById("menu")
                 .addEventListener(EVENT_RELEASE_END, { e ->
-                val customEvent = e as CustomEvent
-                val success = customEvent.detail as Boolean
-                callback(success)
-            })
+                    val customEvent = e as CustomEvent
+                    val success = customEvent.detail as Boolean
+                    callback(success)
+                })
         }
 
         private fun dispatchReleaseStart() {
@@ -465,7 +476,7 @@ class Menu {
         val simulatingJobExecutor: JobExecutor
     )
 
-    private enum class TypeOfRun{
+    private enum class TypeOfRun {
         SIMULATION,
         DRY_RUN,
         RELEASE
