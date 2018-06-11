@@ -127,7 +127,7 @@ private fun DIV.convertTabToTwoSpaces(content: String) {
     var currentIndex = 0
     do {
         val index = content.indexOf('\t', currentIndex)
-        if(index < 0) break
+        if (index < 0) break
 
         +content.substring(currentIndex, index)
         unsafe { +"&nbsp;&nbsp;" }
@@ -156,6 +156,18 @@ fun showAlert(msg: String): Promise<Unit> {
     }
 }
 
+fun showOutput(title: String, output: String): Promise<Unit> {
+    return Promise { resolve, _ ->
+        showModal(
+            {
+                i("material-icons") { +"list_alt" }; span("title") { +title }
+                textArea { +output }
+            },
+            { box -> modalButton("OK", box, resolve, Unit) }
+        )
+    }
+}
+
 private fun <T> DIV.modalButton(buttonText: String, box: HTMLElement, resolve: (T) -> Unit, objectToResolve: T) {
     span {
         +buttonText
@@ -166,14 +178,21 @@ private fun <T> DIV.modalButton(buttonText: String, box: HTMLElement, resolve: (
     }
 }
 
-private fun showModal(msg: String, buttonCreator: DIV.(HTMLElement) -> Unit) {
+private fun showModal(
+    msg: String,
+    buttonCreator: DIV.(HTMLElement) -> Unit
+) = showModal({ i("material-icons") { +"help_outline" }; span { +msg } }, buttonCreator)
+
+private fun showModal(
+    contentCreator: DIV.() -> Unit,
+    buttonCreator: DIV.(HTMLElement) -> Unit
+) {
     val modals = elementById("modals")
     modals.append {
         div("box") {
             val box = getUnderlyingHtmlElement()
             div("text") {
-                i("material-icons") { +"help_outline" }
-                span { +msg }
+                contentCreator()
             }
             div("buttons") {
                 buttonCreator(box)
