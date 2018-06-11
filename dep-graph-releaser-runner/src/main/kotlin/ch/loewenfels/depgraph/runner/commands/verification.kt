@@ -27,3 +27,19 @@ fun String.toVerifiedExistingFile(
     }
     return safeFile
 }
+
+fun String.toVerifiedFileIfParentExists(
+    fileDescription: String,
+    errorHandler: ErrorHandler
+): File {
+    val file = toVerifiedFile(fileDescription)
+    if (!file.parentFile.exists()) {
+        errorHandler.error(
+            """
+                |The directory in which the resulting $fileDescription shall be created does not exist.
+                |Directory: ${file.parentFile.absolutePath}
+                """.trimMargin()
+        )
+    }
+    return file
+}

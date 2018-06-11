@@ -168,15 +168,7 @@ object DependentProjects : ConsoleCommand {
             reportMissingArgument(errorHandler, ECLIPSE_PSF, PSF, args)
         }
 
-        val psfFile = nullablePsfFile.toVerifiedFile("psf file")
-        if (!psfFile.parentFile.exists()) {
-            errorHandler.error(
-                """
-                |The directory in which the resulting PSF file shall be created does not exist.
-                |Directory: ${psfFile.parentFile.absolutePath}
-                """.trimMargin()
-            )
-        }
+        val psfFile = nullablePsfFile.toVerifiedFileIfParentExists("psf file", errorHandler)
 
         Orchestrator.createPsfFileForDependents(
             directoryToAnalyse,
