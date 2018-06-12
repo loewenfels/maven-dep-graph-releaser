@@ -104,7 +104,7 @@ class ContextMenu(private val releasePlan: ReleasePlan, private val menu: Menu) 
             CommandState.Succeeded,
             Pipeline.stateToTitle(CommandState.Succeeded)
         ) { _, _ ->
-            //we don't check transition here, the user has to know what she does (at least for now)
+            // we do not check transition here, the user has to know what she does (at least for now)
             CommandState.Succeeded
         }
     }
