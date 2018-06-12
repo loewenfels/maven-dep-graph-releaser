@@ -53,7 +53,7 @@ class JenkinsJobExecutor(
                 }.then { (buildNumber, result) ->
                     check(result == SUCCESS) {
                         "$jobName failed, job did not end with status $SUCCESS but $result." +
-                            "\nVisit ${jobExecutionData.jobBaseUrl}$buildNumber/$endOfConsoleUrlSufix for further information"
+                            "\nVisit ${jobExecutionData.jobBaseUrl}$buildNumber/$endOfConsoleUrlSuffix for further information"
                     }
                     authData to buildNumber
                 }

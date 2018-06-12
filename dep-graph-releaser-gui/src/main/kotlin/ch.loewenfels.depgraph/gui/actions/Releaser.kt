@@ -254,8 +254,8 @@ class Releaser(
                 val state = elementById<HTMLAnchorElement>(
                     "${Pipeline.getCommandId(project, index)}${Pipeline.STATE_SUFFIX}"
                 )
-                val href = if (!state.href.endsWith(endOfConsoleUrlSufix)) {
-                    state.href + endOfConsoleUrlSufix
+                val href = if (!state.href.endsWith(endOfConsoleUrlSuffix)) {
+                    state.href + endOfConsoleUrlSuffix
                 } else {
                     state.href
                 }
