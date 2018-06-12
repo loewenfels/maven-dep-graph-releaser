@@ -18,7 +18,7 @@ class JsonSpec : Spek({
         Json,
         ::getNotEnoughArgs,
         ::getTooManyArgs,
-        11..14
+        11..15
     )
 
     companion object {
@@ -53,6 +53,7 @@ class JsonSpec : Spek({
                 "${Json.REGEX_PARAMS_ARG}.*=branch.name=master",
                 "${Json.DISABLE_RELEASE_FOR}ch.loewenfels.*",
                 "${Json.JOB_MAPPING_ARG}com.example.project=ownJobName|com.example.anotherProject=another-project",
+                "${Json.COMMIT_PREFIX_ARG}[TEST]",
                 "unexpectedAdditionalArg"
             )
         }
