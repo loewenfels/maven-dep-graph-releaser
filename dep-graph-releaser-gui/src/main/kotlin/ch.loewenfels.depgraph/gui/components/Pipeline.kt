@@ -53,7 +53,10 @@ class Pipeline(private val releasePlan: ReleasePlan, private val menu: Menu) {
             }
         }
         val involvedProjects = set.size
-        showStatus("Projects involved: $involvedProjects")
+        val status = elementById("status")
+        status.innerText = "Projects involved: $involvedProjects"
+        val numOfSubmodules = releasePlan.getProjects().count { it.isSubmodule }
+        status.title = "multi-module/single Projects: ${involvedProjects - numOfSubmodules}, submodules: $numOfSubmodules"
         if (involvedProjects != releasePlan.getNumberOfProjects()) {
             showError("""
                 |Not all dependent projects are involved in the process.

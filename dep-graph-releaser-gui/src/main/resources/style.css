@@ -545,6 +545,7 @@ input:disabled {
     display: inline-block;
     bottom: 10px;
     left: 335px;
+    cursor: help;
 }
 #messages {
     right: 0px;
