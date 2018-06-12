@@ -14,6 +14,7 @@ object Json : ConsoleCommand {
 
     val REGEX_PARAMS_ARG = "-${ConfigKey.REGEX_PARAMS.asString()}="
     val JOB_MAPPING_ARG = "-${ConfigKey.JOB_MAPPING.asString()}="
+    val COMMIT_PREFIX_ARG = "-${ConfigKey.COMMIT_PREFIX.asString()}="
     const val DISABLE_RELEASE_FOR = "-disableRegex="
 
     override val name = "json"
@@ -22,7 +23,8 @@ object Json : ConsoleCommand {
         "dgr-updater dgr-dry-run \"ch\\..*#https://example.com/jenkins;com\\..*#https://jenkins.example.com\" " +
         "\"[^/]+/[^/]+/.+\" \"^(.*)/\$\" https://github.com/\$1" +
         "$REGEX_PARAMS_ARG\".*#branch.name=master\" $DISABLE_RELEASE_FOR\"ch\\.loewenfels:dist.*\" " +
-        "$JOB_MAPPING_ARG=com.example:a=exampleA|ch.loewenfels:dgr-1=apnoea-test-1"
+        "$JOB_MAPPING_ARG=com.example:a=exampleA|ch.loewenfels:dgr-1=apnoea-test-1" +
+        "$COMMIT_PREFIX_ARG=[RELEASE]"
 
     override val arguments by lazy {
         """
@@ -55,10 +57,12 @@ object Json : ConsoleCommand {
         |(${JOB_MAPPING_ARG}spec)        // optionally: in case a jenkins job differ from its artifact name,
         |                          // you can use this mapping which is of the form:
         |                          // groupId:artifactId1=jobName1|groupId:artifactId2=anotherName
+        |(${COMMIT_PREFIX_ARG}spec)      // optionally: it is possible to define a commit prefix
+        |                          // if not specified, the default "[DGR]" is used
         """.trimMargin()
     }
 
-    override fun numOfArgsNotOk(number: Int) = number < 11 || number > 14
+    override fun numOfArgsNotOk(number: Int) = number < 11 || number > 15
 
     override fun execute(args: Array<out String>, errorHandler: ErrorHandler) {
         val (_, groupId, artifactId, unsafeDirectoryToAnalyse, jsonFile) = args
@@ -66,10 +70,10 @@ object Json : ConsoleCommand {
         val (updateDependencyJob, dryRunJob, remoteRegex) = afterFirst5
         val afterFirstEight = afterFirst5.drop(3)
         val (excludeRegex, gitRepoRegex, gitRepoReplacement) = afterFirstEight
-        val optionalArgs = afterFirstEight.drop(3).toOptionalArgs(
-            errorHandler, REGEX_PARAMS_ARG, DISABLE_RELEASE_FOR, JOB_MAPPING_ARG
+        val optionalArgs = afterFirstEight.drop(4).toOptionalArgs(
+            errorHandler, REGEX_PARAMS_ARG, DISABLE_RELEASE_FOR, JOB_MAPPING_ARG, COMMIT_PREFIX_ARG
         )
-        val (regexParameters, disableReleaseFor, jobMapping) = optionalArgs
+        val (regexParameters, disableReleaseFor, jobMapping, commitPrefix) = optionalArgs
 
         val disableReleaseForRegex = if (disableReleaseFor != null) {
             Regex(disableReleaseFor.substringAfter(DISABLE_RELEASE_FOR))
@@ -87,7 +91,7 @@ object Json : ConsoleCommand {
         if (regexParameters != null) parseRegexParameters(regexParameters)
 
         val config = mapOf(
-            ConfigKey.COMMIT_PREFIX to "[DGR]",
+            ConfigKey.COMMIT_PREFIX to (commitPrefix ?: "[DGR]"),
             ConfigKey.UPDATE_DEPENDENCY_JOB to updateDependencyJob,
             ConfigKey.DRY_RUN_JOB to dryRunJob,
             ConfigKey.REMOTE_REGEX to remoteRegex,
