@@ -132,6 +132,7 @@ object ChangeApplier {
         val command = genericCommand.p
         val previousState = deserializeCommandState(command)
         val newState = Pipeline.getCommandState(mavenProjectId, index)
+
         if (previousState::class != newState::class) {
             val stateObject = js("({})")
             stateObject.state = newState::class.simpleName
@@ -139,10 +140,19 @@ object ChangeApplier {
                 stateObject.previous = command.state
             }
             command.asDynamic().state = stateObject
+            if (newState is CommandState.Waiting) {
+                serializeWaitingDependencies(newState, command)
+            }
             return true
         }
         if (previousState is CommandState.Waiting && newState is CommandState.Waiting && previousState.dependencies.size != newState.dependencies.size) {
-            /* state has to be put in the following structure
+            serializeWaitingDependencies(newState, command)
+        }
+        return false
+    }
+
+    private fun serializeWaitingDependencies(newState: CommandState.Waiting, command: Command) {
+        /* state has to be put in the following structure
             "state": {
                 "state": "Waiting",
                 "dependencies": [
@@ -156,23 +166,21 @@ object ChangeApplier {
                 ]
             },
             */
-            val newDependencies = newState.dependencies.map {
-                when (it) {
-                    is MavenProjectId -> {
-                        val entry = js("({})")
-                        entry.t = MAVEN_PROJECT_ID
-                        val p = js("({})")
-                        p.groupId = it.groupId
-                        p.artifactId = it.artifactId
-                        entry.p = p
-                        entry.unsafeCast<GenericMapEntry<String, ProjectId>>()
-                    }
-                    else -> throw UnsupportedOperationException("$it is not supported.")
+        val newDependencies = newState.dependencies.map {
+            when (it) {
+                is MavenProjectId -> {
+                    val entry = js("({})")
+                    entry.t = MAVEN_PROJECT_ID
+                    val p = js("({})")
+                    p.groupId = it.groupId
+                    p.artifactId = it.artifactId
+                    entry.p = p
+                    entry.unsafeCast<GenericMapEntry<String, ProjectId>>()
                 }
+                else -> throw UnsupportedOperationException("$it is not supported.")
             }
-            command.state.asDynamic().dependencies = newDependencies.toTypedArray()
         }
-        return false
+        command.state.asDynamic().dependencies = newDependencies.toTypedArray()
     }
 
     private fun replaceFieldsIfChanged(command: GenericType<Command>, mavenProjectId: ProjectId, index: Int): Boolean {

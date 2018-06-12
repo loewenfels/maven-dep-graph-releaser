@@ -297,8 +297,9 @@ class Pipeline(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
         internal fun changeStateOfCommand(
             project: Project,
-            index: Int, newState:
-            CommandState, title: String,
+            index: Int,
+            newState: CommandState,
+            title: String,
             checkStateTransition: (previousState: CommandState, commandId: String) -> CommandState
         ) {
             val commandId = getCommandId(project, index)
@@ -308,8 +309,7 @@ class Pipeline(private val releasePlan: ReleasePlan, private val menu: Menu) {
             dynCommand.state = checkStateTransition(previousState, commandId)
             command.removeClass(stateToCssClass(previousState))
             command.addClass(stateToCssClass(newState))
-            elementById("$commandId$STATE_SUFFIX")
-                .title = title
+            elementById("$commandId$STATE_SUFFIX").title = title
         }
 
         fun getReleaseState() = elementById(PIPELINE_HTML_ID).asDynamic().state as ReleaseState

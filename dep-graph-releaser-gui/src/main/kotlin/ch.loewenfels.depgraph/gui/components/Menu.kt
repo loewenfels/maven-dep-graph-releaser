@@ -227,20 +227,41 @@ class Menu {
             }
         }
         registerForReleaseEndEvent { success ->
+            val (processName, button, buttonText) = when (typeOfRun) {
+                TypeOfRun.SIMULATION -> Triple(
+                    "Explore Release Order",
+                    exploreButton,
+                    elementById("explore:text")
+                )
+                TypeOfRun.DRY_RUN -> Triple(
+                    "Dry Run",
+                    dryRunButton,
+                    elementById("dryRun:text")
+                )
+                TypeOfRun.RELEASE -> Triple(
+                    "Release",
+                    releaseButton,
+                    elementById("release:text")
+                )
+            }
+            button.removeClass(DISABLED)
+
             if (success) {
                 listOf(dryRunButton, releaseButton, exploreButton).forEach {
                     it.title = DISABLED_RELEASE_SUCCESS
                 }
                 showSuccess(
                     """
-                    |Release ended successfully :) you can now close the window.
-                    |Use a new pipeline for a new release (also in case you performed a Dry Run).
+                    |Release ended successfully :) you can now close the window or continue with the $processName process..
                     |
                     |Please report a bug at $GITHUB_NEW_ISSUE in case some job failed without us noticing it.
                     |Do not forget to star the repository if you like dep-graph-releaser ;-) $GITHUB_REPO
                     |Last but not least, you might want to visit $LOEWENFELS_URL to get to know the company pushing this project forward.
                     """.trimMargin()
                 )
+                buttonText.innerText = "Continue: $processName"
+                button.title = "Continue with the $processName process."
+                button.addClass(DEACTIVATED)
             } else {
                 showError(
                     """
@@ -250,27 +271,8 @@ class Menu {
                     |Please report a bug at $GITHUB_NEW_ISSUE in case a job failed due to an error in dep-graph-releaser.
                     """.trimMargin()
                 )
-
-                val (processName, button, buttonText) = when (typeOfRun) {
-                    TypeOfRun.SIMULATION -> Triple(
-                        "Explore Release Order",
-                        exploreButton,
-                        elementById("explore:text")
-                    )
-                    TypeOfRun.DRY_RUN -> Triple(
-                        "Dry Run",
-                        dryRunButton,
-                        elementById("dryRun:text")
-                    )
-                    TypeOfRun.RELEASE -> Triple(
-                        "Release",
-                        releaseButton,
-                        elementById("release:text")
-                    )
-                }
                 buttonText.innerText = "Re-trigger failed Jobs"
                 button.title = "Continue with the $processName process by re-processing previously failed projects."
-                button.removeClass(DISABLED)
             }
         }
     }
@@ -326,6 +328,9 @@ class Menu {
             } else {
                 turnFailedCommandsIntoStateReTrigger(releasePlan)
             }
+        }
+        if (Pipeline.getReleaseState() === ReleaseState.Succeeded) {
+            Pipeline.changeReleaseState(ReleaseState.Ready)
         }
         dispatchReleaseStart()
         return dependencies.releaser.release(jobExecutor, jobExecutionDataFactory).then(
@@ -383,7 +388,7 @@ class Menu {
 
     private fun changeStateToReadyWithoutCheck(project: Project, index: Int) {
         Pipeline.changeStateOfCommand(project, index, CommandState.Ready, Pipeline.STATE_READY) { _, _ ->
-            //we don't check transition here, Succeeded to Ready is normally not allowed
+            // we do not check transition here, Succeeded to Ready is normally not allowed
             CommandState.Ready
         }
     }
@@ -499,7 +504,7 @@ class Menu {
         private const val EVENT_RELEASE_START = "release.start"
         private const val EVENT_RELEASE_END = "release.end"
         private const val DISABLED_RELEASE_IN_PROGRESS = "disabled due to release which is in progress."
-        private const val DISABLED_RELEASE_SUCCESS = "Release successful, use a new pipeline for a new release."
+        private const val DISABLED_RELEASE_SUCCESS = "Release successful, use a new pipeline for a new release or make changes and continue with current process."
 
         private const val TOOLS_INACTIVE_TITLE = "Open the toolbox to see further available features."
         private const val SETTINGS_INACTIVE_TITLE = "Open Settings."
@@ -536,8 +541,6 @@ class Menu {
             }
             registerForReleaseEndEvent { success ->
                 if (success) {
-                    titleElement.title = DISABLED_RELEASE_SUCCESS
-                } else {
                     input.disabled = input.asDynamic().oldDisabled as Boolean
                     titleElement.title = titleElement.getOldTitle()
                 }
