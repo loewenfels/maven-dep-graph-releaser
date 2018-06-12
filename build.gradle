@@ -15,8 +15,6 @@ buildscript {
         dokka_version = '0.9.16'
         dokka_sourceMapping = 'tree/master'
 
-        //spek.gradle
-        jacoco_tool_version = '0.7.9'
         spek_version = '1.1.5'
         tutteli_spek_extensions = '0.2.0'
 
@@ -31,6 +29,7 @@ buildscript {
 
         srcKotlin = 'src/main/kotlin'
         //jacoco-multi-project.gradle
+        jacoco_tool_version = '0.8.1'
         projectsWithoutSources = [] //currently all have sources
 
         apiProjects = subprojects.findAll { it.name.contains('api') }
