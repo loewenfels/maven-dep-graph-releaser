@@ -110,13 +110,14 @@ fun deserializeCommandState(it: Command): CommandState {
     val json = it.state.unsafeCast<CommandStateJson>()
     val fixedState = fakeEnumsName(json)
     val state = fromJson(fixedState)
-    if (state is CommandState.Waiting) {
+    val tmpState = (state as? CommandState.Deactivated)?.previous ?: state
+    if (tmpState is CommandState.Waiting) {
         @Suppress("UNCHECKED_CAST")
-        val realDependencies = state.dependencies as Array<GenericType<ProjectId>>
+        val realDependencies = tmpState.dependencies as Array<GenericType<ProjectId>>
         val deserializedDependencies = realDependencies.map {
             deserializeProjectId(it)
         }.toHashSet()
-        state.asDynamic().dependencies = deserializedDependencies
+        tmpState.asDynamic().dependencies = deserializedDependencies
     }
     return state
 }
