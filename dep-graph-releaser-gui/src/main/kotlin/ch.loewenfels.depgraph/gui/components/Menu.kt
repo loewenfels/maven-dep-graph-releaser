@@ -5,10 +5,12 @@ import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.ReleaseState
+import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.generateEclipsePsf
 import ch.loewenfels.depgraph.generateGitCloneCommands
 import ch.loewenfels.depgraph.generateListOfDependentsWithoutSubmoduleAndExcluded
 import ch.loewenfels.depgraph.gui.*
+import ch.loewenfels.depgraph.gui.Gui.Companion.RELEASE_ID_HTML_ID
 import ch.loewenfels.depgraph.gui.actions.Downloader
 import ch.loewenfels.depgraph.gui.actions.Publisher
 import ch.loewenfels.depgraph.gui.actions.Releaser
@@ -124,6 +126,7 @@ class Menu {
         dependencies: Dependencies?,
         modifiableState: ModifiableState
     ) {
+        Companion.modifiableState = modifiableState
         if (dependencies != null) {
             publisher = dependencies.publisher
         }
@@ -280,7 +283,9 @@ class Menu {
     private fun initExportButtons(modifiableState: ModifiableState) {
         activateButton(eclipsePsfButton, "Download an eclipse psf-file to import all projects into eclipse.")
         activateButton(gitCloneCommandsButton, "Show git clone commands to clone the involved projects.")
-        activateButton(listDependentsButton, "List direct and indirect dependent projects (identifiers) of the root project.")
+        activateButton(
+            listDependentsButton, "List direct and indirect dependent projects (identifiers) of the root project."
+        )
 
         eclipsePsfButton.addClickEventListenerIfNotDeactivatedNorDisabled {
             val releasePlan = modifiableState.releasePlan
@@ -504,33 +509,37 @@ class Menu {
         private const val EVENT_RELEASE_START = "release.start"
         private const val EVENT_RELEASE_END = "release.end"
         private const val DISABLED_RELEASE_IN_PROGRESS = "disabled due to release which is in progress."
-        private const val DISABLED_RELEASE_SUCCESS = "Release successful, use a new pipeline for a new release or make changes and continue with current process."
+        private const val DISABLED_RELEASE_SUCCESS =
+            "Release successful, use a new pipeline for a new release or make changes and continue with current process."
 
         private const val TOOLS_INACTIVE_TITLE = "Open the toolbox to see further available features."
         private const val SETTINGS_INACTIVE_TITLE = "Open Settings."
 
+        private lateinit var _modifiableState: ModifiableState
+        var modifiableState: ModifiableState
+            get() = _modifiableState
+            internal set(value) {
+                _modifiableState = value
+            }
+
         fun registerForReleaseStartEvent(callback: (Event) -> Unit) {
-            elementById("menu")
-                .addEventListener(EVENT_RELEASE_START, callback)
+            elementById("menu").addEventListener(EVENT_RELEASE_START, callback)
         }
 
         fun registerForReleaseEndEvent(callback: (Boolean) -> Unit) {
-            elementById("menu")
-                .addEventListener(EVENT_RELEASE_END, { e ->
-                    val customEvent = e as CustomEvent
-                    val success = customEvent.detail as Boolean
-                    callback(success)
-                })
+            elementById("menu").addEventListener(EVENT_RELEASE_END, { e ->
+                val customEvent = e as CustomEvent
+                val success = customEvent.detail as Boolean
+                callback(success)
+            })
         }
 
         private fun dispatchReleaseStart() {
-            elementById("menu")
-                .dispatchEvent(Event(EVENT_RELEASE_START))
+            elementById("menu").dispatchEvent(Event(EVENT_RELEASE_START))
         }
 
         private fun dispatchReleaseEnd(success: Boolean) {
-            elementById("menu")
-                .dispatchEvent(CustomEvent(EVENT_RELEASE_END, CustomEventInit(detail = success)))
+            elementById("menu").dispatchEvent(CustomEvent(EVENT_RELEASE_END, CustomEventInit(detail = success)))
         }
 
         fun disableUnDisableForReleaseStartAndEnd(input: HTMLInputElement, titleElement: HTMLElement) {
@@ -539,11 +548,22 @@ class Menu {
                 input.disabled = true
                 titleElement.setTitleSaveOld(DISABLED_RELEASE_IN_PROGRESS)
             }
-            registerForReleaseEndEvent { success ->
-                if (success) {
+            registerForReleaseEndEvent { _ ->
+                if (input.id.startsWith("config-") || isInputFieldOfNonSuccessfulCommand(input.id)) {
                     input.disabled = input.asDynamic().oldDisabled as Boolean
                     titleElement.title = titleElement.getOldTitle()
                 }
+            }
+        }
+
+        private fun isInputFieldOfNonSuccessfulCommand(id: String): Boolean {
+            val parts = id.split(':')
+            check(parts.size >= 2 || id == RELEASE_ID_HTML_ID) { "Cannot determine whether input field should be re-activated or not, id is not in anticipated format: $id" }
+            //TODO needs to be fixed if we extend to other ProjectId types.
+            val mavenProjectId = MavenProjectId(parts[0], parts[1])
+            val releasePlan = modifiableState.releasePlan
+            return releasePlan.getProject(mavenProjectId).commands.any {
+                it.state !== CommandState.Succeeded && it.state !== CommandState.Disabled
             }
         }
     }
