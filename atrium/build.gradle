@@ -2,7 +2,11 @@ dependencies {
     compile prefixedProject('api-jvm')
     compile prefixedProject('maven')
     compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
-    compile "com.nhaarman:mockito-kotlin:$mockito_kotlin_version", withoutKotlin
+    compile("com.nhaarman:mockito-kotlin:$mockito_kotlin_version"){
+        exclude group: "org.jetbrains.kotlin"
+        exclude group: "org.mockito" // is added below with a higher version
+    }
+    compile "org.mockito:mockito-core:$mockito_version"
     compile "ch.tutteli:atrium-cc-en_UK-robstoll:$atrium_version", withoutKotlin
     compile "org.jetbrains.spek:spek-api:$spek_version", withoutKotlin
     compile "ch.tutteli:tutteli-spek-extensions:$tutteli_spek_extensions", withoutKotlin
