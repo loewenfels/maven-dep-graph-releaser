@@ -89,7 +89,7 @@ class Publisher(
                 )
                 sleep(2000) {
                     window.location.href = url
-                    successMsg.style.display = "none"
+                    successMsg.remove()
                 }
             } else {
                 window.location.href = url
