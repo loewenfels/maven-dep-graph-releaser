@@ -3,9 +3,7 @@ buildscript {
 }
 
 dependencies {
-    compile(prefixedProject('api-jvm')) {
-        exclude group: 'org.jetbrains.kotlin'
-    }
+    compile prefixedProject('api-jvm'), withoutKotlin
 
     testCompile prefixedProject('maven').sourceSets.test.output
 }
