@@ -4,10 +4,6 @@ buildscript {
 
 dependencies {
     compile prefixedProject('api-jvm')
-    compile("com.squareup.moshi:moshi:$moshi_version") {
-        exclude group: 'org.jetbrains.kotlin'
-    }
-    compile("com.squareup.moshi:moshi-kotlin:$moshi_version") {
-        exclude group: 'org.jetbrains.kotlin'
-    }
+    compile "com.squareup.moshi:moshi:$moshi_version", withoutKotlin
+    compile "com.squareup.moshi:moshi-kotlin:$moshi_version", withoutKotlin
 }

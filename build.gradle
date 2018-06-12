@@ -106,11 +106,11 @@ configure(apiJvmProjects) { subproject ->
 }
 
 configure(jvmProjects - apiProjects) {
-    apply plugin: 'kotlin'
+    apply plugin: 'ch.tutteli.kotlin'
 
     dependencies {
-        compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-        compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+        compile kotlinStdLib()
+        compile kotlinReflect()
     }
 }
 
