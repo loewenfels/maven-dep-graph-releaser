@@ -244,6 +244,7 @@ class Menu {
                     elementById("release:text")
                 )
             }
+            button.removeClass(DISABLED)
 
             if (success) {
                 listOf(dryRunButton, releaseButton, exploreButton).forEach {
@@ -260,6 +261,7 @@ class Menu {
                 )
                 buttonText.innerText = "Continue: $processName"
                 button.title = "Continue with the $processName process."
+                button.addClass(DEACTIVATED)
             } else {
                 showError(
                     """
@@ -272,7 +274,6 @@ class Menu {
                 buttonText.innerText = "Re-trigger failed Jobs"
                 button.title = "Continue with the $processName process by re-processing previously failed projects."
             }
-            button.removeClass(DISABLED)
         }
     }
 
@@ -503,7 +504,7 @@ class Menu {
         private const val EVENT_RELEASE_START = "release.start"
         private const val EVENT_RELEASE_END = "release.end"
         private const val DISABLED_RELEASE_IN_PROGRESS = "disabled due to release which is in progress."
-        private const val DISABLED_RELEASE_SUCCESS = "Release successful, use a new pipeline for a new release."
+        private const val DISABLED_RELEASE_SUCCESS = "Release successful, use a new pipeline for a new release or make changes and continue with current process."
 
         private const val TOOLS_INACTIVE_TITLE = "Open the toolbox to see further available features."
         private const val SETTINGS_INACTIVE_TITLE = "Open Settings."
