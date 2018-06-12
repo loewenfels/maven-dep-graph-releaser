@@ -76,8 +76,8 @@ private fun projectsWithoutSubmodulesAndExcluded(
     sequence: Sequence<Project>,
     excludeRegex: Regex
 ): Sequence<Project> = sequence
-    .filter { !excludeRegex.matches(it.relativePath) }
     .filter { !it.isSubmodule }
+    .filter { !excludeRegex.matches(it.relativePath) }
 
 private fun Project.turnIntoGitRepoUrl(
     relativePathTransformerRegex: Regex,
