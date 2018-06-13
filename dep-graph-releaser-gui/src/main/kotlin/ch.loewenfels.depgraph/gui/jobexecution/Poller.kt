@@ -12,7 +12,7 @@ object Poller {
         regex: Regex,
         pollEverySecond: Int,
         maxWaitingTimeInSeconds: Int,
-        errorHandler: (PollException) -> Nothing
+        errorHandler: (PollTimeoutException) -> Nothing
     ): Promise<String> {
         return poll(PollData(authData, url, pollEverySecond, maxWaitingTimeInSeconds) { body ->
                 val matchResult = regex.find(body)
@@ -22,7 +22,7 @@ object Poller {
                     false to null
                 }
             }).catch { t ->
-                if (t is PollException) {
+                if (t is PollTimeoutException) {
                     errorHandler(t)
                 } else {
                     throw t
@@ -36,7 +36,7 @@ object Poller {
 
         val rePoll: (String) -> T = { body ->
             if (pollData.numberOfTries * pollData.pollEverySecond >= pollData.maxWaitingTimeInSeconds) {
-                throw PollException(
+                throw PollTimeoutException(
                     "Waited at least ${pollData.maxWaitingTimeInSeconds} seconds",
                     body
                 )

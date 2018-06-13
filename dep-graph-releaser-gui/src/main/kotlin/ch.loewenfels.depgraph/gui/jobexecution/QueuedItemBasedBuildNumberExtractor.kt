@@ -19,12 +19,11 @@ class QueuedItemBasedBuildNumberExtractor(
                 pollEverySecond = 2,
                 maxWaitingTimeInSeconds = 20,
                 errorHandler = { e ->
-                    throw IllegalStateException(
+                    throw PollTimeoutException(
                         "Extracting the build number via the queued item failed (max waiting time reached). Could not find the build number in the returned body." +
                             "\nJob URL: $queuedItemUrl" +
-                            "\nRegex used: ${numberRegex.pattern}" +
-                            "\nContent: ${e.body}"
-                    )
+                            "\nRegex used: ${numberRegex.pattern}"
+                    , e.body, e)
                 })
         }.then { it.toInt() }
     }
