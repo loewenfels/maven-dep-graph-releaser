@@ -65,9 +65,9 @@ sealed class CommandState {
 
         when (newState) {
 
-            ReadyToReTrigger -> checkNewState(newState, Failed::class)
+            ReadyToReTrigger -> checkNewStateIsAfter(newState, Failed::class)
             Ready -> {
-                checkNewState(newState, Waiting::class)
+                checkNewStateIsAfter(newState, Waiting::class)
                 if (this is Waiting) { //could also be Deactivated with previous Ready
                     check(this.dependencies.isEmpty()) {
                         "Can only change from ${Waiting::class.simpleName} to ${Ready::class.simpleName} " +
@@ -77,14 +77,14 @@ sealed class CommandState {
                     }
                 }
             }
-            Queueing -> checkNewState(newState, Ready::class, ReadyToReTrigger::class)
-            InProgress -> checkNewState(newState, Queueing::class)
-            Succeeded -> checkNewState(newState, InProgress::class)
+            Queueing -> checkNewStateIsAfter(newState, Ready::class, ReadyToReTrigger::class)
+            InProgress -> checkNewStateIsAfter(newState, Queueing::class)
+            Succeeded -> checkNewStateIsAfter(newState, InProgress::class)
         }
         return newState
     }
 
-    private fun checkNewState(newState: CommandState, vararg requiredState: KClass<out CommandState>) {
+    private fun checkNewStateIsAfter(newState: CommandState, vararg requiredState: KClass<out CommandState>) {
         if (this is Deactivated) {
             check(newState::class == this.previous::class) {
                 "Cannot transition to ${newState::class.simpleName} because " +
