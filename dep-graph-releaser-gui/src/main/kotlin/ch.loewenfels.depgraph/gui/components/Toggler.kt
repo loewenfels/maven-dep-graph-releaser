@@ -7,6 +7,7 @@ import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.gui.addChangeEventListener
 import ch.loewenfels.depgraph.gui.addClickEventListener
 import ch.loewenfels.depgraph.gui.elementById
+import ch.loewenfels.depgraph.gui.serialization.ModifiableState
 import ch.loewenfels.depgraph.gui.showInfo
 import ch.tutteli.kbox.mapWithIndex
 import org.w3c.dom.CustomEvent
@@ -16,10 +17,10 @@ import org.w3c.dom.events.Event
 import kotlin.dom.hasClass
 import kotlin.js.Promise
 
-class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
+class Toggler(private val modifiableState: ModifiableState, private val menu: Menu) {
 
     init {
-        releasePlan.getProjects().forEach { project ->
+        modifiableState.releasePlan.getProjects().forEach { project ->
             registerCommandToggleEvents(project)
             registerReleaseUncheckEventForDependentsAndSubmodules(project)
         }
@@ -32,6 +33,7 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
             if (command is ReleaseCommand) {
                 toggle.addChangeEventListener { toggleCommand(project, index, EVENT_RELEASE_TOGGLE_UNCHECKED) }
                 disallowClickIfNotAllCommandsOrSubmodulesActive(project, toggle)
+                val releasePlan = modifiableState.releasePlan
                 val projectAndSubmodules = sequenceOf(project) +
                     releasePlan.getSubmodules(project.id).asSequence().map { releasePlan.getProject(it) }
 
@@ -96,20 +98,20 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
     }
 
     private fun notAllSubmodulesActive(project: Project): Boolean {
-        return releasePlan.getSubmodules(project.id).any { submoduleId ->
+        return modifiableState.releasePlan.getSubmodules(project.id).any { submoduleId ->
             val submodulesHasCommands = !elementById(project.id.identifier).hasClass("withoutCommands")
             submodulesHasCommands &&
                 //cannot be the same command, hence we do not filter commands at all => thus we use `{ true }`
-                notAllCommandsOrSubmodulesActive(releasePlan.getProject(submoduleId), { true })
+                notAllCommandsOrSubmodulesActive(modifiableState.releasePlan.getProject(submoduleId), { true })
         }
     }
 
     private fun registerReleaseUncheckEventForDependentsAndSubmodules(project: Project) {
         if (!project.isSubmodule) {
-            val projectIds = releasePlan.collectDependentsInclDependentsOfAllSubmodules(project.id)
+            val projectIds = modifiableState.releasePlan.collectDependentsInclDependentsOfAllSubmodules(project.id)
 
             projectIds.forEach { (projectId, dependentId) ->
-                releasePlan.getProject(dependentId).commands
+                modifiableState.releasePlan.getProject(dependentId).commands
                     .mapWithIndex()
                     .filter { (_, command) ->
                         // release command will get deactivated automatically via deactivation dependency update
@@ -119,7 +121,7 @@ class Toggler(private val releasePlan: ReleasePlan, private val menu: Menu) {
                     }
                     .forEach { (index, _) ->
                         registerForProjectEvent(project, EVENT_RELEASE_TOGGLE_UNCHECKED) {
-                            Pipeline.getToggle(releasePlan.getProject(dependentId), index).uncheck()
+                            Pipeline.getToggle(modifiableState.releasePlan.getProject(dependentId), index).uncheck()
                         }
                     }
             }

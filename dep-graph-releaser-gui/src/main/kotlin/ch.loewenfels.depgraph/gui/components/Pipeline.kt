@@ -8,6 +8,7 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
 import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.jobexecution.GITHUB_NEW_ISSUE
+import ch.loewenfels.depgraph.gui.serialization.ModifiableState
 import ch.loewenfels.depgraph.hasNextOnTheSameLevel
 import ch.tutteli.kbox.toPeekingIterator
 import kotlinx.html.*
@@ -15,18 +16,20 @@ import kotlinx.html.dom.append
 import org.w3c.dom.HTMLAnchorElement
 import org.w3c.dom.HTMLElement
 import kotlin.dom.addClass
+import kotlin.dom.hasClass
 import kotlin.dom.removeClass
 
-class Pipeline(private val releasePlan: ReleasePlan, private val menu: Menu) {
-    private val contextMenu = ContextMenu(releasePlan, menu)
+class Pipeline(private val modifiableState: ModifiableState, private val menu: Menu) {
+    private val contextMenu = ContextMenu(modifiableState, menu)
 
     init {
         setUpProjects()
-        Toggler(releasePlan, menu)
-        contextMenu.setUpCommandsOnContextMenu()
+        Toggler(modifiableState, menu)
+        contextMenu.setUpOnContextMenuForProjectsAndCommands()
     }
 
     private fun setUpProjects() {
+        val releasePlan = modifiableState.releasePlan
         val set = hashSetOf<ProjectId>()
         val pipeline = elementById(PIPELINE_HTML_ID)
         pipeline.asDynamic().state = releasePlan.state
@@ -69,12 +72,13 @@ class Pipeline(private val releasePlan: ReleasePlan, private val menu: Menu) {
 
     private fun DIV.project(project: Project) {
         div {
+            getUnderlyingHtmlElement().asDynamic().project = project
             val hasCommands = project.commands.isNotEmpty()
             classes = setOf(
                 "project",
                 if (project.isSubmodule) "submodule" else "",
                 if (!hasCommands) "withoutCommands" else "",
-                if (releasePlan.hasSubmodules(project.id)) "withSubmodules" else ""
+                if (modifiableState.releasePlan.hasSubmodules(project.id)) "withSubmodules" else ""
             )
 
             val identifier = project.id.identifier
@@ -91,6 +95,7 @@ class Pipeline(private val releasePlan: ReleasePlan, private val menu: Menu) {
                     )
                     textFieldWithLabel("$identifier:releaseVersion", "Release Version", project.releaseVersion, menu)
                 }
+                this@Pipeline.contextMenu.createProjectContextMenu(this, project)
             }
             commands(project)
 
@@ -163,7 +168,7 @@ class Pipeline(private val releasePlan: ReleasePlan, private val menu: Menu) {
             }
             title = stateToTitle(command.state)
         }
-        this@Pipeline.contextMenu.createContextMenu(this, idPrefix, project, index)
+        this@Pipeline.contextMenu.createCommandContextMenu(this, idPrefix, project, index)
 
         when (command) {
             is JenkinsMavenReleasePlugin ->
@@ -199,12 +204,12 @@ class Pipeline(private val releasePlan: ReleasePlan, private val menu: Menu) {
     }
 
     private fun DIV.submodules(projectId: ProjectId) {
-        val submodules = releasePlan.getSubmodules(projectId)
+        val submodules = modifiableState.releasePlan.getSubmodules(projectId)
         if (submodules.isEmpty()) return
 
         div("submodules") {
             submodules.forEach {
-                project(releasePlan.getProject(it))
+                project(modifiableState.releasePlan.getProject(it))
             }
         }
     }
@@ -344,6 +349,17 @@ class Pipeline(private val releasePlan: ReleasePlan, private val menu: Menu) {
             CommandState.Failed -> STATE_FAILED
             is CommandState.Deactivated -> STATE_DEACTIVATED
             CommandState.Disabled -> STATE_DISABLED
+        }
+
+        fun getSurroundingProject(id: String): Project {
+            var node = elementById(id).parentNode
+            while (node is HTMLElement && !node.hasClass("project")) {
+                node = node.parentNode
+            }
+            check(node is HTMLElement && node.hasClass("project")) {
+                "Cannot determine whether input field should be re-activated or not, could not get surrounding project"
+            }
+            return node.asDynamic().project as Project
         }
     }
 }

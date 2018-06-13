@@ -5,7 +5,6 @@ import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.ReleaseState
-import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.generateEclipsePsf
 import ch.loewenfels.depgraph.generateGitCloneCommands
 import ch.loewenfels.depgraph.generateListOfDependentsWithoutSubmoduleAndExcluded
@@ -557,12 +556,11 @@ class Menu {
         }
 
         private fun isInputFieldOfNonSuccessfulCommand(id: String): Boolean {
-            val parts = id.split(':')
-            check(parts.size >= 2 || id == RELEASE_ID_HTML_ID) { "Cannot determine whether input field should be re-activated or not, id is not in anticipated format: $id" }
-            //TODO needs to be fixed if we extend to other ProjectId types.
-            val mavenProjectId = MavenProjectId(parts[0], parts[1])
+            if(id == RELEASE_ID_HTML_ID) return false
+
+            val project = Pipeline.getSurroundingProject(id)
             val releasePlan = modifiableState.releasePlan
-            return releasePlan.getProject(mavenProjectId).commands.any {
+            return releasePlan.getProject(project.id).commands.any {
                 it.state !== CommandState.Succeeded && it.state !== CommandState.Disabled
             }
         }

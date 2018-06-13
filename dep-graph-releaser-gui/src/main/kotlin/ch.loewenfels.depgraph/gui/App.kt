@@ -86,7 +86,7 @@ class App {
                             defaultJenkinsBaseUrl, publishJobUrl, usernameToken, modifiableState, menu
                         )
                         menu.initDependencies(Downloader(modifiableState), dependencies, modifiableState)
-                        Gui(releasePlan, menu)
+                        Gui(modifiableState, menu)
                         switchLoaderPipelineWithPipeline()
                     }
                 }.catch {

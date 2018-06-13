@@ -30,7 +30,22 @@ fun generateGitCloneCommands(
     excludeRegex: Regex,
     relativePathTransformerRegex: Regex,
     relativePathTransformerReplacement: String
-) = gitRepoUrlsOfProjects(releasePlan, excludeRegex, relativePathTransformerRegex, relativePathTransformerReplacement)
+) = generateGitCloneCommands(releasePlan.iterator().asSequence(), excludeRegex, relativePathTransformerRegex, relativePathTransformerReplacement)
+
+/**
+ * Generates a list of git clone commands based on the given [projectsAsSequence] but
+ * excluding submodules and projects excluded by the [excludeRegex].
+ *
+ * The git repository url is created with the help of [relativePathTransformerRegex] and
+ * [relativePathTransformerReplacement] where the replacement takes place against [Project.relativePath].
+ *
+ */
+fun generateGitCloneCommands(
+    projectsAsSequence: Sequence<Project>,
+    excludeRegex: Regex,
+    relativePathTransformerRegex: Regex,
+    relativePathTransformerReplacement: String
+)= gitRepoUrlsOfProjects(projectsAsSequence, excludeRegex, relativePathTransformerRegex, relativePathTransformerReplacement)
     .joinToString("\n") { "git clone $it" }
 
 /**
@@ -53,7 +68,7 @@ fun generateEclipsePsf(
         |
         """.trimMargin()
     )
-    gitRepoUrlsOfProjects(releasePlan, excludeRegex, relativePathTransformerRegex, relativePathTransformerReplacement)
+    gitRepoUrlsOfProjects(releasePlan.iterator().asSequence(), excludeRegex, relativePathTransformerRegex, relativePathTransformerReplacement)
         .appendToStringBuilder(sb, "\n") { gitRepoUrl ->
             sb.append("    <project reference=\"1.0,").append(gitRepoUrl).append(",master,.\"/>")
         }
@@ -62,12 +77,12 @@ fun generateEclipsePsf(
 }
 
 private fun gitRepoUrlsOfProjects(
-    releasePlan: ReleasePlan,
+    projectsAsSequence: Sequence<Project>,
     excludeRegex: Regex,
     relativePathTransformerRegex: Regex,
     relativePathTransformerReplacement: String
 ): Sequence<String> {
-    return projectsWithoutSubmodulesAndExcluded(releasePlan.iterator().asSequence(), excludeRegex)
+    return projectsWithoutSubmodulesAndExcluded(projectsAsSequence, excludeRegex)
         .map { it.turnIntoGitRepoUrl(relativePathTransformerRegex, relativePathTransformerReplacement) }
         .sorted()
 }
@@ -79,7 +94,7 @@ private fun projectsWithoutSubmodulesAndExcluded(
     .filter { !it.isSubmodule }
     .filter { !excludeRegex.matches(it.relativePath) }
 
-private fun Project.turnIntoGitRepoUrl(
+fun Project.turnIntoGitRepoUrl(
     relativePathTransformerRegex: Regex,
     relativePathTransformerReplacement: String
 ) = relativePathTransformerRegex.replace(relativePath, relativePathTransformerReplacement)

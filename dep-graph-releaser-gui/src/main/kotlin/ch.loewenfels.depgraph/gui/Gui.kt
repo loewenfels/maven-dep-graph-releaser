@@ -7,21 +7,23 @@ import ch.loewenfels.depgraph.gui.components.Menu
 import ch.loewenfels.depgraph.gui.components.Pipeline
 import ch.loewenfels.depgraph.gui.components.textAreaWithLabel
 import ch.loewenfels.depgraph.gui.components.textFieldWithLabel
+import ch.loewenfels.depgraph.gui.serialization.ModifiableState
 import kotlinx.html.div
 import kotlinx.html.dom.append
 import org.w3c.dom.asList
 import kotlin.browser.document
 
-class Gui(releasePlan: ReleasePlan, private val menu: Menu) {
+class Gui(modifiableState: ModifiableState, private val menu: Menu) {
 
     init {
+        val releasePlan = modifiableState.releasePlan
         val rootProjectId = releasePlan.rootProjectId
         val htmlTitle = (rootProjectId as? MavenProjectId)?.artifactId ?: rootProjectId.identifier
         document.title = "Release $htmlTitle"
         releasePlan.warnings.forEach { showWarning(it) }
         setInfoBubble(releasePlan.infos)
         setUpConfig(releasePlan)
-        Pipeline(releasePlan, menu)
+        Pipeline(modifiableState, menu)
 
         //TODO we should check if releasePlant.state is inProgress. In such a case it might be that command states
         // have changed already and we need to update the state let's say the browser crashes during release and we

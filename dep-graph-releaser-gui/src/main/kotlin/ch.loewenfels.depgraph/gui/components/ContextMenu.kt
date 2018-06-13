@@ -1,10 +1,12 @@
 package ch.loewenfels.depgraph.gui.components
 
+import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ReleaseCommand
-import ch.loewenfels.depgraph.data.ReleasePlan
+import ch.loewenfels.depgraph.generateGitCloneCommands
 import ch.loewenfels.depgraph.gui.*
+import ch.loewenfels.depgraph.gui.serialization.ModifiableState
 import ch.tutteli.kbox.forEachIn
 import ch.tutteli.kbox.mapWithIndex
 import kotlinx.html.*
@@ -20,35 +22,66 @@ import kotlin.dom.addClass
 import kotlin.dom.removeClass
 import kotlin.reflect.KClass
 
-class ContextMenu(private val releasePlan: ReleasePlan, private val menu: Menu) {
+class ContextMenu(private val modifiableState: ModifiableState, private val menu: Menu) {
 
-    fun createContextMenu(div: DIV, idPrefix: String, project: Project, index: Int) {
+    fun createProjectContextMenu(div: DIV, project: Project) {
+        div.div("contextMenu") {
+            val idPrefix = project.id.identifier
+            id = "$idPrefix$CONTEXT_MENU_SUFFIX"
+            contextMenuEntry(idPrefix, "gitClone", "Git clone", "Show the git clone command for this project",
+                iconCreator = { i("material-icons char") { +"G" } }
+            ) {
+                val releasePlan = modifiableState.releasePlan
+                val gitCloneCommand = generateGitCloneCommands(
+                    sequenceOf(project),
+                    Regex(releasePlan.getConfig(ConfigKey.RELATIVE_PATH_EXCLUDE_PROJECT_REGEX)),
+                    Regex(releasePlan.getConfig(ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REGEX)),
+                    releasePlan.getConfig(ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REPLACEMENT)
+                )
+                showOutput("git clone command", gitCloneCommand)
+            }
+        }
+    }
+
+    fun createCommandContextMenu(div: DIV, idPrefix: String, project: Project, index: Int) {
         div.div("contextMenu") {
             id = "$idPrefix$CONTEXT_MENU_SUFFIX"
-            contextMenuEntry(idPrefix,
-                CONTEXT_MENU_DEACTIVATED, CommandState.Deactivated::class) {
+            commandContextMenuEntry(idPrefix, CONTEXT_MENU_COMMAND_DEACTIVATED, CommandState.Deactivated::class) {
                 transitionToDeactivatedIfOk(project, index)
             }
-            contextMenuEntry(idPrefix,
-                CONTEXT_MENU_SUCCEEDED, CommandState.Succeeded::class) {
+            commandContextMenuEntry(idPrefix, CONTEXT_MENU_COMMAND_SUCCEEDED, CommandState.Succeeded::class) {
                 transitionToSucceededIfOk(project, index)
             }
         }
     }
 
-    private fun DIV.contextMenuEntry(
+
+    private fun DIV.commandContextMenuEntry(
         idPrefix: String,
         cssClass: String,
         commandClass: KClass<out CommandState>,
         action: (Event) -> Unit
+    ) = contextMenuEntry(
+        idPrefix, cssClass,
+        text = "Set Command to ${commandClass.simpleName}",
+        title = "Forcibly sets the state of this command to ${commandClass.simpleName}, to be used with care.",
+        iconCreator = { i("material-icons") { span() /* done via css */ } },
+        action = action
+    )
+
+    private fun DIV.contextMenuEntry(
+        idPrefix: String,
+        cssClass: String,
+        text: String,
+        title: String,
+        iconCreator: DIV.() -> Unit,
+        action: (Event) -> Unit
     ) {
         div(cssClass) {
             id = "$idPrefix$cssClass"
-            title = "Forcibly sets the state of this command to ${commandClass.simpleName}, to be used with care."
-            i("material-icons") { span() }
-            span {
-                +"Set Command to ${commandClass.simpleName}"
-            }
+            this.title = title
+            iconCreator()
+            span { +text }
             getUnderlyingHtmlElement().addClickEventListener(action = action)
         }
     }
@@ -92,6 +125,7 @@ class ContextMenu(private val releasePlan: ReleasePlan, private val menu: Menu) 
         project.commands.forEachIndexed { index, _ ->
             transitionToSucceeded(project, index)
         }
+        val releasePlan = modifiableState.releasePlan
         releasePlan.getSubmodules(project.id).forEach {
             transitionAllCommandsToSucceeded(releasePlan.getProject(it))
         }
@@ -115,24 +149,31 @@ class ContextMenu(private val releasePlan: ReleasePlan, private val menu: Menu) 
             .any { (i, _) ->
                 (index == null || i != index) && Pipeline.getCommandState(project.id, i) !== CommandState.Succeeded
             }
-            || releasePlan.getSubmodules(project.id)
-            .any { notAllOtherCommandsSucceeded(releasePlan.getProject(it), null) }
+            || modifiableState.releasePlan.getSubmodules(project.id)
+            .any { notAllOtherCommandsSucceeded(modifiableState.releasePlan.getProject(it), null) }
     }
 
-    fun setUpCommandsOnContextMenu() {
+    fun setUpOnContextMenuForProjectsAndCommands() {
+        val projects = document.querySelectorAll(".project")
+            .asList()
+            .map { project ->
+                Triple(project, (project as HTMLElement).id, { _: String -> })
+            }
         val toggleLabels = document.querySelectorAll(".command > .fields > .toggle")
             .asList()
             .map { label ->
                 val toggle = label.firstChild as HTMLInputElement
-                label to toggle.id.substringBefore(Pipeline.DEACTIVATE_SUFFIX)
+                val idPrefix = toggle.id.substringBefore(Pipeline.DEACTIVATE_SUFFIX)
+                Triple(label, idPrefix, ::disableCommandContextEntriesIfNecessary)
             }
         val stateIcons = document.querySelectorAll(".state")
             .asList()
             .map { aNode ->
                 val a = aNode as HTMLAnchorElement
-                a to a.id.substringBefore(Pipeline.STATE_SUFFIX)
+                val idPrefix = a.id.substringBefore(Pipeline.STATE_SUFFIX)
+                Triple(a, idPrefix, ::disableCommandContextEntriesIfNecessary)
             }
-        forEachIn(toggleLabels, stateIcons) { (element, idPrefix) ->
+        forEachIn(projects, toggleLabels, stateIcons) { (element, idPrefix, disableContextEntriesIfNecessary) ->
             element.addEventListener("contextmenu", { event ->
                 hideAllContextMenus()
                 disableContextEntriesIfNecessary(idPrefix)
@@ -147,10 +188,16 @@ class ContextMenu(private val releasePlan: ReleasePlan, private val menu: Menu) 
         window.addEventListener("contextmenu", { hideAllContextMenus() })
     }
 
-    private fun disableContextEntriesIfNecessary(idPrefix: String) {
+    private fun disableCommandContextEntriesIfNecessary(idPrefix: String) {
         val commandState = Pipeline.getCommandState(idPrefix)
-        disableOrEnableContextMenuEntry("$idPrefix$CONTEXT_MENU_DEACTIVATED", isNotInStateToDeactivate(commandState))
-        disableOrEnableContextMenuEntry("$idPrefix$CONTEXT_MENU_SUCCEEDED", commandState === CommandState.Succeeded)
+        disableOrEnableContextMenuEntry(
+            "$idPrefix$CONTEXT_MENU_COMMAND_DEACTIVATED",
+            isNotInStateToDeactivate(commandState)
+        )
+        disableOrEnableContextMenuEntry(
+            "$idPrefix$CONTEXT_MENU_COMMAND_SUCCEEDED",
+            commandState === CommandState.Succeeded
+        )
     }
 
     private fun disableOrEnableContextMenuEntry(id: String, disable: Boolean) {
@@ -195,7 +242,7 @@ class ContextMenu(private val releasePlan: ReleasePlan, private val menu: Menu) 
 
     companion object {
         const val CONTEXT_MENU_SUFFIX = ":contextMenu"
-        const val CONTEXT_MENU_DEACTIVATED = "deactivated"
-        const val CONTEXT_MENU_SUCCEEDED = "succeeded"
+        const val CONTEXT_MENU_COMMAND_DEACTIVATED = "deactivated"
+        const val CONTEXT_MENU_COMMAND_SUCCEEDED = "succeeded"
     }
 }
