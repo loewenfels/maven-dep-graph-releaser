@@ -33,12 +33,12 @@ class Analyser internal constructor(
             "Cannot analyse because the given directory does not exists: ${directoryWithProjects.absolutePath}"
         }
         pomAnalysis = analyseDirectory(directoryWithProjects, pomFileLoader)
-        val analysedProjects = getAnalysedProjects()
+        val analysedProjects = getInternalAnalysedProjects()
         require(analysedProjects.isNotEmpty()) {
             "No pom files found in the given directory (which exists): ${directoryWithProjects.absolutePath}"
         }
 
-        projectsData = ProjectDataCollection(session, directoryWithProjects, getInternalAnalysedGavs())
+        projectsData = ProjectDataCollection(session, directoryWithProjects, getInternalAnalysedGavsAsSequence())
 
         val duplicates = collectDuplicates(pomAnalysis)
         //TODO maybe we should still emit a warning if missing parent analysis is turned off?
@@ -63,14 +63,14 @@ class Analyser internal constructor(
         )
     }
 
-    private fun getAnalysedProjects(): Set<String> {
-        return getInternalAnalysedGavs()
+    private fun getInternalAnalysedProjects(): Set<String> {
+        return getInternalAnalysedGavsAsSequence()
             .map { it.toMapKey() }
             .toHashSet()
     }
 
     private fun collectDuplicates(pomAnalysis: PomAnalysis): Map<String, List<Project>> {
-        val sequence = pomAnalysis.duplicatedProjects.asSequence() + getInternalAnalysedProjects()
+        val sequence = pomAnalysis.duplicatedProjects.asSequence() + getInternalAnalysedProjectsAsSequence()
         return sequence
             .groupBy { it.gav.toMapKey() }
             .filterValues { it.size > 1 }
@@ -79,7 +79,7 @@ class Analyser internal constructor(
 
     private fun collectParentsNotInAnalysis(options: Options, analysedProjects: Set<String>): Map<Project, Gav> {
         if (options.missingParentAnalysis) {
-            return getInternalAnalysedProjects()
+            return getInternalAnalysedProjectsAsSequence()
                 .filter { it ->
                     val parentGav = it.parentGav
                     parentGav != null && !analysedProjects.contains(parentGav.toMapKey())
@@ -92,7 +92,7 @@ class Analyser internal constructor(
 
     private fun analyseDependents(analysedProjects: Set<String>): Map<String, Set<Relation<MavenProjectId>>> {
         val dependents = hashMapOf<String, MutableSet<Relation<MavenProjectId>>>()
-        getInternalAnalysedGavs().forEach { gav ->
+        getInternalAnalysedGavsAsSequence().forEach { gav ->
             session.graph().read().relations(gav)
                 .asSequence()
                 .filter { analysedProjects.contains(it.targetToMapKey()) }
@@ -112,12 +112,12 @@ class Analyser internal constructor(
         return dependents
     }
 
-    private fun getInternalAnalysedGavs() = session.projects()
+    private fun getInternalAnalysedGavsAsSequence() = session.projects()
         .keySet()
         .asSequence()
         .filter { it.toProject().isNotExternal }
 
-    private fun getInternalAnalysedProjects() = session.projects()
+    private fun getInternalAnalysedProjectsAsSequence() = session.projects()
         .keySet()
         .asSequence()
         .map { it.toProject() }
@@ -208,6 +208,13 @@ class Analyser internal constructor(
         "Project is erroneous and could not be analysed entirely.\nProject ${it.project.gav} \nPom-file: ${it.project.pomFile.absolutePath}\nMessage: ${it.cause!!.message}"
     }
 
+    fun getUnresolvedProperties(): List<String> = pomAnalysis.unresolvedProperties
+        .filter{ dependents.containsKey(it.project.gav.toMapKey()) }
+        .map {
+            "Property ${it.propertyName} could not be resolved.\nProject ${it.project.gav} \nPom-file: ${it.project.pomFile.absolutePath}"
+        }
+
+
     fun hasSubmodules(projectId: MavenProjectId) = getSubmodules(projectId).isNotEmpty()
 
     /**
@@ -258,7 +265,7 @@ class Analyser internal constructor(
      * Returns all identifier
      */
     fun getAllReleasableProjects(): Set<MavenProjectId> {
-        return getInternalAnalysedGavs()
+        return getInternalAnalysedGavsAsSequence()
             .map { it.toMavenProjectId() }
             .filter { !isSubmodule(it) }
             .toHashSet()
