@@ -142,7 +142,7 @@ class JenkinsJobExecutor(
         regex: Regex,
         pollEverySecond: Int,
         maxWaitingTimeInSeconds: Int,
-        errorHandler: (PollException) -> Nothing
+        errorHandler: (PollTimeoutException) -> Nothing
     ): Promise<String> {
         return Poller.pollAndExtract(authData, url, regex, pollEverySecond, maxWaitingTimeInSeconds, errorHandler)
     }
