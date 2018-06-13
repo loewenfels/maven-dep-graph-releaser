@@ -14,14 +14,14 @@ object CommandStateAdapter {
     @ToJson
     fun toJson(state: CommandState): CommandStateJson = when (state) {
         is CommandState.Waiting -> CommandStateJson(Waiting, state.dependencies)
-        CommandState.Ready -> CommandStateJson(Ready)
-        CommandState.ReadyToReTrigger -> CommandStateJson(ReadyToReTrigger)
-        CommandState.Queueing -> CommandStateJson(Queueing)
-        CommandState.InProgress -> CommandStateJson(InProgress)
-        CommandState.Succeeded -> CommandStateJson(Succeeded)
+        is CommandState.Ready -> CommandStateJson(Ready)
+        is CommandState.ReadyToReTrigger -> CommandStateJson(ReadyToReTrigger)
+        is CommandState.Queueing -> CommandStateJson(Queueing)
+        is CommandState.InProgress -> CommandStateJson(InProgress)
+        is CommandState.Succeeded -> CommandStateJson(Succeeded)
         is CommandState.Failed -> CommandStateJson(Failed)
         is CommandState.Deactivated -> CommandStateJson(Deactivated, toJson(state.previous))
-        CommandState.Disabled -> CommandStateJson(Disabled)
+        is CommandState.Disabled -> CommandStateJson(Disabled)
     }
 
     @FromJson
