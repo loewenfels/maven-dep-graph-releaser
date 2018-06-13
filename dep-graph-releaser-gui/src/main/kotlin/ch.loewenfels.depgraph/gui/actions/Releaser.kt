@@ -245,11 +245,11 @@ class Releaser(
             maxWaitingTimeForCompletenessInSeconds = 60 * 15,
             verbose = false
         ).then(
-            {
+            onFulfilled = {
                 Pipeline.changeStateOfCommand(project, index, CommandState.Succeeded, Pipeline.STATE_SUCCEEDED)
                 CommandState.Succeeded
             },
-            { t ->
+            onRejected = { t ->
                 showThrowable(Error("Job ${jobExecutionData.jobName} failed", t))
                 val state = elementById<HTMLAnchorElement>(
                     "${Pipeline.getCommandId(project, index)}${Pipeline.STATE_SUFFIX}"
