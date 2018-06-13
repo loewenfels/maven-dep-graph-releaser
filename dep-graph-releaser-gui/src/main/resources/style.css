@@ -481,8 +481,11 @@ input:disabled {
     border-radius: 6px;
     visibility: hidden;
     display: inline-block;
-    min-width: 211px;
     z-index: 1;
+    min-width: 135px;
+}
+.fields .contextMenu {
+    min-width: 211px;
 }
 .contextMenu div {
     cursor: pointer;
@@ -525,6 +528,9 @@ input:disabled {
 }
 .contextMenu .deactivated > .material-icons span::after {
     content: 'power_off';
+}
+.contextMenu .gitClone > .material-icons {
+    color: #f34f29;
 }
 
 #poweredBy,
