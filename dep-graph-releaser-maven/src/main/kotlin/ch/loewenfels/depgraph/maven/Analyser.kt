@@ -154,6 +154,18 @@ class Analyser internal constructor(
             }
         }
 
+        val erroneousPomFiles = getErroneousPomFiles()
+        if (sb.isNotEmpty() && erroneousPomFiles.isNotEmpty()) { //only report if other errors are found
+            sb.append("\n\n")
+            erroneousPomFiles.appendToStringBuilder(sb, "\n\n") { sb.append(it) }
+        }
+
+        val erroneousProjects = getErroneousProjects()
+        if (sb.isNotEmpty() && erroneousPomFiles.isNotEmpty()) { //only report if other errors are found
+            sb.append("\n\n")
+            erroneousProjects.appendToStringBuilder(sb, "\n\n") { sb.append(it) }
+        }
+
         check(sb.isEmpty()) { sb.toString() }
     }
 
