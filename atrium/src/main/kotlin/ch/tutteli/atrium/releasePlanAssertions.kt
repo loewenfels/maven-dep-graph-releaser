@@ -49,7 +49,8 @@ fun Assert<ReleasePlan>.iteratorReturnsRootAndInOrderGrouped(vararg otherGroups:
                 subject.size
             }
 
-            _method(this, "index $index to $toIndex", { subject.subList(index, toIndex) })
+            val currentIndex = index
+            _method(this, "index $index to $toIndex", { subject.subList(currentIndex, toIndex) })
                 .contains.inAnyOrder.only.values(it.first(), *it.drop(1).toTypedArray())
 
             index = toIndex

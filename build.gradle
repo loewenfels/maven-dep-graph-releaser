@@ -10,7 +10,7 @@ buildscript {
         kotlin_html_version = '0.6.10'
         kbox_version = '0.8.2'
 
-        atrium_version = '0.6.0'
+        atrium_version = '0.7.0-RC1'
         mockito_kotlin_version = '1.5.0'
         mockito_version = '2.18.3'
         dokka_version = '0.9.16'
