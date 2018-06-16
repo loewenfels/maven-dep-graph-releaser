@@ -2,9 +2,10 @@ package ch.tutteli.atrium
 
 import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.ReleasePlan
-import ch.tutteli.atrium.api.cc.en_UK.*
+import ch.tutteli.atrium.api.cc.en_GB.*
 import ch.tutteli.atrium.assertions._method
 import ch.tutteli.atrium.creating.Assert
+import ch.tutteli.atrium.domain.builders.AssertImpl
 
 fun Assert<ReleasePlan>.hasNoDependentsForProject(
     idAndVersions: IdAndVersions

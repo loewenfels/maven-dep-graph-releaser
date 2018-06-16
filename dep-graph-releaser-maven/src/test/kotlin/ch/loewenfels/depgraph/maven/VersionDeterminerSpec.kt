@@ -1,6 +1,6 @@
 package ch.loewenfels.depgraph.maven
 
-import ch.tutteli.atrium.api.cc.en_UK.toBe
+import ch.tutteli.atrium.api.cc.en_GB.toBe
 import ch.tutteli.atrium.assert
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe

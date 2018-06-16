@@ -4,7 +4,7 @@ import ch.tutteli.atrium.AssertionVerb.ASSERT
 import ch.tutteli.atrium.AssertionVerb.EXPECT_THROWN
 import ch.tutteli.atrium.assertions.throwable.thrown.builders.ThrowableThrownBuilder
 import ch.tutteli.atrium.creating.Assert
-import ch.tutteli.atrium.reporting.ReporterBuilder
+import ch.tutteli.atrium.domain.builders.reporting.reporterBuilder
 import ch.tutteli.atrium.reporting.translating.StringBasedTranslatable
 
 fun <T : Any> assert(subject: T)
@@ -27,13 +27,13 @@ internal enum class AssertionVerb(override val value: String) : StringBasedTrans
 
 internal object AtriumReporterSupplier {
     val REPORTER by lazy {
-        ReporterBuilder
-            .withoutTranslations()
+        reporterBuilder.withoutTranslations()
             .withDetailedObjectFormatter()
             .withDefaultAssertionFormatterController()
             .withDefaultAssertionFormatterFacade()
             .withTextSameLineAssertionPairFormatter()
             .withDefaultTextCapabilities()
-            .buildOnlyFailureReporter()
+            .onlyFailureReporter()
+            .build()
     }
 }
