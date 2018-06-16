@@ -7,7 +7,7 @@ import ch.loewenfels.depgraph.runner.console.ErrorHandler
 import ch.loewenfels.depgraph.runner.console.FileVerifier
 import ch.loewenfels.depgraph.serialization.Serializer
 import ch.tutteli.atrium.*
-import ch.tutteli.atrium.api.cc.en_UK.*
+import ch.tutteli.atrium.api.cc.en_GB.*
 import ch.tutteli.spek.extensions.TempFolder
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.*
@@ -41,7 +41,7 @@ object MainSpec : Spek({
                     "https://github.com/$1"
                 )
                 it("creates a corresponding json file") {
-                    assert(jsonFile).returnValueOf(jsonFile::exists).isTrue()
+                    assert(jsonFile).returnValueOf(jsonFile::exists).toBe(true)
                 }
 
                 test("the json file can be de-serialized and is expected project A with dependent B") {

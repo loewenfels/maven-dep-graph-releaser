@@ -5,7 +5,7 @@ import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.serialization.CommandStateJson
 import ch.loewenfels.depgraph.serialization.PolymorphicAdapterFactory.Companion.PAYLOAD
 import ch.loewenfels.depgraph.serialization.PolymorphicAdapterFactory.Companion.TYPE
-import ch.tutteli.atrium.api.cc.en_UK.*
+import ch.tutteli.atrium.api.cc.en_GB.*
 import ch.tutteli.atrium.assert
 import ch.tutteli.atrium.expect
 import com.squareup.moshi.JsonDataException
@@ -53,14 +53,14 @@ object PolymorphicAdapterFactorySpec : Spek({
         given("another type") {
             it("returns `null`") {
                 val result = testee.create(PolymorphicAdapterFactorySpec::class.java, mutableSetOf(), moshi)
-                assert(result).isNull()
+                assert(result).toBe(null)
             }
         }
 
         given("the correct type") {
             it("returns an adapter") {
                 val result = testee.create(ProjectId::class.java, mutableSetOf(), moshi)
-                assert(result).isNotNull {}
+                assert(result).notToBeNull {}
             }
         }
     }
@@ -100,7 +100,7 @@ object PolymorphicAdapterFactorySpec : Spek({
                 it("throws an EOFException") {
                     expect {
                         adapter.fromJson("")
-                    }.toThrow<EOFException>()
+                    }.toThrow<EOFException>{}
                 }
             }
 
@@ -142,7 +142,7 @@ object PolymorphicAdapterFactorySpec : Spek({
                 it("throws an ClassNotFoundException") {
                     expect {
                         adapter.fromJson("""{"$TYPE": "com.example.AnUnknownType"}""")
-                    }.toThrow<ClassNotFoundException>()
+                    }.toThrow<ClassNotFoundException>{}
                 }
             }
 
@@ -193,7 +193,7 @@ object PolymorphicAdapterFactorySpec : Spek({
                 val result = adapter.fromJson("""{$typeDummy, "$PAYLOAD": {$fields}}""")
 
                 it("is not `null` and identifier is set") {
-                    assert(result).isNotNull {
+                    assert(result).notToBeNull {
                         property(subject::identifier).toBe(identifier)
                     }
                 }
@@ -207,7 +207,7 @@ object PolymorphicAdapterFactorySpec : Spek({
         val result = adapter.fromJson(json)
         on("serialize and deserialize") {
             it("it is an equal object") {
-                assert(result).isNotNull { toBe(original) }
+                assert(result).notToBeNull { toBe(original) }
             }
             it("it is twice the same JSON if serialized again") {
                 val jsonResult = adapter.toJson(result)

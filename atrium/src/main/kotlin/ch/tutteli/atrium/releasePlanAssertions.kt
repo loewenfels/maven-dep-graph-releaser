@@ -2,9 +2,9 @@ package ch.tutteli.atrium
 
 import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.ReleasePlan
-import ch.tutteli.atrium.api.cc.en_UK.*
-import ch.tutteli.atrium.assertions._method
+import ch.tutteli.atrium.api.cc.en_GB.*
 import ch.tutteli.atrium.creating.Assert
+import ch.tutteli.atrium.domain.builders.AssertImpl
 
 fun Assert<ReleasePlan>.hasNoDependentsForProject(
     idAndVersions: IdAndVersions
@@ -26,9 +26,7 @@ fun Assert<ReleasePlan>.hasDependentsForProject(
 
 fun Assert<ReleasePlan>.iteratorReturnsRootAndStrictly(vararg otherProject: ProjectId) {
     val rootProject = subject.getRootProject()
-    _method<ReleasePlan, List<ProjectId>>(this, "iterator", { iteratorProjectIdsToList() }) {
-        containsStrictly(rootProject.id, *otherProject)
-    }
+    AssertImpl.changeSubject(this, { iteratorProjectIdsToList() }).containsStrictly(rootProject.id, *otherProject)
 }
 
 private fun Assert<ReleasePlan>.iteratorProjectIdsToList() =
@@ -39,22 +37,6 @@ private fun Assert<ReleasePlan>.iteratorProjectIdsToList() =
  */
 fun Assert<ReleasePlan>.iteratorReturnsRootAndInOrderGrouped(vararg otherGroups: List<ProjectId>) {
     val rootProject = subject.getRootProject()
-    _method<ReleasePlan, List<ProjectId>>(this, "iterator", { iteratorProjectIdsToList() }) {
-        var index = 0
-        (sequenceOf(listOf(rootProject.id)) + otherGroups.asSequence()).forEach {
-            val tmpIndex = index + it.size
-            val toIndex = if (tmpIndex < subject.size) {
-                tmpIndex
-            } else {
-                subject.size
-            }
-
-            _method(this, "index $index to $toIndex", { subject.subList(index, toIndex) })
-                .contains.inAnyOrder.only.values(it.first(), *it.drop(1).toTypedArray())
-
-            index = toIndex
-        }
-        hasSize(index)
-    }
+    val builder = AssertImpl.changeSubject(this, { iteratorProjectIdsToList() }).contains.inOrder.only.grouped.within
+    AssertImpl.iterable.contains.valuesInOrderOnlyGrouped(builder, listOf(listOf(rootProject)) + otherGroups)
 }
-

@@ -6,7 +6,7 @@ import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
-import ch.tutteli.atrium.api.cc.en_UK.*
+import ch.tutteli.atrium.api.cc.en_GB.*
 import ch.tutteli.atrium.creating.Assert
 import ch.tutteli.atrium.creating.AssertionPlant
 
@@ -21,7 +21,7 @@ fun Assert<CommandState.Waiting>.withDependencies(
     dependency: ProjectId,
     vararg otherDependencies: ProjectId
 ) {
-    property(subject::dependencies).contains.inAnyOrder.only.objects(dependency, *otherDependencies)
+    property(subject::dependencies).contains.inAnyOrder.only.values(dependency, *otherDependencies)
 }
 
 fun Assert<Command>.isJenkinsUpdateDependencyWaiting(dependency: IdAndVersions) {

@@ -5,7 +5,7 @@ import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
-import ch.tutteli.atrium.api.cc.en_UK.*
+import ch.tutteli.atrium.api.cc.en_GB.*
 import org.jetbrains.spek.api.dsl.TestContainer
 
 val exampleA = IdAndVersions(MavenProjectId("com.example", "a"), "1.1.1-SNAPSHOT", "1.1.1", "1.1.2-SNAPSHOT")
@@ -530,7 +530,7 @@ fun TestContainer.assertHasSubmodules(
     vararg otherSubmodules: IdAndVersions
 ) {
     test("$name project has ${otherSubmodules.size + 1} submodules") {
-        assert(releasePlan.getSubmodules(project.id)).contains.inAnyOrder.only.objects(
+        assert(releasePlan.getSubmodules(project.id)).contains.inAnyOrder.only.values(
             submodule.id, *otherSubmodules.mapToProjectIds()
         )
     }
