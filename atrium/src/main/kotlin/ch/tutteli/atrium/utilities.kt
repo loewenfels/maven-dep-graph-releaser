@@ -1,6 +1,6 @@
 package ch.tutteli.atrium
 
-import ch.tutteli.atrium.api.cc.en_UK.toBe
+import ch.tutteli.atrium.api.cc.en_GB.toBe
 import ch.tutteli.spek.extensions.TempFolder
 import org.jetbrains.spek.api.dsl.TestContainer
 import org.jetbrains.spek.api.dsl.it

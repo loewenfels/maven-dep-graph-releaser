@@ -2,10 +2,10 @@ package ch.loewenfels.depgraph.runner.console
 
 import ch.loewenfels.depgraph.runner.Main
 import ch.loewenfels.depgraph.runner.commands.ConsoleCommand
-import ch.tutteli.atrium.api.cc.en_UK.contains
-import ch.tutteli.atrium.api.cc.en_UK.message
-import ch.tutteli.atrium.api.cc.en_UK.toBe
-import ch.tutteli.atrium.api.cc.en_UK.toThrow
+import ch.tutteli.atrium.api.cc.en_GB.contains
+import ch.tutteli.atrium.api.cc.en_GB.message
+import ch.tutteli.atrium.api.cc.en_GB.toBe
+import ch.tutteli.atrium.api.cc.en_GB.toThrow
 import ch.tutteli.atrium.assert
 import ch.tutteli.atrium.expect
 import ch.tutteli.spek.extensions.TempFolder

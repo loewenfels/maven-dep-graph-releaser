@@ -2,8 +2,8 @@ package ch.loewenfels.depgraph.serialization
 
 import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.*
-import ch.tutteli.atrium.api.cc.en_UK.toBe
-import ch.tutteli.atrium.api.cc.en_UK.toThrow
+import ch.tutteli.atrium.api.cc.en_GB.toBe
+import ch.tutteli.atrium.api.cc.en_GB.toThrow
 import ch.tutteli.atrium.assert
 import ch.tutteli.atrium.expect
 import com.squareup.moshi.JsonEncodingException
@@ -104,7 +104,7 @@ object SerializerSpec : Spek({
                 val json = testee.serialize(createReleasePlan(CommandState.Ready))
                 expect {
                     testee.deserialize("$json}")
-                }.toThrow<JsonEncodingException>()
+                }.toThrow<JsonEncodingException>{}
             }
         }
         given("comment at the beginning") {
@@ -112,7 +112,7 @@ object SerializerSpec : Spek({
                 val json = testee.serialize(createReleasePlan(CommandState.Ready))
                 expect {
                     testee.deserialize("<!-- my lovely JSON --> $json")
-                }.toThrow<JsonEncodingException>()
+                }.toThrow<JsonEncodingException>{}
             }
         }
     }
