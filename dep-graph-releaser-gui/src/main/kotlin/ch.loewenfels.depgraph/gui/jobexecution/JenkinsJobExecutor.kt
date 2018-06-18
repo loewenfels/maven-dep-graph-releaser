@@ -25,7 +25,11 @@ class JenkinsJobExecutor(
         return issueCrumb(jenkinsBaseUrl, usernameToken).then { authData: AuthData ->
             triggerJob(authData, jobExecutionData)
                 .catch {
-                    throw Error("Could not trigger the job $jobName", it)
+                    throw Error("Could not trigger the job $jobName." +
+                        "\nPlease visit ${jobExecutionData.jobBaseUrl} to see if it was triggered nonetheless." +
+                        "\nYou can manually set the command to Succeeded if the job was triggered/executed and ended successfully."
+                        , it
+                    )
                 }.then { response: Response ->
                     checkStatusAndExtractQueuedItemUrl(response, jobExecutionData, authData)
                 }.then { nullableQueuedItemUrl: String? ->
