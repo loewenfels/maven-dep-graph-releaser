@@ -24,10 +24,10 @@ class JenkinsJobExecutor(
 
         return issueCrumb(jenkinsBaseUrl, usernameToken).then { authData: AuthData ->
             triggerJob(authData, jobExecutionData)
-                .then { response ->
-                    checkStatusAndExtractQueuedItemUrl(response, jobExecutionData, authData)
-                }.catch {
+                .catch {
                     throw Error("Could not trigger the job $jobName", it)
+                }.then { response: Response ->
+                    checkStatusAndExtractQueuedItemUrl(response, jobExecutionData, authData)
                 }.then { nullableQueuedItemUrl: String? ->
                     showInfoQueuedItemIfVerbose(verbose, nullableQueuedItemUrl, jobName)
                     val queuedItemUrl = getQueuedItemUrlOrJobUrlAsFallback(nullableQueuedItemUrl, jobExecutionData)
@@ -69,10 +69,10 @@ class JenkinsJobExecutor(
         response: Response,
         jobExecutionData: JobExecutionData,
         authData: AuthData
-    ): Promise<Promise<String?>> {
+    ): Promise<String?> {
         return checkStatusOk(response).then {
             jobExecutionData.queuedItemUrlExtractor.extract(authData, response, jobExecutionData)
-        }
+        }.unsafeCast<Promise<String?>>()
     }
 
     private fun extractBuildNumber(
