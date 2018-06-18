@@ -75,10 +75,10 @@ private fun StringBuilder.appendThrowable(t: Throwable): StringBuilder {
     val nullableStack: String? = t.asDynamic().stack as? String
     return if (nullableStack != null) {
         val stackWithMessage: String = getStackWithMessage(t, nullableStack)
-        val firstNewLine = stackWithMessage.indexOf('\n')
+        val firstNewLine = stackWithMessage.indexOf("   ")
         val stack = if (firstNewLine >= 0) {
-            append(stackWithMessage.substring(0, firstNewLine + 1)).append('\n')
-            stackWithMessage.substring(firstNewLine + 1)
+            append(stackWithMessage.substring(0, firstNewLine)).append('\n')
+            stackWithMessage.substring(firstNewLine)
         } else {
             stackWithMessage
         }
@@ -88,11 +88,17 @@ private fun StringBuilder.appendThrowable(t: Throwable): StringBuilder {
     }
 }
 
+private fun withoutEndingNewLine(text: String?): String {
+    if (text == null) return ""
+    return if (text.endsWith("\n")) text.substringBeforeLast("\n") else text
+}
+
 private fun getStackWithMessage(t: Throwable, nullableStack: String): String {
     return when {
         nullableStack.startsWith("captureStack") -> {
             val firstNewLine = nullableStack.indexOf('\n')
-            t::class.simpleName + ": " + t.message + nullableStack.substring(firstNewLine + 1)
+            t::class.simpleName + ": " + withoutEndingNewLine(t.message) +
+                "\n   " + withoutEndingNewLine(nullableStack).substring(firstNewLine + 1).split('\n').joinToString("\n   ")
         }
         nullableStack.isBlank() -> t.toString()
         else -> nullableStack
