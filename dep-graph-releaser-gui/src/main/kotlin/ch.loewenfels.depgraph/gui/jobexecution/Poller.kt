@@ -15,19 +15,19 @@ object Poller {
         errorHandler: (PollTimeoutException) -> Nothing
     ): Promise<String> {
         return poll(PollData(authData, url, pollEverySecond, maxWaitingTimeInSeconds) { body ->
-                val matchResult = regex.find(body)
-                if (matchResult != null) {
-                    true to matchResult.groupValues[1]
-                } else {
-                    false to null
-                }
-            }).catch { t ->
-                if (t is PollTimeoutException) {
-                    errorHandler(t)
-                } else {
-                    throw t
-                }
+            val matchResult = regex.find(body)
+            if (matchResult != null) {
+                true to matchResult.groupValues[1]
+            } else {
+                false to null
             }
+        }).catch { t ->
+            if (t is PollTimeoutException) {
+                errorHandler(t)
+            } else {
+                throw t
+            }
+        }
     }
 
     private fun <T : Any> poll(pollData: PollData<T>): Promise<T> {
@@ -63,10 +63,13 @@ object Poller {
                     rePoll(body)
                 }
             }.catch { t ->
-                if (t is Exception) {
-                    rePoll("")
-                } else {
-                    throw t
+                when (t) {
+                    is PollTimeoutException -> throw t
+                    is Exception -> {
+                        console.log(t)
+                        rePoll("")
+                    }
+                    else -> throw t
                 }
             }
     }
@@ -94,7 +97,6 @@ object Poller {
             action,
             numberOfTries = 0
         )
-
 
         fun newWithIncreasedNumberOfTimes(): PollData<T> = PollData(
             authData,
