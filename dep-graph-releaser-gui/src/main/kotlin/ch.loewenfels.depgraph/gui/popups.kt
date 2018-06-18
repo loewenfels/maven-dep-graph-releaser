@@ -74,17 +74,28 @@ fun turnThrowableIntoMessage(t: Throwable): String {
 private fun StringBuilder.appendThrowable(t: Throwable): StringBuilder {
     val nullableStack: String? = t.asDynamic().stack as? String
     return if (nullableStack != null) {
-        val stackWithHead: String = nullableStack
-        val firstNewLine = stackWithHead.indexOf('\n')
+        val stackWithMessage: String = getStackWithMessage(t, nullableStack)
+        val firstNewLine = stackWithMessage.indexOf('\n')
         val stack = if (firstNewLine >= 0) {
-            append(stackWithHead.substring(0, firstNewLine + 1)).append('\n')
-            stackWithHead.substring(firstNewLine + 1)
+            append(stackWithMessage.substring(0, firstNewLine + 1)).append('\n')
+            stackWithMessage.substring(firstNewLine + 1)
         } else {
-            stackWithHead
+            stackWithMessage
         }
         append(stack.replace("   ", "\t"))
     } else {
         append("${t::class.js.name}: ${t.message}")
+    }
+}
+
+private fun getStackWithMessage(t: Throwable, nullableStack: String): String {
+    return when {
+        nullableStack.startsWith("captureStack") -> {
+            val firstNewLine = nullableStack.indexOf('\n')
+            t::class.simpleName + ": " + t.message + nullableStack.substring(firstNewLine + 1)
+        }
+        nullableStack.isBlank() -> t.toString()
+        else -> nullableStack
     }
 }
 
