@@ -70,9 +70,9 @@ class App {
 
             loadJson(jsonUrl, usernameToken)
                 .then(::checkStatusOk)
-                .catch {
+                .catch<Pair<Response, String>> {
                     throw Error("Could not load json.", it)
-                }.then { body: String ->
+                }.then { (_, body) ->
                     switchLoader("loaderJson", "loaderPipeline")
                     val modifiableState = ModifiableState(defaultJenkinsBaseUrl, body)
                     val releasePlan = modifiableState.releasePlan
