@@ -15,7 +15,7 @@ class BuildHistoryBasedBuildNumberExtractor(
         val init = createGetRequest(headers)
         return window.fetch("${jobExecutionData.jobBaseUrl}api/xml?xpath=//build/number&wrapper=builds", init)
             .then(::checkStatusOk)
-            .then { searchBuildNumber(it, init) }
+            .then { searchBuildNumber(it.second, init) }
             .unsafeCast<Promise<Int>>()
     }
 
@@ -30,7 +30,7 @@ class BuildHistoryBasedBuildNumberExtractor(
         val buildNumber = matchResult.groupValues[1].toInt()
         return window.fetch("${jobExecutionData.jobBaseUrl}$buildNumber/api/xml", init)
             .then(::checkStatusOk)
-            .then { body ->
+            .then { (_, body) ->
                 if (parametersRegex.containsMatchIn(body)) {
                     buildNumber
                 } else {
