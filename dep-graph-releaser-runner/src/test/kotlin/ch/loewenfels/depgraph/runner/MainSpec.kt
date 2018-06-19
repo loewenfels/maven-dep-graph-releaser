@@ -1,8 +1,11 @@
 package ch.loewenfels.depgraph.runner
 
+import ch.loewenfels.depgraph.ConfigKey
+import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.maven.getTestDirectory
 import ch.loewenfels.depgraph.runner.Main.errorHandler
 import ch.loewenfels.depgraph.runner.Main.fileVerifier
+import ch.loewenfels.depgraph.runner.commands.Json
 import ch.loewenfels.depgraph.runner.console.ErrorHandler
 import ch.loewenfels.depgraph.runner.console.FileVerifier
 import ch.loewenfels.depgraph.serialization.Serializer
@@ -29,16 +32,28 @@ object MainSpec : Spek({
         given("project A with dependent project B (happy case)") {
             on("calling main") {
                 val jsonFile = File(tempFolder.tmpDir, "test.json")
+                val dryRunJob = "dgr-dry-run"
+                val updateJob = "dgr-updater"
+                val remoteRegex = "^$#none"
+                val relativePathExcludeProjectRegex = "[^/]+/[^/]+/.+"
+                val relativePathToGitRepoRegex = "^(.*)/\$"
+                val relativePathToGitRepoReplacement = "https://github.com/$1"
+                val regexParams = ".*#branch.name=master"
+                val jobMapping = "com.example.project=ownJobName"
+                val commitPrefix = "[DGR] DEV-12345"
                 Main.main(
                     "json", "com.example", "a",
                     getTestDirectory("managingVersions/inDependency").absolutePath,
                     jsonFile.absolutePath,
-                    "dgr-updater",
-                    "dgr-dry-run",
-                    "^$#none",
-                    "[^/]+/[^/]+/.+",
-                    "^(.*)/\$",
-                    "https://github.com/$1"
+                    updateJob,
+                    dryRunJob,
+                    remoteRegex,
+                    relativePathExcludeProjectRegex,
+                    relativePathToGitRepoRegex,
+                    relativePathToGitRepoReplacement,
+                    "${Json.REGEX_PARAMS_ARG}$regexParams",
+                    "${Json.JOB_MAPPING_ARG}$jobMapping",
+                    "${Json.COMMIT_PREFIX_ARG}$commitPrefix"
                 )
                 it("creates a corresponding json file") {
                     assert(jsonFile).returnValueOf(jsonFile::exists).toBe(true)
@@ -49,6 +64,18 @@ object MainSpec : Spek({
                     val releasePlan = Serializer().deserialize(json)
                     assertProjectAWithDependentB(releasePlan)
                     assertReleasePlanHasNoWarningsAndNoInfos(releasePlan)
+                    assert(releasePlan) {
+                        returnValueOf(ReleasePlan::getConfig, ConfigKey.UPDATE_DEPENDENCY_JOB).toBe(updateJob)
+                        returnValueOf(ReleasePlan::getConfig, ConfigKey.DRY_RUN_JOB).toBe(dryRunJob)
+                        returnValueOf(ReleasePlan::getConfig, ConfigKey.DRY_RUN_JOB).toBe(dryRunJob)
+                        returnValueOf(ReleasePlan::getConfig, ConfigKey.REMOTE_REGEX).toBe(remoteRegex)
+                        returnValueOf(ReleasePlan::getConfig, ConfigKey.RELATIVE_PATH_EXCLUDE_PROJECT_REGEX).toBe(relativePathExcludeProjectRegex)
+                        returnValueOf(ReleasePlan::getConfig, ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REGEX).toBe(relativePathToGitRepoRegex)
+                        returnValueOf(ReleasePlan::getConfig, ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REPLACEMENT).toBe(relativePathToGitRepoReplacement)
+                        returnValueOf(ReleasePlan::getConfig, ConfigKey.REGEX_PARAMS).toBe(regexParams)
+                        returnValueOf(ReleasePlan::getConfig, ConfigKey.JOB_MAPPING).toBe(jobMapping)
+                        returnValueOf(ReleasePlan::getConfig, ConfigKey.COMMIT_PREFIX).toBe(commitPrefix)
+                    }
                 }
             }
         }
