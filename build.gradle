@@ -1,4 +1,4 @@
-version = "0.6.0"
+version = "0.7.0-SNAPSHOT"
 
 buildscript {
     ext {
@@ -14,7 +14,7 @@ buildscript {
         mockito_kotlin_version = '1.5.0'
         mockito_version = '2.18.3'
         dokka_version = '0.9.17'
-        dokka_sourceMapping = 'tree/v0.6.0'
+        dokka_sourceMapping = 'tree/master'
 
         spek_version = '1.1.5'
         tutteli_spek_extensions = '0.2.0'
@@ -210,7 +210,7 @@ Release & deploy a commit
     d) git push origin vX.Y.Z
 3. deploy to bintray:
     a) gr clean publishBintray
-    b) Log in to bintray, check and publish new jars
+    b) Log in to bintray, navigate to https://bintray.com/loewenfels/oss -> check and publish new jars
 4. create release on github
 
 Prepare next dev cycle
@@ -218,7 +218,7 @@ Prepare next dev cycle
 1. point to master
    a) search for `tag=vX.Y.Z` and replace it with `branch=master`
    b) search for `tree/vX.Y.Z` and replace it with `tree/master`
-2. search for X.Y.Z and change to X.Y.Z-SNAPSHOT
+2. search for X.Y.Z and change to X.Y+1.Z-SNAPSHOT
 3. commit & push changes
 
 */
