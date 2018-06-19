@@ -198,14 +198,14 @@ apply from: 'gradle/scripts/gh-pages.gradle'
 
 /*
 
-Release & deploy a commit
---------------------------------
+Release & deploy
+-----------------
 1. search for X.Y.Z-SNAPSHOT and change to X.Y.Z
 2. update master:
     a) point to the tag
         1) search for `branch=master` and replace it with `tag=vX.Y.Z` (build status and coverage in README.md)
         2) search for `tree/master` and replace it with `tree/vX.Y.Z` (README.md)
-    b) commit (modified build.gradle, README.md, index.html, jenkins.pom) => with message: vX.Y.Z
+    b) commit modified build.gradle, README.md, index.html, jenkins.pom with message `vX.Y.Z` & push
     c) git tag vX.Y.Z
     d) git push origin vX.Y.Z
 3. deploy to bintray:
