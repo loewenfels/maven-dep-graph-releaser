@@ -70,7 +70,7 @@ object Json : ConsoleCommand {
         val (updateDependencyJob, dryRunJob, remoteRegex) = afterFirst5
         val afterFirstEight = afterFirst5.drop(3)
         val (excludeRegex, gitRepoRegex, gitRepoReplacement) = afterFirstEight
-        val optionalArgs = afterFirstEight.drop(4).toOptionalArgs(
+        val optionalArgs = afterFirstEight.drop(3).toOptionalArgs(
             errorHandler, REGEX_PARAMS_ARG, DISABLE_RELEASE_FOR, JOB_MAPPING_ARG, COMMIT_PREFIX_ARG
         )
         val (regexParameters, disableReleaseFor, jobMapping, commitPrefix) = optionalArgs

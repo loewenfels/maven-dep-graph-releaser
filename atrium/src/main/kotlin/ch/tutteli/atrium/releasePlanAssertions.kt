@@ -26,7 +26,7 @@ fun Assert<ReleasePlan>.hasDependentsForProject(
 
 fun Assert<ReleasePlan>.iteratorReturnsRootAndStrictly(vararg otherProject: ProjectId) {
     val rootProject = subject.getRootProject()
-    AssertImpl.changeSubject(this, { iteratorProjectIdsToList() }).containsStrictly(rootProject.id, *otherProject)
+    AssertImpl.changeSubject(this) { iteratorProjectIdsToList() }.containsStrictly(rootProject.id, *otherProject)
 }
 
 private fun Assert<ReleasePlan>.iteratorProjectIdsToList() =
@@ -37,6 +37,6 @@ private fun Assert<ReleasePlan>.iteratorProjectIdsToList() =
  */
 fun Assert<ReleasePlan>.iteratorReturnsRootAndInOrderGrouped(vararg otherGroups: List<ProjectId>) {
     val rootProject = subject.getRootProject()
-    val builder = AssertImpl.changeSubject(this, { iteratorProjectIdsToList() }).contains.inOrder.only.grouped.within
+    val builder = AssertImpl.changeSubject(this) { iteratorProjectIdsToList() }.contains.inOrder.only.grouped.within
     AssertImpl.iterable.contains.valuesInOrderOnlyGrouped(builder, listOf(listOf(rootProject)) + otherGroups)
 }
