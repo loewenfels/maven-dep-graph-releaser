@@ -90,8 +90,8 @@ task json {
     def defaultRelativePathToGitRepoRegex = '^(.*)/\$'
     def relativePathToGitRepoReplacementArg = 'relativePathToGitRepoReplacement'
     def defaultRelativePathToGitRepoReplacement = 'ssh://gerrit.loewenfels.ch:29418/$1'
-    def paramsArg = 'regexParams'
-    def defaultParamsArg = ".*#branch.name=master"
+    def regexParamsArg = 'regexParams'
+    def defaultRegexParamsArg = ".*#branch.name=master"
     def disableRegexArg = 'disableRegex'
     def jobMappingArg = 'jobMapping'
     def commitPrefixArg = 'commitPrefix'
@@ -104,7 +104,7 @@ task json {
     inputs.property(relativePathExcludeProjectsRegexArg, findProperty(relativePathExcludeProjectsRegexArg) ?: defaultRelativePathExcludeProjectsRegex)
     inputs.property(relativePathToGitRepoRegexArg, findProperty(relativePathToGitRepoRegexArg) ?: defaultRelativePathToGitRepoRegex)
     inputs.property(relativePathToGitRepoReplacementArg, findProperty(relativePathToGitRepoReplacementArg) ?: defaultRelativePathToGitRepoReplacement)
-    inputs.property(paramsArg, findProperty(paramsArg) ?: defaultParamsArg)
+    inputs.property(regexParamsArg, findProperty(regexParamsArg) ?: defaultRegexParamsArg)
     inputs.property(disableRegexArg, findProperty(disableRegexArg) ?: '^$')
     inputs.property(jobMappingArg, findProperty(jobMappingArg) ?: '')
     inputs.property(commitPrefixArg, findProperty(commitPrefixArg) ?: '')
@@ -120,7 +120,7 @@ task json {
         def relativePathExcludeProjects = findProperty(relativePathExcludeProjectsRegexArg) ?: defaultRelativePathExcludeProjectsRegex
         def relativePathGitRepoRegex = findProperty(relativePathToGitRepoRegexArg) ?: defaultRelativePathToGitRepoRegex
         def relativePathGitRepoReplacement = findProperty(relativePathToGitRepoReplacementArg) ?: defaultRelativePathToGitRepoReplacement
-        def params = ["-$paramsArg=${findProperty(paramsArg) ?: defaultParamsArg}"]
+        def params = ["-$regexParamsArg=${findProperty(regexParamsArg) ?: defaultRegexParamsArg}"]
         def disableRegex = findProperty(disableRegexArg) != null ? ["-$disableRegexArg=${findProperty(disableRegexArg)}"] : []
         def jobMapping = findProperty(jobMappingArg) != null ?
             ["-$jobMappingArg=${findProperty(jobMappingArg)}"] :
