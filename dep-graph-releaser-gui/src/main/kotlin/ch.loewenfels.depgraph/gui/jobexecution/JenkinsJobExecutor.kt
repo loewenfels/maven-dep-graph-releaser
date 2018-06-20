@@ -24,7 +24,7 @@ class JenkinsJobExecutor(
 
         return issueCrumb(jenkinsBaseUrl, usernameToken).then { authData: AuthData ->
             triggerJob(authData, jobExecutionData)
-                .then(::checkStatusOk)
+                .then(::checkStatusIgnoreOpaqueRedirect)
                 .catch<Pair<Response, String>> {
                     throw Error("Could not trigger the job $jobName." +
                         "\nPlease visit ${jobExecutionData.jobBaseUrl} to see if it was triggered nonetheless." +
