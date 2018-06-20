@@ -25,7 +25,7 @@ class RestApiBasedQueuedItemUrlExtractor(private val identifyingParams: Map<Stri
 
         return window.fetch("$jenkinsBaseUrl/queue/api/xml", init)
             .then(::checkStatusOk)
-            .then { body ->
+            .then { (_, body) ->
                 val queuedItemRegex = Regex(
                     "<item>$noneOrSomeChars" +
                         paramsIdentification +
