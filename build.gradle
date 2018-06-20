@@ -212,6 +212,15 @@ Release & deploy
     a) gr clean publishBintray
     b) Log in to bintray, navigate to https://bintray.com/loewenfels/oss -> check and publish new jars
 4. create release on github
+5. update example gh-pages
+    a) gr html -PgId=ch.loewenfels.depgraph -Paid=dgr-4
+    b) skip if already done:
+        1) clone the project into a separate folder dep-graph-releaser-gh-pages (outside of the project)
+        2) change to branch gh-pages
+    c) copy the content of dep-graph-releaser/build/html to dep-graph-releaser-gh-pages
+    d) git add .
+    e) git commit -m "update exampel to vX.Y.Z"
+    f) git push
 
 Prepare next dev cycle
 -----------------------
