@@ -1,6 +1,7 @@
 package ch.loewenfels.depgraph.gui.jobexecution
 
 import ch.loewenfels.depgraph.gui.showThrowable
+import org.w3c.fetch.Response
 import kotlin.browser.window
 import kotlin.js.Promise
 
@@ -39,11 +40,12 @@ object UsernameTokenRegistry {
         val urlWithoutSlash = urlWithoutEndingSlash(jenkinsBaseUrl)
         return window.fetch("$urlWithoutSlash/me/configure", createFetchInitWithCredentials())
             .then(::checkStatusOkOr403)
-            .catch { t ->
+            .catch<Pair<Response, String?>?> { t ->
                 showThrowable(Error("Could not retrieve user and API token for $urlWithoutSlash", t))
                 null
             }
-            .then { body: String? ->
+            .then { pair ->
+                val body = pair?.second
                 if (body == null) {
                     null
                 } else {

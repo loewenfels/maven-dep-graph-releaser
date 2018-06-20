@@ -24,14 +24,15 @@ class JenkinsJobExecutor(
 
         return issueCrumb(jenkinsBaseUrl, usernameToken).then { authData: AuthData ->
             triggerJob(authData, jobExecutionData)
-                .catch {
+                .then(::checkStatusIgnoreOpaqueRedirect)
+                .catch<Pair<Response, String>> {
                     throw Error("Could not trigger the job $jobName." +
                         "\nPlease visit ${jobExecutionData.jobBaseUrl} to see if it was triggered nonetheless." +
                         "\nYou can manually set the command to Succeeded if the job was triggered/executed and ended successfully."
                         , it
                     )
-                }.then { response: Response ->
-                    checkStatusAndExtractQueuedItemUrl(response, jobExecutionData, authData)
+                }.then { (response, _) ->
+                    jobExecutionData.queuedItemUrlExtractor.extract(authData, response, jobExecutionData)
                 }.then { nullableQueuedItemUrl: String? ->
                     showInfoQueuedItemIfVerbose(verbose, nullableQueuedItemUrl, jobName)
                     val queuedItemUrl = getQueuedItemUrlOrJobUrlAsFallback(nullableQueuedItemUrl, jobExecutionData)
@@ -69,16 +70,6 @@ class JenkinsJobExecutor(
         jobExecutionData: JobExecutionData
     ) = if (nullableQueuedItemUrl != null) "${nullableQueuedItemUrl}api/xml/" else jobExecutionData.jobBaseUrl
 
-    private fun checkStatusAndExtractQueuedItemUrl(
-        response: Response,
-        jobExecutionData: JobExecutionData,
-        authData: AuthData
-    ): Promise<String?> {
-        return checkStatusOk(response).then {
-            jobExecutionData.queuedItemUrlExtractor.extract(authData, response, jobExecutionData)
-        }.unsafeCast<Promise<String?>>()
-    }
-
     private fun extractBuildNumber(
         nullableQueuedItemUrl: String?,
         authData: AuthData,
@@ -100,9 +91,9 @@ class JenkinsJobExecutor(
         val init = createGetRequest(headers)
         return window.fetch(url, init)
             .then(::checkStatusOkOr404)
-            .catch {
+            .catch<Pair<Response, String?>> {
                 throw Error("Cannot issue a crumb", it)
-            }.then { crumbWithIdString: String? ->
+            }.then { (_, crumbWithIdString) ->
                 val crumbWithId = if (crumbWithIdString != null) {
                     val (id, crumb) = crumbWithIdString.split(':')
                     CrumbWithId(id, crumb)

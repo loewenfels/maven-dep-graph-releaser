@@ -4,25 +4,33 @@ import org.w3c.fetch.*
 import kotlin.browser.window
 import kotlin.js.Promise
 
-fun checkStatusOk(response: Response): Promise<String> {
+fun checkStatusOk(response: Response): Promise<Pair<Response, String>> {
     @Suppress("UNCHECKED_CAST" /* is non-null string because we do not ignore an error code */)
-    return checkResponseIgnore(response, null) as Promise<String>
+    return checkResponseIgnore(response) { false } as Promise<Pair<Response, String>>
 }
 
-fun checkStatusOkOr403(response: Response) = checkResponseIgnore(response, 403)
-fun checkStatusOkOr404(response: Response) = checkResponseIgnore(response, 404)
+fun checkStatusOkOr403(response: Response) = checkResponseIgnoreStatus(response, 403)
+fun checkStatusOkOr404(response: Response) = checkResponseIgnoreStatus(response, 404)
 
-private fun checkResponseIgnore(response: Response, ignoringError: Int?): Promise<String?> {
+private fun checkResponseIgnoreStatus(response: Response, errorStatus: Int)
+    = checkResponseIgnore(response) { errorStatus.toShort() == response.status }
+
+fun checkStatusIgnoreOpaqueRedirect(response: Response)
+    = checkResponseIgnore(response) { response.type == ResponseType.OPAQUEREDIRECT }
+
+private fun checkResponseIgnore(
+    response: Response,
+    ignoreStatusNotOkPredicate: () -> Boolean
+): Promise<Pair<Response, String?>> {
     return response.text().then { text ->
-        if (ignoringError != null && ignoringError.toShort() == response.status) {
-            null
+        if (ignoreStatusNotOkPredicate()) {
+            response to null
         } else {
             check(response.ok) { "response was not ok, ${response.status}: ${response.statusText}\n$text" }
-            text
+            response to text
         }
     }
 }
-
 
 @Suppress("UnsafeCastFromDynamic")
 fun createFetchInitWithCredentials(): RequestInit {
@@ -68,14 +76,14 @@ fun createRequestInit(
         headers = headers,
         mode = RequestMode.CORS,
         cache = org.w3c.fetch.RequestCache.NO_CACHE,
-        redirect = org.w3c.fetch.RequestRedirect.FOLLOW,
-        credentials = org.w3c.fetch.RequestCredentials.INCLUDE
+        redirect = org.w3c.fetch.RequestRedirect.MANUAL,
+        credentials = org.w3c.fetch.RequestCredentials.INCLUDE,
+        referrer = "no-referrer",
+        referrerPolicy = "no-referrer"
     )
     //have to remove properties because RequestInit sets them to null which is not what we want/is not valid
     js(
         "delete init.integrity;" +
-            "delete init.referer;" +
-            "delete init.referrerPolicy;" +
             "delete init.keepalive;" +
             "delete init.window;"
     )

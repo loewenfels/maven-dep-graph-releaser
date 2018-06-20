@@ -51,7 +51,7 @@ object Poller {
 
         return window.fetch(pollData.pollUrl, init)
             .then(::checkStatusOk)
-            .then { body: String ->
+            .then { (_, body) ->
                 val (success, result) = pollData.action(body)
                 if (success) {
                     if (result == null) {
