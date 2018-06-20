@@ -12,7 +12,7 @@ class VersionDeterminer {
     private fun updateLastNumber(version: String): String {
         val matcher = LAST_NUMBER_PATTERN.matcher(version)
         return if (matcher.find()) {
-            matcher.group(1) + incrementNumber(matcher, 2)
+            matcher.group(1) + incrementNumber(matcher, 3)
         } else {
             "$version.2"
         }
@@ -38,8 +38,8 @@ class VersionDeterminer {
 
     companion object {
         private const val SNAPSHOT_SUFFIX = "-SNAPSHOT"
-        private val LAST_NUMBER_PATTERN = Pattern.compile("(.*)([0-9]+)[^0-9]*")
-        private val MAJOR_MINOR_PATCH_PATTERN = Pattern.compile("([^0-9]+)?([0-9]+[^0-9]+)?([0-9]+[^0-9]+)?([0-9]+)")
+        private val LAST_NUMBER_PATTERN = Pattern.compile("((\\d+\\.)*)(\\d+)\\D*$")
+        private val MAJOR_MINOR_PATCH_PATTERN = Pattern.compile("(\\D+)?(\\d+\\D+)?(\\d+\\D+)?(\\d+)")
         private const val PREFIX_GROUP = 1
         private const val MAJOR_GROUP = 2
         private const val MINOR_GROUP = 3
