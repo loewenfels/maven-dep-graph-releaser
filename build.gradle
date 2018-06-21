@@ -1,4 +1,4 @@
-version = "0.6.2"
+version = "0.7.0-SNAPSHOT"
 
 buildscript {
     ext {
@@ -14,7 +14,7 @@ buildscript {
         mockito_kotlin_version = '1.5.0'
         mockito_version = '2.18.3'
         dokka_version = '0.9.17'
-        dokka_sourceMapping = 'tree/v0.6.2'
+        dokka_sourceMapping = 'tree/master'
 
         spek_version = '1.1.5'
         tutteli_spek_extensions = '0.2.0'
