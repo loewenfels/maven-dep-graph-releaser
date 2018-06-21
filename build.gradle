@@ -95,6 +95,12 @@ configure(apiJsProjects) { subproject ->
         compile "org.jetbrains.kotlin:kotlin-stdlib-js:$kotlin_version"
         expectedBy project(getApiProject(subproject.name, '-js'))
     }
+
+    compileKotlin2Js {
+        kotlinOptions.moduleKind = "umd"
+        kotlinOptions.sourceMap = true
+        kotlinOptions.sourceMapEmbedSources = "always"
+    }
 }
 configure(apiJvmProjects) { subproject ->
     apply plugin: 'kotlin-platform-jvm'

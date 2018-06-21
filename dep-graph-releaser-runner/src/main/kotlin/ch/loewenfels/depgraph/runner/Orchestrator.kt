@@ -33,7 +33,7 @@ object Orchestrator {
         logIfFileExists(outputFile, "resulting json file")
         val json = serializer.serialize(releasePlan)
         outputFile.writeText(json)
-        logger.info({ "Created json file at: ${outputFile.absolutePath}" })
+        logger.info { "Created json file at: ${outputFile.absolutePath}" }
     }
 
 
@@ -42,9 +42,9 @@ object Orchestrator {
         rootProject: MavenProjectId,
         releasePlanCreatorOptions: JenkinsReleasePlanCreator.Options
     ): ReleasePlan {
-        logger.info({ "Going to analyse: ${directoryToAnalyse.absolutePath}" })
+        logger.info { "Going to analyse: ${directoryToAnalyse.absolutePath}" }
         val analyser = Analyser(directoryToAnalyse, Analyser.Options())
-        logger.info({ "Analysed ${analyser.getNumberOfProjects()} projects." })
+        logger.info { "Analysed ${analyser.getNumberOfProjects()} projects." }
 
         logger.info("Going to create the release plan with ${rootProject.identifier} as root.")
         val releasePlaner = JenkinsReleasePlanCreator(VersionDeterminer(), releasePlanCreatorOptions)
@@ -55,9 +55,9 @@ object Orchestrator {
 
 
     fun printReleasableProjects(directoryToAnalyse: File) {
-        logger.info({ "Going to analyse: ${directoryToAnalyse.absolutePath}" })
+        logger.info { "Going to analyse: ${directoryToAnalyse.absolutePath}" }
         val analyser = Analyser(directoryToAnalyse, Analyser.Options(false))
-        logger.info({ "Analysed ${analyser.getNumberOfProjects()} projects." })
+        logger.info { "Analysed ${analyser.getNumberOfProjects()} projects." }
         val list = analyser.getAllReleasableProjects().sortedBy { it.artifactId }.joinToString("\n") {
             it.artifactId.padEnd(30, " -") + " groupId: " + it.groupId
         }
@@ -81,8 +81,11 @@ object Orchestrator {
         copyResourceToFile(outputDir, "kotlinx-html-js.js")
         copyResourceToFile(outputDir, "kbox-js.js")
         copyResourceToFile(outputDir, "dep-graph-releaser-api-js.js")
+        copyResourceToFile(outputDir, "dep-graph-releaser-api-js.js.map")
         copyResourceToFile(outputDir, "dep-graph-releaser-maven-api-js.js")
+        copyResourceToFile(outputDir, "dep-graph-releaser-maven-api-js.js.map")
         copyResourceToFile(outputDir, "dep-graph-releaser-gui.js")
+        copyResourceToFile(outputDir, "dep-graph-releaser-gui.js.map")
         copyResourceToFile(outputDir, "style.css")
         copyResourceToFile(outputDir, "index.html")
         copyResourceToFile(outputDir, "material-icons.css")
@@ -105,7 +108,7 @@ object Orchestrator {
                 inputStream.copyTo(fileOut)
             }
         }
-        logger.fine({ "Created ${outputFile.absolutePath}" })
+        logger.fine { "Created ${outputFile.absolutePath}" }
     }
 
     private fun logIfFileExists(file: File, fileDescription: String) {
@@ -162,7 +165,7 @@ object Orchestrator {
         logger.info("Going to create the psf file.")
         val psfContent = generateEclipsePsf(releasePlan, excludeRegex, transformerRegex, transformerReplacement)
         outputFile.writeText(psfContent)
-        logger.info({ "Created psf file at: ${outputFile.absolutePath}" })
+        logger.info { "Created psf file at: ${outputFile.absolutePath}" }
     }
 
     private fun createReleasePlanForAnalysisOnly(
