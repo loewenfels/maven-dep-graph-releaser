@@ -148,7 +148,7 @@ private fun DIV.convertTabToTwoSpaces(content: String) {
     +content.substring(currentIndex)
 }
 
-private val urlRegex = Regex("http(?:s)://[^ ]+")
+private val urlRegex = Regex("http(?:s)?://[^ ]+")
 
 
 fun showDialog(msg: String): Promise<Boolean> {
