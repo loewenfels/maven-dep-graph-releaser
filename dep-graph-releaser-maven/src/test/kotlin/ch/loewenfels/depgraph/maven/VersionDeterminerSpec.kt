@@ -32,6 +32,10 @@ object VersionDeterminerSpec : Spek({
                 val result = testee.releaseVersion(version)
                 assert(result).toBe(expected)
             }
+            test("v$version turns into v$expected") {
+                val result = testee.releaseVersion("v$version")
+                assert(result).toBe("v$expected")
+            }
         }
     }
 
@@ -62,6 +66,10 @@ object VersionDeterminerSpec : Spek({
             test("$version turns into $expected") {
                 val result = testee.nextDevVersion(version)
                 assert(result).toBe(expected)
+            }
+            test("v$version turns into v$expected") {
+                val result = testee.releaseVersion("v$version")
+                assert(result).toBe("v$expected")
             }
         }
     }
