@@ -17,6 +17,11 @@ object VersionDeterminerSpec : Spek({
             "2.x-SNAPSHOT" to "2.x",
             "2-SNAPSHOT" to "2",
             "2.0.3" to "2.0.4",
+            "2.0.49" to "2.0.50",
+            "2.0.99" to "2.0.100",
+            "2.19" to "2.20",
+            "9" to "10",
+            "10" to "11",
             "2.0.3final" to "2.0.4",
             "2.5" to "2.6",
             "2.x" to "3",
@@ -26,6 +31,10 @@ object VersionDeterminerSpec : Spek({
             test("$version turns into $expected") {
                 val result = testee.releaseVersion(version)
                 assert(result).toBe(expected)
+            }
+            test("v$version turns into v$expected") {
+                val result = testee.releaseVersion("v$version")
+                assert(result).toBe("v$expected")
             }
         }
     }
@@ -43,11 +52,24 @@ object VersionDeterminerSpec : Spek({
             "2.5" to "2.7-SNAPSHOT",
             "2.x" to "4-SNAPSHOT",
             "2" to "4-SNAPSHOT",
+            "2.0.48" to "2.0.50-SNAPSHOT",
+            "2.0.49" to "2.0.51-SNAPSHOT",
+            "2.0.98" to "2.0.100-SNAPSHOT",
+            "2.0.99" to "2.0.101-SNAPSHOT",
+            "2.18" to "2.20-SNAPSHOT",
+            "2.19" to "2.21-SNAPSHOT",
+            "8" to "10-SNAPSHOT",
+            "9" to "11-SNAPSHOT",
+            "10" to "12-SNAPSHOT",
             "lovelyVersion" to "lovelyVersion.3-SNAPSHOT"
         ).forEach { version, expected ->
             test("$version turns into $expected") {
                 val result = testee.nextDevVersion(version)
                 assert(result).toBe(expected)
+            }
+            test("v$version turns into v$expected") {
+                val result = testee.nextDevVersion("v$version")
+                assert(result).toBe("v$expected")
             }
         }
     }
