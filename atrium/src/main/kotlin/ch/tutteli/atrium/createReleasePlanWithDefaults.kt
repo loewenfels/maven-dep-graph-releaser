@@ -3,7 +3,7 @@ package ch.tutteli.atrium
 import ch.loewenfels.depgraph.data.*
 
 /**
- * Creates a [ReleasePlan] with [ReleasePlan.state] = [ReleaseState.Ready],
+ * Creates a [ReleasePlan] with [ReleasePlan.state] = [ReleaseState.READY],
  * [ReleasePlan.typeOfRun] = [TypeOfRun.SIMULATION], an empty list for [ReleasePlan.warnings], [ReleasePlan.infos]
  * and an empty map for [ReleasePlan.config].
  */
@@ -15,7 +15,7 @@ fun createReleasePlanWithDefaults(
     dependents: Map<ProjectId, Set<ProjectId>>
 ) = ReleasePlan(
     publishId,
-    ReleaseState.Ready,
+    ReleaseState.READY,
     TypeOfRun.SIMULATION,
     rootProjectId,
     projects,

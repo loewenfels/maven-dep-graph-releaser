@@ -46,7 +46,7 @@ object SerializerSpec : Spek({
         val projectWithCommandsAndDependents = Project(DummyProjectId("d"), false, "1.5", "3.0", 0, listOf(DummyCommand(CommandState.Waiting(setOf(aId)))), "")
         val releasePlanWithCommandsAndDependents = ReleasePlan(
             "releaseId",
-            ReleaseState.Ready,
+            ReleaseState.READY,
             TypeOfRun.SIMULATION,
             projectWithCommandsAndDependents.id,
             mapOf(

@@ -1,22 +1,22 @@
 package ch.loewenfels.depgraph.data
 
 enum class ReleaseState {
-    Ready,
-    InProgress,
-    Succeeded,
-    Failed,
+    READY,
+    IN_PROGRESS,
+    SUCCEEDED,
+    FAILED,
     ;
 
     fun checkTransitionAllowed(newState: ReleaseState): ReleaseState {
         when (newState) {
-            ReleaseState.Ready -> checkNewState(newState, Succeeded)
-            ReleaseState.InProgress -> check(this == Ready || this == Failed) {
+            ReleaseState.READY -> checkNewState(newState, SUCCEEDED)
+            ReleaseState.IN_PROGRESS -> check(this == READY || this == FAILED) {
                 getErrorMessage(
-                    newState, "state was neither ${Ready::class.simpleName} nor ${Failed::class.simpleName}"
+                    newState, "state was neither ${READY::class.simpleName} nor ${FAILED::class.simpleName}"
                 )
             }
-            ReleaseState.Succeeded -> checkNewState(newState, InProgress)
-            ReleaseState.Failed -> checkNewState(newState, InProgress)
+            ReleaseState.SUCCEEDED -> checkNewState(newState, IN_PROGRESS)
+            ReleaseState.FAILED -> checkNewState(newState, IN_PROGRESS)
         }
         return newState
     }

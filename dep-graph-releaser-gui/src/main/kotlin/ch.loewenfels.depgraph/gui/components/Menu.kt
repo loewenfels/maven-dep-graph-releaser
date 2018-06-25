@@ -120,7 +120,7 @@ class Menu(
         window.onbeforeunload = {
             if (!saveButton.hasClass(DEACTIVATED)) {
                 "Your changes will be lost, sure you want to leave the page?"
-            } else if (Pipeline.getReleaseState() === ReleaseState.InProgress) {
+            } else if (Pipeline.getReleaseState() === ReleaseState.IN_PROGRESS) {
                 "You might lose state changes if you navigate away from this page, sure you want to proceed?"
             } else {
                 null
@@ -136,11 +136,11 @@ class Menu(
 
         val releasePlan = modifiableState.releasePlan
         when (releasePlan.state) {
-            ReleaseState.Ready -> Unit /* nothing to do */
-            ReleaseState.InProgress -> dispatchProcessStart()
-            ReleaseState.Failed, ReleaseState.Succeeded -> {
+            ReleaseState.READY -> Unit /* nothing to do */
+            ReleaseState.IN_PROGRESS -> dispatchProcessStart()
+            ReleaseState.FAILED, ReleaseState.SUCCEEDED -> {
                 dispatchProcessStart()
-                dispatchProcessEnd(success = releasePlan.state == ReleaseState.Succeeded)
+                dispatchProcessEnd(success = releasePlan.state == ReleaseState.SUCCEEDED)
             }
         }
     }
@@ -289,7 +289,7 @@ class Menu(
                     }
                 }
             }
-            Pipeline.changeReleaseState(ReleaseState.Ready)
+            Pipeline.changeReleaseState(ReleaseState.READY)
             dispatchProcessReset()
             elementById<HTMLInputElement>(Gui.RELEASE_ID_HTML_ID).value = randomPublishId()
             resetButtons()
@@ -368,16 +368,16 @@ class Menu(
         jobExecutionDataFactory: JobExecutionDataFactory,
         typeOfRun: TypeOfRun
     ): Promise<*> {
-        if (Pipeline.getReleaseState() === ReleaseState.Failed) {
+        if (Pipeline.getReleaseState() === ReleaseState.FAILED) {
             if (typeOfRun == TypeOfRun.DRY_RUN) {
                 turnFailedProjectsIntoReTriggerAndReady(releasePlan)
             } else {
                 turnFailedCommandsIntoStateReTrigger(releasePlan)
             }
         }
-        if (Pipeline.getReleaseState() === ReleaseState.Succeeded) {
+        if (Pipeline.getReleaseState() === ReleaseState.SUCCEEDED) {
             dispatchProcessContinue()
-            Pipeline.changeReleaseState(ReleaseState.Ready)
+            Pipeline.changeReleaseState(ReleaseState.READY)
         }
         Pipeline.changeTypeOfRun(typeOfRun)
         dispatchProcessStart()
