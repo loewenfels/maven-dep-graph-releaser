@@ -3,7 +3,6 @@ package ch.loewenfels.depgraph.gui.components
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ReleaseCommand
-import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.gui.addChangeEventListener
 import ch.loewenfels.depgraph.gui.addClickEventListener
 import ch.loewenfels.depgraph.gui.elementById
@@ -44,7 +43,7 @@ class Toggler(private val modifiableState: ModifiableState, private val menu: Me
                 toggle.addChangeEventListener { toggleCommand(project, index, EVENT_TOGGLE_UNCHECKED) }
             }
 
-            Menu.disableUnDisableForReleaseStartAndEnd(toggle, elementById("${toggle.id}${Pipeline.SLIDER_SUFFIX}"))
+            Menu.disableUnDisableForProcessStartAndEnd(toggle, elementById("${toggle.id}${Pipeline.SLIDER_SUFFIX}"))
         }
     }
 
