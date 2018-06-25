@@ -10,6 +10,7 @@ enum class ConfigKey(private val key: kotlin.String) {
     RELATIVE_PATH_TO_GIT_REPO_REPLACEMENT("relativePathToGitRepoReplacement"),
     REGEX_PARAMS("regexParams"),
     JOB_MAPPING("jobMapping"),
+    INITIAL_RELEASE_JSON("initialJson"),
     ;
 
     fun asString(): String = key
