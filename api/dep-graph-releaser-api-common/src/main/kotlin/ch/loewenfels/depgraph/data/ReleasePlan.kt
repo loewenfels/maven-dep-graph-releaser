@@ -82,7 +82,7 @@ data class ReleasePlan(
     fun getProjectIds(): Set<ProjectId> = projects.keys
     fun getProjects(): Collection<Project> = projects.values
     fun getNumberOfProjects() = projects.size
-    fun getAllProjects(): Map<ProjectId, Project> = projects
+    fun getProjectsWithProjectId(): Map<ProjectId, Project> = projects
 
     fun getNumberOfDependents() = dependents.size
     fun getAllDependents(): Map<ProjectId, Set<ProjectId>> = dependents
