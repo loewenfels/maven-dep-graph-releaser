@@ -12,7 +12,6 @@ import kotlinx.html.div
 import kotlinx.html.dom.append
 import org.w3c.dom.asList
 import kotlin.browser.document
-import kotlin.browser.window
 
 class Gui(modifiableState: ModifiableState, private val menu: Menu) {
 
@@ -78,7 +77,7 @@ class Gui(modifiableState: ModifiableState, private val menu: Menu) {
         }
         val initialSite = getTextField("config-${ConfigKey.INITIAL_RELEASE_JSON.asString()}")
         if (initialSite.value.isBlank()) {
-            initialSite.value = window.location.href.substringAfter("#").substringBefore(App.PUBLISH_JOB)
+            initialSite.value = App.determineJsonUrl() ?: ""
         }
     }
 

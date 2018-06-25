@@ -10,8 +10,10 @@ import ch.loewenfels.depgraph.gui.Gui.Companion.RELEASE_ID_HTML_ID
 import ch.loewenfels.depgraph.gui.actions.Downloader
 import ch.loewenfels.depgraph.gui.actions.Publisher
 import ch.loewenfels.depgraph.gui.actions.Releaser
+import ch.loewenfels.depgraph.gui.components.Pipeline.Companion.stateToTitle
 import ch.loewenfels.depgraph.gui.jobexecution.*
 import ch.loewenfels.depgraph.gui.serialization.ModifiableState
+import ch.loewenfels.depgraph.gui.serialization.deserialize
 import ch.tutteli.kbox.mapWithIndex
 import org.w3c.dom.CustomEvent
 import org.w3c.dom.CustomEventInit
@@ -26,7 +28,10 @@ import kotlin.js.Promise
 
 external fun encodeURIComponent(encodedURI: String): String
 
-class Menu {
+class Menu(
+    private val usernameTokenRegistry: UsernameTokenRegistry,
+    private val defaultJenkinsBaseUrl: String?
+) {
     private var publisher: Publisher? = null
 
     init {
@@ -126,6 +131,7 @@ class Menu {
         initRunButtons(dependencies, modifiableState)
         activateToolsButton()
         activateSettingsButton()
+        initStartOverButton(dependencies)
         initExportButtons(modifiableState)
 
         val releasePlan = modifiableState.releasePlan
@@ -133,9 +139,8 @@ class Menu {
             ReleaseState.Ready -> Unit /* nothing to do */
             ReleaseState.InProgress -> dispatchProcessStart()
             ReleaseState.Failed, ReleaseState.Succeeded -> {
-                dispatchProcessStart(); dispatchProcessEnd(
-                    releasePlan.state == ReleaseState.Succeeded
-                )
+                dispatchProcessStart()
+                dispatchProcessEnd(success = releasePlan.state == ReleaseState.Succeeded)
             }
         }
     }
@@ -186,7 +191,6 @@ class Menu {
         val nonNullDependencies = dependencies ?: App.createDependencies(
             fakeJenkinsBaseUrl,
             "${fakeJenkinsBaseUrl}dgr-publisher/",
-            UsernameAndApiToken("test", "test"),
             modifiableState,
             this
         )!!
@@ -216,12 +220,24 @@ class Menu {
 
             if (success) {
                 listOf(dryRunButton, releaseButton, exploreButton).forEach {
-                    it.title = DISABLED_RELEASE_SUCCESS
+                    if (button != releaseButton) {
+                        it.title =
+                            "Current process is '$processName' - click on 'Start Over' to start over with a new process."
+                    } else {
+                        it.title = "Release successful, use a new pipeline for a new release " +
+                            "or make changes and continue with the release process."
+                    }
+                }
+                val hintIfNotRelease = if (dependencies != null && button != releaseButton) {
+                    startOverButton.style.display = "inline-block"
+                    "Click on the 'Start Over' button if you want to start over with a new process.\n"
+                } else {
+                    ""
                 }
                 showSuccess(
                     """
                     |Process '$processName' ended successfully :) you can now close the window or continue with the process.
-                    |
+                    |$hintIfNotRelease
                     |Please report a bug at $GITHUB_NEW_ISSUE in case some job failed without us noticing it.
                     |Do not forget to star the repository if you like dep-graph-releaser ;-) $GITHUB_REPO
                     |Last but not least, you might want to visit $LOEWENFELS_URL to get to know the company pushing this project forward.
@@ -242,6 +258,65 @@ class Menu {
                 buttonText.innerText = "Re-trigger failed Jobs"
                 button.title = "Continue with the process '$processName' by re-processing previously failed projects."
             }
+        }
+    }
+
+    private fun initStartOverButton(dependencies: Dependencies?) {
+        if (dependencies != null) {
+            activateStartOverButton()
+            startOverButton.addClickEventListener { resetForNewProcess(dependencies) }
+        }
+    }
+
+    private fun resetForNewProcess(dependencies: Dependencies) {
+        val currentReleasePlan = modifiableState.releasePlan
+        val initialJson = currentReleasePlan.config[ConfigKey.INITIAL_RELEASE_JSON]
+            ?: App.determineJsonUrlOrThrow()
+        val usernameAndApiToken = if (defaultJenkinsBaseUrl != null) {
+            usernameTokenRegistry.forHost(defaultJenkinsBaseUrl)
+        } else {
+            null
+        }
+        App.loadJsonAndCheckStatus(initialJson, usernameAndApiToken).then { (_, body) ->
+            val initialReleasePlan = deserialize(body)
+            initialReleasePlan.getProjects().forEach { project ->
+                project.commands.forEachIndexed { index, command ->
+                    val newState = determineNewState(project, index, command)
+                    Pipeline.changeBuildUrlOfCommand(project, index, "")
+                    Pipeline.changeStateOfCommand(project, index, newState, stateToTitle(newState)) { _, _ ->
+                        // we do not check if the transition is allowed since we reset the command
+                        newState
+                    }
+                }
+            }
+            Pipeline.changeReleaseState(ReleaseState.Ready)
+            dispatchProcessReset()
+            elementById<HTMLInputElement>(Gui.RELEASE_ID_HTML_ID).value = randomPublishId()
+            resetButtons()
+            startOverButton.style.display = "none"
+            save(dependencies.jenkinsJobExecutor, verbose = true).then {
+                deactivateSaveButton()
+            }
+        }
+    }
+
+    private fun resetButtons() {
+        val (processName, _, buttonText) = getCurrentRunData()
+        listOf(dryRunButton, releaseButton, exploreButton).forEach {
+            it.removeClass(DISABLED)
+        }
+        buttonText.innerText = processName //currently it is 'Continue:...'
+        activateDryRunButton()
+        activateReleaseButton()
+        activateExploreButton()
+    }
+
+    private fun determineNewState(project: Project, index: Int, command: Command): CommandState {
+        val currentState = Pipeline.getCommandState(project.id, index)
+        return if (currentState is CommandState.Deactivated && command.state !is CommandState.Deactivated) {
+            CommandState.Deactivated(command.state)
+        } else {
+            command.state
         }
     }
 
@@ -433,6 +508,10 @@ class Menu {
         settingsButton, SETTINGS_INACTIVE_TITLE
     )
 
+    private fun activateStartOverButton() = activateButton(
+        startOverButton, START_OVER_INACTIVE_TITLE
+    )
+
     private fun activateButton(button: HTMLElement, newTitle: String) {
         if (button.isDisabled()) return
 
@@ -475,11 +554,11 @@ class Menu {
 
         private const val EVENT_PROCESS_START = "process.start"
         private const val EVENT_PROCESS_END = "process.end"
-        private const val DISABLED_RELEASE_SUCCESS =
-            "Release successful, use a new pipeline for a new release or make changes and continue with current process."
+        private const val EVENT_PROCESS_RESET = "process.reset"
 
         private const val TOOLS_INACTIVE_TITLE = "Open the toolbox to see further available features."
         private const val SETTINGS_INACTIVE_TITLE = "Open Settings."
+        private const val START_OVER_INACTIVE_TITLE = "Start over with a new process."
 
         private val userButton get() = elementById("user")
         private val userIcon get() = elementById("user.icon")
@@ -491,6 +570,7 @@ class Menu {
         private val exploreButton get() = elementById("explore")
         private val toolsButton get() = elementById("tools")
         private val settingsButton get() = elementById("settings")
+        private val startOverButton get() = elementById("startOver")
         private val eclipsePsfButton get() = elementById("eclipsePsf")
         private val gitCloneCommandsButton get() = elementById("gitCloneCommands")
         private val listDependentsButton get() = elementById("listDependents")
@@ -514,12 +594,20 @@ class Menu {
             })
         }
 
+        private fun registerForProcessResetEvent(callback: (Event) -> Unit) {
+            elementById("menu").addEventListener(EVENT_PROCESS_RESET, callback)
+        }
+
         private fun dispatchProcessStart() {
             elementById("menu").dispatchEvent(Event(EVENT_PROCESS_START))
         }
 
         private fun dispatchProcessEnd(success: Boolean) {
             elementById("menu").dispatchEvent(CustomEvent(EVENT_PROCESS_END, CustomEventInit(detail = success)))
+        }
+
+        private fun dispatchProcessReset() {
+            elementById("menu").dispatchEvent(Event(EVENT_PROCESS_RESET))
         }
 
         fun disableUnDisableForProcessStartAndEnd(input: HTMLInputElement, titleElement: HTMLElement) {
@@ -530,10 +618,18 @@ class Menu {
             }
             registerForProcessEndEvent { _ ->
                 if (input.id.startsWith("config-") || isInputFieldOfNonSuccessfulCommand(input.id)) {
-                    input.disabled = input.asDynamic().oldDisabled as Boolean
-                    titleElement.title = titleElement.getOldTitle()
+                    unDisableInputField(input, titleElement)
                 }
             }
+        }
+
+        fun unDisableForProcessReset(input: HTMLInputElement, titleElement: HTMLElement) {
+            registerForProcessResetEvent { unDisableInputField(input, titleElement) }
+        }
+
+        private fun unDisableInputField(input: HTMLInputElement, titleElement: HTMLElement) {
+            input.disabled = input.asDynamic().oldDisabled as Boolean
+            titleElement.title = titleElement.getOldTitle()
         }
 
         private fun getDisabledMessage(): String {

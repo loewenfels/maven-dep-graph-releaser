@@ -77,6 +77,20 @@ a:hover {
     height: 20px;
 }
 
+#startOver {
+    color: #b0d1ec;
+    display: none;
+}
+#startOver .material-icons {
+    color: #7ec1f7;
+}
+#startOver:hover {
+    color: #FFF;
+}
+#startOver:hover .material-icons {
+    color: #2196f3;
+}
+
 #user {
     float: right;
     cursor: help;
