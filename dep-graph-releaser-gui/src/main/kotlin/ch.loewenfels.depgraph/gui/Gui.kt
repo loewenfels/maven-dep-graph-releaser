@@ -32,13 +32,13 @@ class Gui(modifiableState: ModifiableState, private val menu: Menu) {
         //TODO also for state failed, might be that it failed because maxWaitingTime was over
     }
 
-    private fun setInfoBubble(messages: List<String>){
+    private fun setInfoBubble(messages: List<String>) {
         if (messages.isNotEmpty()) {
             val minimized = elementById("infosMinimized")
             minimized.style.display = "block"
             minimized.addEventListener("click", {
                 minimized.style.display = "none"
-                messages.forEach({ showInfo(it) })
+                messages.forEach { showInfo(it) }
             })
         }
         val messagesDiv = elementById("messages")
@@ -64,13 +64,20 @@ class Gui(modifiableState: ModifiableState, private val menu: Menu) {
                     ConfigKey.RELATIVE_PATH_EXCLUDE_PROJECT_REGEX,
                     ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REGEX,
                     ConfigKey.RELATIVE_PATH_TO_GIT_REPO_REPLACEMENT,
-                    ConfigKey.REGEX_PARAMS
+                    ConfigKey.REGEX_PARAMS,
+                    ConfigKey.INITIAL_RELEASE_JSON
                 ).forEach { key ->
                     textFieldWithLabel("config-${key.asString()}", key.asString(), config[key] ?: "", menu)
                 }
                 val key = ConfigKey.JOB_MAPPING
-                textAreaWithLabel("config-${key.asString()}", key.asString(), config[key]?.replace("|", "\n") ?: "", menu)
+                textAreaWithLabel(
+                    "config-${key.asString()}", key.asString(), config[key]?.replace("|", "\n") ?: "", menu
+                )
             }
+        }
+        val initialSite = getTextField("config-${ConfigKey.INITIAL_RELEASE_JSON.asString()}")
+        if (initialSite.value.isBlank()) {
+            initialSite.value = App.determineJsonUrl() ?: ""
         }
     }
 

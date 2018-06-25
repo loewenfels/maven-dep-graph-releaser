@@ -43,14 +43,16 @@ class Toggler(private val modifiableState: ModifiableState, private val menu: Me
                 toggle.addChangeEventListener { toggleCommand(project, index, EVENT_TOGGLE_UNCHECKED) }
             }
 
-            Menu.disableUnDisableForProcessStartAndEnd(toggle, elementById("${toggle.id}${Pipeline.SLIDER_SUFFIX}"))
+            val slider = getSlider(toggle)
+            Menu.disableUnDisableForProcessStartAndEnd(toggle, slider)
+            Menu.unDisableForProcessContinueAndReset(toggle, slider)
         }
     }
 
     private fun toggleCommand(project: Project, index: Int, uncheckedEvent: String) {
         val toggle = Pipeline.getToggle(project, index)
         val command = Pipeline.getCommand(project, index).asDynamic()
-        val slider = elementById("${toggle.id}${Pipeline.SLIDER_SUFFIX}")
+        val slider = getSlider(toggle)
         val currentTitle = elementById("${Pipeline.getCommandId(project, index)}${Pipeline.STATE_SUFFIX}").title
         if (!toggle.checked) {
             dispatchToggleEvent(project, toggle, uncheckedEvent)
@@ -155,5 +157,7 @@ class Toggler(private val modifiableState: ModifiableState, private val menu: Me
     companion object {
         private const val EVENT_TOGGLE_UNCHECKED = "toggle.unchecked"
         private const val EVENT_RELEASE_TOGGLE_UNCHECKED = "release.toggle.unchecked"
+
+        fun getSlider(toggle: HTMLInputElement) = elementById("${toggle.id}${Pipeline.SLIDER_SUFFIX}")
     }
 }
