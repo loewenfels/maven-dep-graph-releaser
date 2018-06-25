@@ -166,7 +166,7 @@ object PolymorphicAdapterFactorySpec : Spek({
                     expect {
                         adapter.fromJson("""{$typeDummy, "$PAYLOAD":{}}""")
                     }.toThrow<JsonDataException> {
-                        message { contains("Required value identifier missing at \$.$PAYLOAD") }
+                        message { contains("Required value 'identifier' missing at \$.$PAYLOAD") }
                     }
                 }
             }
@@ -176,7 +176,7 @@ object PolymorphicAdapterFactorySpec : Spek({
                     expect {
                         adapter.fromJson("""{$typeDummy, "$PAYLOAD":{"version":"1.0"}}""")
                     }.toThrow<JsonDataException> {
-                        message { contains("Required value identifier missing") }
+                        message { contains("Required value 'identifier' missing") }
                     }
                 }
             }
