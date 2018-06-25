@@ -179,7 +179,7 @@ div.level {
 }
 
 .project,
-.loader {
+#loader {
     border: 1px solid #CCC;
     background: #fff;
     margin: 0 auto 20px auto;
@@ -198,24 +198,20 @@ div.level {
         0 0 40px rgba(0, 0, 0, 0.1) inset;
 }
 
-.loader {
+#loader {
     margin: auto;
     width: 600px;
     margin-top: 50px;
-    display: none;
 }
 
-.loader .material-icons {
+#loader .material-icons {
     vertical-align: middle;
     color: #008000;
 }
-.loader .material-icons.waiting {
+#loader .material-icons.waiting {
     color: #000;
 }
 
-#loaderJs {
-    display: block
-}
 
 .submodules {
     margin-top: 15px;
