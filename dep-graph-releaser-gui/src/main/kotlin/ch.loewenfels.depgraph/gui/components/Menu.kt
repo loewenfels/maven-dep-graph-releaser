@@ -376,6 +376,7 @@ class Menu(
             }
         }
         if (Pipeline.getReleaseState() === ReleaseState.Succeeded) {
+            dispatchProcessContinue()
             Pipeline.changeReleaseState(ReleaseState.Ready)
         }
         Pipeline.changeTypeOfRun(typeOfRun)
@@ -554,6 +555,7 @@ class Menu(
 
         private const val EVENT_PROCESS_START = "process.start"
         private const val EVENT_PROCESS_END = "process.end"
+        private const val EVENT_PROCESS_CONTINUE = "process.continue"
         private const val EVENT_PROCESS_RESET = "process.reset"
 
         private const val TOOLS_INACTIVE_TITLE = "Open the toolbox to see further available features."
@@ -594,6 +596,10 @@ class Menu(
             })
         }
 
+        private fun registerForProcessContinueEvent(callback: (Event) -> Unit) {
+            elementById("menu").addEventListener(EVENT_PROCESS_CONTINUE, callback)
+        }
+
         private fun registerForProcessResetEvent(callback: (Event) -> Unit) {
             elementById("menu").addEventListener(EVENT_PROCESS_RESET, callback)
         }
@@ -606,9 +612,14 @@ class Menu(
             elementById("menu").dispatchEvent(CustomEvent(EVENT_PROCESS_END, CustomEventInit(detail = success)))
         }
 
+        private fun dispatchProcessContinue() {
+            elementById("menu").dispatchEvent(Event(EVENT_PROCESS_CONTINUE))
+        }
+
         private fun dispatchProcessReset() {
             elementById("menu").dispatchEvent(Event(EVENT_PROCESS_RESET))
         }
+
 
         fun disableUnDisableForProcessStartAndEnd(input: HTMLInputElement, titleElement: HTMLElement) {
             registerForProcessStartEvent {
@@ -623,7 +634,8 @@ class Menu(
             }
         }
 
-        fun unDisableForProcessReset(input: HTMLInputElement, titleElement: HTMLElement) {
+        fun unDisableForProcessContinueAndReset(input: HTMLInputElement, titleElement: HTMLElement) {
+            registerForProcessContinueEvent { unDisableInputField(input, titleElement) }
             registerForProcessResetEvent { unDisableInputField(input, titleElement) }
         }
 
