@@ -82,7 +82,7 @@ class Toggler(private val modifiableState: ModifiableState, private val menu: Me
     }
 
     private fun notAllCommandsOrSubmodulesActive(project: Project, toggle: HTMLInputElement): Boolean {
-        return notAllCommandsOrSubmodulesActive(project, { it.id != toggle.id })
+        return notAllCommandsOrSubmodulesActive(project) { it.id != toggle.id }
     }
 
     private fun notAllCommandsOrSubmodulesActive(project: Project, predicate: (HTMLInputElement) -> Boolean): Boolean {
@@ -100,8 +100,11 @@ class Toggler(private val modifiableState: ModifiableState, private val menu: Me
         return modifiableState.releasePlan.getSubmodules(project.id).any { submoduleId ->
             val submodulesHasCommands = !elementById(project.id.identifier).hasClass("withoutCommands")
             submodulesHasCommands &&
-                //cannot be the same command, hence we do not filter commands at all => thus we use `{ true }`
-                notAllCommandsOrSubmodulesActive(modifiableState.releasePlan.getProject(submoduleId), { true })
+                notAllCommandsOrSubmodulesActive(
+                    modifiableState.releasePlan.getProject(submoduleId),
+                    //cannot be the same command, hence we do not filter commands at all => thus we use `{ true }`
+                    predicate = { true }
+                )
         }
     }
 
