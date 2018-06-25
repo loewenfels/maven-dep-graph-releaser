@@ -20,10 +20,10 @@ class App {
     init {
         switchLoader("loaderJs", "loaderApiToken")
 
-        val jsonUrl = determineJsonUrl()
+        val jsonUrl = determineJsonUrlOrThrow()
         publishJobUrl = determinePublishJob()
         defaultJenkinsBaseUrl = publishJobUrl?.substringBefore("/job/")
-        menu = Menu()
+        menu = Menu(UsernameTokenRegistry, defaultJenkinsBaseUrl)
         start(jsonUrl)
     }
 
@@ -49,41 +49,24 @@ class App {
         return if (tmpUrl.endsWith("/")) tmpUrl else "$tmpUrl/"
     }
 
-
-    private fun determineJsonUrl(): String {
-        return if (window.location.hash != "") {
-            window.location.hash.substring(1).substringBefore("&")
-        } else {
-            showThrowableAndThrow(
-                IllegalStateException(
-                    "You need to specify a release.json." +
-                        "\nAppend the path with preceding # to the url, e.g., ${window.location}#release.json"
-                )
-            )
-        }
-    }
-
     private fun start(jsonUrl: String) {
-        retrieveUserAndApiToken().then { usernameToken ->
+        retrieveUserAndApiToken().then { usernameAndApiToken ->
             display("gui", "block")
             switchLoader("loaderApiToken", "loaderJson")
 
-            loadJson(jsonUrl, usernameToken)
-                .then(::checkStatusOk)
-                .catch<Pair<Response, String>> {
-                    throw Error("Could not load json.", it)
-                }.then { (_, body) ->
+            loadJsonAndCheckStatus(jsonUrl, usernameAndApiToken)
+                .then { (_, body) ->
                     switchLoader("loaderJson", "loaderPipeline")
                     val modifiableState = ModifiableState(defaultJenkinsBaseUrl, body)
                     val releasePlan = modifiableState.releasePlan
-                    val promise = if (usernameToken != null) {
+                    val promise = if (usernameAndApiToken != null) {
                         loadOtherApiTokens(releasePlan)
                     } else {
                         Promise.resolve(Unit)
                     }
                     promise.then {
                         val dependencies = createDependencies(
-                            defaultJenkinsBaseUrl, publishJobUrl, usernameToken, modifiableState, menu
+                            defaultJenkinsBaseUrl, publishJobUrl, modifiableState, menu
                         )
                         menu.initDependencies(Downloader(modifiableState), dependencies, modifiableState)
                         Gui(modifiableState, menu)
@@ -116,8 +99,8 @@ class App {
         return Promise.all(mutableList.toTypedArray())
     }
 
-    private fun isUrlAndNotYetRegistered(remoteJenkinsBaseUrl: String)
-        = remoteJenkinsBaseUrl.startsWith("http") && UsernameTokenRegistry.forHost(remoteJenkinsBaseUrl) == null
+    private fun isUrlAndNotYetRegistered(remoteJenkinsBaseUrl: String) =
+        remoteJenkinsBaseUrl.startsWith("http") && UsernameTokenRegistry.forHost(remoteJenkinsBaseUrl) == null
 
     private fun retrieveUserAndApiToken(): Promise<UsernameAndApiToken?> {
         return if (defaultJenkinsBaseUrl == null) {
@@ -143,17 +126,6 @@ class App {
         menu.appendToUserButtonToolTip(url, pair?.second?.username ?: "Anonymous", pair?.first)
     }
 
-    private fun loadJson(jsonUrl: String, usernameAndApiToken: UsernameAndApiToken?): Promise<Response> {
-        val init = createFetchInitWithCredentials()
-        val headers = js("({})")
-        // not necessary if we deal with jenkins but e.g. localhost
-        if (usernameAndApiToken != null) {
-            addAuthentication(headers, usernameAndApiToken)
-        }
-        init.headers = headers
-        return window.fetch(jsonUrl, init)
-    }
-
     private fun switchLoaderPipelineWithPipeline() {
         display("loaderPipeline", "none")
         display("pipeline", "table")
@@ -167,14 +139,54 @@ class App {
     companion object {
         const val PUBLISH_JOB = "&publishJob="
 
+        fun determineJsonUrlOrThrow(): String {
+            return determineJsonUrl() ?: showThrowableAndThrow(
+                IllegalStateException(
+                    "You need to specify a release.json." +
+                        "\nAppend the path with preceding # to the url, e.g., ${window.location}#release.json"
+                )
+            )
+        }
+
+
+        fun determineJsonUrl(): String? {
+            return if (window.location.hash != "") {
+                window.location.hash.substring(1).substringBefore("&")
+            } else {
+                null
+            }
+        }
+
+        fun loadJsonAndCheckStatus(
+            jsonUrl: String,
+            usernameAndApiToken: UsernameAndApiToken?
+        ): Promise<Pair<Response, String>> {
+            return loadJson(jsonUrl, usernameAndApiToken)
+                .then(::checkStatusOk)
+                .catch<Pair<Response, String>> {
+                    throw Error("Could not load json from url $jsonUrl.", it)
+                }
+        }
+
+        private fun loadJson(jsonUrl: String, usernameAndApiToken: UsernameAndApiToken?): Promise<Response> {
+            val init = createFetchInitWithCredentials()
+            val headers = js("({})")
+            // if &publishJob is not specified, then we don't have usernameAndApiToken but we can still
+            // load the json and display it as pipeline
+            if (usernameAndApiToken != null) {
+                addAuthentication(headers, usernameAndApiToken)
+            }
+            init.headers = headers
+            return window.fetch(jsonUrl, init)
+        }
+
         internal fun createDependencies(
             defaultJenkinsBaseUrl: String?,
             publishJobUrl: String?,
-            usernameAndApiToken: UsernameAndApiToken?,
             modifiableState: ModifiableState,
             menu: Menu
         ): Menu.Dependencies? {
-            return if (publishJobUrl != null && defaultJenkinsBaseUrl != null && usernameAndApiToken != null) {
+            return if (publishJobUrl != null && defaultJenkinsBaseUrl != null) {
                 val publisher = Publisher(publishJobUrl, modifiableState)
                 val releaser = Releaser(defaultJenkinsBaseUrl, modifiableState, menu)
 
