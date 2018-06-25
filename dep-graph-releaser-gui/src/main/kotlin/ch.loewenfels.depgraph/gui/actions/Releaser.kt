@@ -45,7 +45,7 @@ class Releaser(
     }
 
     private fun release(paramObject: ParamObject): Promise<Boolean> {
-        Pipeline.changeReleaseState(ReleaseState.InProgress)
+        Pipeline.changeReleaseState(ReleaseState.IN_PROGRESS)
         return releaseProject(paramObject)
             .then {
                 val (result, newState) = checkProjectStates(paramObject)
@@ -70,10 +70,10 @@ class Releaser(
             it === CommandState.Succeeded || it is CommandState.Deactivated || it === CommandState.Disabled
         }
         val newState = if (result) {
-            ReleaseState.Succeeded
+            ReleaseState.SUCCEEDED
         } else {
             checkForNoneFailedBug(paramObject)
-            ReleaseState.Failed
+            ReleaseState.FAILED
         }
         return result to newState
     }
