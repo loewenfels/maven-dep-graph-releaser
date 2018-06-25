@@ -32,7 +32,7 @@ fun DIV.textFieldWithLabel(id: String, label: String, value: String, menu: Menu,
             inputAct()
             onKeyUpFunction = { menu.activateSaveButton() }
             val input = getUnderlyingHtmlElement() as HTMLInputElement
-            Menu.disableUnDisableForReleaseStartAndEnd(input, input)
+            Menu.disableUnDisableForProcessStartAndEnd(input, input)
         }
     }
 }
@@ -49,10 +49,10 @@ fun DIV.textAreaWithLabel(id: String, label: String, value: String, menu: Menu) 
             +value
             onKeyUpFunction = { menu.activateSaveButton() }
             val htmlTextAreaElement = getUnderlyingHtmlElement() as HTMLTextAreaElement
-            //for what disableUnDisableForReleaseStartAndEnd needs, title and disabled, it is ok to make the unsafe cast
+            //for what disableUnDisableForProcessStartAndEnd needs, title and disabled, it is ok to make the unsafe cast
             //TODO change in case https://github.com/Kotlin/kotlinx.html/issues/87 is implemented
             val input = htmlTextAreaElement.unsafeCast<HTMLInputElement>()
-            Menu.disableUnDisableForReleaseStartAndEnd(input, htmlTextAreaElement)
+            Menu.disableUnDisableForProcessStartAndEnd(input, htmlTextAreaElement)
         }
     }
 }
