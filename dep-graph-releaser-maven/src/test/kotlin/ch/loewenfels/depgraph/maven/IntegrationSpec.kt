@@ -319,7 +319,7 @@ object IntegrationSpec : Spek({
             testReleaseBWithNoDependent("managingVersions/viaProperty")
         }
 
-        //TODO project with dependent and version is $project.version
+        //TODO project with dependent and version is $project.version => https://github.com/loewenfels/dep-graph-releaser/issues/24
 
         given("project with dependent and version in dependency management") {
             testReleaseAWithDependentB("managingVersions/viaDependencyManagement")
@@ -667,7 +667,7 @@ object IntegrationSpec : Spek({
 
     describe("cyclic dependencies") {
 
-        //TODO cyclic dependency with itself
+        //TODO cyclic dependency with itself => https://github.com/loewenfels/dep-graph-releaser/issues/25
 
         given("project with direct cyclic dependency") {
             action("context Analyser which does not resolve poms") {
@@ -899,6 +899,7 @@ object IntegrationSpec : Spek({
         }
 
         //TODO cyclic inter module dependency and a regular dependency -> regular has to be a warning, inter an info
+        // => https://github.com/loewenfels/dep-graph-releaser/issues/26
 
         given("submodule with dependency") {
             action("context Analyser which does not resolve poms") {
@@ -1006,6 +1007,7 @@ object IntegrationSpec : Spek({
         //TODO spec where we have a multi module parent:
         // once the dependent has a dependency on the top multi module
         // once the dependent has a dependency on multi module which is itself a multi module
+        // => https://github.com/loewenfels/dep-graph-releaser/issues/27
 
         given("submodule of submodule with dependency") {
             action("context Analyser which does not resolve poms") {
