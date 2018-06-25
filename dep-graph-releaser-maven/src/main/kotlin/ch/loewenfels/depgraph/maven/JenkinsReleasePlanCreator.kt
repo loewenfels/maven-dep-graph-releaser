@@ -47,6 +47,7 @@ class JenkinsReleasePlanCreator(
         val releasePlan = ReleasePlan(
             options.publishId,
             ReleaseState.Ready,
+            TypeOfRun.SIMULATION,
             rootProject.id,
             paramObject.projects,
             paramObject.submodules,

@@ -1,10 +1,7 @@
 package ch.loewenfels.depgraph.gui.components
 
 import ch.loewenfels.depgraph.ConfigKey
-import ch.loewenfels.depgraph.data.CommandState
-import ch.loewenfels.depgraph.data.Project
-import ch.loewenfels.depgraph.data.ReleasePlan
-import ch.loewenfels.depgraph.data.ReleaseState
+import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.generateEclipsePsf
 import ch.loewenfels.depgraph.generateGitCloneCommands
 import ch.loewenfels.depgraph.generateListOfDependentsWithoutSubmoduleAndExcluded
@@ -572,10 +569,4 @@ class Menu {
         val jenkinsJobExecutor: JobExecutor,
         val simulatingJobExecutor: JobExecutor
     )
-
-    private enum class TypeOfRun {
-        SIMULATION,
-        DRY_RUN,
-        RELEASE
-    }
 }
