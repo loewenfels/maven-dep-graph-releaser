@@ -10,8 +10,8 @@ import ch.tutteli.atrium.assert
 import ch.tutteli.atrium.expect
 import com.squareup.moshi.JsonDataException
 import com.squareup.moshi.JsonReader
-import com.squareup.moshi.KotlinJsonAdapterFactory
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.*
 import java.io.EOFException
@@ -100,7 +100,7 @@ object PolymorphicAdapterFactorySpec : Spek({
                 it("throws an EOFException") {
                     expect {
                         adapter.fromJson("")
-                    }.toThrow<EOFException>{}
+                    }.toThrow<EOFException> {}
                 }
             }
 
@@ -142,7 +142,7 @@ object PolymorphicAdapterFactorySpec : Spek({
                 it("throws an ClassNotFoundException") {
                     expect {
                         adapter.fromJson("""{"$TYPE": "com.example.AnUnknownType"}""")
-                    }.toThrow<ClassNotFoundException>{}
+                    }.toThrow<ClassNotFoundException> {}
                 }
             }
 

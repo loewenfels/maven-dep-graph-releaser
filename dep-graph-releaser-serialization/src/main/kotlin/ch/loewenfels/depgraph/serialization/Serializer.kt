@@ -4,11 +4,8 @@ import ch.loewenfels.depgraph.data.Command
 import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ProjectId
 import ch.loewenfels.depgraph.data.ReleasePlan
-import com.squareup.moshi.JsonEncodingException
-import com.squareup.moshi.JsonReader
-import com.squareup.moshi.KotlinJsonAdapterFactory
 import com.squareup.moshi.Moshi
-import okio.Buffer
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 
 /**
  * Responsible to serialize [Project]s to JSON and deserialize them back.
