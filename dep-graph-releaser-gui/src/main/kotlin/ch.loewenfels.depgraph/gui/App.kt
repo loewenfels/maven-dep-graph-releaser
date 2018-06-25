@@ -5,24 +5,13 @@ import ch.loewenfels.depgraph.data.ReleaseState
 import ch.loewenfels.depgraph.gui.actions.Downloader
 import ch.loewenfels.depgraph.gui.actions.Publisher
 import ch.loewenfels.depgraph.gui.actions.Releaser
+import ch.loewenfels.depgraph.gui.components.Loader
 import ch.loewenfels.depgraph.gui.components.Menu
 import ch.loewenfels.depgraph.gui.jobexecution.*
 import ch.loewenfels.depgraph.gui.serialization.ModifiableState
 import ch.loewenfels.depgraph.parseRemoteRegex
-import kotlinx.html.DIV
-import kotlinx.html.br
-import kotlinx.html.code
-import kotlinx.html.dom.append
-import kotlinx.html.js.div
-import kotlinx.html.js.i
-import kotlinx.html.js.p
-import kotlinx.html.js.span
-import kotlinx.html.p
-import org.w3c.dom.HTMLElement
-import org.w3c.dom.asList
 import org.w3c.fetch.Response
 import kotlin.browser.window
-import kotlin.dom.removeClass
 import kotlin.js.Promise
 
 class App {
@@ -31,9 +20,7 @@ class App {
     private val menu: Menu
 
     init {
-        val loader = elementById("loader")
-        removeTextNodesFromLoader(loader)
-        updateLoaderToLoadApiToken()
+        Loader.updateLoaderToLoadApiToken()
 
         val jsonUrl = determineJsonUrlOrThrow()
         publishJobUrl = determinePublishJob()
@@ -67,14 +54,14 @@ class App {
     private fun start(jsonUrl: String) {
         retrieveUserAndApiToken().then { usernameAndApiToken ->
             display("gui", "block")
-            updateLoaderToLoadingJson()
+            Loader.updateToLoadingJson()
 
             loadJsonAndCheckStatus(jsonUrl, usernameAndApiToken)
                 .then { (_, body) ->
                     val modifiableState = ModifiableState(defaultJenkinsBaseUrl, body)
                     val releasePlan = modifiableState.releasePlan
                     val promise = if (usernameAndApiToken != null) {
-                        updateLoaderToLoadOtherTokens()
+                        Loader.updateToLoadOtherTokens()
                         loadOtherApiTokens(releasePlan)
                     } else {
                         Promise.resolve(Unit)
@@ -83,14 +70,14 @@ class App {
                 }.then { modifiableState ->
 
                     val promise = if (modifiableState.releasePlan.state == ReleaseState.IN_PROGRESS) {
-                        updateLoaderToRecoverOngoingProcess()
+                        Loader.updateToRecoverOngoingProcess()
                         recoverInProgress(modifiableState)
                     } else {
                         Promise.resolve(Unit)
                     }
                     promise.then { modifiableState }
                 }.then { modifiableState ->
-                    updateLoaderToLoadPipeline()
+                    Loader.updateToLoadPipeline()
                     Gui(modifiableState, menu)
                     val dependencies = createDependencies(
                         defaultJenkinsBaseUrl, publishJobUrl, modifiableState, menu
@@ -160,87 +147,6 @@ class App {
     private fun switchLoaderWithPipeline() {
         display("loader", "none")
         display("pipeline", "table")
-    }
-
-
-    private fun removeTextNodesFromLoader(loader: HTMLElement) {
-        loader.childNodes.asList().forEach {
-            if (it.nodeType == 3.toShort()) {
-                loader.removeChild(it)
-            }
-        }
-    }
-
-    private fun updateLoaderToLoadApiToken() {
-        updateLoader("Retrieving API Token") {
-            p {
-                +"If you keep seeing this after a few seconds, then either an error occurred (see bottom of the page) and if not then most probably CORS was not successful and a request was blocked by the server."
-                br
-                +"You can verify it by opening the developer console(F12 in many browsers)"
-            }
-            p {
-                +"In case you only want to see the resulting pipeline without release functionality, then please remove "
-                code { +"&publishUrl = ..." }
-                +"from the current URL."
-            }
-        }
-    }
-
-    private fun updateLoaderToLoadingJson() {
-        updateLoader("Loading Json") {
-            getDefaultLoadingMessage()
-        }
-    }
-
-
-    private fun updateLoaderToLoadOtherTokens() {
-        updateLoader("Loading other API Tokens (from remote Jenkins servers)") {
-            getDefaultLoadingMessage()
-        }
-    }
-
-    private fun updateLoaderToRecoverOngoingProcess() {
-        updateLoader("Recovering ongoing process") {
-            p { +"Should disappear after half a minute or so; otherwise most likely an error occurred (see bottom of the page)." }
-        }
-    }
-
-    private fun updateLoaderToLoadPipeline() {
-        updateLoader("Loading Pipeline") {
-            getDefaultLoadingMessage()
-        }
-    }
-
-    private fun DIV.getDefaultLoadingMessage() {
-        p {
-            +"Should disappear after a few seconds; otherwise either an error occurred (see bottom of the page) and if not then most likely the request silently failed."
-            br
-            +"You can verify it by opening the developer console (F12 in many browsers)"
-        }
-    }
-
-    private fun updateLoader(newItem: String, divContent: DIV.() -> Unit) {
-        val loader = elementById("loader")
-        loader.removeChild(loader.lastChild!!)
-        val lastItem = loader.lastChild!!
-        val icon = lastItem.firstChild as HTMLElement
-        icon.removeClass("waiting")
-        icon.innerText = "check_box"
-        val text = lastItem.lastChild as HTMLElement
-        text.innerText = text.innerText.substringBefore("...") + " successful"
-        loader.append {
-            p {
-                i("material-icons waiting") { +"check_box_outline_blank" }
-                span { +newItem; +"..." }
-            }
-            div { divContent() }
-        }
-    }
-
-
-    private fun switchLoader(firstLoader: String, secondLoader: String) {
-        display(firstLoader, "none")
-        display(secondLoader, "block")
     }
 
 
