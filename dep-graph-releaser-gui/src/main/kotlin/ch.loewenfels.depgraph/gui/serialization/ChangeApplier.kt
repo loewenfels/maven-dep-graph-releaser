@@ -165,7 +165,7 @@ object ChangeApplier {
     private fun serializeWaitingDependencies(newState: CommandState.Waiting, command: Command) {
         /* state has to be put in the following structure
             "state": {
-                "state": "Waiting",
+                "state": "WAITING",
                 "dependencies": [
                     {
                         "t": "ch.loewenfels.depgraph.data.maven.MavenProjectId",

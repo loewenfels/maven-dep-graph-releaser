@@ -132,7 +132,7 @@ private fun fakeEnumsName(json: CommandStateJson): CommandStateJson {
     while (tmp != null) {
         //necessary to fake an enum's name attribute (state is actually a json object and not really a CommandStateJson)
         js("tmp.state = {name: tmp.state}")
-        tmp = if (tmp.state.name == "Deactivated") {
+        tmp = if (tmp.state.name == CommandStateJson.State.DEACTIVATED.name) {
             tmp.previous
         } else {
             null

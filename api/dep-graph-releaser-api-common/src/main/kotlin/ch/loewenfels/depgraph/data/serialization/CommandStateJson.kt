@@ -14,28 +14,28 @@ data class CommandStateJson(
     constructor(state: State, previous: CommandStateJson) : this(state, null, previous)
 
     enum class State {
-        Waiting,
-        Ready,
-        ReadyToReTrigger,
-        Queueing,
-        InProgress,
-        Succeeded,
-        Failed,
-        Deactivated,
-        Disabled
+        WAITING,
+        READY,
+        READY_TO_RE_TRIGGER,
+        QUEUEING,
+        IN_PROGRESS,
+        SUCCEEDED,
+        FAILED,
+        DEACTIVATED,
+        DISABLED
     }
 }
 
 fun fromJson(json: CommandStateJson): CommandState = when (json.state) {
-    Waiting -> CommandState.Waiting(json.dependencies ?: throwIllegal("dependencies", "Waiting"))
-    Ready -> CommandState.Ready
-    ReadyToReTrigger -> CommandState.ReadyToReTrigger
-    Queueing -> CommandState.Queueing
-    InProgress -> CommandState.InProgress
-    Succeeded -> CommandState.Succeeded
-    Failed -> CommandState.Failed
-    Deactivated -> CommandState.Deactivated(fromJson(json.previous ?: throwIllegal("previous", "Deactivated")))
-    Disabled -> CommandState.Disabled
+    WAITING -> CommandState.Waiting(json.dependencies ?: throwIllegal("dependencies", WAITING.name))
+    READY -> CommandState.Ready
+    READY_TO_RE_TRIGGER -> CommandState.ReadyToReTrigger
+    QUEUEING -> CommandState.Queueing
+    IN_PROGRESS -> CommandState.InProgress
+    SUCCEEDED -> CommandState.Succeeded
+    FAILED -> CommandState.Failed
+    DEACTIVATED -> CommandState.Deactivated(fromJson(json.previous ?: throwIllegal("previous", DEACTIVATED.name)))
+    DISABLED -> CommandState.Disabled
 }
 
 private fun throwIllegal(fieldName: String, stateName: String): Nothing = throw IllegalArgumentException("$fieldName must be defined for state $stateName")
