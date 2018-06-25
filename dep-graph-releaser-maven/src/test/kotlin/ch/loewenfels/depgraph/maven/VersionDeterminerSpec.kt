@@ -68,7 +68,7 @@ object VersionDeterminerSpec : Spek({
                 assert(result).toBe(expected)
             }
             test("v$version turns into v$expected") {
-                val result = testee.releaseVersion("v$version")
+                val result = testee.nextDevVersion("v$version")
                 assert(result).toBe("v$expected")
             }
         }
