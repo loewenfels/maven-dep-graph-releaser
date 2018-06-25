@@ -42,7 +42,6 @@ class Menu {
     private val listDependentsButton get() = elementById("listDependents")
 
     private var publisher: Publisher? = null
-    private var typeOfRun = TypeOfRun.SIMULATION
 
     init {
         setUpMenuLayers(
@@ -176,22 +175,22 @@ class Menu {
 
             activateDryRunButton()
             dryRunButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                typeOfRun = TypeOfRun.DRY_RUN
                 triggerRelease(
                     modifiableState.releasePlan,
                     dependencies,
                     dependencies.jenkinsJobExecutor,
-                    modifiableState.dryRunExecutionDataFactory
+                    modifiableState.dryRunExecutionDataFactory,
+                    TypeOfRun.DRY_RUN
                 )
             }
             activateReleaseButton()
             releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                typeOfRun = TypeOfRun.RELEASE
                 triggerRelease(
                     modifiableState.releasePlan,
                     dependencies,
                     dependencies.jenkinsJobExecutor,
-                    modifiableState.releaseJobExecutionDataFactory
+                    modifiableState.releaseJobExecutionDataFactory,
+                    TypeOfRun.RELEASE
                 )
             }
         }
@@ -207,13 +206,13 @@ class Menu {
         )!!
 
         exploreButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-            typeOfRun = TypeOfRun.SIMULATION
             publisher = nonNullDependencies.publisher
             triggerRelease(
                 modifiableState.releasePlan,
                 nonNullDependencies,
                 nonNullDependencies.simulatingJobExecutor,
-                modifiableState.releaseJobExecutionDataFactory
+                modifiableState.releaseJobExecutionDataFactory,
+                TypeOfRun.SIMULATION
             ).finally {
                 //reset to null in case it was not defined previously
                 publisher = dependencies?.publisher
@@ -226,7 +225,7 @@ class Menu {
             }
         }
         registerForReleaseEndEvent { success ->
-            val (processName, button, buttonText) = when (typeOfRun) {
+            val (processName, button, buttonText) = when (modifiableState.releasePlan.typeOfRun) {
                 TypeOfRun.SIMULATION -> Triple(
                     "Explore Release Order",
                     exploreButton,
@@ -321,7 +320,8 @@ class Menu {
         releasePlan: ReleasePlan,
         dependencies: Dependencies,
         jobExecutor: JobExecutor,
-        jobExecutionDataFactory: JobExecutionDataFactory
+        jobExecutionDataFactory: JobExecutionDataFactory,
+        typeOfRun: TypeOfRun
     ): Promise<*> {
         if (Pipeline.getReleaseState() === ReleaseState.Failed) {
             if (typeOfRun == TypeOfRun.DRY_RUN) {
@@ -333,6 +333,7 @@ class Menu {
         if (Pipeline.getReleaseState() === ReleaseState.Succeeded) {
             Pipeline.changeReleaseState(ReleaseState.Ready)
         }
+        Pipeline.changeTypeOfRun(typeOfRun)
         dispatchReleaseStart()
         return dependencies.releaser.release(jobExecutor, jobExecutionDataFactory).then(
             { result ->
