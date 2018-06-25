@@ -17,7 +17,7 @@ fun DIV.textFieldReadOnlyWithLabel(
     menu: Menu,
     inputAct: INPUT.() -> Unit = {}
 ) {
-    textFieldWithLabel(id, label, value, menu, { readonly = true; inputAct() })
+    textFieldWithLabel(id, label, value, menu) { readonly = true; inputAct() }
 }
 
 fun DIV.textFieldWithLabel(id: String, label: String, value: String, menu: Menu, inputAct: INPUT.() -> Unit) {
