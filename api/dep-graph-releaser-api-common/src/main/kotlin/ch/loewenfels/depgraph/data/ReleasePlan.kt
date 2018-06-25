@@ -13,6 +13,7 @@ import ch.loewenfels.depgraph.LevelIterator
 data class ReleasePlan(
     val releaseId: String,
     val state: ReleaseState,
+    val typeOfRun: TypeOfRun,
     val rootProjectId: ProjectId,
     private val projects: Map<ProjectId, Project>,
     private val submodules: Map<ProjectId, Set<ProjectId>>,
@@ -29,6 +30,7 @@ data class ReleasePlan(
         this(
             releasePlan.releaseId,
             releasePlan.state,
+            releasePlan.typeOfRun,
             releasePlan.rootProjectId,
             projects,
             releasePlan.submodules,
@@ -39,7 +41,8 @@ data class ReleasePlan(
         )
 
     /**
-     * Creates a [ReleasePlan] with [state] = [ReleaseState.Ready] and an empty list for [warnings], [infos], and [config].
+     * Creates a [ReleasePlan] with [state] = [ReleaseState.Ready], [typeOfRun] = [TypeOfRun.SIMULATION],
+     * an empty list for [warnings], [infos] and an empty map for [config].
      */
     constructor(
         publishId: String,
@@ -51,6 +54,7 @@ data class ReleasePlan(
         this(
             publishId,
             ReleaseState.Ready,
+            TypeOfRun.SIMULATION,
             rootProjectId,
             projects,
             submodulesOfProject,
