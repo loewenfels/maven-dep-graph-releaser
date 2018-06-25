@@ -129,7 +129,6 @@ class JenkinsReleasePlanCreator(
                         checkForCyclicAndUpdateIfOk(paramObject, existingDependent)
 
                     else ->
-                        //TODO rethink this branch, couldn't we miss a cyclic dependency?
                         updateCommandsAddDependentAddToProjectsAndUpdateMultiModuleIfNecessary(
                             paramObject,
                             existingDependent

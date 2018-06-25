@@ -146,7 +146,9 @@ class Releaser(
             .map { dependentProject ->
                 releaseProject(ParamObject(paramObject, dependentProject))
             }
-        //TODO stops as soon as a bug occurs in the execution of one job, is this ok?
+        // Stops as soon as a bug occurs in the execution of one job (not the same as a job-failure)
+        // I think this is fine because we do not know if this bug has other consequences and thus it
+        // might be better if we stop as early as possible in such cases.
         return Promise.all(promises.toTypedArray())
     }
 

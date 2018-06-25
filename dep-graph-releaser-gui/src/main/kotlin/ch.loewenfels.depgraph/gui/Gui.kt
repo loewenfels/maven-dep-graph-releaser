@@ -50,7 +50,7 @@ class Gui(modifiableState: ModifiableState, private val menu: Menu) {
     }
 
     private fun setUpConfig(releasePlan: ReleasePlan) {
-        //TODO add description for each property
+        //TODO add description for each property => see https://github.com/loewenfels/dep-graph-releaser/issues/22
         elementById("config").append {
             div {
                 textFieldWithLabel(RELEASE_ID_HTML_ID, "ReleaseId", releasePlan.releaseId, menu)
