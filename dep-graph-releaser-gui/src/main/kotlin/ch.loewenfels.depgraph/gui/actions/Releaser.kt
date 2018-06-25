@@ -125,10 +125,7 @@ class Releaser(
                     (state.dependencies as MutableSet).remove(multiOrSubmoduleId)
                     if (state.dependencies.isEmpty()) {
                         Pipeline.changeStateOfCommand(
-                            dependentProject,
-                            index,
-                            CommandState.Ready,
-                            Pipeline.STATE_READY
+                            dependentProject, index, CommandState.Ready, Pipeline.STATE_READY
                         )
                     }
                 }

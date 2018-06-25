@@ -33,6 +33,7 @@ fun DIV.textFieldWithLabel(id: String, label: String, value: String, menu: Menu,
             onKeyUpFunction = { menu.activateSaveButton() }
             val input = getUnderlyingHtmlElement() as HTMLInputElement
             Menu.disableUnDisableForProcessStartAndEnd(input, input)
+            Menu.unDisableForProcessReset(input, input)
         }
     }
 }
@@ -53,6 +54,7 @@ fun DIV.textAreaWithLabel(id: String, label: String, value: String, menu: Menu) 
             //TODO change in case https://github.com/Kotlin/kotlinx.html/issues/87 is implemented
             val input = htmlTextAreaElement.unsafeCast<HTMLInputElement>()
             Menu.disableUnDisableForProcessStartAndEnd(input, htmlTextAreaElement)
+            Menu.unDisableForProcessReset(input, htmlTextAreaElement)
         }
     }
 }

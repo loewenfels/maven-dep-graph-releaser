@@ -283,6 +283,10 @@ class Pipeline(private val modifiableState: ModifiableState, private val menu: M
             buildUrl: String
         ) {
             changeStateOfCommand(project, index, newState, title)
+            changeBuildUrlOfCommand(project, index, buildUrl)
+        }
+
+        fun changeBuildUrlOfCommand(project: Project, index: Int, buildUrl: String) {
             val commandId = getCommandId(project, index)
             elementById<HTMLAnchorElement>("$commandId$STATE_SUFFIX").href = buildUrl
             elementById(commandId).asDynamic().buildUrl = buildUrl
@@ -293,8 +297,7 @@ class Pipeline(private val modifiableState: ModifiableState, private val menu: M
                 try {
                     previousState.checkTransitionAllowed(newState)
                 } catch (e: IllegalStateException) {
-                    val commandTitle =
-                        elementById(commandId + TITLE_SUFFIX)
+                    val commandTitle = elementById(commandId + TITLE_SUFFIX)
                     throw IllegalStateException(
                         "Cannot change the state of the command ${commandTitle.innerText} (${index + 1}. command) " +
                             "of the project ${project.id.identifier}",
