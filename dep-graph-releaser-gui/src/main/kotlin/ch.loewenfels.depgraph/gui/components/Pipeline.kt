@@ -33,6 +33,7 @@ class Pipeline(private val modifiableState: ModifiableState, private val menu: M
         val set = hashSetOf<ProjectId>()
         val pipeline = elementById(PIPELINE_HTML_ID)
         pipeline.asDynamic().state = releasePlan.state
+        pipeline.asDynamic().typeOfRun = releasePlan.typeOfRun
         pipeline.append {
             val itr = releasePlan.iterator().toPeekingIterator()
             var level: Int
@@ -320,12 +321,18 @@ class Pipeline(private val modifiableState: ModifiableState, private val menu: M
             elementById("$commandId$STATE_SUFFIX").title = title
         }
 
-        fun getReleaseState() = elementById(PIPELINE_HTML_ID).asDynamic().state as ReleaseState
+        fun getReleaseState() = getPipelineAsDynamic().state as ReleaseState
+        fun getTypeOfRun() = getPipelineAsDynamic().typeOfRun as TypeOfRun
 
         fun changeReleaseState(newState: ReleaseState) {
-            val pipeline = elementById(PIPELINE_HTML_ID).asDynamic()
-            pipeline.state = getReleaseState().checkTransitionAllowed(newState)
+            getPipelineAsDynamic().state = getReleaseState().checkTransitionAllowed(newState)
         }
+
+        fun changeTypeOfRun(newTypeOfRun: TypeOfRun) {
+            getPipelineAsDynamic().typeOfRun = newTypeOfRun
+        }
+
+        private fun getPipelineAsDynamic() = elementById(PIPELINE_HTML_ID).asDynamic()
 
         private fun stateToCssClass(state: CommandState) = when (state) {
             is CommandState.Waiting -> "waiting"

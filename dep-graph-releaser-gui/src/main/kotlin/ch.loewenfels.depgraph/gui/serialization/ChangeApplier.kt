@@ -27,6 +27,7 @@ object ChangeApplier {
 
         changed = changed or replacePublishIdIfChanged(releasePlanJson)
         changed = changed or replaceReleaseStateIfChanged(releasePlanJson)
+        changed = changed or replaceTypeOfRunIfChanged(releasePlanJson)
 
         releasePlanJson.projects.forEach { project ->
             val mavenProjectId = deserializeProjectId(project.id)
@@ -67,6 +68,16 @@ object ChangeApplier {
         return changed
     }
 
+    private fun replaceTypeOfRunIfChanged(releasePlanJson: ReleasePlanJson): Boolean {
+        var changed = false
+        val newTypeOfRun = Pipeline.getTypeOfRun()
+        val currentTypeOfRun = deserializeTypeOfRun(releasePlanJson)
+        if (currentTypeOfRun != newTypeOfRun) {
+            releasePlanJson.typeOfRun = newTypeOfRun.name.unsafeCast<TypeOfRun>()
+            changed = true
+        }
+        return changed
+    }
 
     private fun replaceConfigEntriesIfChanged(releasePlanJson: ReleasePlanJson): Boolean {
         var changed = false

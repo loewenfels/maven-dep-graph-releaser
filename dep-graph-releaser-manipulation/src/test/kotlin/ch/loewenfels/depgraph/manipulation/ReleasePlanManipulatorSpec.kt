@@ -71,7 +71,7 @@ object ReleasePlanManipulatorSpec : Spek({
         projectWithoutDependentId to setOf()
     )
     val testee = ReleasePlanManipulator(
-        ReleasePlan(
+        createReleasePlanWithDefaults(
             "releaseId",
             rootProjectId,
             mapOf(

@@ -5,6 +5,7 @@ import ch.loewenfels.depgraph.data.*
 import ch.tutteli.atrium.api.cc.en_GB.toBe
 import ch.tutteli.atrium.api.cc.en_GB.toThrow
 import ch.tutteli.atrium.assert
+import ch.tutteli.atrium.createReleasePlanWithDefaults
 import ch.tutteli.atrium.expect
 import com.squareup.moshi.JsonEncodingException
 import org.jetbrains.spek.api.Spek
@@ -16,7 +17,7 @@ object SerializerSpec : Spek({
     val testee = Serializer()
 
     fun createReleasePlan(project: Project): ReleasePlan {
-        return ReleasePlan("releaseId", project.id, mapOf(project.id to project), mapOf(), mapOf())
+        return createReleasePlanWithDefaults("releaseId", project.id, mapOf(project.id to project), mapOf(), mapOf())
     }
 
     fun createReleasePlan(state: CommandState): ReleasePlan {
@@ -30,7 +31,7 @@ object SerializerSpec : Spek({
         val projectWithoutCommandsAndDependents = Project(aId, false,"5.0", "5.1", 1, listOf(), "")
         val projectWithCommandsWithoutDependents = Project(DummyProjectId("b"), false, "1.2", "2.0", 2, listOf(DummyCommand(CommandState.Failed)), "")
         val projectWithoutCommandsButDependents = Project(DummyProjectId("c"), false,"1.5", "3.0", 1, listOf(), "")
-        val releasePlanWithoutCommandsButDependents = ReleasePlan(
+        val releasePlanWithoutCommandsButDependents = createReleasePlanWithDefaults(
             "releaseId",
             projectWithoutCommandsButDependents.id,
             mapOf(
@@ -46,6 +47,7 @@ object SerializerSpec : Spek({
         val releasePlanWithCommandsAndDependents = ReleasePlan(
             "releaseId",
             ReleaseState.Ready,
+            TypeOfRun.SIMULATION,
             projectWithCommandsAndDependents.id,
             mapOf(
                 projectWithCommandsAndDependents.id to projectWithCommandsAndDependents,

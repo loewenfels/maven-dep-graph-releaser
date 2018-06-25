@@ -1,10 +1,7 @@
 package ch.loewenfels.depgraph.gui.components
 
 import ch.loewenfels.depgraph.ConfigKey
-import ch.loewenfels.depgraph.data.CommandState
-import ch.loewenfels.depgraph.data.Project
-import ch.loewenfels.depgraph.data.ReleasePlan
-import ch.loewenfels.depgraph.data.ReleaseState
+import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.generateEclipsePsf
 import ch.loewenfels.depgraph.generateGitCloneCommands
 import ch.loewenfels.depgraph.generateListOfDependentsWithoutSubmoduleAndExcluded
@@ -30,22 +27,7 @@ import kotlin.js.Promise
 external fun encodeURIComponent(encodedURI: String): String
 
 class Menu {
-    private val userButton get() = elementById("user")
-    private val userIcon get() = elementById("user.icon")
-    private val userName get() = elementById("user.name")
-    private val saveButton get() = elementById("save")
-    private val downloadButton get() = elementById("download")
-    private val dryRunButton get() = elementById("dryRun")
-    private val releaseButton get() = elementById("release")
-    private val exploreButton get() = elementById("explore")
-    private val toolsButton get() = elementById("tools")
-    private val settingsButton get() = elementById("settings")
-    private val eclipsePsfButton get() = elementById("eclipsePsf")
-    private val gitCloneCommandsButton get() = elementById("gitCloneCommands")
-    private val listDependentsButton get() = elementById("listDependents")
-
     private var publisher: Publisher? = null
-    private var typeOfRun = TypeOfRun.SIMULATION
 
     init {
         setUpMenuLayers(
@@ -149,9 +131,9 @@ class Menu {
         val releasePlan = modifiableState.releasePlan
         when (releasePlan.state) {
             ReleaseState.Ready -> Unit /* nothing to do */
-            ReleaseState.InProgress -> dispatchReleaseStart()
+            ReleaseState.InProgress -> dispatchProcessStart()
             ReleaseState.Failed, ReleaseState.Succeeded -> {
-                dispatchReleaseStart(); dispatchReleaseEnd(
+                dispatchProcessStart(); dispatchProcessEnd(
                     releasePlan.state == ReleaseState.Succeeded
                 )
             }
@@ -179,22 +161,22 @@ class Menu {
 
             activateDryRunButton()
             dryRunButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                typeOfRun = TypeOfRun.DRY_RUN
-                triggerRelease(
+                triggerProcess(
                     modifiableState.releasePlan,
                     dependencies,
                     dependencies.jenkinsJobExecutor,
-                    modifiableState.dryRunExecutionDataFactory
+                    modifiableState.dryRunExecutionDataFactory,
+                    TypeOfRun.DRY_RUN
                 )
             }
             activateReleaseButton()
             releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                typeOfRun = TypeOfRun.RELEASE
-                triggerRelease(
+                triggerProcess(
                     modifiableState.releasePlan,
                     dependencies,
                     dependencies.jenkinsJobExecutor,
-                    modifiableState.releaseJobExecutionDataFactory
+                    modifiableState.releaseJobExecutionDataFactory,
+                    TypeOfRun.RELEASE
                 )
             }
         }
@@ -210,42 +192,26 @@ class Menu {
         )!!
 
         exploreButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-            typeOfRun = TypeOfRun.SIMULATION
             publisher = nonNullDependencies.publisher
-            triggerRelease(
+            triggerProcess(
                 modifiableState.releasePlan,
                 nonNullDependencies,
                 nonNullDependencies.simulatingJobExecutor,
-                modifiableState.releaseJobExecutionDataFactory
+                modifiableState.releaseJobExecutionDataFactory,
+                TypeOfRun.SIMULATION
             ).finally {
                 //reset to null in case it was not defined previously
                 publisher = dependencies?.publisher
             }
         }
-        registerForReleaseStartEvent {
+        registerForProcessStartEvent {
             listOf(dryRunButton, releaseButton, exploreButton).forEach {
                 it.addClass(DISABLED)
-                it.title = DISABLED_RELEASE_IN_PROGRESS
+                it.title = getDisabledMessage()
             }
         }
-        registerForReleaseEndEvent { success ->
-            val (processName, button, buttonText) = when (typeOfRun) {
-                TypeOfRun.SIMULATION -> Triple(
-                    "Explore Release Order",
-                    exploreButton,
-                    elementById("explore:text")
-                )
-                TypeOfRun.DRY_RUN -> Triple(
-                    "Dry Run",
-                    dryRunButton,
-                    elementById("dryRun:text")
-                )
-                TypeOfRun.RELEASE -> Triple(
-                    "Release",
-                    releaseButton,
-                    elementById("release:text")
-                )
-            }
+        registerForProcessEndEvent { success ->
+            val (processName, button, buttonText) = getCurrentRunData()
             button.removeClass(DISABLED)
 
             if (success) {
@@ -254,7 +220,7 @@ class Menu {
                 }
                 showSuccess(
                     """
-                    |Release ended successfully :) you can now close the window or continue with the $processName process..
+                    |Process '$processName' ended successfully :) you can now close the window or continue with the process.
                     |
                     |Please report a bug at $GITHUB_NEW_ISSUE in case some job failed without us noticing it.
                     |Do not forget to star the repository if you like dep-graph-releaser ;-) $GITHUB_REPO
@@ -262,19 +228,19 @@ class Menu {
                     """.trimMargin()
                 )
                 buttonText.innerText = "Continue: $processName"
-                button.title = "Continue with the $processName process."
+                button.title = "Continue with the process '$processName'."
                 button.addClass(DEACTIVATED)
             } else {
                 showError(
                     """
-                    |Release ended with failure :(
+                    |Process '$processName' ended with failure :(
                     |At least one job failed. Check errors, fix them and then you can re-trigger the failed jobs, the pipeline respectively, by clicking on the release button (you might have to delete git tags and remove artifacts if they have already been created).
                     |
                     |Please report a bug at $GITHUB_NEW_ISSUE in case a job failed due to an error in dep-graph-releaser.
                     """.trimMargin()
                 )
                 buttonText.innerText = "Re-trigger failed Jobs"
-                button.title = "Continue with the $processName process by re-processing previously failed projects."
+                button.title = "Continue with the process '$processName' by re-processing previously failed projects."
             }
         }
     }
@@ -320,11 +286,12 @@ class Menu {
         }
     }
 
-    private fun triggerRelease(
+    private fun triggerProcess(
         releasePlan: ReleasePlan,
         dependencies: Dependencies,
         jobExecutor: JobExecutor,
-        jobExecutionDataFactory: JobExecutionDataFactory
+        jobExecutionDataFactory: JobExecutionDataFactory,
+        typeOfRun: TypeOfRun
     ): Promise<*> {
         if (Pipeline.getReleaseState() === ReleaseState.Failed) {
             if (typeOfRun == TypeOfRun.DRY_RUN) {
@@ -336,13 +303,14 @@ class Menu {
         if (Pipeline.getReleaseState() === ReleaseState.Succeeded) {
             Pipeline.changeReleaseState(ReleaseState.Ready)
         }
-        dispatchReleaseStart()
+        Pipeline.changeTypeOfRun(typeOfRun)
+        dispatchProcessStart()
         return dependencies.releaser.release(jobExecutor, jobExecutionDataFactory).then(
             { result ->
-                dispatchReleaseEnd(success = result)
+                dispatchProcessEnd(success = result)
             },
             { t ->
-                dispatchReleaseEnd(success = false)
+                dispatchProcessEnd(success = false)
                 throw t
             }
         )
@@ -505,49 +473,62 @@ class Menu {
         private const val DEACTIVATED = "deactivated"
         private const val DISABLED = "disabled"
 
-        private const val EVENT_RELEASE_START = "release.start"
-        private const val EVENT_RELEASE_END = "release.end"
-        private const val DISABLED_RELEASE_IN_PROGRESS = "disabled due to release which is in progress."
+        private const val EVENT_PROCESS_START = "process.start"
+        private const val EVENT_PROCESS_END = "process.end"
         private const val DISABLED_RELEASE_SUCCESS =
             "Release successful, use a new pipeline for a new release or make changes and continue with current process."
 
         private const val TOOLS_INACTIVE_TITLE = "Open the toolbox to see further available features."
         private const val SETTINGS_INACTIVE_TITLE = "Open Settings."
 
+        private val userButton get() = elementById("user")
+        private val userIcon get() = elementById("user.icon")
+        private val userName get() = elementById("user.name")
+        private val saveButton get() = elementById("save")
+        private val downloadButton get() = elementById("download")
+        private val dryRunButton get() = elementById("dryRun")
+        private val releaseButton get() = elementById("release")
+        private val exploreButton get() = elementById("explore")
+        private val toolsButton get() = elementById("tools")
+        private val settingsButton get() = elementById("settings")
+        private val eclipsePsfButton get() = elementById("eclipsePsf")
+        private val gitCloneCommandsButton get() = elementById("gitCloneCommands")
+        private val listDependentsButton get() = elementById("listDependents")
+
         private lateinit var _modifiableState: ModifiableState
         var modifiableState: ModifiableState
             get() = _modifiableState
-            internal set(value) {
+            private set(value) {
                 _modifiableState = value
             }
 
-        fun registerForReleaseStartEvent(callback: (Event) -> Unit) {
-            elementById("menu").addEventListener(EVENT_RELEASE_START, callback)
+        fun registerForProcessStartEvent(callback: (Event) -> Unit) {
+            elementById("menu").addEventListener(EVENT_PROCESS_START, callback)
         }
 
-        fun registerForReleaseEndEvent(callback: (Boolean) -> Unit) {
-            elementById("menu").addEventListener(EVENT_RELEASE_END, { e ->
+        fun registerForProcessEndEvent(callback: (Boolean) -> Unit) {
+            elementById("menu").addEventListener(EVENT_PROCESS_END, { e ->
                 val customEvent = e as CustomEvent
                 val success = customEvent.detail as Boolean
                 callback(success)
             })
         }
 
-        private fun dispatchReleaseStart() {
-            elementById("menu").dispatchEvent(Event(EVENT_RELEASE_START))
+        private fun dispatchProcessStart() {
+            elementById("menu").dispatchEvent(Event(EVENT_PROCESS_START))
         }
 
-        private fun dispatchReleaseEnd(success: Boolean) {
-            elementById("menu").dispatchEvent(CustomEvent(EVENT_RELEASE_END, CustomEventInit(detail = success)))
+        private fun dispatchProcessEnd(success: Boolean) {
+            elementById("menu").dispatchEvent(CustomEvent(EVENT_PROCESS_END, CustomEventInit(detail = success)))
         }
 
-        fun disableUnDisableForReleaseStartAndEnd(input: HTMLInputElement, titleElement: HTMLElement) {
-            registerForReleaseStartEvent {
+        fun disableUnDisableForProcessStartAndEnd(input: HTMLInputElement, titleElement: HTMLElement) {
+            registerForProcessStartEvent {
                 input.asDynamic().oldDisabled = input.disabled
                 input.disabled = true
-                titleElement.setTitleSaveOld(DISABLED_RELEASE_IN_PROGRESS)
+                titleElement.setTitleSaveOld(getDisabledMessage())
             }
-            registerForReleaseEndEvent { _ ->
+            registerForProcessEndEvent { _ ->
                 if (input.id.startsWith("config-") || isInputFieldOfNonSuccessfulCommand(input.id)) {
                     input.disabled = input.asDynamic().oldDisabled as Boolean
                     titleElement.title = titleElement.getOldTitle()
@@ -555,8 +536,34 @@ class Menu {
             }
         }
 
+        private fun getDisabledMessage(): String {
+            val (processName, _, _) = getCurrentRunData()
+            return "disabled due to process '$processName' which is in progress."
+        }
+
+
+        fun getCurrentRunData(): Triple<String, HTMLElement, HTMLElement> {
+            return when (modifiableState.releasePlan.typeOfRun) {
+                TypeOfRun.SIMULATION -> Triple(
+                    "Explore Release Order",
+                    exploreButton,
+                    elementById("explore:text")
+                )
+                TypeOfRun.DRY_RUN -> Triple(
+                    "Dry Run",
+                    dryRunButton,
+                    elementById("dryRun:text")
+                )
+                TypeOfRun.RELEASE -> Triple(
+                    "Release",
+                    releaseButton,
+                    elementById("release:text")
+                )
+            }
+        }
+
         private fun isInputFieldOfNonSuccessfulCommand(id: String): Boolean {
-            if(id == RELEASE_ID_HTML_ID) return false
+            if (id == RELEASE_ID_HTML_ID) return false
 
             val project = Pipeline.getSurroundingProject(id)
             val releasePlan = modifiableState.releasePlan
@@ -572,10 +579,4 @@ class Menu {
         val jenkinsJobExecutor: JobExecutor,
         val simulatingJobExecutor: JobExecutor
     )
-
-    private enum class TypeOfRun {
-        SIMULATION,
-        DRY_RUN,
-        RELEASE
-    }
 }

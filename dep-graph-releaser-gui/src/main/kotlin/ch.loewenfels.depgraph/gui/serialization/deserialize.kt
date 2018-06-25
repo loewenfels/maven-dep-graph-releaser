@@ -19,12 +19,11 @@ internal const val JENKINS_UPDATE_DEPENDENCY = "ch.loewenfels.depgraph.data.mave
 fun deserialize(body: String): ReleasePlan {
     val releasePlanJson = JSON.parse<ReleasePlanJson>(body)
     val state = deserializeReleaseState(releasePlanJson)
+    val typeOfRun = deserializeTypeOfRun(releasePlanJson)
     val rootProjectId = deserializeProjectId(releasePlanJson.id)
     val projects = deserializeProjects(releasePlanJson)
-    val submodules =
-        deserializeMapOfProjectIdAndSetProjectId(releasePlanJson.submodules)
-    val dependents =
-        deserializeMapOfProjectIdAndSetProjectId(releasePlanJson.dependents)
+    val submodules = deserializeMapOfProjectIdAndSetProjectId(releasePlanJson.submodules)
+    val dependents = deserializeMapOfProjectIdAndSetProjectId(releasePlanJson.dependents)
     val warnings = releasePlanJson.warnings.toList()
     val infos = releasePlanJson.infos.toList()
     val config = deserializeConfig(releasePlanJson.config)
@@ -32,6 +31,7 @@ fun deserialize(body: String): ReleasePlan {
     return ReleasePlan(
         releasePlanJson.releaseId,
         state,
+        typeOfRun,
         rootProjectId,
         projects,
         submodules,
@@ -44,6 +44,10 @@ fun deserialize(body: String): ReleasePlan {
 
 fun deserializeReleaseState(releasePlanJson: ReleasePlanJson): ReleaseState {
     return ReleaseState.valueOf(releasePlanJson.state.unsafeCast<String>())
+}
+
+fun deserializeTypeOfRun(releasePlanJson: ReleasePlanJson): TypeOfRun {
+    return TypeOfRun.valueOf(releasePlanJson.typeOfRun.unsafeCast<String>())
 }
 
 fun deserializeProjectId(id: GenericType<ProjectId>): ProjectId {
@@ -158,6 +162,7 @@ fun deserializeConfig(config: Array<Array<String>>): Map<ConfigKey, String> {
 external interface ReleasePlanJson {
     var releaseId: String
     var state: ReleaseState
+    var typeOfRun: TypeOfRun
     val id: GenericType<ProjectId>
     val projects: Array<ProjectJson>
     val submodules: Array<GenericMapEntry<ProjectId, Array<GenericType<ProjectId>>>>
