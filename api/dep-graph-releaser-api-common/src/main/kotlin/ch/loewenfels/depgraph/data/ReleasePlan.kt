@@ -26,43 +26,18 @@ data class ReleasePlan(
     /**
      * Copy constructor to replace [projects].
      */
-    constructor(releasePlan: ReleasePlan, projects: Map<ProjectId, Project>) :
-        this(
-            releasePlan.releaseId,
-            releasePlan.state,
-            releasePlan.typeOfRun,
-            releasePlan.rootProjectId,
-            projects,
-            releasePlan.submodules,
-            releasePlan.dependents,
-            releasePlan.warnings,
-            releasePlan.infos,
-            releasePlan.config
-        )
-
-    /**
-     * Creates a [ReleasePlan] with [state] = [ReleaseState.Ready], [typeOfRun] = [TypeOfRun.SIMULATION],
-     * an empty list for [warnings], [infos] and an empty map for [config].
-     */
-    constructor(
-        publishId: String,
-        rootProjectId: ProjectId,
-        projects: Map<ProjectId, Project>,
-        submodulesOfProject: Map<ProjectId, Set<ProjectId>>,
-        dependents: Map<ProjectId, Set<ProjectId>>
-    ) :
-        this(
-            publishId,
-            ReleaseState.Ready,
-            TypeOfRun.SIMULATION,
-            rootProjectId,
-            projects,
-            submodulesOfProject,
-            dependents,
-            listOf(),
-            listOf(),
-            mapOf()
-        )
+    constructor(releasePlan: ReleasePlan, projects: Map<ProjectId, Project>) : this(
+        releasePlan.releaseId,
+        releasePlan.state,
+        releasePlan.typeOfRun,
+        releasePlan.rootProjectId,
+        projects,
+        releasePlan.submodules,
+        releasePlan.dependents,
+        releasePlan.warnings,
+        releasePlan.infos,
+        releasePlan.config
+    )
 
     fun getRootProject() = getProject(rootProjectId)
     fun getProject(projectId: ProjectId): Project {
