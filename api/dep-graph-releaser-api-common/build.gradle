@@ -3,5 +3,6 @@ buildscript {
 }
 
 dependencies {
+    compile kotlinReflect()
     compile "ch.tutteli.kbox:kbox-common:$kbox_version"
 }
