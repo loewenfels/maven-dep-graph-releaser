@@ -67,10 +67,6 @@ class App {
                     }
                     promise.then { modifiableState }
                 }.then { modifiableState ->
-                    val dependencies = createDependencies(
-                        defaultJenkinsBaseUrl, publishJobUrl, modifiableState, menu
-                    )
-                    menu.initDependencies(Downloader(modifiableState), dependencies, modifiableState)
                     val promise = if (modifiableState.releasePlan.state == ReleaseState.IN_PROGRESS) {
                         recoverInProgress(modifiableState)
                     } else {
@@ -79,6 +75,10 @@ class App {
                     promise.then { modifiableState }
                 }.then { modifiableState ->
                     Gui(modifiableState, menu)
+                    val dependencies = createDependencies(
+                        defaultJenkinsBaseUrl, publishJobUrl, modifiableState, menu
+                    )
+                    menu.initDependencies(Downloader(modifiableState), dependencies, modifiableState)
                     switchLoaderPipelineWithPipeline()
                 }
                 .catch {
