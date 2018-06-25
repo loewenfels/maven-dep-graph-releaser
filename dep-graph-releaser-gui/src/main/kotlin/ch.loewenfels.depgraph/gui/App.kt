@@ -1,6 +1,7 @@
 package ch.loewenfels.depgraph.gui
 
 import ch.loewenfels.depgraph.data.ReleasePlan
+import ch.loewenfels.depgraph.data.ReleaseState
 import ch.loewenfels.depgraph.gui.actions.Downloader
 import ch.loewenfels.depgraph.gui.actions.Publisher
 import ch.loewenfels.depgraph.gui.actions.Releaser
@@ -64,15 +65,23 @@ class App {
                     } else {
                         Promise.resolve(Unit)
                     }
-                    promise.then {
-                        val dependencies = createDependencies(
-                            defaultJenkinsBaseUrl, publishJobUrl, modifiableState, menu
-                        )
-                        menu.initDependencies(Downloader(modifiableState), dependencies, modifiableState)
-                        Gui(modifiableState, menu)
-                        switchLoaderPipelineWithPipeline()
+                    promise.then { modifiableState }
+                }.then { modifiableState ->
+                    val dependencies = createDependencies(
+                        defaultJenkinsBaseUrl, publishJobUrl, modifiableState, menu
+                    )
+                    menu.initDependencies(Downloader(modifiableState), dependencies, modifiableState)
+                    val promise = if (modifiableState.releasePlan.state == ReleaseState.IN_PROGRESS) {
+                        recoverInProgress(modifiableState)
+                    } else {
+                        Promise.resolve(Unit)
                     }
-                }.catch {
+                    promise.then { modifiableState }
+                }.then { modifiableState ->
+                    Gui(modifiableState, menu)
+                    switchLoaderPipelineWithPipeline()
+                }
+                .catch {
                     showThrowableAndThrow(it)
                 }
         }
@@ -126,6 +135,12 @@ class App {
         menu.appendToUserButtonToolTip(url, pair?.second?.username ?: "Anonymous", pair?.first)
     }
 
+
+    private fun recoverInProgress(modifiableState: ModifiableState): Promise<Unit> {
+        showWarning("ReleaseState is IN_PROGRESS, we do not support recovery from an ongoing process yet.")
+        return Promise.resolve(Unit)
+    }
+
     private fun switchLoaderPipelineWithPipeline() {
         display("loaderPipeline", "none")
         display("pipeline", "table")
@@ -135,6 +150,8 @@ class App {
         display(firstLoader, "none")
         display(secondLoader, "block")
     }
+
+
 
     companion object {
         const val PUBLISH_JOB = "&publishJob="
