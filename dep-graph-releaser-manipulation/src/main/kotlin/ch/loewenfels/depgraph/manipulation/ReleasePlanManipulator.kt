@@ -80,11 +80,12 @@ class ReleasePlanManipulator(private val releasePlan: ReleasePlan) {
         newProject: Project?,
         transform: (Project, Set<ProjectId>) -> Project
     ): Map<ProjectId, Project> {
-        return releasePlan.getProjectsWithProjectId().entries.associate { (k, v) ->
-            k to when {
-                newProject != null && newProject.id == v.id -> newProject
-                projectsToTransform.contains(k) -> transform(v, projectsToTransform[k]!!)
-                else -> v
+        return releasePlan.getProjects().associate { project ->
+            val projectId = project.id
+            projectId to when {
+                newProject != null && newProject.id == projectId -> newProject
+                projectsToTransform.contains(projectId) -> transform(project, projectsToTransform[projectId]!!)
+                else -> project
             }
         }
     }
