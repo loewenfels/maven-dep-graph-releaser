@@ -56,12 +56,15 @@ buildscript {
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "ch.tutteli:tutteli-gradle-project-utils:${gradle.ext.tutteli_plugins_version}"
+        classpath "ch.tutteli:tutteli-gradle-kotlin-utils:${gradle.ext.tutteli_plugins_version}"
         classpath "ch.tutteli:tutteli-gradle-spek:${gradle.ext.tutteli_plugins_version}"
         classpath "org.jetbrains.dokka:dokka-gradle-plugin:$dokka_version"
     }
 }
 
 apply plugin: 'ch.tutteli.project.utils'
+apply plugin: 'ch.tutteli.kotlin.utils'
+kotlinutils.kotlinVersion = kotlin_version
 
 repositories {
     mavenCentral()
@@ -78,44 +81,15 @@ subprojects {
     }
 }
 
-configure(apiCommonProjects) {
-    apply plugin: 'kotlin-platform-common'
-    dependencies {
-        compile "org.jetbrains.kotlin:kotlin-stdlib-common:$kotlin_version"
-    }
-}
-
-static def getApiProject(String name, String suffix) {
-    return ":" + name.substring(0, name.indexOf(suffix)) + "-common"
-}
-configure(apiJsProjects) { subproject ->
-    apply plugin: 'kotlin-platform-js'
-
-    dependencies {
-        compile "org.jetbrains.kotlin:kotlin-stdlib-js:$kotlin_version"
-        expectedBy project(getApiProject(subproject.name, '-js'))
-    }
-
-    compileKotlin2Js {
-        kotlinOptions.moduleKind = "umd"
-        kotlinOptions.sourceMap = true
-        kotlinOptions.sourceMapEmbedSources = "always"
-    }
-}
-configure(apiJvmProjects) { subproject ->
-    apply plugin: 'kotlin-platform-jvm'
-
-    dependencies {
-        compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-        expectedBy project(getApiProject(subproject.name, '-jvm'))
-    }
-}
+configureCommonProjects()
+configureJsProjects()
+configureJvmProjects()
 
 configure(jvmProjects - apiProjects) {
-    apply plugin: 'ch.tutteli.kotlin'
+    apply plugin: 'kotlin'
 
     dependencies {
-        compile kotlinStdLib()
+        compile kotlinStdlib()
         compile kotlinReflect()
     }
 }
