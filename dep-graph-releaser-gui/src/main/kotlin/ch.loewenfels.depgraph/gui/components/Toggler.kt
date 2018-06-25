@@ -45,7 +45,7 @@ class Toggler(private val modifiableState: ModifiableState, private val menu: Me
 
             val slider = getSlider(toggle)
             Menu.disableUnDisableForProcessStartAndEnd(toggle, slider)
-            Menu.unDisableForProcessReset(toggle, slider)
+            Menu.unDisableForProcessContinueAndReset(toggle, slider)
         }
     }
 
