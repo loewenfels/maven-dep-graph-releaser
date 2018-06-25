@@ -30,14 +30,7 @@ class Serializer {
 
     private fun consumeJson(json: String, moshi: Moshi): ReleasePlan? {
         val adapter = moshi.adapter(ReleasePlan::class.java)
-        //TODO can be removed if a new version is used which includes: https://github.com/square/moshi/pull/441
-        val reader = JsonReader.of(Buffer().writeUtf8(json))
-        val entity = adapter.fromJson(reader)
-        val token = reader.peek()
-        if (token != JsonReader.Token.END_DOCUMENT) {
-            throw JsonEncodingException("JSON document was not fully consumed, might be malformed. Next token was $token")
-        }
-        return entity
+        return adapter.fromJson(json)
     }
 
     private fun setUpMoshi(): Moshi {
