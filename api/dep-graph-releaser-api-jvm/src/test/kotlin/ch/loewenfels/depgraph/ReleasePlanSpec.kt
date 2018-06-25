@@ -12,6 +12,7 @@ import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.given
 import org.jetbrains.spek.api.dsl.it
+import ch.tutteli.atrium.createReleasePlanWithDefaults
 
 object ReleasePlanSpec : Spek({
 
@@ -48,7 +49,7 @@ object ReleasePlanSpec : Spek({
                 projectAnnotationsId to setOf(projectNotifierId),
                 projectNotifierId to setOf()
             )
-            val releasePlan = ReleasePlan(
+            val releasePlan = createReleasePlanWithDefaults(
                 "releaseId",
                 rootProjectId,
                 mapOf(
@@ -93,7 +94,7 @@ object ReleasePlanSpec : Spek({
                 submodule1Id to setOf(submodule2Id),
                 submodule2Id to setOf()
             )
-            val releasePlan = ReleasePlan(
+            val releasePlan = createReleasePlanWithDefaults(
                 "releaseId",
                 multiModuleId,
                 mapOf(
@@ -124,7 +125,7 @@ object ReleasePlanSpec : Spek({
                 submodule2Id to setOf(dependentId),
                 dependentId to setOf()
             )
-            val releasePlan = ReleasePlan(
+            val releasePlan = createReleasePlanWithDefaults(
                 "releaseId",
                 multiModuleId,
                 mapOf(
