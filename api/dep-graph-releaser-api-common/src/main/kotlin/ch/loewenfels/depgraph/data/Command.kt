@@ -49,6 +49,7 @@ sealed class CommandState {
      * Command has to be re-polled, meaning it has to be turned into InProgress again.
      */
     object RePolling : CommandState()
+
     object Succeeded : CommandState()
     object Failed : CommandState()
     data class Deactivated(val previous: CommandState) : CommandState()
@@ -67,10 +68,10 @@ sealed class CommandState {
                 "\nNew: ${newState.getToStringRepresentation()}"
         }
 
-        when (newState) {
+        return when (newState) {
 
-            ReadyToReTrigger -> checkNewStateIsAfter(newState, Failed::class)
-            Ready -> {
+            is ReadyToReTrigger -> checkNewStateIsAfter(newState, Failed::class)
+            is Ready -> {
                 checkNewStateIsAfter(newState, Waiting::class)
                 if (this is Waiting) { //could also be Deactivated with previous Ready
                     check(this.dependencies.isEmpty()) {
@@ -80,16 +81,23 @@ sealed class CommandState {
                             "\nState was: ${this.getToStringRepresentation()}"
                     }
                 }
+                newState
             }
-            Queueing -> checkNewStateIsAfter(newState, Ready::class, ReadyToReTrigger::class)
-            InProgress -> checkNewStateIsAfter(newState, Queueing::class)
-            RePolling -> checkNewStateIsAfter(newState, InProgress::class)
-            Succeeded -> checkNewStateIsAfter(newState, InProgress::class)
+            is Queueing -> checkNewStateIsAfter(newState, Ready::class, ReadyToReTrigger::class)
+            is InProgress -> checkNewStateIsAfter(newState, Queueing::class)
+            is RePolling -> checkNewStateIsAfter(newState, InProgress::class)
+            is Succeeded -> checkNewStateIsAfter(newState, InProgress::class, RePolling::class)
+            is CommandState.Waiting,
+            is CommandState.Failed,
+            is CommandState.Deactivated,
+            is CommandState.Disabled -> newState
         }
-        return newState
     }
 
-    private fun checkNewStateIsAfter(newState: CommandState, vararg requiredState: KClass<out CommandState>) {
+    private fun checkNewStateIsAfter(
+        newState: CommandState,
+        vararg requiredState: KClass<out CommandState>
+    ): CommandState {
         if (this is Deactivated) {
             check(newState::class == this.previous::class) {
                 "Cannot transition to ${newState::class.simpleName} because " +
@@ -108,6 +116,7 @@ sealed class CommandState {
                     "\nState was: ${this.getToStringRepresentation()}"
             }
         }
+        return newState
     }
 }
 
