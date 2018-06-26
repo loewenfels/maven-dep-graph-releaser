@@ -99,9 +99,9 @@ sealed class CommandState {
         } else {
             check(requiredState.any { it.isInstance(this) }) {
                 val states = if (requiredState.size == 1) {
-                    requiredState[0]::class.simpleName
+                    requiredState[0].simpleName
                 } else {
-                    "one of: ${requiredState.joinToString { it::class.simpleName!! }}"
+                    "one of: ${requiredState.joinToString { it.simpleName!! }}"
                 }
                 "Cannot transition to ${newState::class.simpleName} because state is not $states." +
                     //TODO use $this in stead of $getToStringRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed

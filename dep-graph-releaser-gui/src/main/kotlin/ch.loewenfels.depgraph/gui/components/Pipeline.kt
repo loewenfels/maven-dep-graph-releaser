@@ -323,9 +323,12 @@ class Pipeline(private val modifiableState: ModifiableState, private val menu: M
                     previousState.checkTransitionAllowed(newState)
                 } catch (e: IllegalStateException) {
                     val commandTitle = elementById(commandId + TITLE_SUFFIX)
+                    //TODO use $this in stead of $getToStringRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed
                     throw IllegalStateException(
-                        "Cannot change the state of the command ${commandTitle.innerText} (${index + 1}. command) " +
-                            "of the project ${project.id.identifier}",
+                        "Cannot change the state of the command to ${newState.getToStringRepresentation()}." +
+                            "\nProject: ${project.id.identifier}" +
+                            "\nCommand: ${commandTitle.innerText} (${index + 1} command)" +
+                            "\nCurrent state: ${previousState.getToStringRepresentation()}",
                         e
                     )
                 }
