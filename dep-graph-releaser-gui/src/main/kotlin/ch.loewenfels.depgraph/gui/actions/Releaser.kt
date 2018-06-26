@@ -236,13 +236,33 @@ class Releaser(
             ?: throw IllegalStateException("We do not know how to re-poll a Jenkins command if it does not have a specified build url.\nGiven Command: $command")
 
         val jobExecutionData = paramObject.jobExecutionDataFactory.create(paramObject.project, command)
-        val buildNumber = buildUrl.substringAfter(jobExecutionData.jobBaseUrl).substringBefore("/").toInt()
+        val buildNumber = extractBuildNumberFromUrl(buildUrl, jobExecutionData, paramObject.project, index)
         return paramObject.jobExecutor.rePoll(
             jobExecutionData,
             buildNumber,
             POLL_EVERY_SECOND,
             MAX_WAIT_FOR_COMPLETION
         ).finalizeJob(paramObject, jobExecutionData, index)
+    }
+
+    private fun extractBuildNumberFromUrl(
+        buildUrl: String,
+        jobExecutionData: JobExecutionData,
+        project: Project,
+        index: Int
+    ): Int {
+        return try {
+            buildUrl.substringAfter(jobExecutionData.jobBaseUrl).substringBefore("/").toInt()
+        } catch (e: NumberFormatException) {
+            val commandTitle = elementById(Pipeline.getCommandId(project, index) + Pipeline.TITLE_SUFFIX).innerText
+            throw IllegalStateException(
+                "Could not extract the buildNumber from the buildUrl, either a corrupt or outdated release.json." +
+                    "\nbuildUrl: $buildUrl" +
+                    "\njobBaseUrl: ${jobExecutionData.jobBaseUrl}" +
+                    "\nProject: ${project.id.identifier}" +
+                    "\nCommand: $commandTitle (${index + 1}. command)"
+            )
+        }
     }
 
     private fun triggerJob(
