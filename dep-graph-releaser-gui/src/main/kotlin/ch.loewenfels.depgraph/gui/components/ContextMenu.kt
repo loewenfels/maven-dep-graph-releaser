@@ -194,11 +194,15 @@ class ContextMenu(private val modifiableState: ModifiableState, private val menu
         val commandState = Pipeline.getCommandState(idPrefix)
         disableOrEnableContextMenuEntry(
             "$idPrefix$CONTEXT_MENU_COMMAND_DEACTIVATED",
-            state == ReleaseState.IN_PROGRESS || isNotInStateToDeactivate(commandState)
+            state == ReleaseState.IN_PROGRESS ||
+                state == ReleaseState.WATCHING ||
+                isNotInStateToDeactivate(commandState)
         )
         disableOrEnableContextMenuEntry(
             "$idPrefix$CONTEXT_MENU_COMMAND_SUCCEEDED",
-            state == ReleaseState.IN_PROGRESS || commandState === CommandState.Succeeded
+            state == ReleaseState.IN_PROGRESS ||
+                state == ReleaseState.WATCHING ||
+                commandState === CommandState.Succeeded
         )
     }
 

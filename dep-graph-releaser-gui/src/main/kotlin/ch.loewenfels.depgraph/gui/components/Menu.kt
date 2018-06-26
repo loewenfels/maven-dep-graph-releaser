@@ -142,8 +142,7 @@ class Menu(
                 dispatchProcessStart()
                 dispatchProcessEnd(success = releasePlan.state == ReleaseState.SUCCEEDED)
             }
-            //TODO disable all toggle and fields, contextMenu etc.
-            ReleaseState.WATCHING -> Unit
+            ReleaseState.WATCHING -> dispatchProcessStart()
         }
     }
 
