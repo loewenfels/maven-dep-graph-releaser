@@ -13,7 +13,7 @@ class Publisher(
 
     fun publish(fileName: String, verbose: Boolean, jobExecutor: JobExecutor): Promise<*> {
         changeCursorToProgress()
-        val doNothingPromise: (Any) -> Promise<*> = { Promise.resolve(1) }
+        val doNothingPromise: (Any?) -> Promise<*> = { Promise.resolve(1) }
         val parameters = mapOf(
             "fileName" to fileName,
             "json" to modifiableState.json

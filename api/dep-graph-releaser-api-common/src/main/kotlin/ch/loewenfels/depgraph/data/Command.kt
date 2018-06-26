@@ -45,6 +45,11 @@ sealed class CommandState {
     object Queueing : CommandState()
 
     object InProgress : CommandState()
+    /**
+     * Command has to be re-polled, meaning it has to be turned into InProgress again.
+     */
+    object RePolling : CommandState()
+
     object Succeeded : CommandState()
     object Failed : CommandState()
     data class Deactivated(val previous: CommandState) : CommandState()
@@ -63,10 +68,10 @@ sealed class CommandState {
                 "\nNew: ${newState.getToStringRepresentation()}"
         }
 
-        when (newState) {
+        return when (newState) {
 
-            ReadyToReTrigger -> checkNewStateIsAfter(newState, Failed::class)
-            Ready -> {
+            is ReadyToReTrigger -> checkNewStateIsAfter(newState, Failed::class)
+            is Ready -> {
                 checkNewStateIsAfter(newState, Waiting::class)
                 if (this is Waiting) { //could also be Deactivated with previous Ready
                     check(this.dependencies.isEmpty()) {
@@ -76,15 +81,23 @@ sealed class CommandState {
                             "\nState was: ${this.getToStringRepresentation()}"
                     }
                 }
+                newState
             }
-            Queueing -> checkNewStateIsAfter(newState, Ready::class, ReadyToReTrigger::class)
-            InProgress -> checkNewStateIsAfter(newState, Queueing::class)
-            Succeeded -> checkNewStateIsAfter(newState, InProgress::class)
+            is Queueing -> checkNewStateIsAfter(newState, Ready::class, ReadyToReTrigger::class)
+            is InProgress -> checkNewStateIsAfter(newState, Queueing::class)
+            is RePolling -> checkNewStateIsAfter(newState, InProgress::class)
+            is Succeeded -> checkNewStateIsAfter(newState, InProgress::class, RePolling::class)
+            is CommandState.Waiting,
+            is CommandState.Failed,
+            is CommandState.Deactivated,
+            is CommandState.Disabled -> newState
         }
-        return newState
     }
 
-    private fun checkNewStateIsAfter(newState: CommandState, vararg requiredState: KClass<out CommandState>) {
+    private fun checkNewStateIsAfter(
+        newState: CommandState,
+        vararg requiredState: KClass<out CommandState>
+    ): CommandState {
         if (this is Deactivated) {
             check(newState::class == this.previous::class) {
                 "Cannot transition to ${newState::class.simpleName} because " +
@@ -94,15 +107,16 @@ sealed class CommandState {
         } else {
             check(requiredState.any { it.isInstance(this) }) {
                 val states = if (requiredState.size == 1) {
-                    requiredState[0]::class.simpleName
+                    requiredState[0].simpleName
                 } else {
-                    "one of: ${requiredState.joinToString { it::class.simpleName!! }}"
+                    "one of: ${requiredState.joinToString { it.simpleName!! }}"
                 }
                 "Cannot transition to ${newState::class.simpleName} because state is not $states." +
                     //TODO use $this in stead of $getToStringRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed
                     "\nState was: ${this.getToStringRepresentation()}"
             }
         }
+        return newState
     }
 }
 

@@ -4,7 +4,7 @@ import ch.loewenfels.depgraph.data.*
 
 /**
  * Creates a [ReleasePlan] with [ReleasePlan.state] = [ReleaseState.READY],
- * [ReleasePlan.typeOfRun] = [TypeOfRun.SIMULATION], an empty list for [ReleasePlan.warnings], [ReleasePlan.infos]
+ * [ReleasePlan.typeOfRun] = [TypeOfRun.EXPLORE], an empty list for [ReleasePlan.warnings], [ReleasePlan.infos]
  * and an empty map for [ReleasePlan.config].
  */
 fun createReleasePlanWithDefaults(
@@ -16,7 +16,7 @@ fun createReleasePlanWithDefaults(
 ) = ReleasePlan(
     publishId,
     ReleaseState.READY,
-    TypeOfRun.SIMULATION,
+    TypeOfRun.EXPLORE,
     rootProjectId,
     projects,
     submodulesOfProject,

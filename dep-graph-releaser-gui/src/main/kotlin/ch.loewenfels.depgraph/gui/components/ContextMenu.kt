@@ -4,6 +4,7 @@ import ch.loewenfels.depgraph.ConfigKey
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.Project
 import ch.loewenfels.depgraph.data.ReleaseCommand
+import ch.loewenfels.depgraph.data.ReleaseState
 import ch.loewenfels.depgraph.generateGitCloneCommands
 import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.serialization.ModifiableState
@@ -189,14 +190,19 @@ class ContextMenu(private val modifiableState: ModifiableState, private val menu
     }
 
     private fun disableCommandContextEntriesIfNecessary(idPrefix: String) {
+        val state = Pipeline.getReleaseState()
         val commandState = Pipeline.getCommandState(idPrefix)
         disableOrEnableContextMenuEntry(
             "$idPrefix$CONTEXT_MENU_COMMAND_DEACTIVATED",
-            isNotInStateToDeactivate(commandState)
+            state == ReleaseState.IN_PROGRESS ||
+                state == ReleaseState.WATCHING ||
+                isNotInStateToDeactivate(commandState)
         )
         disableOrEnableContextMenuEntry(
             "$idPrefix$CONTEXT_MENU_COMMAND_SUCCEEDED",
-            commandState === CommandState.Succeeded
+            state == ReleaseState.IN_PROGRESS ||
+                state == ReleaseState.WATCHING ||
+                commandState === CommandState.Succeeded
         )
     }
 

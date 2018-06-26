@@ -6,9 +6,12 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsCommand
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
-import ch.loewenfels.depgraph.gui.*
+import ch.loewenfels.depgraph.gui.elementById
+import ch.loewenfels.depgraph.gui.getCheckbox
+import ch.loewenfels.depgraph.gui.getUnderlyingHtmlElement
 import ch.loewenfels.depgraph.gui.jobexecution.GITHUB_NEW_ISSUE
 import ch.loewenfels.depgraph.gui.serialization.ModifiableState
+import ch.loewenfels.depgraph.gui.showError
 import ch.loewenfels.depgraph.hasNextOnTheSameLevel
 import ch.tutteli.kbox.toPeekingIterator
 import kotlinx.html.*
@@ -56,18 +59,29 @@ class Pipeline(private val modifiableState: ModifiableState, private val menu: M
                 }
             }
         }
+        updateStatus(releasePlan, set)
+    }
+
+    private fun updateStatus(
+        releasePlan: ReleasePlan,
+        set: HashSet<ProjectId>
+    ) {
         val involvedProjects = set.size
         val status = elementById("status")
         status.innerText = "Projects involved: $involvedProjects"
         val numOfSubmodules = releasePlan.getProjects().count { it.isSubmodule }
-        status.title = "multi-module/single Projects: ${involvedProjects - numOfSubmodules}, submodules: $numOfSubmodules"
+        val numOfMultiModules = involvedProjects - numOfSubmodules
+        status.title =
+            "multi-module/single Projects: $numOfMultiModules, submodules: $numOfSubmodules"
         if (involvedProjects != releasePlan.getNumberOfProjects()) {
-            showError("""
-                |Not all dependent projects are involved in the process.
-                |Please report a bug: $GITHUB_NEW_ISSUE
-                |The following projects where left out of the analysis:
-                |${(releasePlan.getProjectIds() - set).joinToString("\n") { it.identifier }}
-            """.trimMargin())
+            showError(
+                """
+                    |Not all dependent projects are involved in the process.
+                    |Please report a bug: $GITHUB_NEW_ISSUE
+                    |The following projects where left out of the analysis:
+                    |${(releasePlan.getProjectIds() - set).joinToString("\n") { it.identifier }}
+                """.trimMargin()
+            )
         }
     }
 
@@ -251,6 +265,7 @@ class Pipeline(private val modifiableState: ModifiableState, private val menu: M
         const val STATE_READY = "Ready to be queued for execution."
         const val STATE_READY_TO_BE_TRIGGER = "Ready to be re-scheduled"
         const val STATE_QUEUEING = "Currently queueing the job."
+        private const val STATE_RE_POLLING = "Job is being re-polled."
         const val STATE_IN_PROGRESS = "Job is running."
         const val STATE_SUCCEEDED = "Job completed successfully."
         const val STATE_FAILED = "Job failed - click to navigate to console."
@@ -281,9 +296,19 @@ class Pipeline(private val modifiableState: ModifiableState, private val menu: M
             newState: CommandState,
             title: String,
             buildUrl: String
+        ) = changeStateOfCommandAndAddBuildUrlIfSet(project, index, newState, title, buildUrl)
+
+        fun changeStateOfCommandAndAddBuildUrlIfSet(
+            project: Project,
+            index: Int,
+            newState: CommandState,
+            title: String,
+            buildUrl: String?
         ) {
             changeStateOfCommand(project, index, newState, title)
-            changeBuildUrlOfCommand(project, index, buildUrl)
+            if(buildUrl != null){
+                changeBuildUrlOfCommand(project, index, buildUrl)
+            }
         }
 
         fun changeBuildUrlOfCommand(project: Project, index: Int, buildUrl: String) {
@@ -298,9 +323,12 @@ class Pipeline(private val modifiableState: ModifiableState, private val menu: M
                     previousState.checkTransitionAllowed(newState)
                 } catch (e: IllegalStateException) {
                     val commandTitle = elementById(commandId + TITLE_SUFFIX)
+                    //TODO use $this in stead of $getToStringRepresentation(...) once https://youtrack.jetbrains.com/issue/KT-23970 is fixed
                     throw IllegalStateException(
-                        "Cannot change the state of the command ${commandTitle.innerText} (${index + 1}. command) " +
-                            "of the project ${project.id.identifier}",
+                        "Cannot change the state of the command to ${newState.getToStringRepresentation()}." +
+                            "\nProject: ${project.id.identifier}" +
+                            "\nCommand: ${commandTitle.innerText} (${index + 1}. command)" +
+                            "\nCurrent state: ${previousState.getToStringRepresentation()}",
                         e
                     )
                 }
@@ -342,6 +370,7 @@ class Pipeline(private val modifiableState: ModifiableState, private val menu: M
             CommandState.Ready -> "ready"
             CommandState.ReadyToReTrigger -> "readyToReTrigger"
             CommandState.Queueing -> "queueing"
+            CommandState.RePolling -> "rePolling"
             CommandState.InProgress -> "inProgress"
             CommandState.Succeeded -> "succeeded"
             is CommandState.Failed -> "failed"
@@ -354,6 +383,7 @@ class Pipeline(private val modifiableState: ModifiableState, private val menu: M
             CommandState.Ready -> STATE_READY
             CommandState.ReadyToReTrigger -> STATE_READY_TO_BE_TRIGGER
             CommandState.Queueing -> STATE_QUEUEING
+            CommandState.RePolling -> STATE_RE_POLLING
             CommandState.InProgress -> STATE_IN_PROGRESS
             CommandState.Succeeded -> STATE_SUCCEEDED
             CommandState.Failed -> STATE_FAILED

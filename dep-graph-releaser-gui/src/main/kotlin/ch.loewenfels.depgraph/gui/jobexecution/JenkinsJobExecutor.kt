@@ -12,7 +12,7 @@ class JenkinsJobExecutor(
 
     override fun trigger(
         jobExecutionData: JobExecutionData,
-        jobQueuedHook: (queuedItemUrl: String) -> Promise<*>,
+        jobQueuedHook: (queuedItemUrl: String?) -> Promise<*>,
         jobStartedHook: (buildNumber: Int) -> Promise<*>,
         pollEverySecond: Int,
         maxWaitingTimeForCompletenessInSeconds: Int,
@@ -20,22 +20,23 @@ class JenkinsJobExecutor(
     ): Promise<Pair<AuthData, Int>> {
         val jobName = jobExecutionData.jobName
         val jenkinsBaseUrl = jobExecutionData.getJenkinsBaseUrl()
-        val usernameToken = usernameTokenRegistry.forHostOrThrow(jenkinsBaseUrl)
+        val usernameAndApiToken = usernameTokenRegistry.forHostOrThrow(jenkinsBaseUrl)
 
-        return issueCrumb(jenkinsBaseUrl, usernameToken).then { authData: AuthData ->
+        return issueCrumb(jenkinsBaseUrl, usernameAndApiToken).then { authData: AuthData ->
             triggerJob(authData, jobExecutionData)
                 .then(::checkStatusIgnoreOpaqueRedirect)
                 .catch<Pair<Response, String>> {
-                    throw Error("Could not trigger the job $jobName." +
-                        "\nPlease visit ${jobExecutionData.jobBaseUrl} to see if it was triggered nonetheless." +
-                        "\nYou can manually set the command to Succeeded if the job was triggered/executed and ended successfully."
+                    throw Error(
+                        "Could not trigger the job $jobName." +
+                            "\nPlease visit ${jobExecutionData.jobBaseUrl} to see if it was triggered nonetheless." +
+                            "\nYou can manually set the command to Succeeded if the job was triggered/executed and ended successfully."
                         , it
                     )
                 }.then { (response, _) ->
                     jobExecutionData.queuedItemUrlExtractor.extract(authData, response, jobExecutionData)
                 }.then { nullableQueuedItemUrl: String? ->
                     showInfoQueuedItemIfVerbose(verbose, nullableQueuedItemUrl, jobName)
-                    val queuedItemUrl = getQueuedItemUrlOrJobUrlAsFallback(nullableQueuedItemUrl, jobExecutionData)
+                    val queuedItemUrl = getQueuedItemUrlOrNull(nullableQueuedItemUrl)
                     jobQueuedHook(queuedItemUrl).then {
                         extractBuildNumber(nullableQueuedItemUrl, authData, jobExecutionData)
                     }.then { it }
@@ -49,60 +50,18 @@ class JenkinsJobExecutor(
                     jobStartedHook(buildNumber).then {
                         pollJobForCompletion(
                             authData,
-                            jobExecutionData.jobBaseUrl,
+                            jobExecutionData,
                             buildNumber,
                             pollEverySecond,
                             maxWaitingTimeForCompletenessInSeconds
                         )
-                    }.then { result -> buildNumber to result }
-                }.then { (buildNumber, result) ->
-                    check(result == SUCCESS) {
-                        "$jobName failed, job did not end with status $SUCCESS but $result." +
-                            "\nVisit ${jobExecutionData.jobBaseUrl}$buildNumber/$endOfConsoleUrlSuffix for further information"
                     }
-                    authData to buildNumber
                 }
         }.unsafeCast<Promise<Pair<AuthData, Int>>>()
     }
 
-    private fun getQueuedItemUrlOrJobUrlAsFallback(
-        nullableQueuedItemUrl: String?,
-        jobExecutionData: JobExecutionData
-    ) = if (nullableQueuedItemUrl != null) "${nullableQueuedItemUrl}api/xml/" else jobExecutionData.jobBaseUrl
-
-    private fun extractBuildNumber(
-        nullableQueuedItemUrl: String?,
-        authData: AuthData,
-        jobExecutionData: JobExecutionData
-    ): Promise<Int> {
-        return if (nullableQueuedItemUrl != null) {
-            QueuedItemBasedBuildNumberExtractor(authData, nullableQueuedItemUrl).extract()
-        } else {
-            BuildHistoryBasedBuildNumberExtractor(authData, jobExecutionData).extract()
-        }
-    }
-
-    private fun issueCrumb(
-        jenkinsBaseUrl: String,
-        usernameAndApiToken: UsernameAndApiToken
-    ): Promise<AuthData> {
-        val url = "$jenkinsBaseUrl/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)"
-        val headers = createHeaderWithAuthAndCrumb(AuthData(usernameAndApiToken, null))
-        val init = createGetRequest(headers)
-        return window.fetch(url, init)
-            .then(::checkStatusOkOr404)
-            .catch<Pair<Response, String?>> {
-                throw Error("Cannot issue a crumb", it)
-            }.then { (_, crumbWithIdString) ->
-                val crumbWithId = if (crumbWithIdString != null) {
-                    val (id, crumb) = crumbWithIdString.split(':')
-                    CrumbWithId(id, crumb)
-                } else {
-                    null
-                }
-                AuthData(usernameAndApiToken, crumbWithId)
-            }
-    }
+    private fun getQueuedItemUrlOrNull(nullableQueuedItemUrl: String?)
+        = if (nullableQueuedItemUrl != null) "${nullableQueuedItemUrl}api/xml/" else null
 
     private fun triggerJob(authData: AuthData, jobExecutionData: JobExecutionData): Promise<Response> {
         val headers = createHeaderWithAuthAndCrumb(authData)
@@ -131,6 +90,65 @@ class JenkinsJobExecutor(
         }
     }
 
+    private fun extractBuildNumber(
+        nullableQueuedItemUrl: String?,
+        authData: AuthData,
+        jobExecutionData: JobExecutionData
+    ): Promise<Int> {
+        return if (nullableQueuedItemUrl != null) {
+            QueuedItemBasedBuildNumberExtractor(authData, nullableQueuedItemUrl).extract()
+        } else {
+            BuildHistoryBasedBuildNumberExtractor(authData, jobExecutionData).extract()
+        }
+    }
+
+    override fun rePoll(
+        jobExecutionData: JobExecutionData,
+        buildNumber: Int,
+        pollEverySecond: Int,
+        maxWaitingTimeForCompletenessInSeconds: Int
+    ): Promise<Pair<AuthData, Int>> {
+        val jenkinsBaseUrl = jobExecutionData.getJenkinsBaseUrl()
+        val usernameAndApiToken = usernameTokenRegistry.forHostOrThrow(jenkinsBaseUrl)
+        return issueCrumb(jenkinsBaseUrl, usernameAndApiToken).then { authData ->
+            pollJobForCompletion(
+                authData,
+                jobExecutionData,
+                buildNumber,
+                pollEverySecond,
+                maxWaitingTimeForCompletenessInSeconds
+            )
+        }.then { it }
+    }
+
+
+    private fun pollJobForCompletion(
+        authData: AuthData,
+        jobExecutionData: JobExecutionData,
+        buildNumber: Int,
+        pollEverySecond: Int,
+        maxWaitingTimeForCompletenessInSeconds: Int
+    ): Promise<Pair<AuthData, Int>> {
+        return sleep(pollEverySecond * 500) {
+            pollAndExtract(
+                authData,
+                "${jobExecutionData.jobBaseUrl}$buildNumber/api/xml",
+                resultRegex,
+                pollEverySecond,
+                maxWaitingTimeForCompletenessInSeconds,
+                errorHandler = { e -> throw e }
+            )
+                .then { result -> buildNumber to result }
+                .then { (buildNumber, result) ->
+                    check(result == SUCCESS) {
+                        "${jobExecutionData.jobName} failed, job did not end with status $SUCCESS but $result." +
+                            "\nVisit ${jobExecutionData.jobBaseUrl}$buildNumber/$endOfConsoleUrlSuffix for further information"
+                    }
+                    authData to buildNumber
+                }
+        }.then { it }
+    }
+
     override fun pollAndExtract(
         authData: AuthData,
         url: String,
@@ -140,27 +158,6 @@ class JenkinsJobExecutor(
         errorHandler: (PollTimeoutException) -> Nothing
     ): Promise<String> {
         return Poller.pollAndExtract(authData, url, regex, pollEverySecond, maxWaitingTimeInSeconds, errorHandler)
-    }
-
-    private fun pollJobForCompletion(
-        authData: AuthData,
-        jobUrl: String,
-        buildNumber: Int,
-        pollEverySecond: Int,
-        maxWaitingTimeInSeconds: Int
-    ): Promise<String> {
-        // the job will most probably not be finished immediately (unless an error occurred) thus we wait half the
-        // polling time before we start polling.
-        return sleep(pollEverySecond * 500) {
-            pollAndExtract(
-                authData,
-                "$jobUrl$buildNumber/api/xml",
-                resultRegex,
-                pollEverySecond,
-                maxWaitingTimeInSeconds,
-                errorHandler = { e -> throw e }
-            )
-        }.unsafeCast<Promise<String>>()
     }
 
     companion object {

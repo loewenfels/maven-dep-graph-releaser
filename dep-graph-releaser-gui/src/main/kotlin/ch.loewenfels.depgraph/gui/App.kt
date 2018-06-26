@@ -1,17 +1,23 @@
 package ch.loewenfels.depgraph.gui
 
-import ch.loewenfels.depgraph.data.ReleasePlan
-import ch.loewenfels.depgraph.data.ReleaseState
+import ch.loewenfels.depgraph.data.*
+import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
+import ch.loewenfels.depgraph.data.serialization.CommandStateJson
 import ch.loewenfels.depgraph.gui.actions.Downloader
 import ch.loewenfels.depgraph.gui.actions.Publisher
 import ch.loewenfels.depgraph.gui.actions.Releaser
+import ch.loewenfels.depgraph.gui.components.Loader
 import ch.loewenfels.depgraph.gui.components.Menu
 import ch.loewenfels.depgraph.gui.jobexecution.*
+import ch.loewenfels.depgraph.gui.recovery.recover
 import ch.loewenfels.depgraph.gui.serialization.ModifiableState
+import ch.loewenfels.depgraph.gui.serialization.ProjectJson
+import ch.loewenfels.depgraph.gui.serialization.ReleasePlanJson
+import ch.loewenfels.depgraph.gui.serialization.deserializeProjectId
 import ch.loewenfels.depgraph.parseRemoteRegex
 import org.w3c.fetch.Response
 import kotlin.browser.window
-import kotlin.js.Promise
+import kotlin.js.*
 
 class App {
     private val publishJobUrl: String?
@@ -19,7 +25,7 @@ class App {
     private val menu: Menu
 
     init {
-        switchLoader("loaderJs", "loaderApiToken")
+        Loader.updateLoaderToLoadApiToken()
 
         val jsonUrl = determineJsonUrlOrThrow()
         publishJobUrl = determinePublishJob()
@@ -53,33 +59,35 @@ class App {
     private fun start(jsonUrl: String) {
         retrieveUserAndApiToken().then { usernameAndApiToken ->
             display("gui", "block")
-            switchLoader("loaderApiToken", "loaderJson")
+            Loader.updateToLoadingJson()
 
             loadJsonAndCheckStatus(jsonUrl, usernameAndApiToken)
                 .then { (_, body) ->
-                    switchLoader("loaderJson", "loaderPipeline")
                     val modifiableState = ModifiableState(defaultJenkinsBaseUrl, body)
                     val releasePlan = modifiableState.releasePlan
                     val promise = if (usernameAndApiToken != null) {
+                        Loader.updateToLoadOtherTokens()
                         loadOtherApiTokens(releasePlan)
                     } else {
                         Promise.resolve(Unit)
                     }
                     promise.then { modifiableState }
                 }.then { modifiableState ->
+                    val promise = if (modifiableState.releasePlan.state == ReleaseState.IN_PROGRESS) {
+                        Loader.updateToRecoverOngoingProcess()
+                        recover(modifiableState, defaultJenkinsBaseUrl)
+                    } else {
+                        Promise.resolve(modifiableState)
+                    }
+                    promise
+                }.then { modifiableState ->
+                    Loader.updateToLoadPipeline()
+                    Gui(modifiableState, menu)
                     val dependencies = createDependencies(
                         defaultJenkinsBaseUrl, publishJobUrl, modifiableState, menu
                     )
                     menu.initDependencies(Downloader(modifiableState), dependencies, modifiableState)
-                    val promise = if (modifiableState.releasePlan.state == ReleaseState.IN_PROGRESS) {
-                        recoverInProgress(modifiableState)
-                    } else {
-                        Promise.resolve(Unit)
-                    }
-                    promise.then { modifiableState }
-                }.then { modifiableState ->
-                    Gui(modifiableState, menu)
-                    switchLoaderPipelineWithPipeline()
+                    switchLoaderWithPipeline()
                 }
                 .catch {
                     showThrowableAndThrow(it)
@@ -88,7 +96,6 @@ class App {
     }
 
     private fun loadOtherApiTokens(releasePlan: ReleasePlan): Promise<*> {
-
         val remoteRegex = parseRemoteRegex(releasePlan)
         val mutableList = ArrayList<Promise<*>>(remoteRegex.size)
 
@@ -135,22 +142,10 @@ class App {
         menu.appendToUserButtonToolTip(url, pair?.second?.username ?: "Anonymous", pair?.first)
     }
 
-
-    private fun recoverInProgress(modifiableState: ModifiableState): Promise<Unit> {
-        showWarning("ReleaseState is IN_PROGRESS, we do not support recovery from an ongoing process yet.")
-        return Promise.resolve(Unit)
-    }
-
-    private fun switchLoaderPipelineWithPipeline() {
-        display("loaderPipeline", "none")
+    private fun switchLoaderWithPipeline() {
+        display("loader", "none")
         display("pipeline", "table")
     }
-
-    private fun switchLoader(firstLoader: String, secondLoader: String) {
-        display(firstLoader, "none")
-        display(secondLoader, "block")
-    }
-
 
 
     companion object {

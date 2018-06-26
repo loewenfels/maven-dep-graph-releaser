@@ -135,13 +135,26 @@ class Menu(
         initExportButtons(modifiableState)
 
         val releasePlan = modifiableState.releasePlan
-        when (releasePlan.state) {
+        return when (releasePlan.state) {
             ReleaseState.READY -> Unit /* nothing to do */
-            ReleaseState.IN_PROGRESS -> dispatchProcessStart()
+            ReleaseState.IN_PROGRESS -> restartProcess(modifiableState, dependencies)
             ReleaseState.FAILED, ReleaseState.SUCCEEDED -> {
                 dispatchProcessStart()
                 dispatchProcessEnd(success = releasePlan.state == ReleaseState.SUCCEEDED)
             }
+            ReleaseState.WATCHING -> dispatchProcessStart()
+        }
+    }
+
+    private fun restartProcess(modifiableState: ModifiableState, dependencies: Dependencies?) {
+        if (dependencies != null) {
+            when (modifiableState.releasePlan.typeOfRun) {
+                TypeOfRun.EXPLORE -> startExploration(modifiableState, dependencies)
+                TypeOfRun.DRY_RUN -> startDryRun(modifiableState, dependencies)
+                TypeOfRun.RELEASE -> startRelease(modifiableState, dependencies)
+            }
+        } else if (modifiableState.releasePlan.typeOfRun == TypeOfRun.EXPLORE) {
+            startExploration(modifiableState, null)
         }
     }
 
@@ -166,48 +179,19 @@ class Menu(
 
             activateDryRunButton()
             dryRunButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                triggerProcess(
-                    modifiableState.releasePlan,
-                    dependencies,
-                    dependencies.jenkinsJobExecutor,
-                    modifiableState.dryRunExecutionDataFactory,
-                    TypeOfRun.DRY_RUN
-                )
+                startDryRun(modifiableState, dependencies)
             }
             activateReleaseButton()
             releaseButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-                triggerProcess(
-                    modifiableState.releasePlan,
-                    dependencies,
-                    dependencies.jenkinsJobExecutor,
-                    modifiableState.releaseJobExecutionDataFactory,
-                    TypeOfRun.RELEASE
-                )
+                startRelease(modifiableState, dependencies)
             }
         }
 
         activateExploreButton()
-        val fakeJenkinsBaseUrl = "https://github.com/loewenfels/"
-        val nonNullDependencies = dependencies ?: App.createDependencies(
-            fakeJenkinsBaseUrl,
-            "${fakeJenkinsBaseUrl}dgr-publisher/",
-            modifiableState,
-            this
-        )!!
-
         exploreButton.addClickEventListenerIfNotDeactivatedNorDisabled {
-            publisher = nonNullDependencies.publisher
-            triggerProcess(
-                modifiableState.releasePlan,
-                nonNullDependencies,
-                nonNullDependencies.simulatingJobExecutor,
-                modifiableState.releaseJobExecutionDataFactory,
-                TypeOfRun.SIMULATION
-            ).finally {
-                //reset to null in case it was not defined previously
-                publisher = dependencies?.publisher
-            }
+            startExploration(modifiableState, dependencies)
         }
+
         registerForProcessStartEvent {
             listOf(dryRunButton, releaseButton, exploreButton).forEach {
                 it.addClass(DISABLED)
@@ -258,6 +242,56 @@ class Menu(
                 buttonText.innerText = "Re-trigger failed Jobs"
                 button.title = "Continue with the process '$processName' by re-processing previously failed projects."
             }
+        }
+    }
+
+    private fun startDryRun(
+        modifiableState: ModifiableState,
+        dependencies: Dependencies
+    ): Promise<*> {
+        return triggerProcess(
+            modifiableState.releasePlan,
+            dependencies,
+            dependencies.jenkinsJobExecutor,
+            modifiableState.dryRunExecutionDataFactory,
+            TypeOfRun.DRY_RUN
+        )
+    }
+
+    private fun startRelease(
+        modifiableState: ModifiableState,
+        dependencies: Dependencies
+    ): Promise<*> {
+        return triggerProcess(
+            modifiableState.releasePlan,
+            dependencies,
+            dependencies.jenkinsJobExecutor,
+            modifiableState.releaseJobExecutionDataFactory,
+            TypeOfRun.RELEASE
+        )
+    }
+
+    private fun startExploration(
+        modifiableState: ModifiableState,
+        dependencies: Dependencies?
+    ): Promise<Unit> {
+        val fakeJenkinsBaseUrl = "https://github.com/loewenfels/"
+        val nonNullDependencies = dependencies ?: App.createDependencies(
+            fakeJenkinsBaseUrl,
+            "${fakeJenkinsBaseUrl}dgr-publisher/",
+            modifiableState,
+            this
+        )!!
+        publisher = nonNullDependencies.publisher
+        return triggerProcess(
+            modifiableState.releasePlan,
+            nonNullDependencies,
+            nonNullDependencies.simulatingJobExecutor,
+            modifiableState.releaseJobExecutionDataFactory,
+            TypeOfRun.EXPLORE
+        ).finally {
+            //reset to null in case it was not defined previously
+            publisher = dependencies?.publisher
         }
     }
 
@@ -387,7 +421,8 @@ class Menu(
             },
             { t ->
                 dispatchProcessEnd(success = false)
-                throw t
+                // the user should see this, otherwise we only display it in the dev-console.
+                showThrowableAndThrow(t)
             }
         )
     }
@@ -651,23 +686,13 @@ class Menu(
 
 
         fun getCurrentRunData(): Triple<String, HTMLElement, HTMLElement> {
-            return when (modifiableState.releasePlan.typeOfRun) {
-                TypeOfRun.SIMULATION -> Triple(
-                    "Explore Release Order",
-                    exploreButton,
-                    elementById("explore:text")
-                )
-                TypeOfRun.DRY_RUN -> Triple(
-                    "Dry Run",
-                    dryRunButton,
-                    elementById("dryRun:text")
-                )
-                TypeOfRun.RELEASE -> Triple(
-                    "Release",
-                    releaseButton,
-                    elementById("release:text")
-                )
+            val typeOfRun = modifiableState.releasePlan.typeOfRun
+            val buttonPair = when (typeOfRun) {
+                TypeOfRun.EXPLORE -> exploreButton to elementById("explore:text")
+                TypeOfRun.DRY_RUN -> dryRunButton to elementById("dryRun:text")
+                TypeOfRun.RELEASE -> releaseButton to elementById("release:text")
             }
+            return Triple(typeOfRun.toProcessName(), buttonPair.first, buttonPair.second)
         }
 
         private fun isInputFieldOfNonSuccessfulCommand(id: String): Boolean {

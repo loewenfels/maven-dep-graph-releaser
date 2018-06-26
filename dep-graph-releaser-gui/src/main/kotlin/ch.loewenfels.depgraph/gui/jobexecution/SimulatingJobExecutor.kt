@@ -1,6 +1,7 @@
 package ch.loewenfels.depgraph.gui.jobexecution
 
-import ch.loewenfels.depgraph.gui.*
+import ch.loewenfels.depgraph.gui.showAlert
+import ch.loewenfels.depgraph.gui.sleep
 import failAfterSteps
 import stepWise
 import waitBetweenSteps
@@ -22,7 +23,7 @@ class SimulatingJobExecutor : JobExecutor {
 
     override fun trigger(
         jobExecutionData: JobExecutionData,
-        jobQueuedHook: (queuedItemUrl: String) -> Promise<*>,
+        jobQueuedHook: (queuedItemUrl: String?) -> Promise<*>,
         jobStartedHook: (buildNumber: Int) -> Promise<*>,
         pollEverySecond: Int,
         maxWaitingTimeForCompletenessInSeconds: Int,
@@ -39,16 +40,10 @@ class SimulatingJobExecutor : JobExecutor {
             }
         }.then {
             sleep(waitBetweenSteps) {
-                ++count
-                if (count > failAfterSteps) check(false) { count = -3; "simulating a failure for $jobName" }
-                informIfStepWise("job $jobName ended")
-                    .then { true }
+                simulateJobFinished(jobExecutionData)
             }
         }.then {
-            AuthData(
-                UsernameAndApiToken("simulating-user", "random-api-token"),
-                CrumbWithId("Jenkins-Crumb", "onlySimulation")
-            ) to 100
+            getFakeAuthDataAndBuildNumber()
         }
     }
 
@@ -60,11 +55,40 @@ class SimulatingJobExecutor : JobExecutor {
         }
     }
 
+    override fun rePoll(
+        jobExecutionData: JobExecutionData,
+        buildNumber: Int,
+        pollEverySecond: Int,
+        maxWaitingTimeForCompletenessInSeconds: Int
+    ): Promise<Pair<AuthData, Int>> {
+        return sleep(waitBetweenSteps) {
+            simulateJobFinished(jobExecutionData)
+        }.then {
+            getFakeAuthDataAndBuildNumber()
+        }
+    }
+
+    private fun simulateJobFinished(jobExecutionData: JobExecutionData): Promise<Boolean> {
+        ++count
+        if (count > failAfterSteps) check(false) {
+            count = -3; "simulating a failure for ${jobExecutionData.jobName}"
+        }
+        return informIfStepWise("job ${jobExecutionData.jobName} ended")
+            .then { true }
+    }
+
     private fun informIfStepWise(msg: String): Promise<Unit> {
         return if (stepWise) {
             showAlert(msg)
         } else {
             Promise.resolve(Unit)
         }
+    }
+
+    private fun getFakeAuthDataAndBuildNumber(): Pair<AuthData, Int> {
+        return AuthData(
+            UsernameAndApiToken("simulating-user", "random-api-token"),
+            CrumbWithId("Jenkins-Crumb", "onlySimulation")
+        ) to 100
     }
 }

@@ -6,7 +6,7 @@ import ch.loewenfels.depgraph.gui.jobexecution.JobExecutionDataFactory
 import ch.loewenfels.depgraph.gui.jobexecution.ReleaseJobExecutionDataFactory
 
 class ModifiableState(defaultJenkinsBaseUrl: String?, json: String) {
-    private val defaultJenkinsBaseUrl : String
+    private val defaultJenkinsBaseUrl: String
 
     private var _json: String
     var json: String
@@ -36,7 +36,12 @@ class ModifiableState(defaultJenkinsBaseUrl: String?, json: String) {
             _releasePlan = value
         }
 
-    init{
+    /**
+     * Copy constructor, takes over the [defaultJenkinsBaseUrl] from the given [modifiableState]
+     */
+    constructor(modifiableState: ModifiableState, json: String): this(modifiableState.defaultJenkinsBaseUrl, json)
+
+    init {
         val fakeJenkinsBaseUrl = "https://github.com/loewenfels/"
         this.defaultJenkinsBaseUrl = defaultJenkinsBaseUrl ?: fakeJenkinsBaseUrl
         _json = json

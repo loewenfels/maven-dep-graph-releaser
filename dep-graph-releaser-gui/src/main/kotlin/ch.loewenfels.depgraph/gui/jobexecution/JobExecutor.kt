@@ -6,11 +6,18 @@ interface JobExecutor {
 
     fun trigger(
         jobExecutionData: JobExecutionData,
-        jobQueuedHook: (queuedItemUrl: String) -> Promise<*>,
+        jobQueuedHook: (queuedItemUrl: String?) -> Promise<*>,
         jobStartedHook: (buildNumber: Int) -> Promise<*>,
         pollEverySecond: Int,
         maxWaitingTimeForCompletenessInSeconds: Int,
         verbose: Boolean = true
+    ): Promise<Pair<AuthData, Int>>
+
+    fun rePoll(
+        jobExecutionData: JobExecutionData,
+        buildNumber: Int,
+        pollEverySecond: Int,
+        maxWaitingTimeForCompletenessInSeconds: Int
     ): Promise<Pair<AuthData, Int>>
 
     fun pollAndExtract(

@@ -1,6 +1,7 @@
 package ch.loewenfels.depgraph.gui.actions
 
 import ch.loewenfels.depgraph.data.*
+import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsCommand
 import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.components.Menu
 import ch.loewenfels.depgraph.gui.components.Pipeline
@@ -20,7 +21,7 @@ class Releaser(
 
     private val isOnSameHost: Boolean
 
-    init{
+    init {
         val prefix = window.location.protocol + "//" + window.location.hostname
         isOnSameHost = defaultJenkinsBaseUrl.startsWith(prefix)
     }
@@ -31,7 +32,12 @@ class Releaser(
         val paramObject = ParamObject(
             modifiableState.releasePlan, jobExecutor, jobExecutionDataFactory, rootProject, hashMapOf(), hashMapOf()
         )
+        changeCursorToProgress()
         return release(paramObject)
+            .finally {
+                changeCursorBackToNormal()
+                it ?: false
+            }
     }
 
     private fun warnIfNotOnSameHost() {
@@ -45,7 +51,9 @@ class Releaser(
     }
 
     private fun release(paramObject: ParamObject): Promise<Boolean> {
-        Pipeline.changeReleaseState(ReleaseState.IN_PROGRESS)
+        if (modifiableState.releasePlan.state != ReleaseState.IN_PROGRESS) {
+            Pipeline.changeReleaseState(ReleaseState.IN_PROGRESS)
+        }
         return releaseProject(paramObject)
             .then {
                 val (result, newState) = checkProjectStates(paramObject)
@@ -83,14 +91,16 @@ class Releaser(
             val erroneousProjects = paramObject.projectResults.entries
                 .filter {
                     it.value !== CommandState.Failed && it.value !== CommandState.Succeeded &&
-                    it.value !is CommandState.Deactivated && it.value !== CommandState.Disabled
+                        it.value !is CommandState.Deactivated && it.value !== CommandState.Disabled
                 }
             if (erroneousProjects.isNotEmpty()) {
-                showError("""
+                showError(
+                    """
                         |Seems like there is a bug since no command failed but not all commands are in status Succeeded.
                         |Please report a bug at $GITHUB_NEW_ISSUE - the following projects where affected:
                         |${erroneousProjects.joinToString("\n") { it.key.identifier }}
-                    """.trimMargin())
+                    """.trimMargin()
+                )
             }
         }
     }
@@ -202,6 +212,8 @@ class Releaser(
         val state = Pipeline.getCommandState(paramObject.project.id, index)
         return if (state === CommandState.Ready || state === CommandState.ReadyToReTrigger) {
             triggerCommand(paramObject, command, index)
+        } else if (state === CommandState.RePolling) {
+            rePollCommand(paramObject, command, index)
         } else {
             Promise.resolve(state)
         }
@@ -212,18 +224,56 @@ class Releaser(
         return triggerJob(paramObject, index, jobExecutionData)
     }
 
+    private fun rePollCommand(
+        paramObject: ParamObject,
+        command: Command,
+        index: Int
+    ): Promise<CommandState> {
+        if (command !is JenkinsCommand) {
+            throw IllegalStateException("We do not know how to re-poll a non Jenkins command.\nGiven Command: $command")
+        }
+        val buildUrl = command.buildUrl
+            ?: throw IllegalStateException("We do not know how to re-poll a Jenkins command if it does not have a specified build url.\nGiven Command: $command")
+
+        val jobExecutionData = paramObject.jobExecutionDataFactory.create(paramObject.project, command)
+        val buildNumber = extractBuildNumberFromUrl(buildUrl, jobExecutionData, paramObject.project, index)
+        return paramObject.jobExecutor.rePoll(
+            jobExecutionData,
+            buildNumber,
+            POLL_EVERY_SECOND,
+            MAX_WAIT_FOR_COMPLETION
+        ).finalizeJob(paramObject, jobExecutionData, index)
+    }
+
+    private fun extractBuildNumberFromUrl(
+        buildUrl: String,
+        jobExecutionData: JobExecutionData,
+        project: Project,
+        index: Int
+    ): Int {
+        return try {
+            buildUrl.substringAfter(jobExecutionData.jobBaseUrl).substringBefore("/").toInt()
+        } catch (e: NumberFormatException) {
+            val commandTitle = elementById(Pipeline.getCommandId(project, index) + Pipeline.TITLE_SUFFIX).innerText
+            throw IllegalStateException(
+                "Could not extract the buildNumber from the buildUrl, either a corrupt or outdated release.json." +
+                    "\nbuildUrl: $buildUrl" +
+                    "\njobBaseUrl: ${jobExecutionData.jobBaseUrl}" +
+                    "\nProject: ${project.id.identifier}" +
+                    "\nCommand: $commandTitle (${index + 1}. command)"
+            )
+        }
+    }
+
     private fun triggerJob(
         paramObject: ParamObject,
         index: Int,
         jobExecutionData: JobExecutionData
     ): Promise<CommandState> {
-        val project = paramObject.project
-        changeCursorToProgress()
-
         return paramObject.jobExecutor.trigger(jobExecutionData,
             { queuedItemUrl ->
-                Pipeline.changeStateOfCommandAndAddBuildUrl(
-                    project,
+                Pipeline.changeStateOfCommandAndAddBuildUrlIfSet(
+                    paramObject.project,
                     index,
                     CommandState.Queueing,
                     Pipeline.STATE_QUEUEING,
@@ -232,7 +282,7 @@ class Releaser(
                 quietSave(paramObject)
             }, { buildNumber ->
                 Pipeline.changeStateOfCommandAndAddBuildUrl(
-                    project,
+                    paramObject.project,
                     index,
                     CommandState.InProgress,
                     Pipeline.STATE_IN_PROGRESS,
@@ -240,45 +290,72 @@ class Releaser(
                 )
                 Promise.resolve(1)
             },
-            pollEverySecond = 5,
-            maxWaitingTimeForCompletenessInSeconds = 60 * 15,
+            POLL_EVERY_SECOND,
+            MAX_WAIT_FOR_COMPLETION,
             verbose = false
-        ).then(
-            onFulfilled = {
-                Pipeline.changeStateOfCommand(project, index, CommandState.Succeeded, Pipeline.STATE_SUCCEEDED)
-                CommandState.Succeeded
-            },
-            onRejected = { t ->
-                showThrowable(Error("Job ${jobExecutionData.jobName} failed", t))
-                val state = elementById<HTMLAnchorElement>(
-                    "${Pipeline.getCommandId(project, index)}${Pipeline.STATE_SUFFIX}"
-                )
-                val href = if (!state.href.endsWith(endOfConsoleUrlSuffix)) {
-                    state.href + endOfConsoleUrlSuffix
-                } else {
-                    state.href
-                }
-                Pipeline.changeStateOfCommandAndAddBuildUrl(project, index, CommandState.Failed,  Pipeline.STATE_FAILED, href)
-                CommandState.Failed
-            }
-        ).then { state ->
-            changeCursorBackToNormal()
-            state
+        ).finalizeJob(paramObject, jobExecutionData, index)
+    }
+
+    private fun Promise<*>.finalizeJob(
+        paramObject: ParamObject,
+        jobExecutionData: JobExecutionData,
+        index: Int
+    ): Promise<CommandState> {
+        return this.then(
+            onFulfilled = { onJobEndedSuccessFully(paramObject.project, index) },
+            onRejected = { t -> onJobEndedWithFailure(t, jobExecutionData, paramObject.project, index) }
+        )
+    }
+
+    private fun onJobEndedSuccessFully(project: Project, index: Int): CommandState {
+        Pipeline.changeStateOfCommand(project, index, CommandState.Succeeded, Pipeline.STATE_SUCCEEDED)
+        return CommandState.Succeeded
+    }
+
+    private fun onJobEndedWithFailure(
+        t: Throwable,
+        jobExecutionData: JobExecutionData,
+        project: Project,
+        index: Int
+    ): CommandState {
+        showThrowable(Error("Job ${jobExecutionData.jobName} failed", t))
+        val state = elementById<HTMLAnchorElement>(
+            "${Pipeline.getCommandId(project, index)}${Pipeline.STATE_SUFFIX}"
+        )
+        val href = if (!state.href.endsWith(endOfConsoleUrlSuffix)) {
+            state.href + endOfConsoleUrlSuffix
+        } else {
+            state.href
         }
+        Pipeline.changeStateOfCommandAndAddBuildUrl(
+            project,
+            index,
+            CommandState.Failed,
+            Pipeline.STATE_FAILED,
+            href
+        )
+        return CommandState.Failed
     }
 
     private fun quietSave(paramObject: ParamObject, verbose: Boolean = false): Promise<Unit> {
         return menu.save(paramObject.jobExecutor, verbose)
             .then { hadChanges ->
                 if (!hadChanges) {
-                    showWarning("Could not save changes for project ${paramObject.project.id.identifier}." +
-                        "\nPlease report a bug: $GITHUB_NEW_ISSUE")
+                    showWarning(
+                        "Could not save changes for project ${paramObject.project.id.identifier}." +
+                            "\nPlease report a bug: $GITHUB_NEW_ISSUE"
+                    )
                 }
             }.catch {
                 console.error("save failed for ${paramObject.project}", it)
                 // we ignore if a save fails at this point,
                 // the next command performs a save as well and we track if the final save fails
             }
+    }
+
+    companion object {
+        const val POLL_EVERY_SECOND = 5
+        const val MAX_WAIT_FOR_COMPLETION = 60 * 15
     }
 
     private data class ParamObject(
