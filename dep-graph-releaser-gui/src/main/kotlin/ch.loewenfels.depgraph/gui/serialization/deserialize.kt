@@ -70,27 +70,19 @@ fun deserializeProjects(releasePlanJson: ReleasePlanJson): Map<ProjectId, Projec
         val projectId = deserializeProjectId(it.id)
         map[projectId] = Project(
             projectId, it.isSubmodule, it.currentVersion, it.releaseVersion, it.level,
-            deserializeCommands(it.commands),
+            it.commands.map { deserializeCommand(it) },
             it.relativePath
         )
     }
     return map
 }
 
-fun deserializeCommands(commands: Array<GenericType<Command>>): List<Command> {
-    return commands.map {
-        when (it.t) {
-            JENKINS_MAVEN_RELEASE_PLUGIN -> createJenkinsMavenReleasePlugin(
-                it.p
-            )
-            JENKINS_MULTI_MAVEN_RELEASE_PLUGIN -> createJenkinsMultiMavenReleasePlugin(
-                it.p
-            )
-            JENKINS_UPDATE_DEPENDENCY -> createJenkinsUpdateDependency(
-                it.p
-            )
-            else -> throw UnsupportedOperationException("${it.t} is not supported.")
-        }
+fun deserializeCommand(it: GenericType<Command>): Command {
+    return when (it.t) {
+        JENKINS_MAVEN_RELEASE_PLUGIN -> createJenkinsMavenReleasePlugin(it.p)
+        JENKINS_MULTI_MAVEN_RELEASE_PLUGIN -> createJenkinsMultiMavenReleasePlugin(it.p)
+        JENKINS_UPDATE_DEPENDENCY -> createJenkinsUpdateDependency(it.p)
+        else -> throw UnsupportedOperationException("${it.t} is not supported.")
     }
 }
 

@@ -68,40 +68,6 @@ class JenkinsJobExecutor(
     private fun getQueuedItemUrlOrNull(nullableQueuedItemUrl: String?)
         = if (nullableQueuedItemUrl != null) "${nullableQueuedItemUrl}api/xml/" else null
 
-    private fun extractBuildNumber(
-        nullableQueuedItemUrl: String?,
-        authData: AuthData,
-        jobExecutionData: JobExecutionData
-    ): Promise<Int> {
-        return if (nullableQueuedItemUrl != null) {
-            QueuedItemBasedBuildNumberExtractor(authData, nullableQueuedItemUrl).extract()
-        } else {
-            BuildHistoryBasedBuildNumberExtractor(authData, jobExecutionData).extract()
-        }
-    }
-
-    private fun issueCrumb(
-        jenkinsBaseUrl: String,
-        usernameAndApiToken: UsernameAndApiToken
-    ): Promise<AuthData> {
-        val url = "$jenkinsBaseUrl/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)"
-        val headers = createHeaderWithAuthAndCrumb(AuthData(usernameAndApiToken, null))
-        val init = createGetRequest(headers)
-        return window.fetch(url, init)
-            .then(::checkStatusOkOr404)
-            .catch<Pair<Response, String?>> {
-                throw Error("Cannot issue a crumb", it)
-            }.then { (_, crumbWithIdString) ->
-                val crumbWithId = if (crumbWithIdString != null) {
-                    val (id, crumb) = crumbWithIdString.split(':')
-                    CrumbWithId(id, crumb)
-                } else {
-                    null
-                }
-                AuthData(usernameAndApiToken, crumbWithId)
-            }
-    }
-
     private fun triggerJob(authData: AuthData, jobExecutionData: JobExecutionData): Promise<Response> {
         val headers = createHeaderWithAuthAndCrumb(authData)
         headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8"
