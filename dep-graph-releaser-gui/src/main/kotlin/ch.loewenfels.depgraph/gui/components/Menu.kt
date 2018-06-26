@@ -421,7 +421,8 @@ class Menu(
             },
             { t ->
                 dispatchProcessEnd(success = false)
-                throw t
+                // the user should see this, otherwise we only display it in the dev-console.
+                showThrowableAndThrow(t)
             }
         )
     }

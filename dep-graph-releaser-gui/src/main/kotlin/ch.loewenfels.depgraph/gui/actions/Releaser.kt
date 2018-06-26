@@ -32,7 +32,12 @@ class Releaser(
         val paramObject = ParamObject(
             modifiableState.releasePlan, jobExecutor, jobExecutionDataFactory, rootProject, hashMapOf(), hashMapOf()
         )
+        changeCursorToProgress()
         return release(paramObject)
+            .finally {
+                changeCursorBackToNormal()
+                it ?: false
+            }
     }
 
     private fun warnIfNotOnSameHost() {
@@ -228,7 +233,7 @@ class Releaser(
             throw IllegalStateException("We do not know how to re-poll a non Jenkins command.\nGiven Command: $command")
         }
         val buildUrl = command.buildUrl
-            ?: throw IllegalStateException("We do not know how to re-poll a non Jenkins command if it has a specified build url.\nGiven Command: $command")
+            ?: throw IllegalStateException("We do not know how to re-poll a Jenkins command if it does not have a specified build url.\nGiven Command: $command")
 
         val jobExecutionData = paramObject.jobExecutionDataFactory.create(paramObject.project, command)
         val buildNumber = buildUrl.substringAfter(jobExecutionData.jobBaseUrl).substringBefore("/").toInt()
@@ -237,6 +242,37 @@ class Releaser(
             buildNumber,
             POLL_EVERY_SECOND,
             MAX_WAIT_FOR_COMPLETION
+        ).finalizeJob(paramObject, jobExecutionData, index)
+    }
+
+    private fun triggerJob(
+        paramObject: ParamObject,
+        index: Int,
+        jobExecutionData: JobExecutionData
+    ): Promise<CommandState> {
+        return paramObject.jobExecutor.trigger(jobExecutionData,
+            { queuedItemUrl ->
+                Pipeline.changeStateOfCommandAndAddBuildUrlIfSet(
+                    paramObject.project,
+                    index,
+                    CommandState.Queueing,
+                    Pipeline.STATE_QUEUEING,
+                    queuedItemUrl
+                )
+                quietSave(paramObject)
+            }, { buildNumber ->
+                Pipeline.changeStateOfCommandAndAddBuildUrl(
+                    paramObject.project,
+                    index,
+                    CommandState.InProgress,
+                    Pipeline.STATE_IN_PROGRESS,
+                    "${jobExecutionData.jobBaseUrl}$buildNumber/"
+                )
+                Promise.resolve(1)
+            },
+            POLL_EVERY_SECOND,
+            MAX_WAIT_FOR_COMPLETION,
+            verbose = false
         ).finalizeJob(paramObject, jobExecutionData, index)
     }
 
@@ -249,44 +285,6 @@ class Releaser(
             onFulfilled = { onJobEndedSuccessFully(paramObject.project, index) },
             onRejected = { t -> onJobEndedWithFailure(t, jobExecutionData, paramObject.project, index) }
         )
-    }
-
-    private fun triggerJob(
-        paramObject: ParamObject,
-        index: Int,
-        jobExecutionData: JobExecutionData
-    ): Promise<CommandState> {
-        val project = paramObject.project
-        changeCursorToProgress()
-
-        return paramObject.jobExecutor.trigger(jobExecutionData,
-            { queuedItemUrl ->
-                Pipeline.changeStateOfCommandAndAddBuildUrlIfSet(
-                    project,
-                    index,
-                    CommandState.Queueing,
-                    Pipeline.STATE_QUEUEING,
-                    queuedItemUrl
-                )
-                quietSave(paramObject)
-            }, { buildNumber ->
-                Pipeline.changeStateOfCommandAndAddBuildUrl(
-                    project,
-                    index,
-                    CommandState.InProgress,
-                    Pipeline.STATE_IN_PROGRESS,
-                    "${jobExecutionData.jobBaseUrl}$buildNumber/"
-                )
-                Promise.resolve(1)
-            },
-            POLL_EVERY_SECOND,
-            MAX_WAIT_FOR_COMPLETION,
-            verbose = false
-        ).finalizeJob(paramObject, jobExecutionData, index)
-            .then { state ->
-                changeCursorBackToNormal()
-                state
-            }
     }
 
     private fun onJobEndedSuccessFully(project: Project, index: Int): CommandState {
