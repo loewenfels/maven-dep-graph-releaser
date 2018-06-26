@@ -20,7 +20,7 @@ class Releaser(
 
     private val isOnSameHost: Boolean
 
-    init{
+    init {
         val prefix = window.location.protocol + "//" + window.location.hostname
         isOnSameHost = defaultJenkinsBaseUrl.startsWith(prefix)
     }
@@ -83,14 +83,16 @@ class Releaser(
             val erroneousProjects = paramObject.projectResults.entries
                 .filter {
                     it.value !== CommandState.Failed && it.value !== CommandState.Succeeded &&
-                    it.value !is CommandState.Deactivated && it.value !== CommandState.Disabled
+                        it.value !is CommandState.Deactivated && it.value !== CommandState.Disabled
                 }
             if (erroneousProjects.isNotEmpty()) {
-                showError("""
+                showError(
+                    """
                         |Seems like there is a bug since no command failed but not all commands are in status Succeeded.
                         |Please report a bug at $GITHUB_NEW_ISSUE - the following projects where affected:
                         |${erroneousProjects.joinToString("\n") { it.key.identifier }}
-                    """.trimMargin())
+                    """.trimMargin()
+                )
             }
         }
     }
@@ -222,7 +224,7 @@ class Releaser(
 
         return paramObject.jobExecutor.trigger(jobExecutionData,
             { queuedItemUrl ->
-                Pipeline.changeStateOfCommandAndAddBuildUrl(
+                Pipeline.changeStateOfCommandAndAddBuildUrlIfSet(
                     project,
                     index,
                     CommandState.Queueing,
@@ -258,7 +260,13 @@ class Releaser(
                 } else {
                     state.href
                 }
-                Pipeline.changeStateOfCommandAndAddBuildUrl(project, index, CommandState.Failed,  Pipeline.STATE_FAILED, href)
+                Pipeline.changeStateOfCommandAndAddBuildUrl(
+                    project,
+                    index,
+                    CommandState.Failed,
+                    Pipeline.STATE_FAILED,
+                    href
+                )
                 CommandState.Failed
             }
         ).then { state ->
@@ -271,8 +279,10 @@ class Releaser(
         return menu.save(paramObject.jobExecutor, verbose)
             .then { hadChanges ->
                 if (!hadChanges) {
-                    showWarning("Could not save changes for project ${paramObject.project.id.identifier}." +
-                        "\nPlease report a bug: $GITHUB_NEW_ISSUE")
+                    showWarning(
+                        "Could not save changes for project ${paramObject.project.id.identifier}." +
+                            "\nPlease report a bug: $GITHUB_NEW_ISSUE"
+                    )
                 }
             }.catch {
                 console.error("save failed for ${paramObject.project}", it)

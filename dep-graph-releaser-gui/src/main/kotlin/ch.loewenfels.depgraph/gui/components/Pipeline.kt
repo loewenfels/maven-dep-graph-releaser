@@ -6,9 +6,12 @@ import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsCommand
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsMultiMavenReleasePlugin
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsUpdateDependency
-import ch.loewenfels.depgraph.gui.*
+import ch.loewenfels.depgraph.gui.elementById
+import ch.loewenfels.depgraph.gui.getCheckbox
+import ch.loewenfels.depgraph.gui.getUnderlyingHtmlElement
 import ch.loewenfels.depgraph.gui.jobexecution.GITHUB_NEW_ISSUE
 import ch.loewenfels.depgraph.gui.serialization.ModifiableState
+import ch.loewenfels.depgraph.gui.showError
 import ch.loewenfels.depgraph.hasNextOnTheSameLevel
 import ch.tutteli.kbox.toPeekingIterator
 import kotlinx.html.*
@@ -282,9 +285,19 @@ class Pipeline(private val modifiableState: ModifiableState, private val menu: M
             newState: CommandState,
             title: String,
             buildUrl: String
+        ) = changeStateOfCommandAndAddBuildUrlIfSet(project, index, newState, title, buildUrl)
+
+        fun changeStateOfCommandAndAddBuildUrlIfSet(
+            project: Project,
+            index: Int,
+            newState: CommandState,
+            title: String,
+            buildUrl: String?
         ) {
             changeStateOfCommand(project, index, newState, title)
-            changeBuildUrlOfCommand(project, index, buildUrl)
+            if(buildUrl != null){
+                changeBuildUrlOfCommand(project, index, buildUrl)
+            }
         }
 
         fun changeBuildUrlOfCommand(project: Project, index: Int, buildUrl: String) {

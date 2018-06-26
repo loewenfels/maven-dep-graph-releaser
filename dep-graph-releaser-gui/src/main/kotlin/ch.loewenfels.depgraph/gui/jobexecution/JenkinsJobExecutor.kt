@@ -12,7 +12,7 @@ class JenkinsJobExecutor(
 
     override fun trigger(
         jobExecutionData: JobExecutionData,
-        jobQueuedHook: (queuedItemUrl: String) -> Promise<*>,
+        jobQueuedHook: (queuedItemUrl: String?) -> Promise<*>,
         jobStartedHook: (buildNumber: Int) -> Promise<*>,
         pollEverySecond: Int,
         maxWaitingTimeForCompletenessInSeconds: Int,
@@ -35,7 +35,7 @@ class JenkinsJobExecutor(
                     jobExecutionData.queuedItemUrlExtractor.extract(authData, response, jobExecutionData)
                 }.then { nullableQueuedItemUrl: String? ->
                     showInfoQueuedItemIfVerbose(verbose, nullableQueuedItemUrl, jobName)
-                    val queuedItemUrl = getQueuedItemUrlOrJobUrlAsFallback(nullableQueuedItemUrl, jobExecutionData)
+                    val queuedItemUrl = getQueuedItemUrlOrNull(nullableQueuedItemUrl)
                     jobQueuedHook(queuedItemUrl).then {
                         extractBuildNumber(nullableQueuedItemUrl, authData, jobExecutionData)
                     }.then { it }
@@ -65,10 +65,8 @@ class JenkinsJobExecutor(
         }.unsafeCast<Promise<Pair<AuthData, Int>>>()
     }
 
-    private fun getQueuedItemUrlOrJobUrlAsFallback(
-        nullableQueuedItemUrl: String?,
-        jobExecutionData: JobExecutionData
-    ) = if (nullableQueuedItemUrl != null) "${nullableQueuedItemUrl}api/xml/" else jobExecutionData.jobBaseUrl
+    private fun getQueuedItemUrlOrNull(nullableQueuedItemUrl: String?)
+        = if (nullableQueuedItemUrl != null) "${nullableQueuedItemUrl}api/xml/" else null
 
     private fun extractBuildNumber(
         nullableQueuedItemUrl: String?,

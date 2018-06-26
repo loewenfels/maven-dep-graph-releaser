@@ -22,7 +22,7 @@ class SimulatingJobExecutor : JobExecutor {
 
     override fun trigger(
         jobExecutionData: JobExecutionData,
-        jobQueuedHook: (queuedItemUrl: String) -> Promise<*>,
+        jobQueuedHook: (queuedItemUrl: String?) -> Promise<*>,
         jobStartedHook: (buildNumber: Int) -> Promise<*>,
         pollEverySecond: Int,
         maxWaitingTimeForCompletenessInSeconds: Int,
