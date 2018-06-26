@@ -1,6 +1,5 @@
 package ch.loewenfels.depgraph.maven
 
-import java.util.regex.Matcher
 import java.util.regex.Pattern
 
 class VersionDeterminer {
@@ -17,17 +16,15 @@ class VersionDeterminer {
     private fun updateLastNumber(version: String): String {
         val matcher = LAST_NUMBER_PATTERN.matcher(version)
         return if (matcher.find()) {
-            val incrementedNumber = incrementNumber(matcher, 2)
+            val incrementedNumber = matcher.group(2).toInt() + 1
             matcher.replaceFirst("$1$incrementedNumber")
         } else {
             "$version.2"
         }
     }
 
-    private fun incrementNumber(matcher: Matcher, index: Int): Int = matcher.group(index).toInt() + 1
-
     companion object {
         private const val SNAPSHOT_SUFFIX = "-SNAPSHOT"
-        private val LAST_NUMBER_PATTERN = Pattern.compile("(.*\\.)?(\\d+)(.*)")
+        private val LAST_NUMBER_PATTERN = Pattern.compile("(.*\\.)?(\\d+)(?:.*)")
     }
 }
