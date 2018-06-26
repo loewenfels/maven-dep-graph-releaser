@@ -327,7 +327,7 @@ class Pipeline(private val modifiableState: ModifiableState, private val menu: M
                     throw IllegalStateException(
                         "Cannot change the state of the command to ${newState.getToStringRepresentation()}." +
                             "\nProject: ${project.id.identifier}" +
-                            "\nCommand: ${commandTitle.innerText} (${index + 1} command)" +
+                            "\nCommand: ${commandTitle.innerText} (${index + 1}. command)" +
                             "\nCurrent state: ${previousState.getToStringRepresentation()}",
                         e
                     )

@@ -1,7 +1,7 @@
 package ch.loewenfels.depgraph.gui.recovery
 
 import ch.loewenfels.depgraph.data.*
-import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
+import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsCommand
 import ch.loewenfels.depgraph.data.serialization.CommandStateJson
 import ch.loewenfels.depgraph.gui.App
 import ch.loewenfels.depgraph.gui.jobexecution.*
@@ -40,16 +40,18 @@ fun recover(modifiableState: ModifiableState, defaultJenkinsBaseUrl: String?): P
                 "We do not yet support tracking of a release process at the moment. Which means, what you see above is only a state of the process but the process as such has likely progressed already." +
                     "\nPlease open a feature request $GITHUB_NEW_ISSUE if you have the need of tracking a release (which runs in another tab/browser)."
             )
-            return@then Promise.resolve(modifiableState)
+            val releasePlanJson = JSON.parse<ReleasePlanJson>(modifiableState.json)
+            releasePlanJson.state = ReleaseState.WATCHING.name.unsafeCast<ReleaseState>()
+            return@then Promise.resolve(releasePlanJson)
         }
         recoverCommandStates(modifiableState, defaultJenkinsBaseUrl)
-    }.then { it }
+    }.then { ModifiableState(modifiableState, JSON.stringify(it)) }
 }
 
 private fun recoverCommandStates(
     modifiableState: ModifiableState,
     jenkinsBaseUrl: String
-): Promise<ModifiableState> {
+): Promise<ReleasePlanJson> {
     val releasePlanJson = JSON.parse<ReleasePlanJson>(modifiableState.json)
     val promises = modifiableState.releasePlan.iterator().asSequence().map { project ->
         val lazyProjectJson by lazy {
@@ -75,7 +77,7 @@ private fun recoverCommandStates(
         Promise.all(promises.toTypedArray())
     }
     return Promise.all(promises.toList().toTypedArray()).then {
-        ModifiableState(modifiableState, JSON.stringify(releasePlanJson))
+        releasePlanJson
     }
 }
 
@@ -92,7 +94,7 @@ private fun recoverStateQueueing(
     lazyProjectJson: ProjectJson,
     index: Int
 ): Promise<*> {
-    return if (command is M2ReleaseCommand) {
+    return if (command is JenkinsCommand) {
         val usernameAndApiToken = UsernameTokenRegistry.forHostOrThrow(jenkinsBaseUrl)
         issueCrumb(jenkinsBaseUrl, usernameAndApiToken).then { authData ->
             val jobExecutionData = recoverJobExecutionData(modifiableState, project, command)

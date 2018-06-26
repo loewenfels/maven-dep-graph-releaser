@@ -135,13 +135,15 @@ class Menu(
         initExportButtons(modifiableState)
 
         val releasePlan = modifiableState.releasePlan
-        when (releasePlan.state) {
+        return when (releasePlan.state) {
             ReleaseState.READY -> Unit /* nothing to do */
             ReleaseState.IN_PROGRESS -> dispatchProcessStart()
             ReleaseState.FAILED, ReleaseState.SUCCEEDED -> {
                 dispatchProcessStart()
                 dispatchProcessEnd(success = releasePlan.state == ReleaseState.SUCCEEDED)
             }
+            //TODO disable all toggle and fields, contextMenu etc.
+            ReleaseState.WATCHING -> Unit
         }
     }
 
