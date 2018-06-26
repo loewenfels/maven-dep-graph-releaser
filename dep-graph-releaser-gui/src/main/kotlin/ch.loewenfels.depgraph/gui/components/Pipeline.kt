@@ -251,6 +251,7 @@ class Pipeline(private val modifiableState: ModifiableState, private val menu: M
         const val STATE_READY = "Ready to be queued for execution."
         const val STATE_READY_TO_BE_TRIGGER = "Ready to be re-scheduled"
         const val STATE_QUEUEING = "Currently queueing the job."
+        private const val STATE_RE_POLLING = "Job is being re-polled."
         const val STATE_IN_PROGRESS = "Job is running."
         const val STATE_SUCCEEDED = "Job completed successfully."
         const val STATE_FAILED = "Job failed - click to navigate to console."
@@ -342,6 +343,7 @@ class Pipeline(private val modifiableState: ModifiableState, private val menu: M
             CommandState.Ready -> "ready"
             CommandState.ReadyToReTrigger -> "readyToReTrigger"
             CommandState.Queueing -> "queueing"
+            CommandState.RePolling -> "rePolling"
             CommandState.InProgress -> "inProgress"
             CommandState.Succeeded -> "succeeded"
             is CommandState.Failed -> "failed"
@@ -354,6 +356,7 @@ class Pipeline(private val modifiableState: ModifiableState, private val menu: M
             CommandState.Ready -> STATE_READY
             CommandState.ReadyToReTrigger -> STATE_READY_TO_BE_TRIGGER
             CommandState.Queueing -> STATE_QUEUEING
+            CommandState.RePolling -> STATE_RE_POLLING
             CommandState.InProgress -> STATE_IN_PROGRESS
             CommandState.Succeeded -> STATE_SUCCEEDED
             CommandState.Failed -> STATE_FAILED

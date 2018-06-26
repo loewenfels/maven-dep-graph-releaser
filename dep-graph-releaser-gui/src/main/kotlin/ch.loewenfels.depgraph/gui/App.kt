@@ -1,5 +1,6 @@
 package ch.loewenfels.depgraph.gui
 
+import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.ReleaseState
 import ch.loewenfels.depgraph.gui.actions.Downloader

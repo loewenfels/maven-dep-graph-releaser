@@ -17,6 +17,7 @@ object CommandStateAdapter {
         is CommandState.Ready -> CommandStateJson(READY)
         is CommandState.ReadyToReTrigger -> CommandStateJson(READY_TO_RE_TRIGGER)
         is CommandState.Queueing -> CommandStateJson(QUEUEING)
+        is CommandState.RePolling -> CommandStateJson(RE_POLLING)
         is CommandState.InProgress -> CommandStateJson(IN_PROGRESS)
         is CommandState.Succeeded -> CommandStateJson(SUCCEEDED)
         is CommandState.Failed -> CommandStateJson(FAILED)

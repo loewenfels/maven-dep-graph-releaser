@@ -76,6 +76,9 @@ object SerializerSpec : Spek({
         val states = listOf(
             CommandState.Waiting(setOf(aId, DummyProjectId("x"), DummyProjectId("z"))),
             CommandState.Ready,
+            CommandState.ReadyToReTrigger,
+            CommandState.Queueing,
+            CommandState.RePolling,
             CommandState.InProgress,
             CommandState.Succeeded,
             CommandState.Failed,

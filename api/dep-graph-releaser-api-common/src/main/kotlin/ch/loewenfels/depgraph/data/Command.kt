@@ -45,6 +45,10 @@ sealed class CommandState {
     object Queueing : CommandState()
 
     object InProgress : CommandState()
+    /**
+     * Command has to be re-polled, meaning it has to be turned into InProgress again.
+     */
+    object RePolling : CommandState()
     object Succeeded : CommandState()
     object Failed : CommandState()
     data class Deactivated(val previous: CommandState) : CommandState()
@@ -79,6 +83,7 @@ sealed class CommandState {
             }
             Queueing -> checkNewStateIsAfter(newState, Ready::class, ReadyToReTrigger::class)
             InProgress -> checkNewStateIsAfter(newState, Queueing::class)
+            RePolling -> checkNewStateIsAfter(newState, InProgress::class)
             Succeeded -> checkNewStateIsAfter(newState, InProgress::class)
         }
         return newState

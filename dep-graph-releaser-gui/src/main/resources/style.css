@@ -377,6 +377,7 @@ input:disabled {
 .command.ready > .fields > .toggle,
 .command.readyToReTrigger > .fields > .toggle,
 .command.queueing > .fields > .toggle,
+.command.rePolling > .fields > .toggle,
 .command.inProgress > .fields > .toggle,
 .command.succeeded > .fields > .toggle,
 .command.failed > .fields > .toggle,
@@ -412,6 +413,7 @@ input:disabled {
     content: 'playlist_add';
 }
 
+.command.rePolling > .fields > .state,
 .command.inProgress > .fields > .state {
     cursor: pointer;
     display: inline-block;
@@ -428,6 +430,14 @@ input:disabled {
 }
 .command.inProgress > .fields > .state .material-icons span::after {
     content: 'play_arrow';
+}
+.command.rePolling .state {
+    -moz-transform: scale(-1, 1);
+    -webkit-transform: scale(-1, 1);
+    transform: scale(-1, 1);
+}
+.command.rePolling > .fields > .state .material-icons span::after {
+    content: 'reply';
 }
 
 .command.succeeded > .fields > .state .material-icons span::after,

@@ -18,6 +18,7 @@ data class CommandStateJson(
         READY,
         READY_TO_RE_TRIGGER,
         QUEUEING,
+        RE_POLLING,
         IN_PROGRESS,
         SUCCEEDED,
         FAILED,
@@ -31,6 +32,7 @@ fun fromJson(json: CommandStateJson): CommandState = when (json.state) {
     READY -> CommandState.Ready
     READY_TO_RE_TRIGGER -> CommandState.ReadyToReTrigger
     QUEUEING -> CommandState.Queueing
+    RE_POLLING -> CommandState.RePolling
     IN_PROGRESS -> CommandState.InProgress
     SUCCEEDED -> CommandState.Succeeded
     FAILED -> CommandState.Failed
