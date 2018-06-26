@@ -47,7 +47,7 @@ object SerializerSpec : Spek({
         val releasePlanWithCommandsAndDependents = ReleasePlan(
             "releaseId",
             ReleaseState.READY,
-            TypeOfRun.SIMULATION,
+            TypeOfRun.EXPLORE,
             projectWithCommandsAndDependents.id,
             mapOf(
                 projectWithCommandsAndDependents.id to projectWithCommandsAndDependents,

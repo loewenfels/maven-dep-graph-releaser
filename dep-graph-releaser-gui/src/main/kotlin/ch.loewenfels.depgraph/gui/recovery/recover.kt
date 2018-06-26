@@ -121,7 +121,7 @@ private fun recoverJobExecutionData(
 ): JobExecutionData {
     val jobExecutionDataFactory = when (modifiableState.releasePlan.typeOfRun) {
         TypeOfRun.DRY_RUN -> modifiableState.dryRunExecutionDataFactory
-        TypeOfRun.RELEASE, TypeOfRun.SIMULATION -> modifiableState.releaseJobExecutionDataFactory
+        TypeOfRun.RELEASE, TypeOfRun.EXPLORE -> modifiableState.releaseJobExecutionDataFactory
     }
     return jobExecutionDataFactory.create(project, command)
 }

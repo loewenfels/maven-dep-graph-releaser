@@ -149,11 +149,11 @@ class Menu(
     private fun restartProcess(modifiableState: ModifiableState, dependencies: Dependencies?) {
         if (dependencies != null) {
             when (modifiableState.releasePlan.typeOfRun) {
-                TypeOfRun.SIMULATION -> startExploration(modifiableState, dependencies)
+                TypeOfRun.EXPLORE -> startExploration(modifiableState, dependencies)
                 TypeOfRun.DRY_RUN -> startDryRun(modifiableState, dependencies)
                 TypeOfRun.RELEASE -> startRelease(modifiableState, dependencies)
             }
-        } else if (modifiableState.releasePlan.typeOfRun == TypeOfRun.SIMULATION) {
+        } else if (modifiableState.releasePlan.typeOfRun == TypeOfRun.EXPLORE) {
             startExploration(modifiableState, null)
         }
     }
@@ -288,7 +288,7 @@ class Menu(
             nonNullDependencies,
             nonNullDependencies.simulatingJobExecutor,
             modifiableState.releaseJobExecutionDataFactory,
-            TypeOfRun.SIMULATION
+            TypeOfRun.EXPLORE
         ).finally {
             //reset to null in case it was not defined previously
             publisher = dependencies?.publisher
@@ -687,7 +687,7 @@ class Menu(
 
         fun getCurrentRunData(): Triple<String, HTMLElement, HTMLElement> {
             return when (modifiableState.releasePlan.typeOfRun) {
-                TypeOfRun.SIMULATION -> Triple(
+                TypeOfRun.EXPLORE -> Triple(
                     "Explore Release Order",
                     exploreButton,
                     elementById("explore:text")
