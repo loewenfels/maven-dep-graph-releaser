@@ -66,12 +66,19 @@ private fun recoverCommandStates(
             // we could get rid of the save after state queueing if we implement recovery from state ready.
             // Nah... then we wouldn't save anything anymore which is bad as well (we have to save from time
             // to time :D). But I think there is potential here to reduce the number of publishes per pipeline.
-                CommandState.Ready -> TODO("Not yet supported")
-                CommandState.Queueing -> recoverStateQueueing(
+                is CommandState.Ready -> Promise.resolve(Unit)
+                is CommandState.Queueing -> recoverStateQueueing(
                     modifiableState, jenkinsBaseUrl, project, command, lazyProjectJson, index
                 )
-                CommandState.InProgress -> recoverStateTo(lazyProjectJson, index, CommandStateJson.State.RE_POLLING)
-                else -> Promise.resolve(Unit)
+                is CommandState.InProgress -> recoverStateTo(lazyProjectJson, index, CommandStateJson.State.RE_POLLING)
+
+                is CommandState.Waiting,
+                is CommandState.ReadyToReTrigger,
+                is CommandState.RePolling,
+                is CommandState.Succeeded,
+                is CommandState.Failed,
+                is CommandState.Deactivated,
+                is CommandState.Disabled -> Promise.resolve(Unit)
             }
         }
         Promise.all(promises.toTypedArray())

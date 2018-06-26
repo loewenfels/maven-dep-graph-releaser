@@ -4,7 +4,7 @@ import ch.loewenfels.depgraph.regex.noneOrSomeChars
 
 fun createParameterRegexPattern(parameters: Map<String, String>): String
     = parameters.entries.joinToString(noneOrSomeChars) { (k, v) ->
-        "<parameter>$noneOrSomeChars" +
+        "<parameter$noneOrSomeChars" +
             "<name>$k</name>$noneOrSomeChars" +
             "<value>$v</value>$noneOrSomeChars" +
             "</parameter>$noneOrSomeChars"
