@@ -5,6 +5,7 @@ import ch.loewenfels.depgraph.data.*
 import ch.loewenfels.depgraph.data.maven.MavenProjectId
 import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsCommand
 import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
+import ch.loewenfels.depgraph.data.serialization.toJson
 import ch.loewenfels.depgraph.gui.Gui
 import ch.loewenfels.depgraph.gui.components.Pipeline
 import ch.loewenfels.depgraph.gui.elementById
@@ -146,7 +147,7 @@ object ChangeApplier {
 
         if (previousState::class != newState::class) {
             val stateObject = js("({})")
-            stateObject.state = newState::class.simpleName
+            stateObject.state = toJson(newState).state.name
             if (newState is CommandState.Deactivated) {
                 stateObject.previous = command.state
             }

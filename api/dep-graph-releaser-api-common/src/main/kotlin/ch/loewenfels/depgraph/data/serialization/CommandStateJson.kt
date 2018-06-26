@@ -27,6 +27,19 @@ data class CommandStateJson(
     }
 }
 
+fun toJson(state: CommandState) : CommandStateJson = when (state) {
+    is CommandState.Waiting -> CommandStateJson(WAITING, state.dependencies)
+    is CommandState.Ready -> CommandStateJson(READY)
+    is CommandState.ReadyToReTrigger -> CommandStateJson(READY_TO_RE_TRIGGER)
+    is CommandState.Queueing -> CommandStateJson(QUEUEING)
+    is CommandState.RePolling -> CommandStateJson(RE_POLLING)
+    is CommandState.InProgress -> CommandStateJson(IN_PROGRESS)
+    is CommandState.Succeeded -> CommandStateJson(SUCCEEDED)
+    is CommandState.Failed -> CommandStateJson(FAILED)
+    is CommandState.Deactivated -> CommandStateJson(DEACTIVATED, toJson(state.previous))
+    is CommandState.Disabled -> CommandStateJson(DISABLED)
+}
+
 fun fromJson(json: CommandStateJson): CommandState = when (json.state) {
     WAITING -> CommandState.Waiting(json.dependencies ?: throwIllegal("dependencies", WAITING.name))
     READY -> CommandState.Ready
