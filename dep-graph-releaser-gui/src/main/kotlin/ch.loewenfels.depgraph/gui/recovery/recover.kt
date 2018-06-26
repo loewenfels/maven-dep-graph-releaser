@@ -5,12 +5,14 @@ import ch.loewenfels.depgraph.data.maven.jenkins.M2ReleaseCommand
 import ch.loewenfels.depgraph.data.serialization.CommandStateJson
 import ch.loewenfels.depgraph.gui.App
 import ch.loewenfels.depgraph.gui.jobexecution.*
+import ch.loewenfels.depgraph.gui.jobexecution.BuilderNumberExtractor.Companion.numberRegex
 import ch.loewenfels.depgraph.gui.serialization.ModifiableState
 import ch.loewenfels.depgraph.gui.serialization.ProjectJson
 import ch.loewenfels.depgraph.gui.serialization.ReleasePlanJson
 import ch.loewenfels.depgraph.gui.serialization.deserializeProjectId
 import ch.loewenfels.depgraph.gui.showDialog
 import ch.loewenfels.depgraph.gui.showInfo
+import kotlin.browser.window
 import kotlin.js.Promise
 
 
@@ -77,6 +79,11 @@ private fun recoverCommandStates(
     }
 }
 
+private fun recoverStateTo(lazyProjectJson: ProjectJson, index: Int, state: CommandStateJson.State): Promise<*> {
+    lazyProjectJson.commands[index].p.state.asDynamic().state = state.name
+    return Promise.resolve(Unit)
+}
+
 private fun recoverStateQueueing(
     modifiableState: ModifiableState,
     jenkinsBaseUrl: String,
@@ -89,8 +96,8 @@ private fun recoverStateQueueing(
         val usernameAndApiToken = UsernameTokenRegistry.forHostOrThrow(jenkinsBaseUrl)
         issueCrumb(jenkinsBaseUrl, usernameAndApiToken).then { authData ->
             val jobExecutionData = recoverJobExecutionData(modifiableState, project, command)
-            val buildUrl = command.buildUrl
-            extractBuildNumber(buildUrl, authData, jobExecutionData).then { buildNumber ->
+            val nullableQueuedItemUrl = command.buildUrl
+            extractBuildNumber(nullableQueuedItemUrl, authData, jobExecutionData).then { buildNumber ->
                 lazyProjectJson.commands[index].p.asDynamic().buildUrl = jobExecutionData.jobBaseUrl + buildNumber
                 recoverStateTo(lazyProjectJson, index, CommandStateJson.State.RE_POLLING)
             }.catch {
@@ -117,7 +124,39 @@ private fun recoverJobExecutionData(
     return jobExecutionDataFactory.create(project, command)
 }
 
-private fun recoverStateTo(lazyProjectJson: ProjectJson, index: Int, state: CommandStateJson.State): Promise<*> {
-    lazyProjectJson.commands[index].p.state.asDynamic().state = state.name
-    return Promise.resolve(Unit)
+fun extractBuildNumber(
+    nullableQueuedItemUrl: String?,
+    authData: AuthData,
+    jobExecutionData: JobExecutionData
+): Promise<Promise<Int>> {
+    return recoverBuildNumberFromQueue(nullableQueuedItemUrl, authData).then { nullableBuildNumber ->
+        if (nullableBuildNumber == null) {
+            BuildHistoryBasedBuildNumberExtractor(authData, jobExecutionData).extract()
+        } else {
+            Promise.resolve(nullableBuildNumber)
+        }
+    }
 }
+
+private fun recoverBuildNumberFromQueue(
+    nullableQueuedItemUrl: String?,
+    authData: AuthData
+): Promise<Int?> {
+    return if (nullableQueuedItemUrl != null) {
+        val headers = createHeaderWithAuthAndCrumb(authData)
+        val init = createGetRequest(headers)
+        window.fetch(nullableQueuedItemUrl, init)
+            .then(::checkStatusOk)
+            .then { (_, body) ->
+                numberRegex.find(body)?.groupValues?.get(1)?.toInt()
+            }.then { it }
+            .catch {
+                // might well be that we get a 404 because the item is no longer in the queue
+                // (the job is already being executed) => we return null so that we recover it from the build history
+                null
+            }
+    } else {
+        Promise.resolve(null as Int?)
+    }
+}
+
