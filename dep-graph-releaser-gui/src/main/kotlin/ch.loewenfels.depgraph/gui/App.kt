@@ -3,6 +3,7 @@ package ch.loewenfels.depgraph.gui
 import ch.loewenfels.depgraph.data.CommandState
 import ch.loewenfels.depgraph.data.ReleasePlan
 import ch.loewenfels.depgraph.data.ReleaseState
+import ch.loewenfels.depgraph.data.serialization.CommandStateJson
 import ch.loewenfels.depgraph.gui.actions.Downloader
 import ch.loewenfels.depgraph.gui.actions.Publisher
 import ch.loewenfels.depgraph.gui.actions.Releaser
@@ -10,6 +11,8 @@ import ch.loewenfels.depgraph.gui.components.Loader
 import ch.loewenfels.depgraph.gui.components.Menu
 import ch.loewenfels.depgraph.gui.jobexecution.*
 import ch.loewenfels.depgraph.gui.serialization.ModifiableState
+import ch.loewenfels.depgraph.gui.serialization.ReleasePlanJson
+import ch.loewenfels.depgraph.gui.serialization.deserializeProjectId
 import ch.loewenfels.depgraph.parseRemoteRegex
 import org.w3c.fetch.Response
 import kotlin.browser.window
@@ -69,14 +72,13 @@ class App {
                     }
                     promise.then { modifiableState }
                 }.then { modifiableState ->
-
                     val promise = if (modifiableState.releasePlan.state == ReleaseState.IN_PROGRESS) {
                         Loader.updateToRecoverOngoingProcess()
                         recoverInProgress(modifiableState)
                     } else {
-                        Promise.resolve(Unit)
+                        Promise.resolve(modifiableState)
                     }
-                    promise.then { modifiableState }
+                    promise
                 }.then { modifiableState ->
                     Loader.updateToLoadPipeline()
                     Gui(modifiableState, menu)
@@ -140,9 +142,24 @@ class App {
     }
 
 
-    private fun recoverInProgress(modifiableState: ModifiableState): Promise<Unit> {
-        showWarning("ReleaseState is IN_PROGRESS, we do not support recovery from an ongoing process yet.")
-        return Promise.resolve(Unit)
+    private fun recoverInProgress(modifiableState: ModifiableState): Promise<ModifiableState> {
+        return showDialog(
+            """
+            |You have opened a pipeline which is in state ${ReleaseState.IN_PROGRESS.name}.
+            |Are you the release manager and would like to recover the ongoing process?
+            |
+            |Extra information: By clicking 'Yes' the dep-graph-releaser will check if the current state of the individual commands is still appropriate and update if necessary. Furthermore, it will resume the process meaning it will trigger dependent jobs if a job finishes. Or in other words, it will look like you have never left this page.
+            |
+            |Do not click 'Yes' (but 'No') if you (or some else) have started the release process in another tab/browser since otherwise dependent jobs will be triggered multiple times.
+            """.trimMargin()
+        ).then { isReleaseManager ->
+            if (!isReleaseManager) {
+                showInfo("We do not yet support tracking of a release process at the moment. Which means, what you see above is only a state of the process but the process as such has likely progressed already." +
+                    "\nPlease open a feature request $GITHUB_NEW_ISSUE if you have the need of tracking a release (which runs in another tab/browser).")
+                return@then modifiableState
+            }
+            modifiableState
+        }
     }
 
     private fun switchLoaderWithPipeline() {
