@@ -59,18 +59,29 @@ class Pipeline(private val modifiableState: ModifiableState, private val menu: M
                 }
             }
         }
+        updateStatus(releasePlan, set)
+    }
+
+    private fun updateStatus(
+        releasePlan: ReleasePlan,
+        set: HashSet<ProjectId>
+    ) {
         val involvedProjects = set.size
         val status = elementById("status")
         status.innerText = "Projects involved: $involvedProjects"
         val numOfSubmodules = releasePlan.getProjects().count { it.isSubmodule }
-        status.title = "multi-module/single Projects: ${involvedProjects - numOfSubmodules}, submodules: $numOfSubmodules"
+        val numOfMultiModules = involvedProjects - numOfSubmodules
+        status.title =
+            "multi-module/single Projects: $numOfMultiModules, submodules: $numOfSubmodules"
         if (involvedProjects != releasePlan.getNumberOfProjects()) {
-            showError("""
-                |Not all dependent projects are involved in the process.
-                |Please report a bug: $GITHUB_NEW_ISSUE
-                |The following projects where left out of the analysis:
-                |${(releasePlan.getProjectIds() - set).joinToString("\n") { it.identifier }}
-            """.trimMargin())
+            showError(
+                """
+                    |Not all dependent projects are involved in the process.
+                    |Please report a bug: $GITHUB_NEW_ISSUE
+                    |The following projects where left out of the analysis:
+                    |${(releasePlan.getProjectIds() - set).joinToString("\n") { it.identifier }}
+                """.trimMargin()
+            )
         }
     }
 
