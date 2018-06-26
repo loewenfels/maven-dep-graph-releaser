@@ -1,6 +1,7 @@
 package ch.loewenfels.depgraph.gui.actions
 
 import ch.loewenfels.depgraph.data.*
+import ch.loewenfels.depgraph.data.maven.jenkins.JenkinsCommand
 import ch.loewenfels.depgraph.gui.*
 import ch.loewenfels.depgraph.gui.components.Menu
 import ch.loewenfels.depgraph.gui.components.Pipeline
@@ -45,7 +46,9 @@ class Releaser(
     }
 
     private fun release(paramObject: ParamObject): Promise<Boolean> {
-        Pipeline.changeReleaseState(ReleaseState.IN_PROGRESS)
+        if (modifiableState.releasePlan.state != ReleaseState.IN_PROGRESS) {
+            Pipeline.changeReleaseState(ReleaseState.IN_PROGRESS)
+        }
         return releaseProject(paramObject)
             .then {
                 val (result, newState) = checkProjectStates(paramObject)
@@ -204,6 +207,8 @@ class Releaser(
         val state = Pipeline.getCommandState(paramObject.project.id, index)
         return if (state === CommandState.Ready || state === CommandState.ReadyToReTrigger) {
             triggerCommand(paramObject, command, index)
+        } else if (state === CommandState.RePolling) {
+            rePollCommand(paramObject, command, index)
         } else {
             Promise.resolve(state)
         }
@@ -212,6 +217,38 @@ class Releaser(
     private fun triggerCommand(paramObject: ParamObject, command: Command, index: Int): Promise<CommandState> {
         val jobExecutionData = paramObject.jobExecutionDataFactory.create(paramObject.project, command)
         return triggerJob(paramObject, index, jobExecutionData)
+    }
+
+    private fun rePollCommand(
+        paramObject: ParamObject,
+        command: Command,
+        index: Int
+    ): Promise<CommandState> {
+        if (command !is JenkinsCommand) {
+            throw IllegalStateException("We do not know how to re-poll a non Jenkins command.\nGiven Command: $command")
+        }
+        val buildUrl = command.buildUrl
+            ?: throw IllegalStateException("We do not know how to re-poll a non Jenkins command if it has a specified build url.\nGiven Command: $command")
+
+        val jobExecutionData = paramObject.jobExecutionDataFactory.create(paramObject.project, command)
+        val buildNumber = buildUrl.substringAfter(jobExecutionData.jobBaseUrl).substringBefore("/").toInt()
+        return paramObject.jobExecutor.rePoll(
+            jobExecutionData,
+            buildNumber,
+            POLL_EVERY_SECOND,
+            MAX_WAIT_FOR_COMPLETION
+        ).finalizeJob(paramObject, jobExecutionData, index)
+    }
+
+    private fun Promise<*>.finalizeJob(
+        paramObject: ParamObject,
+        jobExecutionData: JobExecutionData,
+        index: Int
+    ): Promise<CommandState> {
+        return this.then(
+            onFulfilled = { onJobEndedSuccessFully(paramObject.project, index) },
+            onRejected = { t -> onJobEndedWithFailure(t, jobExecutionData, paramObject.project, index) }
+        )
     }
 
     private fun triggerJob(
@@ -242,37 +279,44 @@ class Releaser(
                 )
                 Promise.resolve(1)
             },
-            pollEverySecond = 5,
-            maxWaitingTimeForCompletenessInSeconds = 60 * 15,
+            POLL_EVERY_SECOND,
+            MAX_WAIT_FOR_COMPLETION,
             verbose = false
-        ).then(
-            onFulfilled = {
-                Pipeline.changeStateOfCommand(project, index, CommandState.Succeeded, Pipeline.STATE_SUCCEEDED)
-                CommandState.Succeeded
-            },
-            onRejected = { t ->
-                showThrowable(Error("Job ${jobExecutionData.jobName} failed", t))
-                val state = elementById<HTMLAnchorElement>(
-                    "${Pipeline.getCommandId(project, index)}${Pipeline.STATE_SUFFIX}"
-                )
-                val href = if (!state.href.endsWith(endOfConsoleUrlSuffix)) {
-                    state.href + endOfConsoleUrlSuffix
-                } else {
-                    state.href
-                }
-                Pipeline.changeStateOfCommandAndAddBuildUrl(
-                    project,
-                    index,
-                    CommandState.Failed,
-                    Pipeline.STATE_FAILED,
-                    href
-                )
-                CommandState.Failed
+        ).finalizeJob(paramObject, jobExecutionData, index)
+            .then { state ->
+                changeCursorBackToNormal()
+                state
             }
-        ).then { state ->
-            changeCursorBackToNormal()
-            state
+    }
+
+    private fun onJobEndedSuccessFully(project: Project, index: Int): CommandState {
+        Pipeline.changeStateOfCommand(project, index, CommandState.Succeeded, Pipeline.STATE_SUCCEEDED)
+        return CommandState.Succeeded
+    }
+
+    private fun onJobEndedWithFailure(
+        t: Throwable,
+        jobExecutionData: JobExecutionData,
+        project: Project,
+        index: Int
+    ): CommandState {
+        showThrowable(Error("Job ${jobExecutionData.jobName} failed", t))
+        val state = elementById<HTMLAnchorElement>(
+            "${Pipeline.getCommandId(project, index)}${Pipeline.STATE_SUFFIX}"
+        )
+        val href = if (!state.href.endsWith(endOfConsoleUrlSuffix)) {
+            state.href + endOfConsoleUrlSuffix
+        } else {
+            state.href
         }
+        Pipeline.changeStateOfCommandAndAddBuildUrl(
+            project,
+            index,
+            CommandState.Failed,
+            Pipeline.STATE_FAILED,
+            href
+        )
+        return CommandState.Failed
     }
 
     private fun quietSave(paramObject: ParamObject, verbose: Boolean = false): Promise<Unit> {
@@ -289,6 +333,11 @@ class Releaser(
                 // we ignore if a save fails at this point,
                 // the next command performs a save as well and we track if the final save fails
             }
+    }
+
+    companion object {
+        const val POLL_EVERY_SECOND = 5
+        const val MAX_WAIT_FOR_COMPLETION = 60 * 15
     }
 
     private data class ParamObject(

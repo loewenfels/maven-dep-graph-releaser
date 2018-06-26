@@ -13,6 +13,13 @@ interface JobExecutor {
         verbose: Boolean = true
     ): Promise<Pair<AuthData, Int>>
 
+    fun rePoll(
+        jobExecutionData: JobExecutionData,
+        buildNumber: Int,
+        pollEverySecond: Int,
+        maxWaitingTimeForCompletenessInSeconds: Int
+    ): Promise<Pair<AuthData, Int>>
+
     fun pollAndExtract(
         authData: AuthData,
         url: String,
