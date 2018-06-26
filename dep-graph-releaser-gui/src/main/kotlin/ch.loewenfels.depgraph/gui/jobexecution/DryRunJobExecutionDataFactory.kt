@@ -95,7 +95,7 @@ class DryRunJobExecutionDataFactory(
     }
 
     private fun isFirstTriggeredCommand(project: Project): Boolean {
-        if(project.isSubmodule) return isFirstTriggeredCommand(searchTopMultiModule(project.id))
+        if (project.isSubmodule) return isFirstTriggeredCommand(searchTopMultiModule(project.id))
         return !commandRanOnProjectOrSubmodules(project)
     }
 
@@ -105,8 +105,8 @@ class DryRunJobExecutionDataFactory(
             .let { if(it != null) searchTopMultiModule(it.key) else releasePlan.getProject(projectId) }
 
     private fun commandRanOnProjectOrSubmodules(project: Project): Boolean {
-        var commandAlreadyRan = project.commands.withIndex().any { (index, _) ->
-            val state = Pipeline.getCommandState(project.id, index)
+        var commandAlreadyRan = project.commands.withIndex().any { (index, command) ->
+            val state = getState(project, index, command)
             state === CommandState.Succeeded || state === CommandState.Failed
         }
         val submodules = releasePlan.getSubmodules(project.id)
@@ -114,6 +114,18 @@ class DryRunJobExecutionDataFactory(
             commandRanOnProjectOrSubmodules(releasePlan.getProject(it))
         })
         return commandAlreadyRan
+    }
+
+    private fun getState(
+        project: Project,
+        index: Int,
+        command: Command
+    ): CommandState {
+        return if (releasePlan.state != ReleaseState.IN_PROGRESS) {
+            Pipeline.getCommandState(project.id, index)
+        } else {
+            command.state
+        }
     }
 
     private fun createJobExecutionData(
