@@ -27,7 +27,7 @@ fun recover(modifiableState: ModifiableState, defaultJenkinsBaseUrl: String?): P
 
     return showDialog(
         """
-            |You have opened a pipeline which is in state ${ReleaseState.IN_PROGRESS.name}.
+            |You have opened a pipeline which is in state ${ReleaseState.IN_PROGRESS.name} currently executing '${modifiableState.releasePlan.typeOfRun.toProcessName()}' for root project ${modifiableState.releasePlan.rootProjectId.identifier}.
             |Are you the release manager and would like to recover the ongoing process?
             |
             |Extra information: By clicking 'Yes' the dep-graph-releaser will check if the current state of the individual commands is still appropriate and update if necessary. Furthermore, it will resume the process meaning it will trigger dependent jobs if a job finishes. Or in other words, it will almost look like you have never left the page.

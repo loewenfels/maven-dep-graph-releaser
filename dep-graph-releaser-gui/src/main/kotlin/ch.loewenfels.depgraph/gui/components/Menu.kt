@@ -686,23 +686,13 @@ class Menu(
 
 
         fun getCurrentRunData(): Triple<String, HTMLElement, HTMLElement> {
-            return when (modifiableState.releasePlan.typeOfRun) {
-                TypeOfRun.EXPLORE -> Triple(
-                    "Explore Release Order",
-                    exploreButton,
-                    elementById("explore:text")
-                )
-                TypeOfRun.DRY_RUN -> Triple(
-                    "Dry Run",
-                    dryRunButton,
-                    elementById("dryRun:text")
-                )
-                TypeOfRun.RELEASE -> Triple(
-                    "Release",
-                    releaseButton,
-                    elementById("release:text")
-                )
+            val typeOfRun = modifiableState.releasePlan.typeOfRun
+            val buttonPair = when (typeOfRun) {
+                TypeOfRun.EXPLORE -> exploreButton to elementById("explore:text")
+                TypeOfRun.DRY_RUN -> dryRunButton to elementById("dryRun:text")
+                TypeOfRun.RELEASE -> releaseButton to elementById("release:text")
             }
+            return Triple(typeOfRun.toProcessName(), buttonPair.first, buttonPair.second)
         }
 
         private fun isInputFieldOfNonSuccessfulCommand(id: String): Boolean {
