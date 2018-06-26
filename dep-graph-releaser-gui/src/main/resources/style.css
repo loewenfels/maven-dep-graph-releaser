@@ -769,7 +769,7 @@ input:disabled {
     padding-right: 15px;
     color: #2196F3;
 }
-#modals .text span {
+#modals .text div {
     display: table-cell;
     vertical-align: top;
 }

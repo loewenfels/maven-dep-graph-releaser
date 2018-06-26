@@ -195,7 +195,13 @@ private fun <T> DIV.modalButton(buttonText: String, box: HTMLElement, resolve: (
 private fun showModal(
     msg: String,
     buttonCreator: DIV.(HTMLElement) -> Unit
-) = showModal({ i("material-icons") { +"help_outline" }; span { +msg } }, buttonCreator)
+) = showModal(
+    {
+        i("material-icons") { +"help_outline" }
+        div { convertNewLinesToBrTabToTwoSpacesAndParseUrls(msg) }
+    },
+    buttonCreator
+)
 
 private fun showModal(
     contentCreator: DIV.() -> Unit,
