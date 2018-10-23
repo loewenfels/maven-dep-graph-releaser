@@ -43,7 +43,7 @@ sealed class CommandState {
 
 
     @Suppress("ComplexMethod"
-        //TODO should not be too complex if ignoreSimpleWhenEntries applies, I guess is not yet available in RC8
+        //TODO should not be too complex, if ignoreSimpleWhenEntries applies, I guess is not yet available in RC8
         // check again if detekt is updated
     )
     fun checkTransitionAllowed(newState: CommandState): CommandState {
