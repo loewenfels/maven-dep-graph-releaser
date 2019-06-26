@@ -27,7 +27,7 @@ class JsonSpec : Spek({
         override fun path(path: String, fileDescription: String) = Paths.get(path)
     }
 
-    fun createArgs(tempFolder: TempFolder, mvnIds: String, regex: String): Array<String> {
+    fun createArgs(tempFolder: TempFolder, mvnIds: String, regex: String, jobMapping: String): Array<String> {
         val jsonFile = tempFolder.tmpDir.resolve("test.json")
         return arrayOf(
             Json.name, mvnIds,
@@ -41,14 +41,19 @@ class JsonSpec : Spek({
             "https://github.com/$1",
             "${Json.REGEX_PARAMS_ARG}.*#branch.name=master",
             "${Json.DISABLE_RELEASE_FOR}ch.loewenfels.*",
-            "${Json.JOB_MAPPING_ARG}com.example:project=ownJobName\ncom.example:anotherProject=another-project",
+            "${Json.JOB_MAPPING_ARG}$jobMapping",
             "${Json.COMMIT_PREFIX_ARG}[TEST]",
             "${Json.BUILD_WITH_PARAM_JOBS_ARG}$regex"
         )
     }
 
+    fun createArgs(tempFolder: TempFolder, mvnIds: String, regex: String): Array<String> =
+        createArgs(tempFolder, mvnIds, regex, "com.example:project=ownJobName\n" +
+            "com.example:anotherProject=another-project")
+
     fun createArgs(tempFolder: TempFolder, regex: String): Array<String> =
-        createArgs(tempFolder, "com.example:a;com.example:b", regex)
+        createArgs(tempFolder, "com.example:a;com.example:b", regex, "com.example:project=ownJobName\n" +
+            "com.example:anotherProject=another-project")
 
     describe("general validation errors"){
 
@@ -90,6 +95,65 @@ class JsonSpec : Spek({
         }
         //TODO write spec for non-existing directory etc.
         //given("non-existing directory") {}
+    }
+
+    describe(Json.JOB_MAPPING_ARG) {
+
+        describe("happy case") {
+
+            describe("empty param") {
+                it("does not throw IllegalArgumentException") {
+                    val args = createArgs(tempFolder, "com.example:a;com.example:b", ".*#maven#rel;nextDev;add", "")
+                    dispatch(args, errorHandler, listOf(Json))
+                }
+            }
+
+            describe("empty line") {
+                it("does not throw IllegalArgumentException") {
+                    val args = createArgs(tempFolder, "com.example:a;com.example:b", ".*#maven#rel;nextDev;add", "com:job=job2\n\ncom:job2=job3")
+                    dispatch(args, errorHandler, listOf(Json))
+                }
+            }
+        }
+
+        describe("validation errors") {
+
+            describe("missing :") {
+                it("throws IllegalArgumentException") {
+                    val args = createArgs(tempFolder, "com.example:a;com.example:b", ".*#maven#rel;nextDev;add", "job=job2")
+                    expect {
+                        dispatch(args, errorHandler, listOf(Json))
+                    }.toThrow<IllegalArgumentException> {}
+                }
+            }
+
+            describe("missing =") {
+                it("throws IllegalArgumentException") {
+                    val args = createArgs(tempFolder, "com.example:a;com.example:b", ".*#maven#rel;nextDev;add", "com:job,job2")
+                    expect {
+                        dispatch(args, errorHandler, listOf(Json))
+                    }.toThrow<IllegalArgumentException> {}
+                }
+            }
+
+            describe("missing = in second line") {
+                it("throws IllegalArgumentException") {
+                    val args = createArgs(tempFolder, "com.example:a;com.example:b", ".*#maven#rel;nextDev;add", "com:job=job2\ncom:job2,job3")
+                    expect {
+                        dispatch(args, errorHandler, listOf(Json))
+                    }.toThrow<IllegalArgumentException> {}
+                }
+            }
+
+            describe("missing = in third line") {
+                it("throws IllegalArgumentException") {
+                    val args = createArgs(tempFolder, "com.example:a;com.example:b", ".*#maven#rel;nextDev;add", "com:job=job2\n\ncom:job2,job3")
+                    expect {
+                        dispatch(args, errorHandler, listOf(Json))
+                    }.toThrow<IllegalArgumentException> {}
+                }
+            }
+        }
     }
 
     describe(Json.BUILD_WITH_PARAM_JOBS_ARG) {

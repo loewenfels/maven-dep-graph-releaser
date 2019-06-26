@@ -10,7 +10,7 @@ fun parseJobMapping(releasePlan: ReleasePlan): Map<String, String> =
 
 fun parseJobMapping(mapping: String): Map<String, String> {
     //TODO #14 do not associate immediately but first map to list and check if there are duplicates
-    return mapping.trim().split("\n").associate { pair ->
+    return mapping.trim().split("\n").filter { it.isNotEmpty() }.associate { pair ->
         val index = pair.indexOf('=')
         require(index > 0) {
             "At least one mapping has no groupId and artifactId defined.\njobMapping: $mapping"
